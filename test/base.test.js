@@ -39,7 +39,7 @@ describe('Pipeline', function() {
 		assert.equal(!pipe.run, true, 'default nothing to run');
 		assert.throws(function() {
 			pipe.compile();
-		}, /ANY STAGE FOUND/, 'must throw when thereis no stage to compile');
+		}, /ANY STAGE FOUND/, 'must throw when there is no stage to compile');
 		done();
 	});
 	it('addStage', function(done) {
