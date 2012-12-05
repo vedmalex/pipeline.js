@@ -20,7 +20,7 @@ describe('Stage', function() {
 	it('ensureContext', function(done) {
 		var stage = new Stage();
 		var ensure = 0;
-		stage.ensureContext = function() {
+		stage.ensure = function() {
 			ensure++;
 			if(typeof(callback) == 'function') callback(null, context);
 			else return context;
@@ -88,10 +88,10 @@ describe('Pipeline', function() {
 		};
 
 		var ensure = 0;
-		pipe._ensureContext = pipe.ensureContext;
-		pipe.ensureContext = function() {
+		pipe._ensure = pipe.ensure;
+		pipe.ensure = function() {
 			ensure++;
-			this._ensureContext.apply(this, arguments);	
+			this._ensure.apply(this, arguments);
 		};
 		pipe.execute(new Context());
 		assert.equal(ensure, 1, 'must ensure');
@@ -108,17 +108,17 @@ describe('Pipeline', function() {
 		var ctx1 = new Context();
 		var error = new Error('THE ERROR');
 
-		var s1 = new Stage(function(err, context, done){
+		var s1 = new Stage(function(err, context, done) {
 			assert.equal(context, ctx1, 'context must be passed to s1');
 			context.s1 = true;
 			done();
 		});
-		var s2 = new Stage(function(err, context, done){
+		var s2 = new Stage(function(err, context, done) {
 			assert.equal(context, ctx1, 'context must be passed to s2');
 			context.s2 = true;
 			done(error);
 		});
-		var s3 = new Stage(function(err, context, done){
+		var s3 = new Stage(function(err, context, done) {
 			assert.equal(true, false, 's3 must not be executed at all');
 			context.s3 = true;
 			done();
@@ -127,7 +127,7 @@ describe('Pipeline', function() {
 
 		pipe.addStage(s1);
 		pipe.addStage(s2);
-		pipe.once('error', function(){
+		pipe.once('error', function() {
 			assert.equal(ctx1.hasErrors(), true, 'must has errors');
 			assert.equal(ctx1.getErrors()[0] == error, true, 'must has error');
 			assert.equal(ctx1.s1, true, 's1 pass');
@@ -138,23 +138,64 @@ describe('Pipeline', function() {
 		pipe.execute(ctx1);
 	});
 
-	it('ensure Context Error ', function(done){
+	it('ensure Context Error ', function(done) {
 		var ctx = new Context();
-		ctx.SomaValue = 1;
-		function OtherStage(){
-			Stage.call(this);		
-		}
-		util.inherits(OtherStage, Stage);
-		OtherStage.prototype.ensureContext = function(context, callback){
-			if(context.SomeValue !== 1) throw new Error('context not ready');
-			this.super_.prototype.ensureContext.apply(this, arguments);
-		};
+		ctx.SomeValue = 1;
 		var pipe = new Pipeline();
-		pipe.addStage(new OtherStage());
-		var s2 = new OtherStage();
-
+		var error = new Error('context not ready');
+		var stage1 = {
+			run: function(err, context, done) {
+				context.SomeValue += 1;
+				done();
+			},
+			ensure: function(context, callback) {
+				if(context.SomeValue !== 1) callback(error);
+				else callback(null, context);
+			}
+		};
+		pipe.addStage(new Stage(stage1));
+		var stage2 = {
+			ensure: function(context, callback) {
+				if(context.SomeValue !== 2) callback(error);
+				else callback(null, context);
+			}
+		};
+		var s2 = new Stage(stage2);
 		pipe.addStage(s2);
-		done();
+		pipe.once('done', function(err) {
+			done();
+		});
+		pipe.once('error', function(err) {
+			done();
+		});
+		pipe.execute(ctx);
+	});
 
+	it('pipeline accept only ensure', function(done) {
+		var ensure = function() {};
+		var p1 = new Pipeline(ensure);
+		assert.equal(p1.ensure != ensure, true, 'not accept ensure as function');
+		assert.equal(p1.run != ensure, true, 'not accept run at all');
+		var p2 = new Pipeline({
+			ensure: ensure,
+			run: ensure
+		});
+		assert.equal(p2.ensure === ensure, true, 'not accept ensure as function');
+		assert.equal(p2.run != ensure, true, 'not accept run at all');
+		done();
+	});
+
+	it('stage accept ensure and run', function(done) {
+		var ensure = function() {};
+		var p1 = new Stage(ensure);
+		assert.equal(p1.ensure != ensure, true, 'not accept ensure as function');
+		assert.equal(p1.run == ensure, true, 'accept only run as function');
+		var p2 = new Stage({
+			ensure: ensure,
+			run: ensure
+		});
+		assert.equal(p2.ensure === ensure, true, 'accept ensure');
+		assert.equal(p2.run === ensure, true, 'accept run');
+		done();
 	});
 });
