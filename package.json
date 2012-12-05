@@ -1,0 +1,21 @@
+{
+    "name": "pipeline.js"
+  , "description": "Pipeline.js - async workflow framework for node.js"
+  , "version": "0.0.1"
+  , "author": "Alex Vedmedenko <vedmalex@gmail.com>"
+  , "keywords": ["workflow", "async", "pipeline"]
+  , "dependencies": {
+      "twostep":"0.3.3"
+    }
+  , "devDependencies": {
+        "mocha": "1.4.2"
+      }
+  , "directories": { "lib": "./lib" }
+  , "scripts": { "test": "make test" }
+  , "main": "./index.js"
+  , "engines": { "node": ">= 0.4.0" }
+  , "repository": {
+        "type": "git"
+      , "url": "https://github.com/vedmalex/pipeline.js.git"
+    }
+}
