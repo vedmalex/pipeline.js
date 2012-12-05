@@ -105,42 +105,56 @@ describe('Pipeline', function() {
 
 	it('context catch all errors', function(done) {
 		var pipe = new Pipeline();
-		var s1 = new Stage();
-		var s2 = new Stage();
-		var s3 = new Stage();
-
 		var ctx1 = new Context();
 		var error = new Error('THE ERROR');
-		s1.execute = function(context) {
+
+		var s1 = new Stage(function(err, context, done){
 			assert.equal(context, ctx1, 'context must be passed to s1');
-			var self = this;
 			context.s1 = true;
-			self.emit('done');
-		};
-
-		s2.execute = function(context) {
+			done();
+		});
+		var s2 = new Stage(function(err, context, done){
 			assert.equal(context, ctx1, 'context must be passed to s2');
-			var self = this;
 			context.s2 = true;
-			self.emit('error', error);
-		};
-
-		s3.execute = function(context) {
+			done(error);
+		});
+		var s3 = new Stage(function(err, context, done){
 			assert.equal(true, false, 's3 must not be executed at all');
-			var self = this;
 			context.s3 = true;
-			self.emit('done');
-		};
+			done();
+		});
+
 
 		pipe.addStage(s1);
 		pipe.addStage(s2);
-		pipe.once('done', function(err, context){
-			assert.equal(err === error, true);
+		pipe.once('error', function(){
+			assert.equal(ctx1.hasErrors(), true, 'must has errors');
+			assert.equal(ctx1.getErrors()[0] == error, true, 'must has error');
 			assert.equal(ctx1.s1, true, 's1 pass');
 			assert.equal(ctx1.s2, true, 's2 pass');
 			assert.equal(ctx1.s3, undefined, 's3 not passed');
 			done();
 		});
 		pipe.execute(ctx1);
+	});
+
+	it('ensure Context Error ', function(done){
+		var ctx = new Context();
+		ctx.SomaValue = 1;
+		function OtherStage(){
+			Stage.call(this);		
+		}
+		util.inherits(OtherStage, Stage);
+		OtherStage.prototype.ensureContext = function(context, callback){
+			if(context.SomeValue !== 1) throw new Error('context not ready');
+			this.super_.prototype.ensureContext.apply(this, arguments);
+		};
+		var pipe = new Pipeline();
+		pipe.addStage(new OtherStage());
+		var s2 = new OtherStage();
+
+		pipe.addStage(s2);
+		done();
+
 	});
 });
