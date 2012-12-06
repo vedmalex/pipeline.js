@@ -2,6 +2,7 @@ var Stage = require('../').Stage;
 var Context = require('../').Context;
 var Pipeline = require('../').Pipeline;
 
+var schema = require('js-schema');
 var util = require('util');
 var assert = require('assert');
 
@@ -195,17 +196,58 @@ describe('Pipeline', function() {
 		done();
 	});
 
-	it('stage accept ensure and run', function(done) {
+	it('stage accept ensure, validate and run', function(done) {
 		var ensure = function() {};
 		var p1 = new Stage(ensure);
 		assert.equal(p1.ensure != ensure, true, 'not accept ensure as function');
+		assert.equal(p1.validate != ensure, true, 'accept only run as function');
 		assert.equal(p1.run == ensure, true, 'accept only run as function');
 		var p2 = new Stage({
 			ensure: ensure,
-			run: ensure
+			run: ensure,
+			validate: ensure
 		});
 		assert.equal(p2.ensure === ensure, true, 'accept ensure');
+		assert.equal(p2.validate === ensure, true, 'accept validate');
 		assert.equal(p2.run === ensure, true, 'accept run');
 		done();
 	});
+
+	it('use schema to override validate', function(done){
+		var type1 = schema({
+			some:Object,
+			other:String
+		});
+		var stg = new Stage({validate:type1});
+		var replaced = stg.validate !== Stage.prototype.validate;
+		assert.equal(replaced, true, 'validate method must be replaced');
+		done();
+	});
+
+	it('valid context proceeed execution', function(done){
+		var type1 = schema({
+			some:Object,
+			other:String
+		});
+		var stg = new Stage({validate:type1});
+		var ctx = new Context({some:{}, other:'other'});
+		stg.once('done', function(){
+			done();
+		});
+		stg.execute(ctx);
+	});
+	
+	it('invalid context fails execution', function(done){
+		var type1 = schema({
+			some:Object,
+			other:Number
+		});
+		var stg = new Stage({validate:type1});
+		var ctx = new Context({some:{}, other:'other'});
+		stg.once('error', function(err){
+			done();
+		});
+		stg.execute(ctx);
+	});
+
 });
