@@ -31,6 +31,16 @@ describe('Stage', function() {
 	});
 });
 
+describe('Context', function(){
+	it('copy config', function(done){
+		var config = {config:{some:1}, notConfig:2};
+		var ctx = new Context(config);
+		config.config.some = 2;
+		assert.notEqual(config.config.some, ctx.config.some);
+		done();
+	});
+});
+
 describe('Pipeline', function() {
 	it('defaults', function(done) {
 		var pipe = new Pipeline();
@@ -105,7 +115,7 @@ describe('Pipeline', function() {
 
 	it('context catch all errors', function(done) {
 		var pipe = new Pipeline();
-		var ctx1 = new Context();
+		var ctx1 = new Context({s1:false, s2:false, s3:false});
 		var error = new Error('THE ERROR');
 
 		var s1 = new Stage(function(err, context, done) {
@@ -132,7 +142,7 @@ describe('Pipeline', function() {
 			assert.equal(ctx1.getErrors()[0] == error, true, 'must has error');
 			assert.equal(ctx1.s1, true, 's1 pass');
 			assert.equal(ctx1.s2, true, 's2 pass');
-			assert.equal(ctx1.s3, undefined, 's3 not passed');
+			assert.equal(ctx1.s3, false, 's3 not passed');
 			done();
 		});
 		pipe.execute(ctx1);
