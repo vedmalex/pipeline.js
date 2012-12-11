@@ -32,14 +32,56 @@ describe('Stage', function() {
 	});
 });
 
-describe('Context', function(){
-	it('copy config', function(done){
-		var config = {config:{some:1}, notConfig:2};
+describe('Context', function() {
+	it('default empty', function(done){
+		var ctx = new Context();
+		assert.equal(ctx.$$$parent === undefined, true, "MUST BE EMPTY");
+		assert.equal(ctx.$$$errors === undefined, true, "MUST BE EMPTY");
+		assert.equal(ctx.$$$childs === undefined, true, "MUST BE EMPTY");
+		done();
+	});
+
+	it('copy config', function(done) {
+		var config = {
+			config: {
+				some: 1
+			},
+			notConfig: 2
+		};
 		var ctx = new Context(config);
 		config.config.some = 2;
 		assert.notEqual(config.config.some, ctx.config.some);
 		done();
 	});
+
+	it('fork getChilds', function(done) {
+		var childs = new Context().getChilds();
+		assert.equal(childs.length, 0, "MUST BE EQUAL");
+		done();
+	});
+
+	it('fork getParent', function(done) {
+		var parent = new Context().getParent();
+		assert.equal(parent === undefined, true, "MUST BE EQUAL");
+		done();
+	});
+
+	it('fork child', function(done) {
+		var config = {
+			config: {
+				some: 1
+			},
+			notConfig: 2
+		};
+		var ctx = new Context(config);
+		var ctx2 = ctx.fork();
+		assert.equal(ctx.$$$childs.length, 1,"MUST HAVE CHILDS");
+		assert.equal(ctx.config.some, ctx2.config.some, "MUST BE EQUAL");
+		assert.equal(ctx.notConfig, ctx2.notConfig, "MUST BE EQUAL");
+		assert.equal(ctx2.getParent() === ctx, true, "parent is context");
+		done();
+	});
+
 });
 
 describe('Pipeline', function() {
@@ -116,7 +158,11 @@ describe('Pipeline', function() {
 
 	it('context catch all errors', function(done) {
 		var pipe = new Pipeline();
-		var ctx1 = new Context({s1:false, s2:false, s3:false});
+		var ctx1 = new Context({
+			s1: false,
+			s2: false,
+			s3: false
+		});
 		var error = new Error('THE ERROR');
 
 		var s1 = new Stage(function(err, context, done) {
@@ -213,41 +259,72 @@ describe('Pipeline', function() {
 		done();
 	});
 
-	it('use schema to override validate', function(done){
+	it('use schema to override validate', function(done) {
 		var type1 = schema({
-			some:Object,
-			other:String
+			some: Object,
+			other: String
 		});
-		var stg = new Stage({validate:type1});
+		var stg = new Stage({
+			validate: type1
+		});
 		var replaced = stg.validate !== Stage.prototype.validate;
 		assert.equal(replaced, true, 'validate method must be replaced');
 		done();
 	});
 
-	it('valid context proceeed execution', function(done){
+	it('valid context proceeed execution', function(done) {
 		var type1 = schema({
-			some:Object,
-			other:String
+			some: Object,
+			other: String
 		});
-		var stg = new Stage({validate:type1});
-		var ctx = new Context({some:{}, other:'other'});
-		stg.once('done', function(){
+		var stg = new Stage({
+			validate: type1
+		});
+		var ctx = new Context({
+			some: {},
+			other: 'other'
+		});
+		stg.once('done', function() {
 			done();
 		});
 		stg.execute(ctx);
 	});
-	
-	it('invalid context fails execution', function(done){
+
+	it('invalid context fails execution', function(done) {
 		var type1 = schema({
-			some:Object,
-			other:Number
+			some: Object,
+			other: Number
 		});
-		var stg = new Stage({validate:type1});
-		var ctx = new Context({some:{}, other:'other'});
-		stg.once('error', function(err){
+		var stg = new Stage({
+			validate: type1
+		});
+		var ctx = new Context({
+			some: {},
+			other: 'other'
+		});
+		stg.once('error', function(err) {
 			done();
 		});
 		stg.execute(ctx);
+	});
+
+	it('can do subclassing of Pipeline', function(done) {
+		function newPipe() {
+			Pipeline.call(this);
+			this.addStage(new Stage());
+			this.addStage(new Stage());
+			this.addStage(new Stage());
+		}
+		util.inherits(newPipe, Pipeline);
+
+		var p1 = new newPipe();
+		assert.equal(p1.stages.length, 3, 'must be by default 3');
+		var p2 = new newPipe();
+		p2.addStage(new Stage());
+		assert.equal(p2.stages.length, 4, 'must be by default 3 + 1 new');
+		var p3 = new newPipe();
+		assert.equal(p3.stages.length, 3, 'must be by default 3');
+		done();
 	});
 
 });
