@@ -1,6 +1,7 @@
 var Stage = require('../').Stage;
 var Context = require('../').Context;
 var Pipeline = require('../').Pipeline;
+var ContextFactory = require('../').ContextFactory;
 
 var schema = require('js-schema');
 var util = require('util');
@@ -33,7 +34,7 @@ describe('Stage', function() {
 });
 
 describe('Context', function() {
-	it('default empty', function(done){
+	it('default empty', function(done) {
 		var ctx = new Context();
 		assert.equal(ctx.$$$parent === undefined, true, "MUST BE EMPTY");
 		assert.equal(ctx.$$$errors === undefined, true, "MUST BE EMPTY");
@@ -41,7 +42,7 @@ describe('Context', function() {
 		done();
 	});
 
-	it('copy config', function(done) {
+	it('object must presented as links', function(done) {
 		var config = {
 			config: {
 				some: 1
@@ -49,8 +50,10 @@ describe('Context', function() {
 			notConfig: 2
 		};
 		var ctx = new Context(config);
+		ctx.notConfig = 3;
 		config.config.some = 2;
-		assert.notEqual(config.config.some, ctx.config.some);
+		assert.notEqual(config.notConfig, ctx.notConfig);
+		assert.equal(config.config.some, ctx.config.some);
 		done();
 	});
 
@@ -75,10 +78,25 @@ describe('Context', function() {
 		};
 		var ctx = new Context(config);
 		var ctx2 = ctx.fork();
-		assert.equal(ctx.$$$childs.length, 1,"MUST HAVE CHILDS");
+		assert.equal(ctx.$$$childs.length, 1, "MUST HAVE CHILDS");
 		assert.equal(ctx.config.some, ctx2.config.some, "MUST BE EQUAL");
 		assert.equal(ctx.notConfig, ctx2.notConfig, "MUST BE EQUAL");
 		assert.equal(ctx2.getParent() === ctx, true, "parent is context");
+		done();
+	});
+
+	it('all errors goes to top most Parent', function(done) {
+		var context =  new Context({
+			a: 1,
+			b: 2,
+			c: 3
+		});
+		var child = context.fork();
+		var childchild = child.fork();
+		childchild.addError(new Error());
+		assert.equal(childchild.hasErrors(), true);
+		assert.equal(child.hasErrors(), true);
+		assert.equal(context.hasErrors(), true);
 		done();
 	});
 
@@ -326,5 +344,92 @@ describe('Pipeline', function() {
 		assert.equal(p3.stages.length, 3, 'must be by default 3');
 		done();
 	});
+});
 
+describe('inheritence', function() {
+	it('override property', function(done) {
+		var ctx = {
+			db: {
+				connection: 'localhost'
+			}
+		};
+		var context = new Context({
+			age: 10,
+			num: '#1001',
+			data: new Date(1978, 10, 10),
+			context: ctx
+		});
+
+		var clone = Object.create(context);
+		clone.age = 15;
+		assert.equal(context.age, 10, 'age stays the same');
+		assert.equal(context.num, '#1001', 'num stays the same');
+		assert.equal(context.data.toString(), (new Date(1978, 10, 10)).toString(), 'date stays the same');
+		assert.equal(context.context, ctx, 'date stays the same');
+
+		done();
+	});
+});
+
+describe('Context factory', function() {
+	it('creates empty context', function(done) {
+		var context = ContextFactory();
+		assert.equal(!context, false, "MUST RETURN CONTEXT");
+		done();
+	});
+
+	it('creates childs context', function(done) {
+		var context = ContextFactory({
+			a: 1,
+			b: 2,
+			c: 3
+		});
+		var child = context.fork();
+		child.c = 4;
+		child.d = 5;
+		context.a = 0;
+		assert.equal(context.a, child.a, 'must be the same if not overrided');
+		assert.equal(context.c, 3, 'must be the same if not overrided');
+		assert.equal(child.c, 4, 'must be the same if not overrided');
+		assert.equal(context.b, child.b, 'must be the same if not overrided');
+		assert.equal(context.d === undefined, true, 'this is different objects');
+		assert.equal(context, child.getParent(), 'paren the same');
+		assert.equal(context.getChilds()[0], child);
+		done();
+	});
+
+	it('each context in child can have its own child', function(done) {
+		var context = ContextFactory({
+			a: 1,
+			b: 2,
+			c: 3
+		});
+		var child = context.fork();
+		var childchild = child.fork();
+
+		assert.equal(!context, false);
+		assert.equal(context.getChilds().length, 1);
+
+		assert.equal(!child, false);
+		assert.equal(child.getChilds().length, 1);
+
+		assert.equal(!childchild, false);
+
+		done();
+	});
+
+	it('all errors goes to top most Parent', function(done) {
+		var context = ContextFactory({
+			a: 1,
+			b: 2,
+			c: 3
+		});
+		var child = context.fork();
+		var childchild = child.fork();
+		childchild.addError(new Error());
+		assert.equal(childchild.hasErrors(), true);
+		assert.equal(child.hasErrors(), true);
+		assert.equal(context.hasErrors(), true);
+		done();
+	});
 });
