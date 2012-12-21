@@ -2,6 +2,7 @@ var Stage = require('../').Stage;
 var Context = require('../').Context;
 var Pipeline = require('../').Pipeline;
 var ContextFactory = require('../').ContextFactory;
+var Util = require('../').Util;
 
 var schema = require('js-schema');
 var util = require('util');
@@ -213,7 +214,7 @@ describe('Pipeline', function() {
 		pipe.execute(ctx1);
 	});
 
-	it('ensure Context Error ', function(done) {
+	it('ensure Context Error use', function(done) {
 		var ctx = new Context();
 		ctx.SomeValue = 1;
 		var pipe = new Pipeline();
@@ -231,16 +232,19 @@ describe('Pipeline', function() {
 		pipe.addStage(new Stage(stage1));
 		var stage2 = {
 			ensure: function(context, callback) {
-				if(context.SomeValue !== 2) callback(error);
+				console.log();
+				if(context.SomeValue !== 1) callback(new Error( this.reportName() + ': Wrong Value'));
 				else callback(null, context);
 			}
 		};
 		var s2 = new Stage(stage2);
 		pipe.addStage(s2);
 		pipe.once('done', function(err) {
+			assert.equal(true, false, "must fail");
 			done();
 		});
 		pipe.once('error', function(err) {
+			assert.equal(/stage Stage\: Wrong Value/.test(err.toString()), true);
 			done();
 		});
 		pipe.execute(ctx);
@@ -430,6 +434,17 @@ describe('Context factory', function() {
 		assert.equal(childchild.hasErrors(), true);
 		assert.equal(child.hasErrors(), true);
 		assert.equal(context.hasErrors(), true);
+		done();
+	});
+});
+describe('Utils', function(){
+	it('getClass works', function(done){
+		var v = new Stage();
+		var p = new Pipeline();
+		var c = new Context();
+		assert.equal(Util.getClass(v),'Stage');
+		assert.equal(Util.getClass(p),'Pipeline');
+		assert.equal(Util.getClass(c),'Context');
 		done();
 	});
 });
