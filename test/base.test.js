@@ -124,6 +124,16 @@ describe('Pipeline', function() {
 		assert.equal(pipe.stages.length, 3, 'must adds to default specified stagelist be reference');
 		done();
 	});
+
+	it('addStage converts funciton to Stage Instance', function(done) {
+		var pipe = new Pipeline();
+		pipe.addStage(function(err, ctx, done){
+			done();
+		});
+		assert.equal(pipe.stages[0].reportName(),'stage Stage', 'function is converted to Stage instance');
+		done();
+	});
+
 	it('prepareStages', function(done) {
 		var pipe = new Pipeline();
 		var count = 0;
