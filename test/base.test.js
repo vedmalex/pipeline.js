@@ -25,13 +25,67 @@ describe('Stage', function() {
 		var ensure = 0;
 		stage.ensure = function() {
 			ensure++;
-			if(typeof(callback) == 'function') callback(null, context);
-			else return context;
 		};
 		stage.execute(new Context());
 		assert.equal(ensure, 1, 'ensure must called by default');
 		done();
 	});
+
+	it('accept callback',function(done){
+		var stage = new Stage(function(err, context,done){
+			done();
+		});
+		var ensure = 0;
+		var ctx = new Context({});
+		stage.execute(ctx, function(err, context) {
+			assert.equal(ctx, context);
+			assert.equal(!err, true);
+			done();
+		});
+	});
+
+	it('check callback is function',function(done){
+		var stage = new Stage();
+		var ensure = 0;
+		var ctx = new Context({});
+		stage.once('done', function(){
+			done();
+		});
+		stage.execute(ctx, 100);
+	});
+
+	it('stage with no run call callback',function(done){
+		var stage = new Stage();
+		var ctx = new Context();
+		stage.execute(ctx, function(err, context) {
+			assert.equal(ctx, context);
+			assert.equal(!err, true);
+			done();
+		});
+	});
+
+	it('allow reenterability', function(done){
+		var ctx1 = new Context({one:1});
+		var ctx2 = new Context({one:2});
+		var st = new Stage(function(err, context, done){
+			context.one++;
+			done();
+		});
+		var i =0;
+		function gotit(){
+			if(++i == 2) done();
+		}
+		
+		st.execute(ctx1, function(err, data){
+			assert.equal(ctx1.one, 2);
+			gotit();
+		});
+		st.execute(ctx2, function(err, data){
+			assert.equal(ctx2.one, 3);
+			gotit();
+		});
+	});
+
 });
 
 describe('Context', function() {
@@ -358,6 +412,46 @@ describe('Pipeline', function() {
 		assert.equal(p3.stages.length, 3, 'must be by default 3');
 		done();
 	});
+
+	it('allow reenterability', function(done){
+		var ctx1 = new Context({one:1});
+		var ctx2 = new Context({one:2});
+		var pipe = new Pipeline();
+
+		pipe.addStage(function(err, context, done){
+			process.nextTick(function(){
+				context.one++;
+				done();
+			});
+		});
+
+		pipe.addStage(function(err, context, done){
+			process.nextTick(function(){
+				context.one+=1;
+				done();
+			});
+		});
+
+		pipe.addStage(function(err, context, done){
+			context.one += 5;
+			done();
+		});
+
+		var i =0;
+		function gotit(){
+			if(++i == 2) done();
+		}
+		
+		pipe.execute(ctx1, function(err, data){
+			assert.equal(ctx1.one, 8);
+			gotit();
+		});
+
+		pipe.execute(ctx2, function(err, data){
+			assert.equal(ctx2.one, 9);
+			gotit();
+		});
+	});
 });
 
 describe('inheritence', function() {
@@ -447,6 +541,7 @@ describe('Context factory', function() {
 		done();
 	});
 });
+
 describe('Utils', function(){
 	it('getClass works', function(done){
 		var v = new Stage();
