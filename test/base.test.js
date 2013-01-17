@@ -9,24 +9,54 @@ var util = require('util');
 var assert = require('assert');
 
 describe('Stage', function() {
+
 	it('works', function(done) {
 		done();
 	});
 
-	it('emits', function(done) {
-		var stage = new Stage();
-		stage.once('done', function() {
+	it('converts context if it is not typeof Context in emit', function(done){
+		var stage = new Stage(function(err, context, done){
 			done();
 		});
-		stage.execute(new Context());
+		stage.once('done', function(context){
+			assert.equal(context instanceof Context, true);
+			assert.equal(!context.getChilds, false);
+			done();
+		});
+		stage.execute({});
 	});
+
+	it('converts context if it is not typeof Context in callback', function(done){
+		var stage = new Stage(function(err, context, done){
+			done();
+		});
+
+		stage.execute({}, function(err, context){
+			assert.equal(context instanceof Context, true);
+			assert.equal(!context.getChilds, false);
+			done();
+		});
+	});
+
+	it('emits', function(done) {
+		var stage = new Stage(function(err, context, done){
+			done();
+		});
+		stage.once('done', function(conext) {
+			assert.equal(!context, false);
+			done();
+		});
+		stage.execute({});
+	});
+	
+
 	it('ensureContext', function(done) {
 		var stage = new Stage();
 		var ensure = 0;
 		stage.ensure = function() {
 			ensure++;
 		};
-		stage.execute(new Context());
+		stage.execute({});
 		assert.equal(ensure, 1, 'ensure must called by default');
 		done();
 	});
@@ -48,42 +78,42 @@ describe('Stage', function() {
 		var stage = new Stage();
 		var ensure = 0;
 		var ctx = new Context({});
-		stage.once('done', function(){
+		stage.once('error', function(err){
+			assert.equal(ctx.hasErrors(), true);
+			assert.equal(/stage Stage reports\: run is not a function/.test(err.toString()), true);
 			done();
 		});
 		stage.execute(ctx, 100);
 	});
 
-	it('stage with no run call callback',function(done){
+	it('stage with no run call callback with error',function(done){
 		var stage = new Stage();
 		var ctx = new Context();
 		stage.execute(ctx, function(err, context) {
 			assert.equal(ctx, context);
-			assert.equal(!err, true);
+			assert.equal(/stage Stage reports\: run is not a function/.test(err.toString()), true);
 			done();
 		});
 	});
 
 	it('allow reenterability', function(done){
-		var ctx1 = new Context({one:1});
-		var ctx2 = new Context({one:2});
 		var st = new Stage(function(err, context, done){
 			context.one++;
 			done();
 		});
-		var i =0;
+		var l =0;
 		function gotit(){
-			if(++i == 2) done();
+			if(++l == 20) done();
 		}
-		
-		st.execute(ctx1, function(err, data){
-			assert.equal(ctx1.one, 2);
-			gotit();
-		});
-		st.execute(ctx2, function(err, data){
-			assert.equal(ctx2.one, 3);
-			gotit();
-		});
+		for(var i = 0; i < 20; i++){
+			var ctx1 = new Context({one:1});
+			st.execute(ctx1, function(err, data){
+				process.nextTick(function(){
+					assert.equal(ctx1.one, 2);
+					gotit();
+				});
+			});
+		}
 	});
 
 });
@@ -216,7 +246,9 @@ describe('Pipeline', function() {
 	it('execute must call compile and ensure', function(done) {
 		var pipe = new Pipeline();
 		var compile = 0;
-		pipe.addStage(new Stage());
+		pipe.addStage(new Stage(function(err, context, done){
+			done();
+		}));
 		pipe._compile = pipe.compile;
 		pipe.compile = function() {
 			compile++;
@@ -229,11 +261,11 @@ describe('Pipeline', function() {
 			ensure++;
 			this._ensure.apply(this, arguments);
 		};
-		pipe.execute(new Context());
+		pipe.execute({});
 		assert.equal(ensure, 1, 'must ensure');
 		assert.equal(compile, 1, 'must compile');
 
-		pipe.execute(new Context());
+		pipe.execute({});
 		assert.equal(ensure, 2, 'must ensure');
 		assert.equal(compile, 1, 'must not compile second time');
 		done();
@@ -267,9 +299,10 @@ describe('Pipeline', function() {
 
 		pipe.addStage(s1);
 		pipe.addStage(s2);
-		pipe.once('error', function() {
-			assert.equal(ctx1.hasErrors(), true, 'must has errors');
-			assert.equal(ctx1.getErrors()[0] == error, true, 'must has error');
+		pipe.once('error', function(err) {
+			assert.equal(!err,false);
+			assert.equal(ctx1.hasErrors(), true, 'must has errors 1');
+			assert.equal(ctx1.getErrors()[0] == error, true, 'must has error 2');
 			assert.equal(ctx1.s1, true, 's1 pass');
 			assert.equal(ctx1.s2, true, 's2 pass');
 			assert.equal(ctx1.s3, false, 's3 not passed');
@@ -364,7 +397,10 @@ describe('Pipeline', function() {
 			other: String
 		});
 		var stg = new Stage({
-			validate: type1
+			validate: type1,
+			run: function(err, context, done){
+				done();
+			}
 		});
 		var ctx = new Context({
 			some: {},
@@ -414,10 +450,13 @@ describe('Pipeline', function() {
 	});
 
 	it('allow reenterability', function(done){
-		var ctx1 = new Context({one:1});
-		var ctx2 = new Context({one:2});
-		var pipe = new Pipeline();
 
+
+		var pipe = new Pipeline();
+		var st = new Stage(function(err, context, done){
+			context.one++;
+			done();
+		});
 		pipe.addStage(function(err, context, done){
 			process.nextTick(function(){
 				context.one++;
@@ -437,20 +476,19 @@ describe('Pipeline', function() {
 			done();
 		});
 
-		var i =0;
+		var l =0;
 		function gotit(){
-			if(++i == 2) done();
+			if(++l == 20) done();
 		}
-		
-		pipe.execute(ctx1, function(err, data){
-			assert.equal(ctx1.one, 8);
-			gotit();
-		});
-
-		pipe.execute(ctx2, function(err, data){
-			assert.equal(ctx2.one, 9);
-			gotit();
-		});
+		for(var i = 0; i < 20; i++){
+			var ctx1 = new Context({one:1});
+			pipe.execute(ctx1, function(err, data){
+				process.nextTick(function(){
+					assert.equal(ctx1.one, 8);
+					gotit();
+				});
+			});
+		}
 	});
 });
 
