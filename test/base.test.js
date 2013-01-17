@@ -38,7 +38,7 @@ describe('Stage', function() {
 		});
 	});
 
-	it('emits', function(done) {
+	it('emits done', function(done) {
 		var stage = new Stage(function(err, context, done){
 			done();
 		});
@@ -49,6 +49,22 @@ describe('Stage', function() {
 		stage.execute({});
 	});
 	
+	it('extra parameters to emit and to callback', function(done){
+		// сделать передачу дополнительных параметров в done, по принципу err, p1,p2,p3...
+	});
+
+	it('emits error with context', function(done) {
+		var stage = new Stage(function(err, context, done){
+			done(new Error());
+		});
+
+		stage.once('error', function(err, conext) {
+			assert.equal(!err, false);
+			assert.equal(!context, false);
+			done();
+		});
+		stage.execute({});
+	});
 
 	it('ensureContext', function(done) {
 		var stage = new Stage();
@@ -74,7 +90,7 @@ describe('Stage', function() {
 		});
 	});
 
-	it('check callback is function',function(done){
+	it('check run is function',function(done){
 		var stage = new Stage();
 		var ensure = 0;
 		var ctx = new Context({});
