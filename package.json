@@ -1,11 +1,10 @@
 {
     "name": "pipeline.js"
   , "description": "Pipeline.js - async workflow framework for node.js"
-  , "version": "0.0.13"
+  , "version": "0.0.14"
   , "author": "Alex Vedmedenko <vedmalex@gmail.com>"
   , "keywords": ["workflow", "async", "pipeline"]
   , "dependencies": {
-      "twostep":"0.3.3",
       "js-schema":"0.6.1"
     }
   , "devDependencies": {

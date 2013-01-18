@@ -49,9 +49,9 @@ describe('Stage', function() {
 		stage.execute({});
 	});
 	
-	it('extra parameters to emit and to callback', function(done){
-		// сделать передачу дополнительных параметров в done, по принципу err, p1,p2,p3...
-	});
+	// it('extra parameters to emit and to callback', function(done){
+	// 	// сделать передачу дополнительных параметров в done, по принципу err, p1,p2,p3...
+	// });
 
 	it('emits error with context', function(done) {
 		var stage = new Stage(function(err, context, done){
@@ -131,6 +131,10 @@ describe('Stage', function() {
 			});
 		}
 	});
+
+	// it('addStage converts valid object structure to Stage', function(done){
+
+	// });
 
 });
 
@@ -597,7 +601,7 @@ describe('Context factory', function() {
 });
 
 describe('Utils', function(){
-	it('getClass works', function(done){
+	/*it('getClass works', function(done){
 		var v = new Stage();
 		var p = new Pipeline();
 		var c = new Context();
@@ -605,5 +609,5 @@ describe('Utils', function(){
 		assert.equal(Util.getClass(p),'Pipeline');
 		assert.equal(Util.getClass(c),'Context');
 		done();
-	});
+	});*/
 });
