@@ -4,6 +4,8 @@ var Pipeline = require('../').Pipeline;
 var Sequential = require('../').Sequential;
 var Parallel = require('../').Parallel;
 var IfElse = require('../').IfElse;
+var MultiWaySwitch = require('../').MultiWaySwitch;
+
 
 var ContextFactory = require('../').ContextFactory;
 var Util = require('../').Util;
@@ -308,21 +310,23 @@ describe('Pipeline', function() {
 		done();
 	});
 
-	it('executes pipes in pipes', function(done){
+	it('executes pipes in pipes', function(done) {
 		var pipe = new Pipeline();
 		var nestedpipe = new Pipeline();
-		nestedpipe.addStage(function(err, ctx, done){
+		nestedpipe.addStage(function(err, ctx, done) {
 			ctx.item = 1;
 			done();
 		});
 		pipe.addStage(nestedpipe);
-		pipe.execute({item:0}, function(err, ctx){
-			assert.equal(!!err, false);
+		pipe.execute({
+			item: 0
+		}, function(err, ctx) {
+			assert.equal( !! err, false);
 			done();
 		});
 
 	});
-	
+
 	it('context catch all errors', function(done) {
 		var pipe = new Pipeline();
 		var ctx1 = new Context({
@@ -602,6 +606,36 @@ describe('Sequential', function() {
 		});
 	});
 
+	it('complex example 1 error handling', function(done) {
+		var stage0 = new Stage(function(err, ctx, done) {
+			ctx.liter = 1;
+			if(ctx.iter === 4) done(new Error());
+			else done();
+		});
+		var ctx = {
+			some: [1, 2, 3, 4, 5, 6, 7]
+		};
+		var len = ctx.some.length;
+		var stage = new Sequential(stage0, function(ctx, iter) {
+			return {
+				iter: ctx.some[iter]
+			};
+		}, function(err, ctx, iter) {
+			return err || iter == len;
+		}, function(ctx, childs) {
+			var len = childs.length;
+			ctx.result = 0;
+			for(var i = 0; i < len; i++) {
+				ctx.result += childs[i].liter;
+			}
+		});
+
+		stage.execute(ctx, function(err, context) {
+			assert.equal(!context.result, true);
+			done();
+		});
+	});
+
 	it('complex example 2', function(done) {
 		var stage0 = new Stage(function(err, ctx, done) {
 			ctx.liter = 1;
@@ -645,7 +679,7 @@ describe('Parallel', function() {
 
 	it('run stage', function(done) {
 		var stage0 = new Stage(function(err, ctx, done) {
-			ctx.iter ++;
+			ctx.iter++;
 			done();
 		});
 		var stage = new Parallel(stage0);
@@ -669,13 +703,15 @@ describe('Parallel', function() {
 		var stage = new Parallel(stage0, function(ctx, iter) {
 			var res = [];
 			var len = ctx.some.length;
-			for (var i = 0; i< len; i++){
-				res.push({some:ctx.some[i]});
+			for(var i = 0; i < len; i++) {
+				res.push({
+					some: ctx.some[i]
+				});
 			}
 			return res;
 
 		}, function(err, ctx, iter) {
-			return false;
+			return err;
 		}, function(ctx, childs) {
 			var len = childs.length;
 			ctx.result = 0;
@@ -685,6 +721,41 @@ describe('Parallel', function() {
 		});
 		stage.execute(ctx, function(err, context) {
 			assert.equal(context.result, 7);
+			done();
+		});
+	});
+
+	it('complex example 1 - Error Handling', function(done) {
+		var stage0 = new Stage(function(err, ctx, done) {
+			ctx.liter = 1;
+			if(ctx.some == 4) done(new Error());
+				else done();
+		});
+		var ctx = {
+			some: [1, 2, 3, 4, 5, 6, 7]
+		};
+		var len = ctx.some.length;
+		var stage = new Parallel(stage0, function(ctx, iter) {
+			var res = [];
+			var len = ctx.some.length;
+			for(var i = 0; i < len; i++) {
+				res.push({
+					some: ctx.some[i]
+				});
+			}
+			return res;
+
+		}, function(err, ctx, iter) {
+			return err;
+		}, function(ctx, childs) {
+			var len = childs.length;
+			ctx.result = 0;
+			for(var i = 0; i < len; i++) {
+				ctx.result += childs[i].liter;
+			}
+		});
+		stage.execute(ctx, function(err, context) {
+			assert.equal(!context.result, true);
 			done();
 		});
 	});
@@ -701,7 +772,7 @@ describe('Parallel', function() {
 		var stage = new Parallel(stage0, function(ctx, iter) {
 			var res = [];
 			var len = ctx.some.length;
-			for (var i = 0; i< len; i++){
+			for(var i = 0; i < len; i++) {
 				res.push(ctx.fork());
 			}
 			return res;
@@ -764,6 +835,176 @@ describe('if->else', function() {
 		});
 	});
 
+});
+
+describe('SWITCH', function() {
+	it('works', function(done) {
+		var sw = new MultiWaySwitch();
+		sw.execute({}, function(err, ctx) {
+			done();
+		});
+	});
+
+	it('must enter in each pipe works in parallel', function(done) {
+		var cnt = 0;
+		var pipe0 = new Pipeline([function(err, ctx, done) {
+			ctx.p00 = true;
+			cnt++;
+			done();
+		}, function(err, ctx, done) {
+			ctx.p01 = true;
+			cnt++;
+			done();
+		}]);
+		var pipe1 = new Pipeline([function(err, ctx, done) {
+			ctx.p10 = true;
+			cnt++;
+			done();
+		}, function(err, ctx, done) {
+			ctx.p11 = true;
+			cnt++;
+			done();
+		}]);
+		var pipe2 = new Pipeline([function(err, ctx, done) {
+			ctx.p20 = true;
+			cnt++;
+			done();
+		}, function(err, ctx, done) {
+			ctx.p21 = true;
+			cnt++;
+			done();
+		}]);
+
+		var sw = new MultiWaySwitch([pipe0, pipe1, pipe2]);
+		sw.execute({}, function(err, ctx) {
+			assert.equal(6, cnt);
+			done();
+		});
+	});
+
+	it('must enter in each pipe works in parallel', function(done) {
+		var pipe0 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done();
+		}]);
+		var pipe1 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done();
+		}]);
+
+		var sw = new MultiWaySwitch([pipe0, pipe1], function(ctx) {
+			return ctx.fork();
+		}, function(ctx, retCtx) {
+			ctx.size += retCtx.cnt;
+		});
+		sw.execute({
+			size: 0
+		}, function(err, ctx) {
+			assert.equal(ctx.size, 4);
+			done();
+		});
+	});
+	it('exception errors for', function(done) {
+		var pipe0 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done(new Error());
+		}]);
+		var pipe1 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done();
+		}]);
+
+		var sw = new MultiWaySwitch([pipe0, pipe1], function(ctx) {
+			return ctx.fork();
+		}, function(ctx, retCtx) {
+			ctx.size += retCtx.cnt;
+		}, function(err, ctx) {
+			return err;
+		});
+		sw.execute({
+			size: 0
+		}, function(err, ctx) {
+			assert.equal(ctx.size, 0);
+			assert.equal(!!err, true);
+			done();
+		});
+	});
+
+it('exception errors for 2', function(done) {
+		var pipe0 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done();
+		}]);
+		var pipe1 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done(new Error());
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done();
+		}]);
+
+		var sw = new MultiWaySwitch([pipe0, pipe1], function(ctx) {
+			return ctx.fork();
+		}, function(ctx, retCtx) {
+			ctx.size += retCtx.cnt;
+		}, function(err, ctx) {
+			return err;
+		});
+		sw.execute({
+			size: 0
+		}, function(err, ctx) {
+			assert.equal(ctx.size, 2);
+			assert.equal(!!err, true);
+			done();
+		});
+	});
+
+	it('exception handler work', function(done) {
+		var pipe0 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done();
+		}]);
+		var pipe1 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done(new Error());
+		}]);
+
+		var sw = new MultiWaySwitch([pipe0, pipe1], function(ctx) {
+			return ctx.fork();
+		}, function(ctx, retCtx) {
+			ctx.size += retCtx.cnt;
+		}, function(err, ctx) {
+			return false;
+		});
+		sw.execute({
+			size: 0
+		}, function(err, ctx) {
+			assert.equal(ctx.size, 4);
+			assert.equal( !! err, false);
+			done();
+		});
+	});
 });
 
 describe('inheritence', function() {
