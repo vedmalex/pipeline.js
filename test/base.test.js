@@ -729,7 +729,7 @@ describe('Parallel', function() {
 		var stage0 = new Stage(function(err, ctx, done) {
 			ctx.liter = 1;
 			if(ctx.some == 4) done(new Error());
-				else done();
+			else done();
 		});
 		var ctx = {
 			some: [1, 2, 3, 4, 5, 6, 7]
@@ -937,12 +937,12 @@ describe('SWITCH', function() {
 			size: 0
 		}, function(err, ctx) {
 			assert.equal(ctx.size, 0);
-			assert.equal(!!err, true);
+			assert.equal( !! err, true);
 			done();
 		});
 	});
 
-it('exception errors for 2', function(done) {
+	it('exception errors for 2', function(done) {
 		var pipe0 = new Pipeline([function(err, ctx, done) {
 			ctx.cnt = 1;
 			done();
@@ -969,7 +969,7 @@ it('exception errors for 2', function(done) {
 			size: 0
 		}, function(err, ctx) {
 			assert.equal(ctx.size, 2);
-			assert.equal(!!err, true);
+			assert.equal( !! err, true);
 			done();
 		});
 	});
@@ -996,6 +996,79 @@ it('exception errors for 2', function(done) {
 			ctx.size += retCtx.cnt;
 		}, function(err, ctx) {
 			return false;
+		});
+		sw.execute({
+			size: 0
+		}, function(err, ctx) {
+			assert.equal(ctx.size, 4);
+			assert.equal( !! err, false);
+			done();
+		});
+	});
+
+it('not evaluate if missing evaluate property', function(done) {
+		var pipe0 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done();
+		}]);
+		var pipe1 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done(new Error());
+		}]);
+
+		var sw = new MultiWaySwitch([pipe0,
+		{
+			stage: pipe1,
+			exHandler: function() {
+				return false;
+			}
+		}], function(ctx) {
+			return ctx.fork();
+		}, function(ctx, retCtx) {
+			ctx.size += retCtx.cnt;
+		});
+		sw.execute({
+			size: 0
+		}, function(err, ctx) {
+			assert.equal(ctx.size, 2);
+			assert.equal( !! err, false);
+			done();
+		});
+	});
+
+	it('individual exception handler work', function(done) {
+		var pipe0 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done();
+		}]);
+		var pipe1 = new Pipeline([function(err, ctx, done) {
+			ctx.cnt = 1;
+			done();
+		}, function(err, ctx, done) {
+			ctx.cnt += 1;
+			done(new Error());
+		}]);
+
+		var sw = new MultiWaySwitch([pipe0,
+		{
+			stage: pipe1,
+			evaluate:true,
+			exHandler: function() {
+				return false;
+			}
+		}], function(ctx) {
+			return ctx.fork();
+		}, function(ctx, retCtx) {
+			ctx.size += retCtx.cnt;
 		});
 		sw.execute({
 			size: 0
