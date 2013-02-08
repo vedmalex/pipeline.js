@@ -308,6 +308,21 @@ describe('Pipeline', function() {
 		done();
 	});
 
+	it('executes pipes in pipes', function(done){
+		var pipe = new Pipeline();
+		var nestedpipe = new Pipeline();
+		nestedpipe.addStage(function(err, ctx, done){
+			ctx.item = 1;
+			done();
+		});
+		pipe.addStage(nestedpipe);
+		pipe.execute({item:0}, function(err, ctx){
+			assert.equal(!!err, false);
+			done();
+		});
+
+	});
+	
 	it('context catch all errors', function(done) {
 		var pipe = new Pipeline();
 		var ctx1 = new Context({
