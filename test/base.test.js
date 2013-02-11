@@ -1152,18 +1152,22 @@ describe('SWITCH', function() {
 			done(new Error());
 		}]);
 
-		var sw = new MultiWaySwitch({cases:[pipe0,
-				{
-					stage: pipe1,
-					evaluate: true,
-					exHandler: function() {
-						return false;
-					}
-				}], split:function(ctx) {
-					return ctx.fork();
-				}, combine:function(ctx, retCtx) {
-					ctx.size += retCtx.cnt;
-				}});
+		var sw = new MultiWaySwitch({
+			cases: [pipe0,
+			{
+				stage: pipe1,
+				evaluate: true,
+				exHandler: function() {
+					return false;
+				}
+			}],
+			split: function(ctx) {
+				return ctx.fork();
+			},
+			combine: function(ctx, retCtx) {
+				ctx.size += retCtx.cnt;
+			}
+		});
 		sw.execute({
 			size: 0
 		}, function(err, ctx) {
