@@ -691,6 +691,20 @@ describe('Parallel', function() {
 		});
 	});
 
+	it('run with empty result of split', function(done) {
+		var stage0 = new Stage(function(err, ctx, done) {
+			ctx.iter++;
+			done();
+		});
+		var stage = new Parallel(stage0, function(){return null;});
+		stage.execute({
+			iter: 1
+		}, function(err, context) {
+			assert.equal(context.iter, 1);
+			done();
+		});
+	});
+
 	it('complex example 1', function(done) {
 		var stage0 = new Stage(function(err, ctx, done) {
 			ctx.liter = 1;
