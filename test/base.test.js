@@ -936,8 +936,8 @@ describe('SWITCH', function() {
 		sw.execute({
 			size: 0
 		}, function(err, ctx) {
-			assert.equal(ctx.size, 0);
-			assert.equal( !! err, true);
+			assert.equal(ctx.size, 2);
+			assert.equal(err instanceof Array, true);
 			done();
 		});
 	});
@@ -969,7 +969,7 @@ describe('SWITCH', function() {
 			size: 0
 		}, function(err, ctx) {
 			assert.equal(ctx.size, 2);
-			assert.equal( !! err, true);
+			assert.equal(err instanceof Array, true);
 			done();
 		});
 	});
