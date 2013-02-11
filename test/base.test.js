@@ -729,6 +729,7 @@ describe('Parallel', function() {
 		var stage0 = new Stage(function(err, ctx, done) {
 			ctx.liter = 1;
 			if(ctx.some == 4) done(new Error());
+			if(ctx.some == 5) done(new Error());
 			else done();
 		});
 		var ctx = {
@@ -755,6 +756,8 @@ describe('Parallel', function() {
 			}
 		});
 		stage.execute(ctx, function(err, context) {
+			assert.equal(err instanceof Array, true);
+			assert.equal(err.length, 2);
 			assert.equal(!context.result, true);
 			done();
 		});
