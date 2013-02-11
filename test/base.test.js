@@ -232,6 +232,9 @@ describe('Pipeline', function() {
 		assert.equal(pipe.stages0.length, 1, 'must adds to default specified stagelist by string');
 		pipe.addStage(new Stage(), pipe.stages0);
 		assert.equal(pipe.stages0.length, 2, 'must adds to default specified stagelist be reference');
+		pipe.addStage(null, pipe.stages0);
+		assert.equal(pipe.stages0.length, 3, 'must adds to default specified stagelist be reference');
+		assert.equal(pipe.stages0[2] instanceof Stage, true);
 		done();
 	});
 
