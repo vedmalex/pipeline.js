@@ -565,8 +565,11 @@ describe('Sequential', function() {
 			ctx.iter++;
 			done();
 		});
-		var stage = new Sequential(stage0, null, function(err, ctx, iter) {
-			return err || iter == 10;
+		var stage = new Sequential({
+			stage: stage0,
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == 10;
+			}
 		});
 		stage.execute({
 			iter: -1
@@ -578,25 +581,32 @@ describe('Sequential', function() {
 
 	it('complex example 1', function(done) {
 
-		var stage0 = new Stage(function(err, ctx, done) {
-			ctx.liter = 1;
-			done();
+		var stage0 = new Stage({
+			run: function(err, ctx, done) {
+				ctx.liter = 1;
+				done();
+			}
 		});
 		var ctx = {
 			some: [1, 2, 3, 4, 5, 6, 7]
 		};
 		var len = ctx.some.length;
-		var stage = new Sequential(stage0, function(ctx, iter) {
-			return {
-				iter: ctx.some[iter]
-			};
-		}, function(err, ctx, iter) {
-			return err || iter == len;
-		}, function(ctx, childs) {
-			var len = childs.length;
-			ctx.result = 0;
-			for(var i = 0; i < len; i++) {
-				ctx.result += childs[i].liter;
+		var stage = new Sequential({
+			stage: stage0,
+			split: function(ctx, iter) {
+				return {
+					iter: ctx.some[iter]
+				};
+			},
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == len;
+			},
+			combine: function(innerCtx, ctx, childs) {
+				var len = childs.length;
+				ctx.result = 0;
+				for(var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
 			}
 		});
 
@@ -607,26 +617,33 @@ describe('Sequential', function() {
 	});
 
 	it('complex example 1 error handling', function(done) {
-		var stage0 = new Stage(function(err, ctx, done) {
-			ctx.liter = 1;
-			if(ctx.iter === 4) done(new Error());
-			else done();
+		var stage0 = new Stage({
+			run: function(err, ctx, done) {
+				ctx.liter = 1;
+				if(ctx.iter === 4) done(new Error());
+				else done();
+			}
 		});
 		var ctx = {
 			some: [1, 2, 3, 4, 5, 6, 7]
 		};
 		var len = ctx.some.length;
-		var stage = new Sequential(stage0, function(ctx, iter) {
-			return {
-				iter: ctx.some[iter]
-			};
-		}, function(err, ctx, iter) {
-			return err || iter == len;
-		}, function(ctx, childs) {
-			var len = childs.length;
-			ctx.result = 0;
-			for(var i = 0; i < len; i++) {
-				ctx.result += childs[i].liter;
+		var stage = new Sequential({
+			stege: stage0,
+			split: function(ctx, iter) {
+				return {
+					iter: ctx.some[iter]
+				};
+			},
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == len;
+			},
+			combine: function(innerCtx, ctx, childs) {
+				var len = childs.length;
+				ctx.result = 0;
+				for(var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
 			}
 		});
 
@@ -637,24 +654,31 @@ describe('Sequential', function() {
 	});
 
 	it('complex example 2', function(done) {
-		var stage0 = new Stage(function(err, ctx, done) {
-			ctx.liter = 1;
-			done();
+		var stage0 = new Stage({
+			run: function(err, ctx, done) {
+				ctx.liter = 1;
+				done();
+			}
 		});
 		var ctx = {
 			some: [1, 2, 3, 4, 5, 6, 7]
 		};
 		var len = ctx.some.length;
-		var stage = new Sequential(stage0, function(ctx, iter) {
-			return ctx.fork();
-		}, function(err, ctx, iter) {
-			return err || iter == len;
-		}, function(ctx) {
-			var childs = ctx.getChilds();
-			var len = childs.length;
-			ctx.result = 0;
-			for(var i = 0; i < len; i++) {
-				ctx.result += childs[i].liter;
+		var stage = new Sequential({
+			stage: stage0,
+			split: function(ctx, iter) {
+				return ctx.fork();
+			},
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == len;
+			},
+			combine: function(innerCtx, ctx, chlds) {
+				var childs = ctx.getChilds();
+				var len = childs.length;
+				ctx.result = 0;
+				for(var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
 			}
 		});
 
@@ -682,7 +706,9 @@ describe('Parallel', function() {
 			ctx.iter++;
 			done();
 		});
-		var stage = new Parallel(stage0);
+		var stage = new Parallel({
+			stage: stage0
+		});
 		stage.execute({
 			iter: 1
 		}, function(err, context) {
@@ -696,7 +722,12 @@ describe('Parallel', function() {
 			ctx.iter++;
 			done();
 		});
-		var stage = new Parallel(stage0, function(){return null;});
+		var stage = new Parallel({
+			stage: stage0,
+			split: function() {
+				return null;
+			}
+		});
 		stage.execute({
 			iter: 1
 		}, function(err, context) {
@@ -714,23 +745,28 @@ describe('Parallel', function() {
 			some: [1, 2, 3, 4, 5, 6, 7]
 		};
 		var len = ctx.some.length;
-		var stage = new Parallel(stage0, function(ctx, iter) {
-			var res = [];
-			var len = ctx.some.length;
-			for(var i = 0; i < len; i++) {
-				res.push({
-					some: ctx.some[i]
-				});
-			}
-			return res;
+		var stage = new Parallel({
+			stage: stage0,
+			split: function(ctx, iter) {
+				var res = [];
+				var len = ctx.some.length;
+				for(var i = 0; i < len; i++) {
+					res.push({
+						some: ctx.some[i]
+					});
+				}
+				return res;
 
-		}, function(err, ctx, iter) {
-			return err;
-		}, function(ctx, childs) {
-			var len = childs.length;
-			ctx.result = 0;
-			for(var i = 0; i < len; i++) {
-				ctx.result += childs[i].liter;
+			},
+			exHandler: function(err, ctx, iter) {
+				return err;
+			},
+			combine: function(ctx, childs) {
+				var len = childs.length;
+				ctx.result = 0;
+				for(var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
 			}
 		});
 		stage.execute(ctx, function(err, context) {
@@ -750,23 +786,28 @@ describe('Parallel', function() {
 			some: [1, 2, 3, 4, 5, 6, 7]
 		};
 		var len = ctx.some.length;
-		var stage = new Parallel(stage0, function(ctx, iter) {
-			var res = [];
-			var len = ctx.some.length;
-			for(var i = 0; i < len; i++) {
-				res.push({
-					some: ctx.some[i]
-				});
-			}
-			return res;
+		var stage = new Parallel({
+			stage: stage0,
+			split: function(ctx, iter) {
+				var res = [];
+				var len = ctx.some.length;
+				for(var i = 0; i < len; i++) {
+					res.push({
+						some: ctx.some[i]
+					});
+				}
+				return res;
 
-		}, function(err, ctx, iter) {
-			return err;
-		}, function(ctx, childs) {
-			var len = childs.length;
-			ctx.result = 0;
-			for(var i = 0; i < len; i++) {
-				ctx.result += childs[i].liter;
+			},
+			exHandler: function(err, ctx, iter) {
+				return err;
+			},
+			combine: function(ctx, childs) {
+				var len = childs.length;
+				ctx.result = 0;
+				for(var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
 			}
 		});
 		stage.execute(ctx, function(err, context) {
@@ -786,21 +827,26 @@ describe('Parallel', function() {
 			some: [1, 2, 3, 4, 5, 6, 7]
 		};
 		var len = ctx.some.length;
-		var stage = new Parallel(stage0, function(ctx, iter) {
-			var res = [];
-			var len = ctx.some.length;
-			for(var i = 0; i < len; i++) {
-				res.push(ctx.fork());
-			}
-			return res;
-		}, function(err, ctx, iter) {
-			return err || iter == len;
-		}, function(ctx) {
-			var childs = ctx.getChilds();
-			var len = childs.length;
-			ctx.result = 0;
-			for(var i = 0; i < len; i++) {
-				ctx.result += childs[i].liter;
+		var stage = new Parallel({
+			stage: stage0,
+			split: function(ctx, iter) {
+				var res = [];
+				var len = ctx.some.length;
+				for(var i = 0; i < len; i++) {
+					res.push(ctx.fork());
+				}
+				return res;
+			},
+			exHandler: function(err, ctx, iter) {
+				return err || iter == len;
+			},
+			combine: function(ctx) {
+				var childs = ctx.getChilds();
+				var len = childs.length;
+				ctx.result = 0;
+				for(var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
 			}
 		});
 
@@ -827,9 +873,13 @@ describe('if->else', function() {
 			ctx.done = true;
 			done();
 		});
-		var stage = new IfElse(function(ctx) {
-			return true;
-		}, s0, new Stage());
+		var stage = new IfElse({
+			condition: function(ctx) {
+				return true;
+			},
+			success: s0,
+			failed: new Stage()
+		});
 		stage.execute({}, function(err, context) {
 			assert.equal(context.done, true);
 			done();
@@ -842,9 +892,13 @@ describe('if->else', function() {
 			done();
 		});
 
-		var stage = new IfElse(function(ctx) {
-			return false;
-		}, new Stage(), s0);
+		var stage = new IfElse({
+			condition: function(ctx) {
+				return false;
+			},
+			failed: s0,
+			success: new Stage()
+		});
 
 		stage.execute({}, function(err, context) {
 			assert.equal(context.done, true);
@@ -915,10 +969,14 @@ describe('SWITCH', function() {
 			done();
 		}]);
 
-		var sw = new MultiWaySwitch([pipe0, pipe1], function(ctx) {
-			return ctx.fork();
-		}, function(ctx, retCtx) {
-			ctx.size += retCtx.cnt;
+		var sw = new MultiWaySwitch({
+			cases: [pipe0, pipe1],
+			split: function(ctx) {
+				return ctx.fork();
+			},
+			combine: function(ctx, retCtx) {
+				ctx.size += retCtx.cnt;
+			}
 		});
 		sw.execute({
 			size: 0
@@ -943,12 +1001,17 @@ describe('SWITCH', function() {
 			done();
 		}]);
 
-		var sw = new MultiWaySwitch([pipe0, pipe1], function(ctx) {
-			return ctx.fork();
-		}, function(ctx, retCtx) {
-			ctx.size += retCtx.cnt;
-		}, function(err, ctx) {
-			return err;
+		var sw = new MultiWaySwitch({
+			cases: [pipe0, pipe1],
+			split: function(ctx) {
+				return ctx.fork();
+			},
+			combine: function(ctx, retCtx) {
+				ctx.size += retCtx.cnt;
+			},
+			exHandler: function(err, ctx) {
+				return err;
+			}
 		});
 		sw.execute({
 			size: 0
@@ -975,12 +1038,17 @@ describe('SWITCH', function() {
 			done();
 		}]);
 
-		var sw = new MultiWaySwitch([pipe0, pipe1], function(ctx) {
-			return ctx.fork();
-		}, function(ctx, retCtx) {
-			ctx.size += retCtx.cnt;
-		}, function(err, ctx) {
-			return err;
+		var sw = new MultiWaySwitch({
+			cases: [pipe0, pipe1],
+			split: function(ctx) {
+				return ctx.fork();
+			},
+			combine: function(ctx, retCtx) {
+				ctx.size += retCtx.cnt;
+			},
+			exHandler: function(err, ctx) {
+				return err;
+			}
 		});
 		sw.execute({
 			size: 0
@@ -1007,12 +1075,17 @@ describe('SWITCH', function() {
 			done(new Error());
 		}]);
 
-		var sw = new MultiWaySwitch([pipe0, pipe1], function(ctx) {
-			return ctx.fork();
-		}, function(ctx, retCtx) {
-			ctx.size += retCtx.cnt;
-		}, function(err, ctx) {
-			return false;
+		var sw = new MultiWaySwitch({
+			cases: [pipe0, pipe1],
+			split: function(ctx) {
+				return ctx.fork();
+			},
+			combine: function(ctx, retCtx) {
+				ctx.size += retCtx.cnt;
+			},
+			exHandler: function(err, ctx) {
+				return false;
+			}
 		});
 		sw.execute({
 			size: 0
@@ -1023,7 +1096,7 @@ describe('SWITCH', function() {
 		});
 	});
 
-it('not evaluate if missing evaluate property', function(done) {
+	it('not evaluate if missing evaluate property', function(done) {
 		var pipe0 = new Pipeline([function(err, ctx, done) {
 			ctx.cnt = 1;
 			done();
@@ -1039,16 +1112,20 @@ it('not evaluate if missing evaluate property', function(done) {
 			done(new Error());
 		}]);
 
-		var sw = new MultiWaySwitch([pipe0,
-		{
-			stage: pipe1,
-			exHandler: function() {
-				return false;
+		var sw = new MultiWaySwitch({
+			cases: [pipe0,
+			{
+				stage: pipe1,
+				exHandler: function() {
+					return false;
+				}
+			}],
+			split: function(ctx) {
+				return ctx.fork();
+			},
+			combine: function(ctx, retCtx) {
+				ctx.size += retCtx.cnt;
 			}
-		}], function(ctx) {
-			return ctx.fork();
-		}, function(ctx, retCtx) {
-			ctx.size += retCtx.cnt;
 		});
 		sw.execute({
 			size: 0
@@ -1075,18 +1152,18 @@ it('not evaluate if missing evaluate property', function(done) {
 			done(new Error());
 		}]);
 
-		var sw = new MultiWaySwitch([pipe0,
-		{
-			stage: pipe1,
-			evaluate:true,
-			exHandler: function() {
-				return false;
-			}
-		}], function(ctx) {
-			return ctx.fork();
-		}, function(ctx, retCtx) {
-			ctx.size += retCtx.cnt;
-		});
+		var sw = new MultiWaySwitch({cases:[pipe0,
+				{
+					stage: pipe1,
+					evaluate: true,
+					exHandler: function() {
+						return false;
+					}
+				}], split:function(ctx) {
+					return ctx.fork();
+				}, combine:function(ctx, retCtx) {
+					ctx.size += retCtx.cnt;
+				}});
 		sw.execute({
 			size: 0
 		}, function(err, ctx) {
