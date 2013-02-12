@@ -1179,6 +1179,27 @@ describe('SWITCH', function() {
 			done();
 		});
 	});
+
+	it('not throw any expections if there is no actions to do', function(done) {
+
+		var sw = new MultiWaySwitch({
+			cases: [{
+				evaluate: false,
+				stage: new Stage(function(err, ctx, done) {
+					done();
+				})
+			}, {
+				evaluate: false,
+				stage: new Stage(function(err, ctx, done) {
+					done();
+				})
+			}]
+		});
+		sw.execute({},function(err, ctx){
+			assert.equal(!!err, false);
+			done();
+		});
+	});
 });
 
 describe('inheritence', function() {
