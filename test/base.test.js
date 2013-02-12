@@ -665,7 +665,47 @@ describe('Sequential', function() {
 			done();
 		});
 	});
+	
+	it('cheks context as well', function(done) {
+		var stage0 = new Stage({
+			run: function(err, ctx, done) {
+				ctx.liter = 1;
+				done();
+			}
+		});
+		var ctx = {
+			some: [1, 2, 3, 4, 5, 6, 7]
+		};
+		var len = ctx.some.length;
+		var stage = new Sequential({
+			stage: stage0,
+			checkContext: function(err, ctx, iter, callback) {
+				var _e = ctx.some[iter] > 4 ? new Error(): null;
+				callback(_e, ctx);
+			},
+			split: function(ctx, iter) {
+				return {
+					iter: ctx.some[iter]
+				};
+			},
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == len;
+			},
+			combine: function(innerCtx, ctx, childs) {
+				var len = childs.length;
+				ctx.result = 0;
+				for(var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
+			}
+		});
 
+		stage.execute(ctx, function(err, context) {
+			assert.equal(!!err, true);
+			done();
+		});
+	});
+	
 	it('complex example 2', function(done) {
 		var stage0 = new Stage({
 			run: function(err, ctx, done) {
