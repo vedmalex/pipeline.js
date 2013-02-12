@@ -211,6 +211,16 @@ describe('Context', function() {
 		done();
 	});
 
+	it('fork with extra config', function(done) {
+		var ctx = new Context({
+			some: 1
+		});
+		var subCtx = ctx.fork({
+			another: 1
+		});
+		assert.equal(subCtx.another, 1);
+		done();
+	});
 });
 
 describe('Pipeline', function() {
@@ -1195,8 +1205,8 @@ describe('SWITCH', function() {
 				})
 			}]
 		});
-		sw.execute({},function(err, ctx){
-			assert.equal(!!err, false);
+		sw.execute({}, function(err, ctx) {
+			assert.equal( !! err, false);
 			done();
 		});
 	});
