@@ -665,7 +665,7 @@ describe('Sequential', function() {
 			done();
 		});
 	});
-	
+
 	it('cheks context as well', function(done) {
 		var stage0 = new Stage({
 			run: function(err, ctx, done) {
@@ -680,7 +680,7 @@ describe('Sequential', function() {
 		var stage = new Sequential({
 			stage: stage0,
 			checkContext: function(err, ctx, iter, callback) {
-				var _e = ctx.some[iter] > 4 ? new Error(): null;
+				var _e = ctx.some[iter] > 4 ? new Error() : null;
 				callback(_e, ctx);
 			},
 			split: function(ctx, iter) {
@@ -701,11 +701,11 @@ describe('Sequential', function() {
 		});
 
 		stage.execute(ctx, function(err, context) {
-			assert.equal(!!err, true);
+			assert.equal( !! err, true);
 			done();
 		});
 	});
-	
+
 	it('complex example 2', function(done) {
 		var stage0 = new Stage({
 			run: function(err, ctx, done) {
@@ -1243,6 +1243,27 @@ describe('SWITCH', function() {
 				stage: new Stage(function(err, ctx, done) {
 					done();
 				})
+			}]
+		});
+		sw.execute({}, function(err, ctx) {
+			assert.equal( !! err, false);
+			done();
+		});
+	});
+
+	it('can use function to define stage', function(done) {
+
+		var sw = new MultiWaySwitch({
+			cases: [{
+				evaluate: false,
+				stage: new Stage(function(err, ctx, done) {
+					done();
+				})
+			}, {
+				evaluate: true,
+				stage: function(err, ctx, done) {
+					done();
+				}
 			}]
 		});
 		sw.execute({}, function(err, ctx) {
