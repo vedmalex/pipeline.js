@@ -6,5 +6,3 @@ exports.MultiWaySwitch = require('./lib/multywayswitch').MultiWaySwitch;
 exports.Parallel = require('./lib/parallel').Parallel;
 exports.Context = require('./lib/context').Context;
 exports.Util = require('./lib/util').Util;
-exports.ContextFactory = require('./lib/contextFactory').ContextFactory;
-exports.ContextFactory2 = require('./lib/contextFactory').ContextFactory2;

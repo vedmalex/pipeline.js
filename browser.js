@@ -1,0 +1,1 @@
+global.pipelinejs = require('./index');

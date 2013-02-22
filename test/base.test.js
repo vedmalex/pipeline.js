@@ -7,7 +7,6 @@ var IfElse = require('../').IfElse;
 var MultiWaySwitch = require('../').MultiWaySwitch;
 
 
-var ContextFactory = require('../').ContextFactory;
 var Util = require('../').Util;
 
 var schema = require('js-schema');
@@ -1375,71 +1374,8 @@ describe('inheritence', function() {
 	});
 });
 
-describe('Context factory', function() {
-	it('creates empty context', function(done) {
-		var context = ContextFactory();
-		assert.equal(!context, false, "MUST RETURN CONTEXT");
-		done();
-	});
-
-	it('creates childs context', function(done) {
-		var context = ContextFactory({
-			a: 1,
-			b: 2,
-			c: 3
-		});
-		var child = context.fork();
-		child.c = 4;
-		child.d = 5;
-		context.a = 0;
-		assert.equal(context.a, child.a, 'must be the same if not overrided');
-		assert.equal(context.c, 3, 'must be the same if not overrided');
-		assert.equal(child.c, 4, 'must be the same if not overrided');
-		assert.equal(context.b, child.b, 'must be the same if not overrided');
-		assert.equal(context.d === undefined, true, 'this is different objects');
-		assert.equal(context, child.getParent(), 'paren the same');
-		assert.equal(context.getChilds()[0], child);
-		done();
-	});
-
-	it('each context in child can have its own child', function(done) {
-		var context = ContextFactory({
-			a: 1,
-			b: 2,
-			c: 3
-		});
-		var child = context.fork();
-		var childchild = child.fork();
-
-		assert.equal(!context, false);
-		assert.equal(context.getChilds().length, 1);
-
-		assert.equal(!child, false);
-		assert.equal(child.getChilds().length, 1);
-
-		assert.equal(!childchild, false);
-
-		done();
-	});
-
-	it('all errors goes to top most Parent', function(done) {
-		var context = ContextFactory({
-			a: 1,
-			b: 2,
-			c: 3
-		});
-		var child = context.fork();
-		var childchild = child.fork();
-		childchild.addError(new Error());
-		assert.equal(childchild.hasErrors(), true);
-		assert.equal(child.hasErrors(), true);
-		assert.equal(context.hasErrors(), true);
-		done();
-	});
-});
-
 describe('Utils', function() {
-	/*it('getClass works', function(done){
+	it('getClass works', function(done){
 		var v = new Stage();
 		var p = new Pipeline();
 		var c = new Context();
@@ -1447,5 +1383,5 @@ describe('Utils', function() {
 		assert.equal(Util.getClass(p),'Pipeline');
 		assert.equal(Util.getClass(c),'Context');
 		done();
-	});*/
+	});
 });
