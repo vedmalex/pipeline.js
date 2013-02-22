@@ -20,6 +20,14 @@ describe('Stage', function() {
 		done();
 	});
 
+	it('not allows to use constructor as a function', function(done) {
+		try {
+			var s = Stage();
+		} catch(err) {
+			done();
+		}
+	});
+
 	it('converts context if it is not typeof Context in emit', function(done) {
 		var stage = new Stage(function(err, context, done) {
 			done();
@@ -153,6 +161,14 @@ describe('Context', function() {
 		done();
 	});
 
+	it('not allows to use constructor as a function', function(done) {
+		try {
+			var s = Context();
+		} catch(err) {
+			done();
+		}
+	});
+
 	it('object must presented as links', function(done) {
 		var config = {
 			config: {
@@ -234,6 +250,15 @@ describe('Pipeline', function() {
 		}, /ANY STAGE FOUND/, 'must throw when there is no stage to compile');
 		done();
 	});
+
+	it('not allows to use constructor as a function', function(done) {
+		try {
+			var s = Pipeline();
+		} catch(err) {
+			done();
+		}
+	});
+
 	it('addStage', function(done) {
 		var pipe = new Pipeline();
 		pipe.addStage(new Stage());
@@ -572,7 +597,13 @@ describe('Sequential', function() {
 			done();
 		});
 	});
-
+	it('not allows to use constructor as a function', function(done) {
+		try {
+			var s = Sequential();
+		} catch(err) {
+			done();
+		}
+	});
 	it('run stage', function(done) {
 		var stage0 = new Stage(function(err, ctx, done) {
 			ctx.iter++;
@@ -588,6 +619,34 @@ describe('Sequential', function() {
 			iter: -1
 		}, function(err, context) {
 			assert.equal(context.iter, 9);
+			done();
+		});
+	});
+
+	it('prepare context', function(done) {
+		var stage0 = new Stage(function(err, ctx, done) {
+			ctx.iter++;
+			done();
+		});
+		var cnt = 0;
+		var stage = new Sequential({
+			stage: stage0,
+			prepareContext:function(ctx){
+				return {iter:ctx.iter};
+			},
+			split:function(ctx, iter){
+				cnt++;
+				return ctx.fork();
+			},
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == 10;
+			}
+		});
+		stage.execute({
+			iter: -1
+		}, function(err, context) {
+			assert.equal(context.iter, -1);
+			assert.equal(cnt, 10);
 			done();
 		});
 	});
@@ -753,7 +812,13 @@ describe('Parallel', function() {
 			done();
 		});
 	});
-
+	it('not allows to use constructor as a function', function(done) {
+		try {
+			var s = Parallel();
+		} catch(err) {
+			done();
+		}
+	});
 	it('run stage', function(done) {
 		var stage0 = new Stage(function(err, ctx, done) {
 			ctx.iter++;
@@ -920,7 +985,13 @@ describe('if->else', function() {
 			done();
 		});
 	});
-
+	it('not allows to use constructor as a function', function(done) {
+		try {
+			var s = IfElse();
+		} catch(err) {
+			done();
+		}
+	});
 	it('simple works sucess', function(done) {
 		var s0 = new Stage(function(err, ctx, done) {
 			ctx.done = true;
@@ -968,7 +1039,13 @@ describe('SWITCH', function() {
 			done();
 		});
 	});
-
+	it('not allows to use constructor as a function', function(done) {
+		try {
+			var s = MultiWaySwitch();
+		} catch(err) {
+			done();
+		}
+	});
 	it('must enter in each pipe works in parallel', function(done) {
 		var cnt = 0;
 		var pipe0 = new Pipeline([function(err, ctx, done) {
