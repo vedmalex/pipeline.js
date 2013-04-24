@@ -22,7 +22,7 @@ describe('Stage', function() {
 	it('not allows to use constructor as a function', function(done) {
 		try {
 			var s = Stage();
-		} catch(err) {
+		} catch (err) {
 			done();
 		}
 	});
@@ -76,6 +76,33 @@ describe('Stage', function() {
 			done();
 		});
 		stage.execute({});
+	});
+
+	it('emits error if it configured to do so', function(done) {
+		var stage = new Stage(function(err, context, done) {
+			done(new Error());
+		});
+		stage.emitAnyway = true;
+		stage.once('error', function(err, conext) {
+			assert.equal(!err, false);
+			assert.equal(!context, false);
+			done();
+		});
+
+		stage.execute({}, function(err, data) {});
+	});
+
+	it('emits done if it configured to do so', function(done) {
+		var stage = new Stage(function(err, context, done) {
+			done();
+		});
+		stage.emitAnyway = true;
+		stage.once('done', function(err, conext) {
+			assert.equal(!context, false);
+			done();
+		});
+
+		stage.execute({}, function(err, data) {});
 	});
 
 	it('ensureContext', function(done) {
@@ -132,9 +159,9 @@ describe('Stage', function() {
 		var l = 0;
 
 		function gotit() {
-			if(++l == 20) done();
+			if (++l == 20) done();
 		}
-		for(var i = 0; i < 20; i++) {
+		for (var i = 0; i < 20; i++) {
 			var ctx1 = new Context({
 				one: 1
 			});
@@ -163,7 +190,7 @@ describe('Context', function() {
 	it('not allows to use constructor as a function', function(done) {
 		try {
 			var s = Context();
-		} catch(err) {
+		} catch (err) {
 			done();
 		}
 	});
@@ -253,7 +280,7 @@ describe('Pipeline', function() {
 	it('not allows to use constructor as a function', function(done) {
 		try {
 			var s = Pipeline();
-		} catch(err) {
+		} catch (err) {
 			done();
 		}
 	});
@@ -294,11 +321,11 @@ describe('Pipeline', function() {
 
 	it('accept array of stages', function(done) {
 		var f1 = function(err, ctx, done) {
-				done();
-			};
+			done();
+		};
 		var f2 = function(err, ctx, done) {
-				done();
-			};
+			done();
+		};
 
 		var pipe = new Pipeline([f1, f2]);
 		pipe.addStage(function(err, ctx, done) {
@@ -415,7 +442,7 @@ describe('Pipeline', function() {
 				done();
 			},
 			ensure: function(context, callback) {
-				if(context.SomeValue !== 1) callback(error);
+				if (context.SomeValue !== 1) callback(error);
 				else callback(null, context);
 			}
 		};
@@ -423,7 +450,7 @@ describe('Pipeline', function() {
 		var stage2 = {
 			ensure: function(context, callback) {
 				console.log();
-				if(context.SomeValue !== 1) callback(new Error(this.reportName() + ': Wrong Value'));
+				if (context.SomeValue !== 1) callback(new Error(this.reportName() + ': Wrong Value'));
 				else callback(null, context);
 			}
 		};
@@ -572,9 +599,9 @@ describe('Pipeline', function() {
 		var l = 0;
 
 		function gotit() {
-			if(++l == 20) done();
+			if (++l == 20) done();
 		}
-		for(var i = 0; i < 20; i++) {
+		for (var i = 0; i < 20; i++) {
 			var ctx1 = new Context({
 				one: 1
 			});
@@ -599,7 +626,7 @@ describe('Sequential', function() {
 	it('not allows to use constructor as a function', function(done) {
 		try {
 			var s = Sequential();
-		} catch(err) {
+		} catch (err) {
 			done();
 		}
 	});
@@ -630,10 +657,12 @@ describe('Sequential', function() {
 		var cnt = 0;
 		var stage = new Sequential({
 			stage: stage0,
-			prepareContext:function(ctx){
-				return {iter:ctx.iter};
+			prepareContext: function(ctx) {
+				return {
+					iter: ctx.iter
+				};
 			},
-			split:function(ctx, iter){
+			split: function(ctx, iter) {
 				cnt++;
 				return ctx.fork();
 			},
@@ -675,7 +704,7 @@ describe('Sequential', function() {
 			combine: function(innerCtx, ctx, childs) {
 				var len = childs.length;
 				ctx.result = 0;
-				for(var i = 0; i < len; i++) {
+				for (var i = 0; i < len; i++) {
 					ctx.result += childs[i].liter;
 				}
 			}
@@ -691,7 +720,7 @@ describe('Sequential', function() {
 		var stage0 = new Stage({
 			run: function(err, ctx, done) {
 				ctx.liter = 1;
-				if(ctx.iter === 4) done(new Error());
+				if (ctx.iter === 4) done(new Error());
 				else done();
 			}
 		});
@@ -712,7 +741,7 @@ describe('Sequential', function() {
 			combine: function(innerCtx, ctx, childs) {
 				var len = childs.length;
 				ctx.result = 0;
-				for(var i = 0; i < len; i++) {
+				for (var i = 0; i < len; i++) {
 					ctx.result += childs[i].liter;
 				}
 			}
@@ -752,7 +781,7 @@ describe('Sequential', function() {
 			combine: function(innerCtx, ctx, childs) {
 				var len = childs.length;
 				ctx.result = 0;
-				for(var i = 0; i < len; i++) {
+				for (var i = 0; i < len; i++) {
 					ctx.result += childs[i].liter;
 				}
 			}
@@ -787,7 +816,7 @@ describe('Sequential', function() {
 				var childs = ctx.getChilds();
 				var len = childs.length;
 				ctx.result = 0;
-				for(var i = 0; i < len; i++) {
+				for (var i = 0; i < len; i++) {
 					ctx.result += childs[i].liter;
 				}
 			}
@@ -814,7 +843,7 @@ describe('Parallel', function() {
 	it('not allows to use constructor as a function', function(done) {
 		try {
 			var s = Parallel();
-		} catch(err) {
+		} catch (err) {
 			done();
 		}
 	});
@@ -867,7 +896,7 @@ describe('Parallel', function() {
 			split: function(ctx, iter) {
 				var res = [];
 				var len = ctx.some.length;
-				for(var i = 0; i < len; i++) {
+				for (var i = 0; i < len; i++) {
 					res.push({
 						some: ctx.some[i]
 					});
@@ -881,7 +910,7 @@ describe('Parallel', function() {
 			combine: function(ctx, childs) {
 				var len = childs.length;
 				ctx.result = 0;
-				for(var i = 0; i < len; i++) {
+				for (var i = 0; i < len; i++) {
 					ctx.result += childs[i].liter;
 				}
 			}
@@ -895,8 +924,8 @@ describe('Parallel', function() {
 	it('complex example 1 - Error Handling', function(done) {
 		var stage0 = new Stage(function(err, ctx, done) {
 			ctx.liter = 1;
-			if(ctx.some == 4) done(new Error());
-			if(ctx.some == 5) done(new Error());
+			if (ctx.some == 4) done(new Error());
+			if (ctx.some == 5) done(new Error());
 			else done();
 		});
 		var ctx = {
@@ -908,7 +937,7 @@ describe('Parallel', function() {
 			split: function(ctx, iter) {
 				var res = [];
 				var len = ctx.some.length;
-				for(var i = 0; i < len; i++) {
+				for (var i = 0; i < len; i++) {
 					res.push({
 						some: ctx.some[i]
 					});
@@ -922,7 +951,7 @@ describe('Parallel', function() {
 			combine: function(ctx, childs) {
 				var len = childs.length;
 				ctx.result = 0;
-				for(var i = 0; i < len; i++) {
+				for (var i = 0; i < len; i++) {
 					ctx.result += childs[i].liter;
 				}
 			}
@@ -949,7 +978,7 @@ describe('Parallel', function() {
 			split: function(ctx, iter) {
 				var res = [];
 				var len = ctx.some.length;
-				for(var i = 0; i < len; i++) {
+				for (var i = 0; i < len; i++) {
 					res.push(ctx.fork());
 				}
 				return res;
@@ -961,7 +990,7 @@ describe('Parallel', function() {
 				var childs = ctx.getChilds();
 				var len = childs.length;
 				ctx.result = 0;
-				for(var i = 0; i < len; i++) {
+				for (var i = 0; i < len; i++) {
 					ctx.result += childs[i].liter;
 				}
 			}
@@ -987,7 +1016,7 @@ describe('if->else', function() {
 	it('not allows to use constructor as a function', function(done) {
 		try {
 			var s = IfElse();
-		} catch(err) {
+		} catch (err) {
 			done();
 		}
 	});
@@ -1041,7 +1070,7 @@ describe('SWITCH', function() {
 	it('not allows to use constructor as a function', function(done) {
 		try {
 			var s = MultiWaySwitch();
-		} catch(err) {
+		} catch (err) {
 			done();
 		}
 	});
@@ -1242,8 +1271,7 @@ describe('SWITCH', function() {
 		}]);
 
 		var sw = new MultiWaySwitch({
-			cases: [pipe0,
-			{
+			cases: [pipe0, {
 				stage: pipe1,
 				exHandler: function() {
 					return false;
@@ -1282,8 +1310,7 @@ describe('SWITCH', function() {
 		}]);
 
 		var sw = new MultiWaySwitch({
-			cases: [pipe0,
-			{
+			cases: [pipe0, {
 				stage: pipe1,
 				evaluate: true,
 				exHandler: function() {
@@ -1375,13 +1402,13 @@ describe('inheritence', function() {
 });
 
 describe('Utils', function() {
-	it('getClass works', function(done){
+	it('getClass works', function(done) {
 		var v = new Stage();
 		var p = new Pipeline();
 		var c = new Context();
-		assert.equal(Util.getClass(v),'Stage');
-		assert.equal(Util.getClass(p),'Pipeline');
-		assert.equal(Util.getClass(c),'Context');
+		assert.equal(Util.getClass(v), 'Stage');
+		assert.equal(Util.getClass(p), 'Pipeline');
+		assert.equal(Util.getClass(c), 'Context');
 		done();
 	});
 });
