@@ -13,7 +13,7 @@ var schema = require('js-schema');
 var util = require('util');
 var assert = require('assert');
 
-describe('utils', function(){
+describe('utils', function() {
 	var res = Util.getClass(false);
 	assert.equal(res, false);
 });
@@ -336,6 +336,13 @@ describe('Pipeline', function() {
 		});
 		assert.equal(pipe.stages[0].reportName(), 'stage Stage', 'function is converted to Stage instance');
 		assert.equal(pipe.stages[1].reportName(), 'stage Stage', 'function is converted to Stage instance');
+		done();
+	});
+
+	it('accept empty addStages', function(done) {
+		var pipe = new Pipeline();
+		pipe.addStage();
+		assert.equal(pipe.stages[0].reportName(), 'stage Stage', 'function is converted to Stage instance');
 		done();
 	});
 
