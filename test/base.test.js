@@ -1,17 +1,22 @@
-var Stage = require('../').Stage;
-var Context = require('../').Context;
-var Pipeline = require('../').Pipeline;
-var Sequential = require('../').Sequential;
-var Parallel = require('../').Parallel;
-var IfElse = require('../').IfElse;
-var MultiWaySwitch = require('../').MultiWaySwitch;
-
-
-var Util = require('../').Util;
+debugger
+var index = process.env['COVERAGE'] ? '../index-cov.js' : '../';
+var Stage = require(index).Stage;
+var Context = require(index).Context;
+var Pipeline = require(index).Pipeline;
+var Sequential = require(index).Sequential;
+var Parallel = require(index).Parallel;
+var IfElse = require(index).IfElse;
+var MultiWaySwitch = require(index).MultiWaySwitch;
+var Util = require(index).Util;
 
 var schema = require('js-schema');
 var util = require('util');
 var assert = require('assert');
+
+describe('utils', function(){
+	var res = Util.getClass(false);
+	assert.equal(res, false);
+});
 
 describe('Stage', function() {
 
@@ -166,10 +171,8 @@ describe('Stage', function() {
 				one: 1
 			});
 			st.execute(ctx1, function(err, data) {
-				process.nextTick(function() {
-					assert.equal(ctx1.one, 2);
-					gotit();
-				});
+				assert.equal(data.one, 2);
+				gotit();
 			});
 		}
 	});
@@ -511,6 +514,19 @@ describe('Pipeline', function() {
 		done();
 	});
 
+	it('use schema to override validate with object', function(done) {
+		var type1 = {
+			some: Object,
+			other: String
+		};
+		var stg = new Stage({
+			schema: type1
+		});
+		var replaced = stg.validate !== Stage.prototype.validate;
+		assert.equal(replaced, true, 'validate method must be replaced');
+		done();
+	});
+
 	it('valid context proceeed execution', function(done) {
 		var type1 = schema({
 			some: Object,
@@ -606,10 +622,8 @@ describe('Pipeline', function() {
 				one: 1
 			});
 			pipe.execute(ctx1, function(err, data) {
-				process.nextTick(function() {
-					assert.equal(ctx1.one, 8);
-					gotit();
-				});
+				assert.equal(data.one, 8);
+				gotit();
 			});
 		}
 	});
@@ -1076,33 +1090,45 @@ describe('SWITCH', function() {
 	});
 	it('must enter in each pipe works in parallel', function(done) {
 		var cnt = 0;
-		var pipe0 = new Pipeline([function(err, ctx, done) {
-			ctx.p00 = true;
-			cnt++;
-			done();
-		}, function(err, ctx, done) {
-			ctx.p01 = true;
-			cnt++;
-			done();
-		}]);
-		var pipe1 = new Pipeline([function(err, ctx, done) {
-			ctx.p10 = true;
-			cnt++;
-			done();
-		}, function(err, ctx, done) {
-			ctx.p11 = true;
-			cnt++;
-			done();
-		}]);
-		var pipe2 = new Pipeline([function(err, ctx, done) {
-			ctx.p20 = true;
-			cnt++;
-			done();
-		}, function(err, ctx, done) {
-			ctx.p21 = true;
-			cnt++;
-			done();
-		}]);
+		var pipe0 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.p00 = true;
+				cnt++;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.p01 = true;
+				cnt++;
+				done();
+			}
+		]);
+		var pipe1 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.p10 = true;
+				cnt++;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.p11 = true;
+				cnt++;
+				done();
+			}
+		]);
+		var pipe2 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.p20 = true;
+				cnt++;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.p21 = true;
+				cnt++;
+				done();
+			}
+		]);
 
 		var sw = new MultiWaySwitch([pipe0, pipe1, pipe2]);
 		sw.execute({}, function(err, ctx) {
@@ -1112,20 +1138,28 @@ describe('SWITCH', function() {
 	});
 
 	it('must enter in each pipe works in parallel', function(done) {
-		var pipe0 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done();
-		}]);
-		var pipe1 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done();
-		}]);
+		var pipe0 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done();
+			}
+		]);
+		var pipe1 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done();
+			}
+		]);
 
 		var sw = new MultiWaySwitch({
 			cases: [pipe0, pipe1],
@@ -1144,20 +1178,28 @@ describe('SWITCH', function() {
 		});
 	});
 	it('exception errors for', function(done) {
-		var pipe0 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done(new Error());
-		}]);
-		var pipe1 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done();
-		}]);
+		var pipe0 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done(new Error());
+			}
+		]);
+		var pipe1 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done();
+			}
+		]);
 
 		var sw = new MultiWaySwitch({
 			cases: [pipe0, pipe1],
@@ -1181,20 +1223,28 @@ describe('SWITCH', function() {
 	});
 
 	it('exception errors for 2', function(done) {
-		var pipe0 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done();
-		}]);
-		var pipe1 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done(new Error());
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done();
-		}]);
+		var pipe0 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done();
+			}
+		]);
+		var pipe1 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done(new Error());
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done();
+			}
+		]);
 
 		var sw = new MultiWaySwitch({
 			cases: [pipe0, pipe1],
@@ -1218,20 +1268,28 @@ describe('SWITCH', function() {
 	});
 
 	it('exception handler work', function(done) {
-		var pipe0 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done();
-		}]);
-		var pipe1 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done(new Error());
-		}]);
+		var pipe0 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done();
+			}
+		]);
+		var pipe1 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done(new Error());
+			}
+		]);
 
 		var sw = new MultiWaySwitch({
 			cases: [pipe0, pipe1],
@@ -1255,20 +1313,28 @@ describe('SWITCH', function() {
 	});
 
 	it('not evaluate if missing evaluate property', function(done) {
-		var pipe0 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done();
-		}]);
-		var pipe1 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done(new Error());
-		}]);
+		var pipe0 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done();
+			}
+		]);
+		var pipe1 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done(new Error());
+			}
+		]);
 
 		var sw = new MultiWaySwitch({
 			cases: [pipe0, {
@@ -1294,20 +1360,28 @@ describe('SWITCH', function() {
 	});
 
 	it('individual exception handler work', function(done) {
-		var pipe0 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done();
-		}]);
-		var pipe1 = new Pipeline([function(err, ctx, done) {
-			ctx.cnt = 1;
-			done();
-		}, function(err, ctx, done) {
-			ctx.cnt += 1;
-			done(new Error());
-		}]);
+		var pipe0 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done();
+			}
+		]);
+		var pipe1 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done(new Error());
+			}
+		]);
 
 		var sw = new MultiWaySwitch({
 			cases: [pipe0, {
