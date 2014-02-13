@@ -1,101 +1,40 @@
-#Цель:  библиотека для повторного использования кода и упрощенного тестировани.
-по сути не отличается от обычного модульного программирования. 
-основное преимущество, можно комбинировать код простым добавлением новых видов stage/pipline и их последующее использование в процессе работы.
+# pipeline.js
+pipeline.js is modular pipeline like developer for node.js
 
-Pipeline с именованными шагами, для того чтобы иметь возможность создавать возвраты.
-для этого необходим либо новая ходилка по шагам либо своя ходилка по шагам.
+# Main concept
 
- - дополнительные стандартные stage условный переход
+Suppose we have *pipeline* with different types of *stages*.
+*Stage* is the minimal work unit that can process some specific context. In pipeline the context is passing by specific stages that process the context, fulfill it with specific features. Some specific context can be splited into different parts and according its specific requirments it can be processed as well. After context is processed it is combined back into one context with specific rules.
 
- - возможность возврата на любой шаг вперед и назад 
- 
- - возможность задать следующий шаг
+Each stage can process specific context, that can be or not the part of something buggger. We can combine new type of pipeline by assembinlg it using the existing stages and pipelines that is stored in the warehouse.
 
- - операции типа split combine для параллельного выполнения и задания точек синхронизации
-(типа сети петри)
+the same idea is under the develop of pipeline
 
- - обработка ошибок: должна быть отделена от основного механизма хождения по шагам, для того чтобы можно было установить новый следующий шаг в случае ошибки, либо выбрать шаги из другого списка шагов... по усмотрению разработчика.
+# Stages: quick overview
 
- - возможность сериализовать структуру stage в файл.
+## Context
+*Context* - is the thing that exists transparently in the system.
+We can *fork* context, *getParent*, all errors during the processing of child context store in the parent error list.
 
- - останавливать выполнение stage (workflow);
+## Stage
+*Stage* is teh eventEmitter sublcass. We can either subscribe to events or use callback to catch-up end of processing.
+*Stage* is by default asyncronous.
 
-#Требования к параллельному и к последовательному испольнению
-1. последовательно:
-	- последовательно обработать массив конекстов.
-	- stage который выполнит по
+## Pipeline
+*Pipeline* is by subclass of Stage. the main purpose of it is to run sequence of different stages one after another.
 
-это специальный тип pipeline.
+## IfElse
+*IfElse* is the type of stage that use condition to choose which one of two *Stage* we need to run according to specific condition.
 
-##Sequential
+## MultiWaySwitch
+*MultiWaySwitch* is more complex *Stage* than *IfElse* is.
+we can provide each stage in the list with condition, by examining which *MultiWaySwitch* make decision wheather the specific stage can be run or not.
+notable feature is that on context can be processed from 0 to n times with the *MultiWaySwitch*.
 
-Stage с параметрами:
+## Parallel
+*Parallel* is the *Stage* that make possible process of stage that contain enumeration in it with parallel options. It runs one stage as parallel processing on series of data of the processing context.
+it reachs end only after all data will be processed. It returns list of error, that can be examined when it will combine result into context.
 
-- stage - Stage который будет выполняться внутри.
-
-- fork - процедура процедура которая делает fork текущего context-а для stage, или создает новый, может быть и на основен текущего, в зависимости от необходимости, и заполняет его специфичными данными.
-
-- reachEnd - условие завершения последовательности.
-- combine - метод который будет формировать результирующий контекст.
-
-##Parallel
-c parallel все немного сложнее... проблема в том, что нужно будет предварительно создать все котексты и запустить из обработку... поэтмоу, возможно, в нем нет необходимости. НО!
-
-- stage - Stage который будет выполняться внутри.
-
-- fork - процедура процедура, которая сформирует массив конектстов, которые должны будут выполниться параллельно. Работает на основе fork текущего context-а для stage, или создает новый, может быть и на основен текущего, в зависимости от необходимости, и заполняет его специфичными данными.
-- combine - метод который будет формировать результирующий контекст.
-
-##IFELSE
-
-Stage с параметрами
-
-- condition - функция, которая на основании текущего контекта вычисляет условие.
-
-- succeess - Stage, который выполняется в случае condition(ctx) = true;
-
-- failed - , который выполняется в случае condition(ctx) = false;
-
-#SWITCH 
-
-Stage с параметрами
-
-- condition - функция определяет строку для выборки условия.
-
-- cases - пары {значение:Stage}
-
-- defaults - ни один из перечисленных
-
-
-обработка ошибок:
-
-все последовательные операции обрываются после первой ошибки.
-все параллельные операции выполняются до конца, и ошибки суммируются.
-
-записывать путь, который прошел контекст по конвееру - лог. чтобы было видно как и где и что.
-
-https://twitter.com/NodeDublin/status/301307831133540352?uid=75756871&iid=fd641cec-8801-44b6-95fc-ff116de470a6&nid=12+595+20130212
-может быть использовать stream? или что-то такое
-https://github.com/substack/stream-handbook, это позволит уйти от callback и вывести управление ошибками отдельно...
-скорее всего у меня все готово для этого... может быть придется чего то менять...
-
-unwind делает сплит по всем вложенным полям объекта.
-
-
-всякие правила удаления нужно проверять как раз на этапе подгрузки данных на сервер. и только для удаления...
-подготовку к удалению разделить на три метода, 1. обычное, 2. аггрегация, 3. композиция.... придумать как их удалять. поскольку в одном случает ассоциация требует удаления всех связанных, в другом, запрещает удаление при наличии хотя бы одного элемента.
-
-???при создании элемента ключа у объекта может не быть.... и посмотреть транзакцию со встроенными объектами -- правда получиться что-то типа того, как я делал с импортом схемы.
-
-подумать стоит ли загружать объекты связи.... соменваюсь.
-
-с новой транзакцией можно задавать механизмы для сохранения объектов и прочее.
-
-и следует поменять машину состояний или вообще убрать...
-
-
-контекст надо оборачивать вокруг класса.
-создавая для него проперти. тогда для некоторых вещей не надо будет делать обращения через getParent()
-
-сделать версию для browser
+## Sequential
+*Sequential* is the *Stage* that work almost like *Parallel*, but in run stage in sequential manner. So it first error occures we can manage it to stop processing or continue if we decide that the error not significant.
 

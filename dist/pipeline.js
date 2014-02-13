@@ -1,6 +1,7 @@
-;(function(p,c,e){function r(n){if(!c[n]){if(!p[n])return;c[n]={exports:{}};p[n][0](function(x){return r(p[n][1][x])},c[n],c[n].exports);}return c[n].exports}for(var i=0;i<e.length;i++)r(e[i]);return r})({0:[function(require,module,exports){(function(global){global.pipelinejs = require('./index');
-})(window)
-},{"./index":1}],1:[function(require,module,exports){exports.Stage = require('./lib/stage').Stage;
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};global.pipelinejs = require('./index');
+},{"./index":2}],2:[function(require,module,exports){
+exports.Stage = require('./lib/stage').Stage;
 exports.Pipeline = require('./lib/pipeline').Pipeline;
 exports.Sequential = require('./lib/sequential').Sequential;
 exports.IfElse = require('./lib/ifelse').IfElse;
@@ -8,74 +9,8 @@ exports.MultiWaySwitch = require('./lib/multywayswitch').MultiWaySwitch;
 exports.Parallel = require('./lib/parallel').Parallel;
 exports.Context = require('./lib/context').Context;
 exports.Util = require('./lib/util').Util;
-},{"./lib/stage":2,"./lib/pipeline":3,"./lib/sequential":4,"./lib/ifelse":5,"./lib/multywayswitch":6,"./lib/parallel":7,"./lib/context":8,"./lib/util":9}],2:[function(require,module,exports){var Context = require('./context').Context;
-var EventEmitter = require("events").EventEmitter;
-var schema = require('js-schema');
-var util = require('./util.js').Util;
-
-function Stage(config) {
-	if(!(this instanceof Stage)) throw new Error('constructor is not a function');
-	if(config) {
-		if(typeof(config) === 'object') {
-			if(typeof(config.ensure) === 'function') this.ensure = config.ensure;
-			if(typeof(config.validate) === 'function') this.validate = config.validate;
-			if(typeof(config.schema) === 'object') {
-				// override validate method
-				this.validate = schema(config.schema);
-			}
-			if(typeof(config.run) === 'function') this.run = config.run;
-		} else if(typeof(config) === 'function') this.run = config;
-	}
-	EventEmitter.call(this);
-}
-exports.Stage = Stage;
-util.inherits(Stage, EventEmitter);
-var StageProto = Stage.prototype;
-
-StageProto.reportName = function() {
-	return 'stage ' + util.getClass(this);
-};
-
-StageProto.ensure = function(context, callback) {
-	if(this.validate(context)) {
-		if(typeof(callback) == 'function') callback(null);
-	} else callback(new Error(this.reportName() + ' reports: Context is invalid'));
-};
-StageProto.validate = function(context) {
-	return true;
-};
-StageProto.run = 0;
-StageProto.execute = function(_context, callback) {
-	var context = _context instanceof Context ? _context : new Context(_context);
-	var self = this;
-	self.ensure(context, function(err) {
-		if(!err) {
-			if(typeof(self.run) == 'function') {
-				self.run(null, context, function(err) {
-					if(typeof(callback) == 'function') callback(err, context);
-					else {
-						if(err) {
-							context.addError(err);
-							self.emit('error', err, context);
-						} else self.emit('done', context);
-					}
-				});
-			} else {
-				var runIsNotAFunction = new Error(self.reportName() + ' reports: run is not a function');
-				context.addError(runIsNotAFunction);
-				if(typeof(callback) == 'function') callback(runIsNotAFunction, context);
-				else self.emit('error', runIsNotAFunction, context);
-			}
-		} else {
-			if(typeof(callback) == 'function') callback(err, context);
-			else {
-				context.addError(err);
-				self.emit('error', err, context);
-			}
-		}
-	});
-};
-},{"./context":8,"events":10,"js-schema":11,"./util.js":9}],8:[function(require,module,exports){var reserved = {
+},{"./lib/context":3,"./lib/ifelse":4,"./lib/multywayswitch":5,"./lib/parallel":6,"./lib/pipeline":7,"./lib/sequential":8,"./lib/stage":9,"./lib/util":10}],3:[function(require,module,exports){
+var reserved = {
 	"$$$errors": 1,
 	"hasErrors": 1,
 	"addError": 1,
@@ -102,6 +37,12 @@ function Context(config) {
 }
 
 exports.Context = Context;
+
+Context.prototype.$$$parent;
+
+Context.prototype.$$$childs;
+
+Context.prototype.$$$errors;
 
 Context.prototype.getChilds = function() {
 	if(!this.$$$childs) this.$$$childs = [];
@@ -137,240 +78,491 @@ Context.prototype.getErrors = function() {
 	if(!this.$$$errors) this.$$$errors = [];
 	return this.$$$errors;
 };
-},{}],10:[function(require,module,exports){(function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
+},{}],4:[function(require,module,exports){
+var Stage = require('./stage').Stage;
+var util = require('./util.js').Util;
 
-var EventEmitter = exports.EventEmitter = process.EventEmitter;
-var isArray = typeof Array.isArray === 'function'
-    ? Array.isArray
-    : function (xs) {
-        return Object.prototype.toString.call(xs) === '[object Array]'
-    }
-;
-function indexOf (xs, x) {
-    if (xs.indexOf) return xs.indexOf(x);
-    for (var i = 0; i < xs.length; i++) {
-        if (x === xs[i]) return i;
-    }
-    return -1;
+function IfElse(config) {
+	if(!(this instanceof IfElse)) throw new Error('constructor is not a function');
+	Stage.apply(this);
+	if(!config) config = {};
+	this.condition = config.condition instanceof Function ? config.condition : function(ctx) {
+		return true;
+	};
+
+	if(config.success instanceof Stage) this.success = config.success;
+	else if(config.success instanceof Function) this.success = new Stage(config.success);
+	else this.success = new Stage();
+
+	if(config.failed instanceof Stage) this.failed = config.failed;
+	else if(config.failed instanceof Function) this.failed = new Stage(config.failed);
+	else this.failed = new Stage();
 }
 
-// By default EventEmitters will print a warning if more than
-// 10 listeners are added to it. This is a useful default which
-// helps finding memory leaks.
-//
-// Obviously not all Emitters should be limited to 10. This function allows
-// that to be increased. Set to zero for unlimited.
-var defaultMaxListeners = 10;
-EventEmitter.prototype.setMaxListeners = function(n) {
-  if (!this._events) this._events = {};
-  this._events.maxListeners = n;
+util.inherits(IfElse, Stage);
+
+exports.IfElse = IfElse;
+var StageProto = IfElse.super_.prototype;
+var IfElseProto = IfElse.prototype;
+
+IfElseProto.compile = function() {
+	var self = this;
+	var run = function(err, ctx, done) {
+			if(self.condition(ctx)) self.success.execute(ctx, done);
+			else self.failed.execute(ctx, done);
+		};
+	self.run = run;
 };
 
-
-EventEmitter.prototype.emit = function(type) {
-  // If there is no 'error' event listener then throw.
-  if (type === 'error') {
-    if (!this._events || !this._events.error ||
-        (isArray(this._events.error) && !this._events.error.length))
-    {
-      if (arguments[1] instanceof Error) {
-        throw arguments[1]; // Unhandled 'error' event
-      } else {
-        throw new Error("Uncaught, unspecified 'error' event.");
-      }
-      return false;
-    }
-  }
-
-  if (!this._events) return false;
-  var handler = this._events[type];
-  if (!handler) return false;
-
-  if (typeof handler == 'function') {
-    switch (arguments.length) {
-      // fast cases
-      case 1:
-        handler.call(this);
-        break;
-      case 2:
-        handler.call(this, arguments[1]);
-        break;
-      case 3:
-        handler.call(this, arguments[1], arguments[2]);
-        break;
-      // slower
-      default:
-        var args = Array.prototype.slice.call(arguments, 1);
-        handler.apply(this, args);
-    }
-    return true;
-
-  } else if (isArray(handler)) {
-    var args = Array.prototype.slice.call(arguments, 1);
-
-    var listeners = handler.slice();
-    for (var i = 0, l = listeners.length; i < l; i++) {
-      listeners[i].apply(this, args);
-    }
-    return true;
-
-  } else {
-    return false;
-  }
+IfElseProto.execute = function(context, callback) {
+	var self = this;
+	if(!self.run) self.compile();
+	StageProto.execute.apply(this, arguments);
 };
+},{"./stage":9,"./util.js":10}],5:[function(require,module,exports){
+var Stage = require('./stage').Stage;
+var util = require('./util.js').Util;
 
-// EventEmitter is defined in src/node_events.cc
-// EventEmitter.prototype.emit() is also defined there.
-EventEmitter.prototype.addListener = function(type, listener) {
-  if ('function' !== typeof listener) {
-    throw new Error('addListener only takes instances of Function');
-  }
-
-  if (!this._events) this._events = {};
-
-  // To avoid recursion in the case that type == "newListeners"! Before
-  // adding it to the listeners, first emit "newListeners".
-  this.emit('newListener', type, listener);
-
-  if (!this._events[type]) {
-    // Optimize the case of one listener. Don't need the extra array object.
-    this._events[type] = listener;
-  } else if (isArray(this._events[type])) {
-
-    // Check for listener leak
-    if (!this._events[type].warned) {
-      var m;
-      if (this._events.maxListeners !== undefined) {
-        m = this._events.maxListeners;
-      } else {
-        m = defaultMaxListeners;
-      }
-
-      if (m && m > 0 && this._events[type].length > m) {
-        this._events[type].warned = true;
-        console.error('(node) warning: possible EventEmitter memory ' +
-                      'leak detected. %d listeners added. ' +
-                      'Use emitter.setMaxListeners() to increase limit.',
-                      this._events[type].length);
-        console.trace();
-      }
-    }
-
-    // If we've already got an array, just append.
-    this._events[type].push(listener);
-  } else {
-    // Adding the second element, need to change to array.
-    this._events[type] = [this._events[type], listener];
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-
-EventEmitter.prototype.once = function(type, listener) {
-  var self = this;
-  self.on(type, function g() {
-    self.removeListener(type, g);
-    listener.apply(this, arguments);
-  });
-
-  return this;
-};
-
-EventEmitter.prototype.removeListener = function(type, listener) {
-  if ('function' !== typeof listener) {
-    throw new Error('removeListener only takes instances of Function');
-  }
-
-  // does not use listeners(), so no side effect of creating _events[type]
-  if (!this._events || !this._events[type]) return this;
-
-  var list = this._events[type];
-
-  if (isArray(list)) {
-    var i = indexOf(list, listener);
-    if (i < 0) return this;
-    list.splice(i, 1);
-    if (list.length == 0)
-      delete this._events[type];
-  } else if (this._events[type] === listener) {
-    delete this._events[type];
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.removeAllListeners = function(type) {
-  // does not use listeners(), so no side effect of creating _events[type]
-  if (type && this._events && this._events[type]) this._events[type] = null;
-  return this;
-};
-
-EventEmitter.prototype.listeners = function(type) {
-  if (!this._events) this._events = {};
-  if (!this._events[type]) this._events[type] = [];
-  if (!isArray(this._events[type])) {
-    this._events[type] = [this._events[type]];
-  }
-  return this._events[type];
-};
-
-})(require("__browserify_process"))
-},{"__browserify_process":12}],12:[function(require,module,exports){// shim for using process in browser
-
-var process = module.exports = {};
-
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-    && window.setImmediate;
-    var canPost = typeof window !== 'undefined'
-    && window.postMessage && window.addEventListener
-    ;
-
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
-    }
-
-    if (canPost) {
-        var queue = [];
-        window.addEventListener('message', function (ev) {
-            if (ev.source === window && ev.data === 'process-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
-            }
-        }, true);
-
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('process-tick', '*');
-        };
-    }
-
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
-    };
-})();
-
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
+function defCondition() {
+	return true;
 }
 
-// TODO(shtylman)
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
+function defSplit(ctx) {
+	return ctx;
+}
+
+function defExHandler(err, ctx) {
+	return err;
+}
+
+function defCombine(ctx, resCtx) {
+	return ctx;
+}
+
+function MultiWaySwitch(config) {
+	if(!(this instanceof MultiWaySwitch)) throw new Error('constructor is not a function');
+	Stage.apply(this);
+
+	if(!config) config = {};
+	if(config instanceof Array) config = {cases:config};
+	this.cases = config.cases ? config.cases : [];
+	this.condition = config.defCond ? config.defCond : defCondition;
+	this.defaults = config.defaults ? config.defaults : null;
+	this.exHandler = config.exHandler instanceof Function ? config.exHandler : defExHandler;
+	this.split = config.split instanceof Function ? config.split : defSplit;
+	this.combine = config.combine instanceof Function ? config.combine : defCombine;
+}
+
+util.inherits(MultiWaySwitch, Stage);
+
+exports.MultiWaySwitch = MultiWaySwitch;
+var StageProto = MultiWaySwitch.super_.prototype;
+var MultiWaySwitchProto = MultiWaySwitch.prototype;
+
+MultiWaySwitchProto.compile = function() {
+	var self = this;
+	var i;
+	var len = this.cases.length;
+	var caseItem;
+	var statics = [];
+	var dynamics = [];
+
+	// Разделяем и назначаем каждому stage свое окружение: evaluate, split, combine
+	for(i = 0; i < len; i++) {
+		caseItem = this.cases[i];
+		if(caseItem instanceof Stage) caseItem = {
+			stage: caseItem,
+			evaluate: true
+		};
+		if(caseItem.hasOwnProperty('stage')) {
+			if(caseItem.stage instanceof Function){
+				caseItem.stage = new Stage(caseItem.stage);
+			}
+			if(!(caseItem.split instanceof Function)) {
+				caseItem.split = self.split;
+			}
+			if(!(caseItem.combine instanceof Function)) {
+				caseItem.combine = self.combine;
+			}
+			if(!(caseItem.exHandler instanceof Function)) {
+				caseItem.exHandler = self.exHandler;
+			}
+			if(typeof caseItem.evaluate == 'function' && typeof caseItem.evaluate !== 'boolean') {
+				dynamics.push(caseItem);
+			} else if(typeof caseItem.evaluate == 'boolean' && caseItem.evaluate) {
+				statics.push(caseItem);
+			}
+		}
+	}
+
+	var run = function(err, ctx, done) {
+			var i;
+			var len = dynamics.length;
+			var actuals = [];
+			actuals.push.apply(actuals, statics);
+
+			for(i = 0; i < len; i++) {
+				if(dynamics[i].evaluate(ctx)) actuals.push(dynamics[i]);
+			}
+			if(actuals.length === 0 && self.defaults) {
+				actuals.push(self.defaults);
+			}
+			len = actuals.length;
+			var iter = 0;
+
+			var errors = [];
+			var next = function(index) {
+					function finish() {
+						if(errors.length > 0) done(errors);
+						else done();
+					}
+
+					function logError(err) {
+						errors.push({index:index,err:err});
+					}
+					return function(err, retCtx) {
+						iter++;
+						var cur = actuals[index];
+						if(cur.exHandler(err, ctx)) logError(err);
+						else cur.combine(ctx, retCtx);
+						if(iter == len) finish();
+					};
+				};
+			var stg;
+			for(i = 0; i < len; i++) {
+				stg = actuals[i];
+				stg.stage.execute(stg.split(ctx), next(i));
+			}
+
+			if(len === 0) done();
+		};
+	self.run = run;
 };
 
-},{}],11:[function(require,module,exports){module.exports = require('./lib/schema')
+MultiWaySwitchProto.execute = function(context, callback) {
+	var self = this;
+	if(!self.run) self.compile();
+	StageProto.execute.apply(this, arguments);
+};
+},{"./stage":9,"./util.js":10}],6:[function(require,module,exports){
+var Stage = require('./stage').Stage;
+var Context = require('./context').Context;
+var util = require('./util.js').Util;
+
+function Parallel(config) {
+	if(!(this instanceof Parallel)) throw new Error('constructor is not a function');
+	Stage.apply(this);
+	if(!config) config = {};
+	if(config instanceof Stage) config = {stage: config};
+	if(config.stage instanceof Stage) this.stage = config.stage;
+	else if(config.stage instanceof Function) this.stage = new Stage(config.stage);
+	else this.stage = new Stage();
+
+	this.split = config.split instanceof Function ? config.split : function(ctx) {
+		return [ctx];
+	};
+	this.exHandler = config.exHandler instanceof Function ? config.exHandler : function(err, ctx, index) {
+		return err;
+	};
+	this.combine = config.combine instanceof Function ? config.combine : null;
+}
+
+util.inherits(Parallel, Stage);
+
+exports.Parallel = Parallel;
+var StageProto = Parallel.super_.prototype;
+var ParallelProto = Parallel.prototype;
+
+ParallelProto.compile = function() {
+	var self = this;
+	var run = function(err, ctx, done) {
+			var iter = 0;
+			var childs = self.split(ctx);
+
+			var len = childs ? childs.length : 0;
+			var errors = [];
+			var next = function(index) {
+					function finish() {
+						if(errors.length > 0) done(errors);
+						else {
+							if(!err && self.combine) self.combine(ctx, childs);
+							done();
+						}
+					}
+
+					function logError(err, ctx) {
+						errors.push({index:index, err:err, stack:err.stack, ctx: childs[index]});
+					}
+					// NEED CUSTOM ERROR LOGGER !!!
+					return function(err, retCtx) {
+						iter++;
+						if(iter > 0) childs[index] = retCtx;
+						if(self.exHandler(err, ctx, index)) logError(err, ctx);
+						if(iter == len) finish();
+					};
+				};
+			var cldCtx;
+			for(var i = 0; i < len; i++) {
+				cldCtx = childs[i];
+				self.stage.execute(childs[i], next(i));
+			}
+
+			if(len === 0) done();
+		};
+	self.run = run;
+};
+
+ParallelProto.execute = function(context, callback) {
+	var self = this;
+	if(!self.run) self.compile();
+	StageProto.execute.apply(this, arguments);
+};
+},{"./context":3,"./stage":9,"./util.js":10}],7:[function(require,module,exports){
+var Stage = require('./stage').Stage;
+var util = require('./util.js').Util;
+
+function Pipeline(config) {
+	if(!(this instanceof Pipeline)) throw new Error('constructor is not a function');
+	this.stages = [];
+	if(config) {
+		if(config instanceof Array) {
+			Stage.call(this);
+			var len = config.length;
+			for(var i = 0; i < len; i++) {
+				this.addStage(config[i]);
+			}
+		}
+		if(typeof(config) === 'object') {
+			delete config.run;
+			Stage.call(this, config);
+		} else if(typeof(config) === 'function') Stage.call(this);
+	} else Stage.call(this);
+}
+util.inherits(Pipeline, Stage);
+exports.Pipeline = Pipeline;
+// pushs Stage to specific list if any
+// _list is optional
+var PipelineProto = Pipeline.prototype;
+var StageProto = Pipeline.super_.prototype;
+
+PipelineProto.addStage = function(stage, _list) {
+	var list = _list;
+	if(typeof(list) == 'string') {
+		if(!this[list]) this[list] = [];
+		list = this[list];
+	}
+	if(!list) list = this.stages;
+	if(!(stage instanceof Stage)){
+		if(typeof(stage) === 'function') stage = new Stage(stage);
+		else if(typeof(stage) === 'object') stage = new Stage(stage);
+		else stage = new Stage(); //
+	}
+
+	list.push(stage);
+	this.run = 0; //reset run method
+};
+
+// сформировать окончательную последовательность stages исходя из имеющихся списков
+// приоритет списка.
+// список который будет использоваться в случае ошибки.
+PipelineProto.compile = function() {
+	var self = this;
+	var len = self.stages.length;
+	var run = function(err, context, done) {
+			var i = -1;
+			var stlen = len; // hack to avoid upper context search;
+			var stList = self.stages; // the same hack
+			//sequential run;
+			var next = function(err, context) {
+					if(++i == stlen || err) {
+						done(err);
+					} else {
+						stList[i].execute(context, next);
+					}
+				};
+			next(err, context);
+		};
+
+	if(len > 0) {
+		self.run = run;
+	} else throw new Error('ANY STAGE FOUND');
+};
+
+PipelineProto.execute = function(context, callback) {
+	var self = this;
+	if(!self.run) self.compile();
+	StageProto.execute.apply(this, arguments);
+};
+},{"./stage":9,"./util.js":10}],8:[function(require,module,exports){
+var Stage = require('./stage').Stage;
+var Context = require('./context').Context;
+var util = require('./util.js').Util;
+
+function Sequential(config) {
+	if(!(this instanceof Sequential)) throw new Error('constructor is not a function');
+	Stage.apply(this);
+	if(!config) config = {};
+	if(config instanceof Stage) config = {
+		stage: config
+	}; /*stage, split, reachEnd, combine*/
+	if(config.stage instanceof Stage) this.stage = config.stage;
+	else if(config.stage instanceof Function) this.stage = new Stage(config.stage);
+	else this.stage = new Stage();
+	this.prepareContext = config.prepareContext instanceof Function ? config.prepareContext : function(ctx) {
+		return ctx;
+	};
+	this.split = config.split instanceof Function ? config.split : function(ctx, iter) {
+		return ctx;
+	};
+	this.reachEnd = config.reachEnd instanceof Function ? config.reachEnd : function(err, ctx, iter) {
+		return true;
+	};
+	this.combine = config.combine instanceof Function ? config.combine : null;
+	this.checkContext = config.checkContext instanceof Function ? config.checkContext : function(err, ctx, iter, callback) {
+		callback(err, ctx);
+	};
+}
+
+util.inherits(Sequential, Stage);
+
+exports.Sequential = Sequential;
+var StageProto = Sequential.super_.prototype;
+var SequentialProto = Sequential.prototype;
+
+SequentialProto.compile = function() {
+	var self = this;
+	var run = function(err, ctx, done) {
+			var iter = -1;
+			var childsCtx = [];
+			var combine = function(err) {
+					if(!err && self.combine) self.combine(innerCtx, ctx, childsCtx);
+					done(err);
+				};
+			var innerCtx = self.prepareContext(ctx);
+			if(!(innerCtx instanceof Context)) innerCtx = new Context(innerCtx);
+			var next = function(err, retCtx) {
+					iter++;
+					if(iter > 0) childsCtx.push(retCtx);
+					self.checkContext(err, innerCtx, iter, function(err, innerCtx) {
+						if(self.reachEnd(err, innerCtx, iter)) combine(err, iter);
+						else {
+							self.stage.execute(self.split(innerCtx, iter), next);
+						}
+					});
+				};
+			next();
+		};
+	self.run = run;
+};
+
+SequentialProto.execute = function(context, callback) {
+	var self = this;
+	if(!self.run) self.compile();
+	StageProto.execute.apply(this, arguments);
+};
+},{"./context":3,"./stage":9,"./util.js":10}],9:[function(require,module,exports){
+var Context = require('./context').Context;
+var EventEmitter = require("events").EventEmitter;
+var schema = require('js-schema');
+var util = require('./util.js').Util;
+
+function Stage(config) {
+	if (!(this instanceof Stage)) throw new Error('constructor is not a function');
+	if (config) {
+		if (typeof(config) === 'object') {
+			if (typeof(config.ensure) === 'function') this.ensure = config.ensure;
+			if (typeof(config.validate) === 'function') this.validate = config.validate;
+			if (typeof(config.schema) === 'object') {
+				// override validate method
+				this.validate = schema(config.schema);
+			}
+			if (typeof(config.run) === 'function') this.run = config.run;
+			if (config.emitAnyway === true) this.emitAnyway = true;
+		} else if (typeof(config) === 'function') this.run = config;
+	}
+	EventEmitter.call(this);
+}
+
+exports.Stage = Stage;
+util.inherits(Stage, EventEmitter);
+
+var StageProto = Stage.prototype;
+
+StageProto.reportName = function() {
+	return 'stage ' + util.getClass(this);
+};
+
+StageProto.ensure = function(context, callback) {
+	if (this.validate(context)) {
+		if (typeof(callback) == 'function') callback(null);
+	} else {
+		callback(new Error(this.reportName() + ' reports: Context is invalid'));
+	}
+};
+
+StageProto.validate = function(context) {
+	return true;
+};
+
+StageProto.emitAnyway = false;
+
+StageProto.run = 0;
+
+StageProto.execute = function(_context, callback) {
+	var context = _context instanceof Context ? _context : new Context(_context);
+	var hasCallback = typeof(callback) == 'function';
+	var self = this;
+	self.ensure(context, function(err) {
+		if (!err) {
+			if (typeof(self.run) == 'function') {
+				setImmediate(function() {
+					self.run(null, context, function(err) {
+						if (hasCallback) callback(err, context);
+						if (!hasCallback || self.emitAnyway) {
+							if (err) {
+								context.addError(err);
+								self.emit('error', err, context);
+							} else self.emit('done', context);
+						}
+					});
+				});
+			} else {
+				var runIsNotAFunction = new Error(self.reportName() + ' reports: run is not a function');
+				context.addError(runIsNotAFunction);
+				if (hasCallback) callback(runIsNotAFunction, context);
+				if (!hasCallback || self.emitAnyway) self.emit('error', runIsNotAFunction, context);
+			}
+		} else {
+			if (hasCallback) callback(err, context);
+			if (!hasCallback || self.emitAnyway) {
+				context.addError(err);
+				self.emit('error', err, context);
+			}
+		}
+	});
+};
+},{"./context":3,"./util.js":10,"events":30,"js-schema":11}],10:[function(require,module,exports){
+var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};exports.Util = {};
+exports.Util.getClass = function(obj) {
+  if(obj && typeof obj === 'object' && Object.prototype.toString.call(obj) !== '[object Array]' && obj.constructor && obj !== global) {
+    var res = obj.constructor.toString().match(/function\s*(\w+)\s*\(/);
+    if(res && res.length === 2) {
+      return res[1];
+    }
+  }
+  return false;
+};
+exports.Util.inherits = function (ctor, superCtor) {
+    ctor.super_ = superCtor;
+    ctor.prototype = Object.create(superCtor.prototype, {
+        constructor: {
+            value: ctor,
+            enumerable: false
+        }
+    });
+};
+},{}],11:[function(require,module,exports){
+module.exports = require('./lib/schema')
 
 // Patterns
 require('./lib/patterns/reference')
@@ -392,49 +584,8 @@ require('./lib/extensions/Array')
 require('./lib/extensions/Function')
 require('./lib/extensions/Schema')
 
-},{"./lib/schema":13,"./lib/patterns/reference":14,"./lib/patterns/nothing":15,"./lib/patterns/anything":16,"./lib/patterns/object":17,"./lib/patterns/or":18,"./lib/patterns/equality":19,"./lib/patterns/regexp":20,"./lib/patterns/class":21,"./lib/patterns/schema":22,"./lib/extensions/Boolean":23,"./lib/extensions/Number":24,"./lib/extensions/String":25,"./lib/extensions/Object":26,"./lib/extensions/Array":27,"./lib/extensions/Function":28,"./lib/extensions/Schema":29}],13:[function(require,module,exports){var Schema = require('./Schema')
-
-var schema = module.exports = function(schemaDescription) {
-  var doc, schemaObject
-
-  if (arguments.length === 2) {
-    doc = schemaDescription
-    schemaDescription = arguments[1]
-  }
-
-  if (this instanceof schema) {
-    // When called with new, create a schema object and then return the schema function
-    var constructor = Schema.extend(schemaDescription)
-    schemaObject = new constructor()
-    if (doc) schemaObject.doc = doc
-    return schemaObject.wrap()
-
-  } else {
-    // When called as simple function, forward everything to fromJS
-    // and then resolve schema.self to the resulting schema object
-    schemaObject = Schema.fromJS(schemaDescription)
-    schema.self.resolve(schemaObject)
-    if (doc) schemaObject.doc = doc
-    return schemaObject.wrap()
-  }
-}
-
-schema.Schema = Schema
-
-schema.toJSON = function(sch) {
-  return Schema.fromJS(sch).toJSON()
-}
-
-schema.fromJS = function(sch) {
-  return Schema.fromJS(sch).wrap()
-}
-
-schema.fromJSON = function(sch) {
-  return Schema.fromJSON(sch).wrap()
-}
-
-
-},{"./Schema":30}],30:[function(require,module,exports){var Schema =  module.exports = function() {}
+},{"./lib/extensions/Array":13,"./lib/extensions/Boolean":14,"./lib/extensions/Function":15,"./lib/extensions/Number":16,"./lib/extensions/Object":17,"./lib/extensions/Schema":18,"./lib/extensions/String":19,"./lib/patterns/anything":20,"./lib/patterns/class":21,"./lib/patterns/equality":22,"./lib/patterns/nothing":23,"./lib/patterns/object":24,"./lib/patterns/or":25,"./lib/patterns/reference":26,"./lib/patterns/regexp":27,"./lib/patterns/schema":28,"./lib/schema":29}],12:[function(require,module,exports){
+var Schema =  module.exports = function() {}
 
 Schema.prototype = {
   wrap : function() {
@@ -555,54 +706,320 @@ Schema.fromJSON.def = Array.prototype.push.bind(fromJSONdefs)
 Schema.patterns = {}
 Schema.extensions = {}
 
-},{}],14:[function(require,module,exports){var Schema = require('../Schema')
+},{}],13:[function(require,module,exports){
+var Schema = require('../BaseSchema')
+  , EqualitySchema = require('../patterns/equality')
+  , anything = require('../patterns/anything').instance
 
-var ReferenceSchema = module.exports = Schema.patterns.ReferenceSchema = Schema.extend({
-  initialize : function(value) {
-    this.value = value
+var ArraySchema = module.exports = Schema.extensions.ArraySchema = Schema.extend({
+  initialize : function(itemSchema, max, min) {
+    this.itemSchema = itemSchema || anything
+    this.min = min || 0
+    this.max = max || Infinity
   },
 
   validate : function(instance) {
-    return instance === this.value
+    // Instance must be an instance of Array
+    if (!(instance instanceof Array)) return false
+
+    // Checking length
+    if (this.min === this.max) {
+      if (instance.length !== this.min) return false
+
+    } else {
+      if (this.min > 0        && instance.length < this.min) return false
+      if (this.max < Infinity && instance.length > this.max) return false
+    }
+
+    // Checking conformance to the given item schema
+    for (var i = 0; i < instance.length; i++) {
+      if (!this.itemSchema.validate(instance[i])) return false;
+    }
+
+    return true
+  },
+
+  toJSON : Schema.session(function() {
+    var json = Schema.prototype.toJSON.call(this, true)
+
+    if (json['$ref'] != null) return json
+
+    json.type = 'array'
+
+    if (this.min > 0) json.minItems = this.min
+    if (this.max < Infinity) json.maxItems = this.max
+    if (this.itemSchema !== anything) json.items = this.itemSchema.toJSON()
+
+    return json
+  })
+})
+
+Schema.fromJSON.def(function(sch) {
+  if (!sch || sch.type !== 'array') return
+
+  // Tuple typing is not yet supported
+  if (sch.items instanceof Array) return
+
+  return new ArraySchema(Schema.fromJSON(sch.items), sch.maxItems, sch.minItems)
+})
+
+Array.of = function() {
+  // Possible signatures : (schema)
+  //                       (length, schema)
+  //                       (minLength, maxLength, schema)
+  var args = Array.prototype.slice.call(arguments).reverse()
+  if (args.length === 2) args[2] = args[1]
+  return new ArraySchema(Schema.fromJS(args[0]), args[1], args[2]).wrap()
+}
+
+Array.like = function(other) {
+  return new EqualitySchema(other).wrap()
+}
+
+Array.schema = new ArraySchema().wrap()
+
+},{"../BaseSchema":12,"../patterns/anything":20,"../patterns/equality":22}],14:[function(require,module,exports){
+var Schema = require('../BaseSchema')
+
+var BooleanSchema = module.exports = Schema.extensions.BooleanSchema =  new Schema.extend({
+  validate : function(instance) {
+    return Object(instance) instanceof Boolean
+  },
+
+  toJSON : function() {
+    return { type : 'boolean' }
+  }
+})
+
+var booleanSchema = module.exports = new BooleanSchema().wrap()
+
+Schema.fromJSON.def(function(sch) {
+  if (!sch || sch.type !== 'boolean') return
+
+  return booleanSchema
+})
+
+Boolean.schema = booleanSchema
+
+},{"../BaseSchema":12}],15:[function(require,module,exports){
+var ReferenceSchema = require('../patterns/reference')
+
+Function.reference = function(f) {
+  return new ReferenceSchema(f).wrap()
+}
+
+},{"../patterns/reference":26}],16:[function(require,module,exports){
+var Schema = require('../BaseSchema')
+
+var NumberSchema = module.exports = Schema.extensions.NumberSchema = Schema.extend({
+  initialize : function(minimum, exclusiveMinimum, maximum, exclusiveMaximum, divisibleBy) {
+    this.minimum = minimum != null ? minimum : -Infinity
+    this.exclusiveMinimum = exclusiveMinimum
+    this.maximum = minimum != null ? maximum : Infinity
+    this.exclusiveMaximum = exclusiveMaximum
+    this.divisibleBy = divisibleBy || 0
+  },
+
+  min : function(minimum) {
+    return new NumberSchema( minimum, false
+                           , this.maximum, this.exclusiveMaximum
+                           , this.divisibleBy
+                           ).wrap()
+  },
+
+  above : function(minimum) {
+    return new NumberSchema( minimum, true
+                           , this.maximum, this.exclusiveMaximum
+                           , this.divisibleBy
+                           ).wrap()
+  },
+
+  max : function(maximum) {
+    return new NumberSchema( this.minimum, this.exclusiveMinimum
+                           , maximum, false
+                           , this.divisibleBy
+                           ).wrap()
+  },
+
+  below : function(maximum) {
+    return new NumberSchema( this.minimum, this.exclusiveMinimum
+                           , maximum, true
+                           , this.divisibleBy
+                           ).wrap()
+  },
+
+  step : function(divisibleBy) {
+    return new NumberSchema( this.minimum, this.exclusiveMinimum
+                           , this.maximum, this.exclusiveMaximum
+                           , divisibleBy
+                           ).wrap()
+  },
+
+  publicFunctions : [ 'min', 'above', 'max', 'below', 'step' ],
+
+  validate : function(instance) {
+    return (Object(instance) instanceof Number) &&
+           (this.exclusiveMinimum ? instance >  this.minimum
+                                  : instance >= this.minimum) &&
+           (this.exclusiveMaximum ? instance <  this.maximum
+                                  : instance <= this.maximum) &&
+           (this.divisibleBy === 0 || instance % this.divisibleBy === 0)
   },
 
   toJSON : function() {
     var json = Schema.prototype.toJSON.call(this)
 
-    json['enum'] = [this.value]
+    json.type = ( this.divisibleBy !== 0 && this.divisibleBy % 1 === 0 ) ? 'integer' : 'number'
+
+    if (this.divisibleBy !== 0 && this.divisibleBy !== 1) json.divisibleBy = this.divisibleBy
+
+    if (this.minimum !== -Infinity) {
+      json.minimum = this.minimum
+      if (this.exclusiveMinimum === true) json.exclusiveMinimum = true
+    }
+
+    if (this.maximum !== Infinity) {
+      json.maximum = this.maximum
+      if (this.exclusiveMaximum === true) json.exclusiveMaximum = true
+    }
 
     return json
   }
 })
 
+Schema.fromJSON.def(function(sch) {
+  if (!sch || (sch.type !== 'number' && sch.type !== 'integer')) return
 
-Schema.fromJS.def(function(value) {
-  return new ReferenceSchema(value)
+  return new NumberSchema( sch.minimum, sch.exclusiveMinimum
+                         , sch.maximum, sch.exclusiveMaximum
+                         , sch.divisibleBy || (sch.type === 'integer' ? 1 : 0)
+                         )
 })
 
-},{"../Schema":30}],15:[function(require,module,exports){var Schema = require('../Schema')
+Number.schema     = new NumberSchema().wrap()
+Number.min        = Number.schema.min
+Number.above      = Number.schema.above
+Number.max        = Number.schema.max
+Number.below      = Number.schema.below
+Number.step       = Number.schema.step
 
-var NothingSchema = module.exports = Schema.patterns.NothingSchema = Schema.extend({
-  validate : function(instance) {
-    return instance == null
+Number.Integer = Number.step(1)
+
+},{"../BaseSchema":12}],17:[function(require,module,exports){
+var ReferenceSchema = require('../patterns/reference')
+  , EqualitySchema = require('../patterns/equality')
+  , ObjectSchema = require('../patterns/object')
+
+Object.like = function(other) {
+  return new EqualitySchema(other).wrap()
+}
+
+Object.reference = function(o) {
+  return new ReferenceSchema(o).wrap()
+}
+
+Object.schema = new ObjectSchema().wrap()
+
+},{"../patterns/equality":22,"../patterns/object":24,"../patterns/reference":26}],18:[function(require,module,exports){
+var Schema = require('../BaseSchema')
+  , schema = require('../schema')
+
+var SchemaReference = module.exports = Schema.extensions.SchemaReference = Schema.extend({
+  validate : function() {
+    throw new Error('Trying to validate unresolved schema reference.')
   },
 
-  toJSON : function() {
-    return { type : 'null' }
+  resolve : function(schemaDescriptor) {
+    var schemaObject = Schema.fromJS(schemaDescriptor)
+
+    for (var key in schemaObject) {
+      if (schemaObject[key] instanceof Function) {
+        this[key] = schemaObject[key].bind(schemaObject)
+      } else {
+        this[key] = schemaObject[key]
+      }
+    }
+
+    delete this.resolve
+  },
+
+  publicFunctions : [ 'resolve' ]
+})
+
+schema.reference = function(schemaDescriptor) {
+  return new SchemaReference()
+}
+
+function renewing(ref) {
+  ref.resolve = function() {
+    Schema.self = schema.self = renewing(new SchemaReference())
+    return SchemaReference.prototype.resolve.apply(this, arguments)
+  }
+  return ref
+}
+
+Schema.self = schema.self = renewing(new SchemaReference())
+
+Schema.fromJSON.def(function(sch) {
+  if (sch.id == null && sch['$ref'] == null) return
+
+  var id, session = Schema.session
+
+  if (!session.deserialized) session.deserialized = { references: {}, subscribers: {} }
+
+  if (sch.id != null) {
+    // This schema can be referenced in the future with the given ID
+    id = sch.id
+
+    // Deserializing:
+    delete sch.id
+    var schemaObject = Schema.fromJSON(sch)
+    sch.id = id
+
+    // Storing the schema object and notifying subscribers
+    session.deserialized.references[id] = schemaObject
+    ;(session.deserialized.subscribers[id] || []).forEach(function(callback) {
+      callback(schemaObject)
+    })
+
+    return schemaObject
+
+  } else {
+    // Referencing a schema given somewhere else with the given ID
+    id = sch['$ref']
+
+    // If the referenced schema is already known, we are ready
+    if (session.deserialized.references[id]) return session.deserialized.references[id]
+
+    // If not, returning a reference, and when the schema gets known, resolving the reference
+    if (!session.deserialized.subscribers[id]) session.deserialized.subscribers[id] = []
+    var reference = new SchemaReference()
+    session.deserialized.subscribers[id].push(reference.resolve.bind(reference))
+
+    return reference
   }
 })
 
-var nothing = NothingSchema.instance = new NothingSchema()
+},{"../BaseSchema":12,"../schema":29}],19:[function(require,module,exports){
+var RegexpSchema = require('../patterns/regexp')
 
-Schema.fromJS.def(function(sch) {
-  if (sch === null) return nothing
-})
+String.of = function() {
+  // Possible signatures : (charset)
+  //                       (length, charset)
+  //                       (minLength, maxLength, charset)
+  var args = Array.prototype.slice.call(arguments).reverse()
+    , charset = args[0] ? ('[' + args[0] + ']') : '[a-zA-Z0-9]'
+    , max =  args[1]
+    , min = (args.length > 2) ? args[2] : args[1]
+    , regexp = '^' + charset + '{' + (min || 0) + ',' + (max || '') + '}$'
 
-Schema.fromJSON.def(function(sch) {
-  if (sch.type === 'null') return nothing
-})
+  return new RegexpSchema(RegExp(regexp)).wrap()
+}
 
-},{"../Schema":30}],16:[function(require,module,exports){var Schema = require('../Schema')
+String.schema = new RegexpSchema().wrap()
+
+},{"../patterns/regexp":27}],20:[function(require,module,exports){
+var Schema = require('../BaseSchema')
 
 var AnythingSchema = module.exports = Schema.patterns.AnythingSchema = Schema.extend({
   validate : function(instance) {
@@ -624,7 +1041,101 @@ Schema.fromJSON.def(function(sch) {
   if (sch.type === 'any') return anything
 })
 
-},{"../Schema":30}],17:[function(require,module,exports){var Schema = require('../Schema')
+},{"../BaseSchema":12}],21:[function(require,module,exports){
+var Schema = require('../BaseSchema')
+
+var ClassSchema = module.exports = Schema.patterns.ClassSchema = Schema.extend({
+  initialize : function(constructor) {
+    this.constructor = constructor
+  },
+
+  validate : function(instance) {
+    return instance instanceof this.constructor
+  }
+})
+
+
+Schema.fromJS.def(function(constructor) {
+  if (!(constructor instanceof Function)) return
+
+  if (constructor.schema instanceof Function) {
+    return constructor.schema.unwrap()
+  } else {
+    return new ClassSchema(constructor)
+  }
+})
+
+},{"../BaseSchema":12}],22:[function(require,module,exports){
+var Schema = require('../BaseSchema')
+
+// Object deep equality
+var equal = function(a, b) {
+  // if a or b is primitive, simple comparison
+  if (Object(a) !== a || Object(b) !== b) return a === b
+
+  // both a and b must be Array, or none of them
+  if ((a instanceof Array) !== (b instanceof Array)) return false
+
+  // they must have the same number of properties
+  if (Object.keys(a).length !== Object.keys(b).length) return false
+
+  // and every property should be equal
+  for (var key in a) {
+    if (!equal(a[key], b[key])) return false
+  }
+
+  // if every check succeeded, they are deep equal
+  return true
+}
+
+var EqualitySchema = module.exports = Schema.patterns.EqualitySchema = Schema.extend({
+  initialize : function(object) {
+    this.object = object
+  },
+
+  validate : function(instance) {
+    return equal(instance, this.object)
+  },
+
+  toJSON : function() {
+    var json = Schema.prototype.toJSON.call(this)
+
+    json['enum'] = [this.object]
+
+    return json
+  }
+})
+
+
+Schema.fromJS.def(function(sch) {
+  if (sch instanceof Array && sch.length === 1) return new EqualitySchema(sch[0])
+})
+
+},{"../BaseSchema":12}],23:[function(require,module,exports){
+var Schema = require('../BaseSchema')
+
+var NothingSchema = module.exports = Schema.patterns.NothingSchema = Schema.extend({
+  validate : function(instance) {
+    return instance == null
+  },
+
+  toJSON : function() {
+    return { type : 'null' }
+  }
+})
+
+var nothing = NothingSchema.instance = new NothingSchema()
+
+Schema.fromJS.def(function(sch) {
+  if (sch === null) return nothing
+})
+
+Schema.fromJSON.def(function(sch) {
+  if (sch.type === 'null') return nothing
+})
+
+},{"../BaseSchema":12}],24:[function(require,module,exports){
+var Schema = require('../BaseSchema')
   , anything = require('./anything').instance
   , nothing = require('./nothing').instance
 
@@ -821,7 +1332,8 @@ Schema.fromJSON.def(function(json) {
   return new ObjectSchema(properties, other)
 })
 
-},{"../Schema":30,"./anything":16,"./nothing":15}],18:[function(require,module,exports){var Schema = require('../Schema')
+},{"../BaseSchema":12,"./anything":20,"./nothing":23}],25:[function(require,module,exports){
+var Schema = require('../BaseSchema')
   , EqualitySchema = require('../patterns/equality')
 
 var OrSchema = module.exports = Schema.patterns.OrSchema = Schema.extend({
@@ -883,52 +1395,34 @@ Schema.fromJSON.def(function(sch) {
   }
 })
 
-},{"../Schema":30,"../patterns/equality":19}],19:[function(require,module,exports){var Schema = require('../Schema')
+},{"../BaseSchema":12,"../patterns/equality":22}],26:[function(require,module,exports){
+var Schema = require('../BaseSchema')
 
-// Object deep equality
-var equal = function(a, b) {
-  // if a or b is primitive, simple comparison
-  if (Object(a) !== a || Object(b) !== b) return a === b
-
-  // both a and b must be Array, or none of them
-  if ((a instanceof Array) !== (b instanceof Array)) return false
-
-  // they must have the same number of properties
-  if (Object.keys(a).length !== Object.keys(b).length) return false
-
-  // and every property should be equal
-  for (var key in a) {
-    if (!equal(a[key], b[key])) return false
-  }
-
-  // if every check succeeded, they are deep equal
-  return true
-}
-
-var EqualitySchema = module.exports = Schema.patterns.EqualitySchema = Schema.extend({
-  initialize : function(object) {
-    this.object = object
+var ReferenceSchema = module.exports = Schema.patterns.ReferenceSchema = Schema.extend({
+  initialize : function(value) {
+    this.value = value
   },
 
   validate : function(instance) {
-    return equal(instance, this.object)
+    return instance === this.value
   },
 
   toJSON : function() {
     var json = Schema.prototype.toJSON.call(this)
 
-    json['enum'] = [this.object]
+    json['enum'] = [this.value]
 
     return json
   }
 })
 
 
-Schema.fromJS.def(function(sch) {
-  if (sch instanceof Array && sch.length === 1) return new EqualitySchema(sch[0])
+Schema.fromJS.def(function(value) {
+  return new ReferenceSchema(value)
 })
 
-},{"../Schema":30}],20:[function(require,module,exports){var Schema = require('../Schema')
+},{"../BaseSchema":12}],27:[function(require,module,exports){
+var Schema = require('../BaseSchema')
 
 var RegexpSchema = module.exports = Schema.patterns.RegexpSchema = Schema.extend({
   initialize : function(regexp) {
@@ -969,734 +1463,356 @@ Schema.fromJS.def(function(regexp) {
   if (regexp instanceof RegExp) return new RegexpSchema(regexp)
 })
 
-},{"../Schema":30}],21:[function(require,module,exports){var Schema = require('../Schema')
-
-var ClassSchema = module.exports = Schema.patterns.ClassSchema = Schema.extend({
-  initialize : function(constructor) {
-    this.constructor = constructor
-  },
-
-  validate : function(instance) {
-    return instance instanceof this.constructor
-  }
-})
-
-
-Schema.fromJS.def(function(constructor) {
-  if (!(constructor instanceof Function)) return
-
-  if (constructor.schema instanceof Function) {
-    return constructor.schema.unwrap()
-  } else {
-    return new ClassSchema(constructor)
-  }
-})
-
-},{"../Schema":30}],22:[function(require,module,exports){var Schema = require('../Schema')
+},{"../BaseSchema":12}],28:[function(require,module,exports){
+var Schema = require('../BaseSchema')
 
 Schema.fromJS.def(function(sch) {
   if (sch instanceof Schema) return sch
 })
 
-},{"../Schema":30}],23:[function(require,module,exports){var Schema = require('../Schema')
+},{"../BaseSchema":12}],29:[function(require,module,exports){
+var Schema = require('./BaseSchema')
 
-var BooleanSchema = module.exports = Schema.extensions.BooleanSchema =  new Schema.extend({
-  validate : function(instance) {
-    return Object(instance) instanceof Boolean
-  },
+var schema = module.exports = function(schemaDescription) {
+  var doc, schemaObject
 
-  toJSON : function() {
-    return { type : 'boolean' }
+  if (arguments.length === 2) {
+    doc = schemaDescription
+    schemaDescription = arguments[1]
   }
-})
 
-var booleanSchema = module.exports = new BooleanSchema().wrap()
+  if (this instanceof schema) {
+    // When called with new, create a schema object and then return the schema function
+    var constructor = Schema.extend(schemaDescription)
+    schemaObject = new constructor()
+    if (doc) schemaObject.doc = doc
+    return schemaObject.wrap()
 
-Schema.fromJSON.def(function(sch) {
-  if (!sch || sch.type !== 'boolean') return
-
-  return booleanSchema
-})
-
-Boolean.schema = booleanSchema
-
-},{"../Schema":30}],24:[function(require,module,exports){var Schema = require('../Schema')
-
-var NumberSchema = module.exports = Schema.extensions.NumberSchema = Schema.extend({
-  initialize : function(minimum, exclusiveMinimum, maximum, exclusiveMaximum, divisibleBy) {
-    this.minimum = minimum != null ? minimum : -Infinity
-    this.exclusiveMinimum = exclusiveMinimum
-    this.maximum = minimum != null ? maximum : Infinity
-    this.exclusiveMaximum = exclusiveMaximum
-    this.divisibleBy = divisibleBy || 0
-  },
-
-  min : function(minimum) {
-    return new NumberSchema( minimum, false
-                           , this.maximum, this.exclusiveMaximum
-                           , this.divisibleBy
-                           ).wrap()
-  },
-
-  above : function(minimum) {
-    return new NumberSchema( minimum, true
-                           , this.maximum, this.exclusiveMaximum
-                           , this.divisibleBy
-                           ).wrap()
-  },
-
-  max : function(maximum) {
-    return new NumberSchema( this.minimum, this.exclusiveMinimum
-                           , maximum, false
-                           , this.divisibleBy
-                           ).wrap()
-  },
-
-  below : function(maximum) {
-    return new NumberSchema( this.minimum, this.exclusiveMinimum
-                           , maximum, true
-                           , this.divisibleBy
-                           ).wrap()
-  },
-
-  step : function(divisibleBy) {
-    return new NumberSchema( this.minimum, this.exclusiveMinimum
-                           , this.maximum, this.exclusiveMaximum
-                           , divisibleBy
-                           ).wrap()
-  },
-
-  publicFunctions : [ 'min', 'above', 'max', 'below', 'step' ],
-
-  validate : function(instance) {
-    return (Object(instance) instanceof Number) &&
-           (this.exclusiveMinimum ? instance >  this.minimum
-                                  : instance >= this.minimum) &&
-           (this.exclusiveMaximum ? instance <  this.maximum
-                                  : instance <= this.maximum) &&
-           (this.divisibleBy === 0 || instance % this.divisibleBy === 0)
-  },
-
-  toJSON : function() {
-    var json = Schema.prototype.toJSON.call(this)
-
-    json.type = ( this.divisibleBy !== 0 && this.divisibleBy % 1 === 0 ) ? 'integer' : 'number'
-
-    if (this.divisibleBy !== 0 && this.divisibleBy !== 1) json.divisibleBy = this.divisibleBy
-
-    if (this.minimum !== -Infinity) {
-      json.minimum = this.minimum
-      if (this.exclusiveMinimum === true) json.exclusiveMinimum = true
-    }
-
-    if (this.maximum !== Infinity) {
-      json.maximum = this.maximum
-      if (this.exclusiveMaximum === true) json.exclusiveMaximum = true
-    }
-
-    return json
+  } else {
+    // When called as simple function, forward everything to fromJS
+    // and then resolve schema.self to the resulting schema object
+    schemaObject = Schema.fromJS(schemaDescription)
+    schema.self.resolve(schemaObject)
+    if (doc) schemaObject.doc = doc
+    return schemaObject.wrap()
   }
-})
-
-Schema.fromJSON.def(function(sch) {
-  if (!sch || (sch.type !== 'number' && sch.type !== 'integer')) return
-
-  return new NumberSchema( sch.minimum, sch.exclusiveMinimum
-                         , sch.maximum, sch.exclusiveMaximum
-                         , sch.divisibleBy || (sch.type === 'integer' ? 1 : 0)
-                         )
-})
-
-Number.schema     = new NumberSchema().wrap()
-Number.min        = Number.schema.min
-Number.above      = Number.schema.above
-Number.max        = Number.schema.max
-Number.below      = Number.schema.below
-Number.step       = Number.schema.step
-
-Number.Integer = Number.step(1)
-
-},{"../Schema":30}],25:[function(require,module,exports){var RegexpSchema = require('../patterns/regexp')
-
-String.of = function() {
-  // Possible signatures : (charset)
-  //                       (length, charset)
-  //                       (minLength, maxLength, charset)
-  var args = Array.prototype.slice.call(arguments).reverse()
-    , charset = args[0] ? ('[' + args[0] + ']') : '[a-zA-Z0-9]'
-    , max =  args[1]
-    , min = (args.length > 2) ? args[2] : args[1]
-    , regexp = '^' + charset + '{' + (min || 0) + ',' + (max || '') + '}$'
-
-  return new RegexpSchema(RegExp(regexp)).wrap()
 }
 
-String.schema = new RegexpSchema().wrap()
+schema.Schema = Schema
 
-},{"../patterns/regexp":20}],26:[function(require,module,exports){var ReferenceSchema = require('../patterns/reference')
-  , EqualitySchema = require('../patterns/equality')
-  , ObjectSchema = require('../patterns/object')
-
-Object.like = function(other) {
-  return new EqualitySchema(other).wrap()
+schema.toJSON = function(sch) {
+  return Schema.fromJS(sch).toJSON()
 }
 
-Object.reference = function(o) {
-  return new ReferenceSchema(o).wrap()
+schema.fromJS = function(sch) {
+  return Schema.fromJS(sch).wrap()
 }
 
-Object.schema = new ObjectSchema().wrap()
-
-},{"../patterns/reference":14,"../patterns/equality":19,"../patterns/object":17}],27:[function(require,module,exports){var Schema = require('../Schema')
-  , EqualitySchema = require('../patterns/equality')
-  , anything = require('../patterns/anything').instance
-
-var ArraySchema = module.exports = Schema.extensions.ArraySchema = Schema.extend({
-  initialize : function(itemSchema, max, min) {
-    this.itemSchema = itemSchema || anything
-    this.min = min || 0
-    this.max = max || Infinity
-  },
-
-  validate : function(instance) {
-    // Instance must be an instance of Array
-    if (!(instance instanceof Array)) return false
-
-    // Checking length
-    if (this.min === this.max) {
-      if (instance.length !== this.min) return false
-
-    } else {
-      if (this.min > 0        && instance.length < this.min) return false
-      if (this.max < Infinity && instance.length > this.max) return false
-    }
-
-    // Checking conformance to the given item schema
-    for (var i = 0; i < instance.length; i++) {
-      if (!this.itemSchema.validate(instance[i])) return false;
-    }
-
-    return true
-  },
-
-  toJSON : Schema.session(function() {
-    var json = Schema.prototype.toJSON.call(this, true)
-
-    if (json['$ref'] != null) return json
-
-    json.tpye = 'array'
-
-    if (this.min > 0) json.minItems = this.min
-    if (this.max < Infinity) json.maxItems = this.max
-    if (this.itemSchema !== anything) json.items = this.itemSchema.toJSON()
-
-    return json
-  })
-})
-
-Schema.fromJSON.def(function(sch) {
-  if (!sch || sch.type !== 'array') return
-
-  // Tuple typing is not yet supported
-  if (sch.items instanceof Array) return
-
-  return new ArraySchema(Schema.fromJSON(sch.items), sch.maxItems, sch.minItems)
-})
-
-Array.of = function() {
-  // Possible signatures : (schema)
-  //                       (length, schema)
-  //                       (minLength, maxLength, schema)
-  var args = Array.prototype.slice.call(arguments).reverse()
-  if (args.length === 2) args[2] = args[1]
-  return new ArraySchema(Schema.fromJS(args[0]), args[1], args[2]).wrap()
+schema.fromJSON = function(sch) {
+  return Schema.fromJSON(sch).wrap()
 }
 
-Array.like = function(other) {
-  return new EqualitySchema(other).wrap()
+
+},{"./BaseSchema":12}],30:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+function EventEmitter() {
+  this._events = this._events || {};
+  this._maxListeners = this._maxListeners || undefined;
 }
+module.exports = EventEmitter;
 
-Array.schema = new ArraySchema().wrap()
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
 
-},{"../Schema":30,"../patterns/equality":19,"../patterns/anything":16}],28:[function(require,module,exports){var ReferenceSchema = require('../patterns/reference')
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
 
-Function.reference = function(f) {
-  return new ReferenceSchema(f).wrap()
-}
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+EventEmitter.defaultMaxListeners = 10;
 
-},{"../patterns/reference":14}],29:[function(require,module,exports){var Schema = require('../Schema')
-  , schema = require('../schema')
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!isNumber(n) || n < 0 || isNaN(n))
+    throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
 
-var SchemaReference = module.exports = Schema.extensions.SchemaReference = Schema.extend({
-  validate : function() {
-    throw new Error('Trying to validate unresolved schema reference.')
-  },
+EventEmitter.prototype.emit = function(type) {
+  var er, handler, len, args, i, listeners;
 
-  resolve : function(schemaDescriptor) {
-    var schemaObject = Schema.fromJS(schemaDescriptor)
+  if (!this._events)
+    this._events = {};
 
-    for (var key in schemaObject) {
-      if (schemaObject[key] instanceof Function) {
-        this[key] = schemaObject[key].bind(schemaObject)
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events.error ||
+        (isObject(this._events.error) && !this._events.error.length)) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er; // Unhandled 'error' event
       } else {
-        this[key] = schemaObject[key]
+        throw TypeError('Uncaught, unspecified "error" event.');
+      }
+      return false;
+    }
+  }
+
+  handler = this._events[type];
+
+  if (isUndefined(handler))
+    return false;
+
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        len = arguments.length;
+        args = new Array(len - 1);
+        for (i = 1; i < len; i++)
+          args[i - 1] = arguments[i];
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    len = arguments.length;
+    args = new Array(len - 1);
+    for (i = 1; i < len; i++)
+      args[i - 1] = arguments[i];
+
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++)
+      listeners[i].apply(this, args);
+  }
+
+  return true;
+};
+
+EventEmitter.prototype.addListener = function(type, listener) {
+  var m;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events)
+    this._events = {};
+
+  // To avoid recursion in the case that type === "newListener"! Before
+  // adding it to the listeners, first emit "newListener".
+  if (this._events.newListener)
+    this.emit('newListener', type,
+              isFunction(listener.listener) ?
+              listener.listener : listener);
+
+  if (!this._events[type])
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  else if (isObject(this._events[type]))
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  else
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+
+  // Check for listener leak
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    var m;
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' +
+                    'leak detected. %d listeners added. ' +
+                    'Use emitter.setMaxListeners() to increase limit.',
+                    this._events[type].length);
+      console.trace();
+    }
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  var fired = false;
+
+  function g() {
+    this.removeListener(type, g);
+
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+
+  g.listener = listener;
+  this.on(type, g);
+
+  return this;
+};
+
+// emits a 'removeListener' event iff the listener was removed
+EventEmitter.prototype.removeListener = function(type, listener) {
+  var list, position, length, i;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events || !this._events[type])
+    return this;
+
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+
+  if (list === listener ||
+      (isFunction(list.listener) && list.listener === listener)) {
+    delete this._events[type];
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0;) {
+      if (list[i] === listener ||
+          (list[i].listener && list[i].listener === listener)) {
+        position = i;
+        break;
       }
     }
 
-    delete this.resolve
-  },
+    if (position < 0)
+      return this;
 
-  publicFunctions : [ 'resolve' ]
-})
-
-schema.reference = function(schemaDescriptor) {
-  return new SchemaReference()
-}
-
-function renewing(ref) {
-  ref.resolve = function() {
-    Schema.self = schema.self = renewing(new SchemaReference())
-    return SchemaReference.prototype.resolve.apply(this, arguments)
-  }
-  return ref
-}
-
-Schema.self = schema.self = renewing(new SchemaReference())
-
-Schema.fromJSON.def(function(sch) {
-  if (sch.id == null && sch['$ref'] == null) return
-
-  var id, session = Schema.session
-
-  if (!session.deserialized) session.deserialized = { references: {}, subscribers: {} }
-
-  if (sch.id != null) {
-    // This schema can be referenced in the future with the given ID
-    id = sch.id
-
-    // Deserializing:
-    delete sch.id
-    var schemaObject = Schema.fromJSON(sch)
-    sch.id = id
-
-    // Storing the schema object and notifying subscribers
-    session.deserialized.references[id] = schemaObject
-    ;(session.deserialized.subscribers[id] || []).forEach(function(callback) {
-      callback(schemaObject)
-    })
-
-    return schemaObject
-
-  } else {
-    // Referencing a schema given somewhere else with the given ID
-    id = sch['$ref']
-
-    // If the referenced schema is already known, we are ready
-    if (session.deserialized.references[id]) return session.deserialized.references[id]
-
-    // If not, returning a reference, and when the schema gets known, resolving the reference
-    if (!session.deserialized.subscribers[id]) session.deserialized.subscribers[id] = []
-    var reference = new SchemaReference()
-    session.deserialized.subscribers[id].push(reference.resolve.bind(reference))
-
-    return reference
-  }
-})
-
-},{"../Schema":30,"../schema":13}],9:[function(require,module,exports){(function(global){exports.Util = {};
-exports.Util.getClass = function(obj) {
-  if(obj && typeof obj === 'object' && Object.prototype.toString.call(obj) !== '[object Array]' && obj.constructor && obj !== global) {
-    var res = obj.constructor.toString().match(/function\s*(\w+)\s*\(/);
-    if(res && res.length === 2) {
-      return res[1];
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
     }
+
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
   }
-  return false;
-};
-exports.Util.inherits = function (ctor, superCtor) {
-    ctor.super_ = superCtor;
-    ctor.prototype = Object.create(superCtor.prototype, {
-        constructor: {
-            value: ctor,
-            enumerable: false
-        }
-    });
-};
-})(window)
-},{}],3:[function(require,module,exports){var Stage = require('./stage').Stage;
-var util = require('./util.js').Util;
 
-function Pipeline(config) {
-	if(!(this instanceof Pipeline)) throw new Error('constructor is not a function');
-	this.stages = [];
-	if(config) {
-		if(config instanceof Array) {
-			Stage.call(this);
-			var len = config.length;
-			for(var i = 0; i < len; i++) {
-				this.addStage(config[i]);
-			}
-		}
-		if(typeof(config) === 'object') {
-			delete config.run;
-			Stage.call(this, config);
-		} else if(typeof(config) === 'function') Stage.call(this);
-	} else Stage.call(this);
-}
-util.inherits(Pipeline, Stage);
-exports.Pipeline = Pipeline;
-// pushs Stage to specific list if any
-// _list is optional
-var PipelineProto = Pipeline.prototype;
-var StageProto = Pipeline.super_.prototype;
-
-PipelineProto.addStage = function(stage, _list) {
-	var list = _list;
-	if(typeof(list) == 'string') {
-		if(!this[list]) this[list] = [];
-		list = this[list];
-	}
-	if(!list) list = this.stages;
-	if(!(stage instanceof Stage)){
-		if(typeof(stage) === 'function') stage = new Stage(stage);
-		else if(typeof(stage) === 'object') stage = new Stage(stage);
-		else stage = new Stage(); //
-	}
-
-	list.push(stage);
-	this.run = 0; //reset run method
+  return this;
 };
 
-// сформировать окончательную последовательность stages исходя из имеющихся списков
-// приоритет списка.
-// список который будет использоваться в случае ошибки.
-PipelineProto.compile = function() {
-	var self = this;
-	var len = self.stages.length;
-	var run = function(err, context, done) {
-			var i = -1;
-			var stlen = len; // hack to avoid upper context search;
-			var stList = self.stages; // the same hack
-			//sequential run;
-			var next = function(err, context) {
-					if(++i == stlen || err) {
-						done(err);
-					} else {
-						stList[i].execute(context, next);
-					}
-				};
-			next(err, context);
-		};
+EventEmitter.prototype.removeAllListeners = function(type) {
+  var key, listeners;
 
-	if(len > 0) {
-		self.run = run;
-	} else throw new Error('ANY STAGE FOUND');
+  if (!this._events)
+    return this;
+
+  // not listening for removeListener, no need to emit
+  if (!this._events.removeListener) {
+    if (arguments.length === 0)
+      this._events = {};
+    else if (this._events[type])
+      delete this._events[type];
+    return this;
+  }
+
+  // emit removeListener for all listeners on all events
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+
+  listeners = this._events[type];
+
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else {
+    // LIFO order
+    while (listeners.length)
+      this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+
+  return this;
 };
 
-PipelineProto.execute = function(context, callback) {
-	var self = this;
-	if(!self.run) self.compile();
-	StageProto.execute.apply(this, arguments);
+EventEmitter.prototype.listeners = function(type) {
+  var ret;
+  if (!this._events || !this._events[type])
+    ret = [];
+  else if (isFunction(this._events[type]))
+    ret = [this._events[type]];
+  else
+    ret = this._events[type].slice();
+  return ret;
 };
-},{"./stage":2,"./util.js":9}],4:[function(require,module,exports){var Stage = require('./stage').Stage;
-var Context = require('./context').Context;
-var util = require('./util.js').Util;
 
-function Sequential(config) {
-	if(!(this instanceof Sequential)) throw new Error('constructor is not a function');
-	Stage.apply(this);
-	if(!config) config = {};
-	if(config instanceof Stage) config = {
-		stage: config
-	}; /*stage, split, reachEnd, combine*/
-	if(config.stage instanceof Stage) this.stage = config.stage;
-	else if(config.stage instanceof Function) this.stage = new Stage(config.stage);
-	else this.stage = new Stage();
-	this.prepareContext = config.prepareContext instanceof Function ? config.prepareContext : function(ctx) {
-		return ctx;
-	};
-	this.split = config.split instanceof Function ? config.split : function(ctx, iter) {
-		return ctx;
-	};
-	this.reachEnd = config.reachEnd instanceof Function ? config.reachEnd : function(err, ctx, iter) {
-		return true;
-	};
-	this.combine = config.combine instanceof Function ? config.combine : null;
-	this.checkContext = config.checkContext instanceof Function ? config.checkContext : function(err, ctx, iter, callback) {
-		callback(err, ctx);
-	};
+EventEmitter.listenerCount = function(emitter, type) {
+  var ret;
+  if (!emitter._events || !emitter._events[type])
+    ret = 0;
+  else if (isFunction(emitter._events[type]))
+    ret = 1;
+  else
+    ret = emitter._events[type].length;
+  return ret;
+};
+
+function isFunction(arg) {
+  return typeof arg === 'function';
 }
 
-util.inherits(Sequential, Stage);
-
-exports.Sequential = Sequential;
-var StageProto = Sequential.super_.prototype;
-var SequentialProto = Sequential.prototype;
-
-SequentialProto.compile = function() {
-	var self = this;
-	var run = function(err, ctx, done) {
-			var iter = -1;
-			var childsCtx = [];
-			var combine = function(err) {
-					if(!err && self.combine) self.combine(innerCtx, ctx, childsCtx);
-					done(err);
-				};
-			var innerCtx = self.prepareContext(ctx);
-			if(!(innerCtx instanceof Context)) innerCtx = new Context(innerCtx);
-			var next = function(err, retCtx) {
-					iter++;
-					if(iter > 0) childsCtx.push(retCtx);
-					self.checkContext(err, innerCtx, iter, function(err, innerCtx) {
-						if(self.reachEnd(err, innerCtx, iter)) combine(err, iter);
-						else {
-							self.stage.execute(self.split(innerCtx, iter), next);
-						}
-					});
-				};
-			next();
-		};
-	self.run = run;
-};
-
-SequentialProto.execute = function(context, callback) {
-	var self = this;
-	if(!self.run) self.compile();
-	StageProto.execute.apply(this, arguments);
-};
-},{"./stage":2,"./context":8,"./util.js":9}],5:[function(require,module,exports){var Stage = require('./stage').Stage;
-var util = require('./util.js').Util;
-
-function IfElse(config) {
-	if(!(this instanceof IfElse)) throw new Error('constructor is not a function');
-	Stage.apply(this);
-	if(!config) config = {};
-	this.condition = config.condition instanceof Function ? config.condition : function(ctx) {
-		return true;
-	};
-
-	if(config.success instanceof Stage) this.success = config.success;
-	else if(config.success instanceof Function) this.success = new Stage(config.success);
-	else this.success = new Stage();
-
-	if(config.failed instanceof Stage) this.failed = config.failed;
-	else if(config.failed instanceof Function) this.failed = new Stage(config.failed);
-	else this.failed = new Stage();
+function isNumber(arg) {
+  return typeof arg === 'number';
 }
 
-util.inherits(IfElse, Stage);
-
-exports.IfElse = IfElse;
-var StageProto = IfElse.super_.prototype;
-var IfElseProto = IfElse.prototype;
-
-IfElseProto.compile = function() {
-	var self = this;
-	var run = function(err, ctx, done) {
-			if(self.condition(ctx)) self.success.execute(ctx, done);
-			else self.failed.execute(ctx, done);
-		};
-	self.run = run;
-};
-
-IfElseProto.execute = function(context, callback) {
-	var self = this;
-	if(!self.run) self.compile();
-	StageProto.execute.apply(this, arguments);
-};
-},{"./stage":2,"./util.js":9}],6:[function(require,module,exports){var Stage = require('./stage').Stage;
-var util = require('./util.js').Util;
-
-function defCondition() {
-	return true;
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
 }
 
-function defSplit(ctx) {
-	return ctx;
+function isUndefined(arg) {
+  return arg === void 0;
 }
 
-function defExHandler(err, ctx) {
-	return err;
-}
-
-function defCombine(ctx, resCtx) {
-	return ctx;
-}
-
-function MultiWaySwitch(config) {
-	if(!(this instanceof MultiWaySwitch)) throw new Error('constructor is not a function');
-	Stage.apply(this);
-
-	if(!config) config = {};
-	if(config instanceof Array) config = {cases:config};
-	this.cases = config.cases ? config.cases : [];
-	this.condition = config.defCond ? config.defCond : defCondition;
-	this.defaults = config.defaults ? config.defaults : null;
-	this.exHandler = config.exHandler instanceof Function ? config.exHandler : defExHandler;
-	this.split = config.split instanceof Function ? config.split : defSplit;
-	this.combine = config.combine instanceof Function ? config.combine : defCombine;
-}
-
-util.inherits(MultiWaySwitch, Stage);
-
-exports.MultiWaySwitch = MultiWaySwitch;
-var StageProto = MultiWaySwitch.super_.prototype;
-var MultiWaySwitchProto = MultiWaySwitch.prototype;
-
-MultiWaySwitchProto.compile = function() {
-	var self = this;
-	var i;
-	var len = this.cases.length;
-	var caseItem;
-	var statics = [];
-	var dynamics = [];
-
-	// Разделяем и назначаем каждому stage свое окружение: evaluate, split, combine
-	for(i = 0; i < len; i++) {
-		caseItem = this.cases[i];
-		if(caseItem instanceof Stage) caseItem = {
-			stage: caseItem,
-			evaluate: true
-		};
-		if(caseItem.hasOwnProperty('stage')) {
-			if(caseItem.stage instanceof Function){
-				caseItem.stage = new Stage(caseItem.stage);
-			}
-			if(!(caseItem.split instanceof Function)) {
-				caseItem.split = self.split;
-			}
-			if(!(caseItem.combine instanceof Function)) {
-				caseItem.combine = self.combine;
-			}
-			if(!(caseItem.exHandler instanceof Function)) {
-				caseItem.exHandler = self.exHandler;
-			}
-			if(typeof caseItem.evaluate == 'function' && typeof caseItem.evaluate !== 'boolean') {
-				dynamics.push(caseItem);
-			} else if(typeof caseItem.evaluate == 'boolean' && caseItem.evaluate) {
-				statics.push(caseItem);
-			}
-		}
-	}
-
-	var run = function(err, ctx, done) {
-			var i;
-			var len = dynamics.length;
-			var actuals = [];
-			actuals.push.apply(actuals, statics);
-
-			for(i = 0; i < len; i++) {
-				if(dynamics[i].evaluate(ctx)) actuals.push(dynamics[i]);
-			}
-			if(actuals.length === 0 && self.defaults) {
-				actuals.push(self.defaults);
-			}
-			len = actuals.length;
-			var iter = 0;
-
-			var errors = [];
-			var next = function(index) {
-					function finish() {
-						if(errors.length > 0) done(errors);
-						else done();
-					}
-
-					function logError(err) {
-						errors.push({index:index,err:err});
-					}
-					return function(err, retCtx) {
-						iter++;
-						var cur = actuals[index];
-						if(cur.exHandler(err, ctx)) logError(err);
-						else cur.combine(ctx, retCtx);
-						if(iter == len) finish();
-					};
-				};
-			var stg;
-			for(i = 0; i < len; i++) {
-				stg = actuals[i];
-				stg.stage.execute(stg.split(ctx), next(i));
-			}
-
-			if(len === 0) done();
-		};
-	self.run = run;
-};
-
-MultiWaySwitchProto.execute = function(context, callback) {
-	var self = this;
-	if(!self.run) self.compile();
-	StageProto.execute.apply(this, arguments);
-};
-},{"./stage":2,"./util.js":9}],7:[function(require,module,exports){var Stage = require('./stage').Stage;
-var Context = require('./context').Context;
-var util = require('./util.js').Util;
-
-function Parallel(config) {
-	if(!(this instanceof Parallel)) throw new Error('constructor is not a function');
-	Stage.apply(this);
-	if(!config) config = {};
-	if(config instanceof Stage) config = {stage: config};
-	if(config.stage instanceof Stage) this.stage = config.stage;
-	else if(config.stage instanceof Function) this.stage = new Stage(config.stage);
-	else this.stage = new Stage();
-
-	this.split = config.split instanceof Function ? config.split : function(ctx) {
-		return [ctx];
-	};
-	this.exHandler = config.exHandler instanceof Function ? config.exHandler : function(err, ctx, index) {
-		return err;
-	};
-	this.combine = config.combine instanceof Function ? config.combine : null;
-}
-
-util.inherits(Parallel, Stage);
-
-exports.Parallel = Parallel;
-var StageProto = Parallel.super_.prototype;
-var ParallelProto = Parallel.prototype;
-
-ParallelProto.compile = function() {
-	var self = this;
-	var run = function(err, ctx, done) {
-			var iter = 0;
-			var childs = self.split(ctx);
-
-			var len = childs ? childs.length : 0;
-			var errors = [];
-			var next = function(index) {
-					function finish() {
-						if(errors.length > 0) done(errors);
-						else {
-							if(!err && self.combine) self.combine(ctx, childs);
-							done();
-						}
-					}
-
-					function logError(err) {
-						errors.push({index:index,err:err});
-					}
-					return function(err, retCtx) {
-						iter++;
-						if(iter > 0) childs[index] = retCtx;
-						if(self.exHandler(err, ctx, index)) logError(err);
-						if(iter == len) finish();
-					};
-				};
-			var cldCtx;
-			for(var i = 0; i < len; i++) {
-				cldCtx = childs[i];
-				self.stage.execute(childs[i], next(i));
-			}
-
-			if(len === 0) done();
-		};
-	self.run = run;
-};
-
-ParallelProto.execute = function(context, callback) {
-	var self = this;
-	if(!self.run) self.compile();
-	StageProto.execute.apply(this, arguments);
-};
-},{"./stage":2,"./context":8,"./util.js":9}]},{},[0]);
+},{}]},{},[1])

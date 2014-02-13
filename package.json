@@ -1,7 +1,7 @@
 {
   "name": "pipeline.js",
   "description": "Pipeline.js - async workflow framework for node.js",
-  "version": "0.0.29",
+  "version": "0.1.01",
   "author": {
     "name": "Alex Vedmedenko",
     "email": "vedmalex@gmail.com"
@@ -12,12 +12,13 @@
     "pipeline"
   ],
   "dependencies": {
-    "js-schema": "0.6.1"
+    "js-schema": "0.6.2"
   },
   "devDependencies": {
     "mocha": "*",
     "benchmark": "*",
-    "browserify": "*"
+    "browserify": "*",
+    "dox":"*"
   },
   "directories": {
     "lib": "./lib"

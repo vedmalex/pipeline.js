@@ -1,5 +1,7 @@
 
 TESTS = $(shell find test/ -name '*.test.js')
+DOCS_ = $(shell find lib/ -name '*.js')
+DOCS = $(DOCS_:.js=.json)
 BROWSERIFY = browserify
 all: build build-dev
 
@@ -24,5 +26,14 @@ coverage:
 	rm -rf lib-cov
 	jscoverage lib lib-cov
 	COVERAGE=1 ./node_modules/.bin/mocha -R html-cov $(TESTS) > coverage.html
- 
+
+gendocs: $(DOCFILE)
+
+$(DOCFILE): $(DOCS)
+	node website.js
+
+%.json: %.js
+	@echo "\n### $(patsubst lib//%,lib/%, $^)" >> $(DOCFILE)
+	./node_modules/dox/bin/dox < $^ >> $(DOCFILE)
+
 .PHONY: test
