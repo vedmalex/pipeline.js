@@ -36,5 +36,5 @@ notable feature is that on context can be processed from 0 to n times with the *
 it reachs end only after all data will be processed. It returns list of error, that can be examined when it will combine result into context.
 
 ## Sequential
-*Sequential* is the *Stage* that work almost like *Parallel*, but in run stage in sequential manner. So it first error occures we can manage it to stop processing or continue if we decide that the error not significant.
+*Sequential* is the *Stage* that work almost like *Parallel*, but it run stage in sequential manner. So it first error occures we can manage it to stop processing or continue if we decide that the error not significant.
 
