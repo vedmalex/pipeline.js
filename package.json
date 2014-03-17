@@ -1,7 +1,7 @@
 {
   "name": "pipeline.js",
   "description": "Pipeline.js - async workflow framework for node.js",
-  "version": "0.1.01",
+  "version": "0.1.02",
   "author": {
     "name": "Alex Vedmedenko",
     "email": "vedmalex@gmail.com"
