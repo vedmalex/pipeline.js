@@ -1,0 +1,9 @@
+exports.Stage = require('./lib-cov/stage').Stage;
+exports.Pipeline = require('./lib-cov/pipeline').Pipeline;
+exports.Sequential = require('./lib-cov/sequential').Sequential;
+exports.IfElse = require('./lib-cov/ifelse').IfElse;
+exports.MultiWaySwitch = require('./lib-cov/multywayswitch').MultiWaySwitch;
+exports.Parallel = require('./lib-cov/parallel').Parallel;
+exports.Context = require('./lib-cov/context').Context;
+exports.Util = require('./lib-cov/util').Util;
+exports.Timeout = require('./lib-cov/timeout').Timeout;

@@ -9,7 +9,7 @@ test:
 	@time ./node_modules/.bin/mocha $(T) $(TESTS)
 
 test-dbg:
-	@time ./node_modules/.bin/mocha $(T) --debug-brk --async-only $(TESTS)
+	@time ./node_modules/.bin/mocha $(T) -t 1000000 --debug-brk --async-only $(TESTS)
 
 bench:
 	@time node ./benchmark/run.js

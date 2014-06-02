@@ -6,3 +6,4 @@ exports.MultiWaySwitch = require('./lib/multywayswitch').MultiWaySwitch;
 exports.Parallel = require('./lib/parallel').Parallel;
 exports.Context = require('./lib/context').Context;
 exports.Util = require('./lib/util').Util;
+exports.Timeout = require('./lib/timeout').Timeout;
