@@ -27,9 +27,19 @@ describe('Stage', function() {
 		done();
 	});
 
+	it('can init with 2 or 3 parameters', function(done) {
+		var v1 = new Stage({
+			run: function newName1(ctx, done) {done();}
+		});
+		assert(v1.name == 'newName1');
+		v1.execute({}, function(err, ctx){
+			done();
+		});
+	});
+
 	it('accepts take function name as stage name', function(done) {
-		var v = new Stage(function newName(err, ctx, done) {});
-		assert(v.name == 'newName');
+		var v0 = new Stage(function newName(err, ctx, done) {});
+		assert(v0.name == 'newName');
 		var v = new Stage({
 			run: function newName(err, ctx, done) {}
 		});
@@ -234,8 +244,8 @@ describe('Context', function() {
 		done();
 	});
 
-	it('clone context')
-	it('toJSON context')
+	it('clone context');
+	it('toJSON context');
 
 	it('not allows to use constructor as a function', function(done) {
 		try {
