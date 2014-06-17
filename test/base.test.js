@@ -6,6 +6,7 @@ var Sequential = require(index).Sequential;
 var Parallel = require(index).Parallel;
 var IfElse = require(index).IfElse;
 var Timeout = require(index).Timeout;
+var Wrap = require(index).Wrap;
 var MultiWaySwitch = require(index).MultiWaySwitch;
 var Util = require(index).Util;
 
@@ -19,6 +20,34 @@ describe('utils', function() {
 });
 
 describe('Stage', function() {
+	describe('sync', function() {
+		it('works', function(done) {
+			var v1 = new Stage({
+				run: function newName1(ctx) {
+					ctx.name = 'name';
+				}
+			});
+			assert(v1.name == 'newName1');
+			v1.execute({}, function(err, ctx) {
+				assert(ctx.name == 'name');
+				done();
+			});
+		});
+
+		it('catch errors', function(done) {
+			var v1 = new Stage({
+				run: function newName1(ctx) {
+					ctx.name = 'name';
+					throw new Error();
+				}
+			});
+			assert(v1.name == 'newName1');
+			v1.execute({}, function(err, ctx) {
+				assert(err);
+				done();
+			});
+		});
+	});
 
 	it('accepts name as config', function(done) {
 		var name = 'new Name';
@@ -27,12 +56,15 @@ describe('Stage', function() {
 		done();
 	});
 
+
 	it('can init with 2 or 3 parameters', function(done) {
 		var v1 = new Stage({
-			run: function newName1(ctx, done) {done();}
+			run: function newName1(ctx, done) {
+				done();
+			}
 		});
 		assert(v1.name == 'newName1');
-		v1.execute({}, function(err, ctx){
+		v1.execute({}, function(err, ctx) {
 			done();
 		});
 	});
@@ -142,7 +174,7 @@ describe('Stage', function() {
 			done();
 		});
 		stage.execute({
-			$$$trace: true
+			__trace: true
 		}, function(err, data) {
 			done();
 		});
@@ -160,7 +192,7 @@ describe('Stage', function() {
 
 		stage.execute({}, function(err, data) {});
 	});
-
+	it('prepare and finalize context');
 	it('ensureContext', function(done) {
 		var stage = new Stage();
 		var ensure = 0;
@@ -238,9 +270,9 @@ describe('Context', function() {
 
 	it('default empty', function(done) {
 		var ctx = new Context();
-		assert.equal(ctx.$$$parent === undefined, true, "MUST BE EMPTY");
-		assert.equal(ctx.$$$errors === undefined, true, "MUST BE EMPTY");
-		assert.equal(ctx.$$$childs === undefined, true, "MUST BE EMPTY");
+		assert.equal(ctx.__parent === undefined, true, "MUST BE EMPTY");
+		assert.equal(ctx.__errors === undefined, true, "MUST BE EMPTY");
+		assert.equal(ctx.__childs === undefined, true, "MUST BE EMPTY");
 		done();
 	});
 
@@ -291,7 +323,7 @@ describe('Context', function() {
 		};
 		var ctx = new Context(config);
 		var ctx2 = ctx.fork();
-		assert.equal(ctx.$$$childs.length, 1, "MUST HAVE CHILDS");
+		assert.equal(ctx.__childs.length, 1, "MUST HAVE CHILDS");
 		assert.equal(ctx.config.some, ctx2.config.some, "MUST BE EQUAL");
 		assert.equal(ctx.notConfig, ctx2.notConfig, "MUST BE EQUAL");
 		assert.equal(ctx2.getParent() === ctx, true, "parent is context");
@@ -1231,6 +1263,41 @@ describe('if->else', function() {
 
 });
 
+describe('Wrap', function() {
+	it('works', function(done) {
+		var st1 = new Stage({
+			run: function(ctx) {
+				ctx.count++;
+				ctx.name = 'borrow';
+			}
+		});
+		var wr = new Wrap({
+			stage: st1,
+			prepare: function(ctx) {
+				var retCtx = {
+					name: ctx.FullName,
+					count: ctx.Retry
+				};
+				return retCtx;
+			},
+			finalize: function(ctx, retCtx) {
+				ctx.Retry = retCtx.count;
+				return ctx;
+			}
+		});
+		var ctx = new Context({
+			FullName: 'NEO',
+			Retry: 1
+		});
+		wr.execute(ctx, function(err, retCtx) {
+			assert(!err);
+			assert(ctx.Retry === 2);
+			assert(ctx === retCtx);
+			done();
+		});
+	});
+});
+
 describe('Timeout', function() {
 	it('not used without construction', function(done) {
 		assert.throws(function() {
@@ -1413,9 +1480,6 @@ describe('SWITCH', function() {
 				},
 				split: function(ctx) {
 					return ctx.fork();
-				},
-				combine: function(ctx, resCtx) {
-					return ctx;
 				}
 			}, {
 				stage: {
@@ -1428,9 +1492,6 @@ describe('SWITCH', function() {
 				},
 				split: function(ctx) {
 					return ctx.fork();
-				},
-				combine: function(ctx, resCtx) {
-					return ctx;
 				}
 			}]
 		});
@@ -1466,25 +1527,6 @@ describe('SWITCH', function() {
 		sw.execute({}, function(err, ctx) {
 			done();
 		});
-	});
-
-	it('use split without combine', function(done) {
-		assert.throws(function() {
-			var sw = new MultiWaySwitch({
-				cases: [{
-					stage: function(err, ctx, done) {
-						done();
-					},
-					evaluate: function() {
-						return false;
-					}
-				}],
-				split: function(ctx) {
-					return ctx.fork();
-				}
-			});
-		});
-		done();
 	});
 
 	it('must enter in each pipe works in parallel', function(done) {
