@@ -1,0 +1,4 @@
+graph Stage{
+	node [shape=Mrecord, fillcolor=beige, style=filled];
+	Stage
+}

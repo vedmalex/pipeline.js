@@ -1,0 +1,32 @@
+digraph stages {
+	rankdir=BT
+	node[shape=record]
+
+	subgraph cluster_series {
+		rank="same" 
+		node [style="filled", fillcolor="green"]
+		Parallel, Sequential
+		label="Series of data"
+	}
+	subgraph cluster_wrappers {
+		rank="same" 
+		node [style="filled", fillcolor="yellow"]
+		Timeout, Wrap
+		label="Wrappers"
+	}
+
+	subgraph cluster_conditional {
+		rank="same" 
+		node [style="filled", fillcolor="yellow"]
+		IfElse, MultiWaySwitch
+		label="Conditionals"
+	}
+
+	Pipeline -> Stage
+	Sequential -> Stage
+	Parallel -> Stage
+	IfElse -> Stage
+	MultiWaySwitch -> Stage
+	Timeout -> Stage
+	Wrap -> Stage
+}
