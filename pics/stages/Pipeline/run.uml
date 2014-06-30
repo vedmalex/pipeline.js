@@ -1,0 +1,27 @@
+@startuml
+title Pipeline run()
+hide footbox
+
+[-> Pipeline: run(context,done)
+activate Pipeline
+Pipeline-> Pipeline: next(null, context)
+group next() 
+activate Pipeline
+	loop for each item in self.stages
+		create Stage
+		Pipeline -> Stage: execute(context, next)
+		activate Stage
+		ref over Stage 
+			run Stage 
+			as required
+			by run method
+			signature
+		end
+		Stage--> Pipeline: next(err, context)
+		deactivate Stage
+	end
+deactivate Pipeline
+end
+[<-- Pipeline: done(err, context)
+deactivate Pipeline
+@enduml

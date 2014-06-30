@@ -15,7 +15,7 @@ for(var p in dItem.properties){
  out+="<"#>#{p}> #{p} : #{prop.value||((prop.objInstance ? "instance of: ": "") + prop.name||prop.type)}|<#}#>" ];
 
 // references
-
+// в принципе по интересу можно сделать.... позже
 //instance links
 	"#{dItem.value||((dItem.objInstance ? "instance of: ": "") + dItem.name||dItem.type)}":__proto__ #{dItem.ref ? ('-> "' + dItem.ref + '":__proto__') : ''}
 <#}#>

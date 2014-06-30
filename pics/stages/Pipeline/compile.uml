@@ -1,0 +1,17 @@
+@startuml
+
+title Pipeline.compile() function
+
+start
+	:get length of stages into **len**;
+
+	:ensure name for pipeline;
+
+	if (len > 0)
+		:prepare run function;
+	else
+		:self.run = empty function;
+	endif
+stop
+
+@enduml

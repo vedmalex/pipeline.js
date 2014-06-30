@@ -1,0 +1,18 @@
+@startuml
+
+	Class Stage
+	Class Sequential{
+		+constructor:function(cfg)
+===
+		-stage:Stage
+===		
+		+prepareContext:function(ctx):Context
+		+split:function(ctx, iter)
+		+reachEnd:function(err, ctx, iter)
+		+combine:function(innerCtx, ctx, children)
+		+checkContext: function(err, ctx, iter, callback)
+	}
+
+ 	Stage <|-- Sequential
+
+@enduml

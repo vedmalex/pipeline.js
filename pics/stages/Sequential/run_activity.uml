@@ -1,0 +1,21 @@
+@startuml
+
+title Sequential run()
+
+start
+:**prepareContext**;
+repeat
+    :**checkContext**;
+    :**split** next part;
+    :run **stage**;
+repeat while (!**reachEnd**)
+
+if(error) 
+    :done(error);
+else
+    :**combine**;
+    :done();
+endif
+stop
+
+@enduml
