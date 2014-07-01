@@ -11,36 +11,53 @@ Using the different pipeline's stages one can combine new type of pipeline by as
 The same idea is under the development of pipeline.js.
 There is basic stages that can be used to define more complex async-processing of specific data with pipline-like processing.
 
+![hierarchy](./stages/hierarchy.png)
+
 ##Note:
 The pipeline concept means to use the same context on the same level of staging.
 i.e. while we split context in some stages we do not need to cmbine it if we not changing the context. by default it will return the same context but(!) with all childs that appears in current stage. this is for traceability.
 
 # Stages: quick overview
 ## Context
+
 *Context* - is the thing that is need to be processed by the system.
 We can `fork` context, take the parent context using `getParent`, and all errors during the processing of child context will be stored store in the parent's context error list. it can be traced to determine which stage it is already passed. and so on... see the code and tests.
 
 ## One way Context processing
 ### Stage
+![hierarchy](./stages/Stage/class.png)
+
 *Stage* is the eventEmitter sublcass. We can either subscribe to events or use callback to catch-up end of processing.
 *Stage* is by default asyncronous.
 
 ### Pipeline
+![hierarchy](./stages/Pipeline/class.png)
 *Pipeline* is by subclass of Stage. the main purpose of it is to run sequence of different stages one after another.
 
 ## Processing with alternatives
 ### IfElse
+![hierarchy](./stages/IfElse/class.png)
 *IfElse* is the type of stage that use condition to choose which one of two *Stage* we need to run according to specific condition.
 
 ### MultiWaySwitch
+![hierarchy](./stages/MultiWaySwitch/class.png)
 *MultiWaySwitch* is more complex *Stage* than *IfElse* is.
 we can provide each stage in the list with condition, by examining which *MultiWaySwitch* make decision wheather the specific stage can be run or not.
 notable feature is that on context can be processed from 0 to n times with the *MultiWaySwitch*.
 
 ### Parallel
+![hierarchy](./stages/Parallel/class.png)
 *Parallel* is the *Stage* that make possible process of stage that contain enumeration in it with parallel options. It runs one stage as parallel processing on series of data of the processing context.
 it reachs end only after all data will be processed. It returns list of error.
 
 ### Sequential
+![hierarchy](./stages/Sequential/class.png)
 *Sequential* is the *Stage* that work almost like *Parallel*, but it run stage in sequential manner. So it first error occures we can manage it to stop processing or continue if we decide that the error not significant.
 
+###Wrap
+![hierarchy](./stages/Sequential/class.png)
+*Wrap*per is a kind of stage that make possible to change context structure for specific type of stage. Using this we one can reuse existing stages more than once for different parts of common context
+
+###Timeout
+![hierarchy](./stages/Timeout/class.png)
+*Timeout*

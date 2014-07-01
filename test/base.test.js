@@ -49,6 +49,77 @@ describe('Stage', function() {
 		});
 	});
 
+	describe("rescue", function() {
+
+		it('sync', function(done) {
+			var st = new Stage({
+				rescue: function(err, ctx) {
+					assert.equal('some', err);
+				},
+				run: function(ctx) {
+					ctx.n = 1;
+					throw 'some';
+				}
+			});
+			st.execute({}, function(err, ctx) {
+				assert.equal(ctx.n, 1);
+				assert.ifError(err);
+				done();
+			});
+		});
+
+		it('async', function(done) {
+			var st = new Stage({
+				rescue: function(err, ctx) {
+					assert.equal('some', err);
+				},
+				run: function(ctx, done) {
+					ctx.n = 1;
+					throw 'some';
+				}
+			});
+			st.execute({}, function(err, ctx) {
+				assert.equal(ctx.n, 1);
+				assert.ifError(err);
+				done();
+			});
+		});
+		process.setMaxListeners(0);
+		it('async deep', function(done) {
+			var domain = require('domain').create();
+			domain.on('error', function(err) {
+				assert.equal('some', err);
+				console.log('d error');
+			});
+			var st = new Stage({
+				rescue: function(err, ctx) {
+					console.log('rescue error');
+					assert.equal('some', err);
+				},
+				run: function(ctx, done) {
+					ctx.n = 1;
+					setImmediate(function() {
+						console.log('throw error');
+
+						throw 'some';
+					});
+				}
+			});
+			st.on('end', function() {
+				domain.dispose();
+				console.log('end');
+				done();
+			});
+			domain.run(function() {
+				st.execute({}, function(err, ctx) {
+					console.log('done', err);
+				});
+			});
+
+		});
+
+	});
+
 	it('accepts name as config', function(done) {
 		var name = 'new Name';
 		var v = new Stage(name);
@@ -145,8 +216,7 @@ describe('Stage', function() {
 		var stage = new Stage({
 			run: function(err, context, done) {
 				done(new Error());
-			},
-			emitAnyway: true
+			}
 		});
 
 		stage.once('error', function(err, conext) {
@@ -184,7 +254,6 @@ describe('Stage', function() {
 		var stage = new Stage(function(err, context, done) {
 			done();
 		});
-		stage.emitAnyway = true;
 		stage.once('done', function(err, conext) {
 			assert.equal(!context, false);
 			done();
@@ -247,14 +316,14 @@ describe('Stage', function() {
 		var l = 0;
 
 		function gotit() {
-			if (++l == 20) done();
+			if (++l == 10) done();
 		}
 
 		function accept(err, data) {
 			assert.equal(data.one, 2);
 			gotit();
 		}
-		for (var i = 0; i < 20; i++) {
+		for (var i = 0; i < 10; i++) {
 			var ctx1 = new Context({
 				one: 1
 			});
@@ -323,7 +392,7 @@ describe('Context', function() {
 		};
 		var ctx = new Context(config);
 		var ctx2 = ctx.fork();
-		assert.equal(ctx.__childs.length, 1, "MUST HAVE CHILDS");
+		assert.equal(ctx.__children.length, 1, "MUST HAVE CHILDS");
 		assert.equal(ctx.config.some, ctx2.config.some, "MUST BE EQUAL");
 		assert.equal(ctx.notConfig, ctx2.notConfig, "MUST BE EQUAL");
 		assert.equal(ctx2.getParent() === ctx, true, "parent is context");
@@ -496,9 +565,9 @@ describe('Pipeline', function() {
 			item: 0
 		}, function(err, ctx) {
 			assert.equal(!!err, false);
+			assert.equal(1, ctx.item);
 			done();
 		});
-
 	});
 
 	it('context catch all errors', function(done) {
@@ -722,12 +791,12 @@ describe('Pipeline', function() {
 		var l = 0;
 
 		function gotit() {
-			if (++l == 20) done();
+			if (++l == 10) done();
 		}
-		for (var i = 0; i < 20; i++) {
+		for (var i = 0; i < 10; i++) {
 			var ctx1 = new Context({
 				one: 1
-			});
+			}); debugger;
 			pipe.execute(ctx1, function(err, data) {
 				assert.equal(data.one, 8);
 				gotit();

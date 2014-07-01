@@ -32,6 +32,7 @@ gendocs:
 	./node_modules/doxx/bin/doxx --source lib --target docs
 
 docclean:
-	rm -f ./docs/*
+	rm -rf ./docs/*
+	rsync -a --include='*.png' pics/stages ./docs/ 
 
 .PHONY: test
