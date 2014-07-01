@@ -19,7 +19,7 @@
 		combine:function(ctx, resCtx)
  	}
  	MultiWaySwitch *-- "cases" CaseItem
- 	Stage <|-- MultiWaySwitch
+ 	Stage <|--- MultiWaySwitch
 
 
 @enduml
