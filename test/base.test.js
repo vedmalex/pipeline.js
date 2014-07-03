@@ -21,13 +21,13 @@ describe('utils', function() {
 
 describe('Stage', function() {
 	describe('sync', function() {
+
 		it('works', function(done) {
 			var v1 = new Stage({
 				run: function newName1(ctx) {
 					ctx.name = 'name';
 				}
 			});
-			assert(v1.name == 'newName1');
 			v1.execute({}, function(err, ctx) {
 				assert(ctx.name == 'name');
 				done();
@@ -41,7 +41,6 @@ describe('Stage', function() {
 					throw new Error();
 				}
 			});
-			assert(v1.name == 'newName1');
 			v1.execute({}, function(err, ctx) {
 				assert(err);
 				done();
@@ -84,36 +83,29 @@ describe('Stage', function() {
 				done();
 			});
 		});
-		process.setMaxListeners(0);
+
 		it('async deep', function(done) {
 			var domain = require('domain').create();
 			domain.on('error', function(err) {
 				assert.equal('some', err);
-				console.log('d error');
 			});
 			var st = new Stage({
 				rescue: function(err, ctx) {
-					console.log('rescue error');
 					assert.equal('some', err);
 				},
 				run: function(ctx, done) {
 					ctx.n = 1;
 					setImmediate(function() {
-						console.log('throw error');
-
 						throw 'some';
 					});
 				}
 			});
 			st.on('end', function() {
-				domain.dispose();
-				console.log('end');
+				domain.exit();
 				done();
 			});
 			domain.run(function() {
-				st.execute({}, function(err, ctx) {
-					console.log('done', err);
-				});
+				st.execute({}, function(err, ctx) {});
 			});
 
 		});
@@ -427,6 +419,7 @@ describe('Context', function() {
 });
 
 describe('Pipeline', function() {
+
 	it('defaults', function(done) {
 		var pipe = new Pipeline('defaultName');
 		assert(pipe instanceof Stage);
@@ -460,6 +453,35 @@ describe('Pipeline', function() {
 		done();
 	});
 
+	it('catch throw errors', function(done) {
+		var pipe = new Pipeline();
+		pipe.addStage(function(err, ctx, done) {
+			throw 'error';
+		});
+		pipe.execute({}, function(err, ctx) {
+			assert.equal('error', err);
+			done();
+		});
+	});
+
+	it('rescue works', function(done) {
+		var pipe = new Pipeline();
+		var st = new Stage({
+			run: function(err, ctx, done) {
+				throw 'error';
+			},
+			rescue: function(err, conext) {
+				if (err !== 'error')
+					return err;
+			}
+		});
+		pipe.addStage(st);
+		pipe.execute({}, function(err, ctx) {
+			assert.ifError(err);
+			done();
+		});
+	});
+
 	it('addStage take name of function or function body as stagename ', function(done) {
 		var pipe = new Pipeline();
 		pipe.addStage(function(err, ctx, done) {});
@@ -471,7 +493,7 @@ describe('Pipeline', function() {
 		done();
 	});
 
-	it('addStage converts funciton to Stage Instance', function(done) {
+	it('addStage converts function to Stage Instance', function(done) {
 		var pipe = new Pipeline();
 		pipe.addStage(function(err, ctx, done) {
 			done();
@@ -796,7 +818,8 @@ describe('Pipeline', function() {
 		for (var i = 0; i < 10; i++) {
 			var ctx1 = new Context({
 				one: 1
-			}); debugger;
+			});
+			debugger;
 			pipe.execute(ctx1, function(err, data) {
 				assert.equal(data.one, 8);
 				gotit();
@@ -814,6 +837,24 @@ describe('Sequential', function() {
 			done();
 		});
 
+	});
+
+	it('rescue', function(done) {
+		var pipe = new Pipeline();
+		var st = new Stage({
+			run: function(err, ctx, done) {
+				throw 'error';
+			},
+			rescue: function(err, conext) {
+				if (err !== 'error')
+					return err;
+			}
+		});
+		pipe.addStage(st);
+		pipe.execute({}, function(err, ctx) {
+			assert.ifError(err);
+			done();
+		});
 	});
 
 	it('works with config as Stage', function(done) {
