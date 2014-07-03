@@ -7,6 +7,7 @@ var Parallel = require(index).Parallel;
 var IfElse = require(index).IfElse;
 var Timeout = require(index).Timeout;
 var Wrap = require(index).Wrap;
+var RetryOnError = require(index).RetryOnError;
 var MultiWaySwitch = require(index).MultiWaySwitch;
 var Util = require(index).Util;
 
@@ -1509,7 +1510,103 @@ describe('Timeout', function() {
 	});
 });
 
-describe('SWITCH', function() {
+describe('RetryOnError', function() {
+
+	it('works', function(done) {
+		var st = new RetryOnError({
+			run: function(ctx) {
+				ctx.works = true;
+			}
+		});
+		st.execute({}, function(err, ctx) {
+			assert.ifError(err);
+			assert(ctx.works);
+			done();
+		});
+	});
+
+	it('retry works once by default', function(done) {
+		var iter = 0;
+		var st = new RetryOnError({
+			run: function(ctx) {
+				if (iter == 0) {
+					iter++;
+					throw 'error';
+				}
+				ctx.works = true;
+			}
+		});
+		st.execute({}, function(err, ctx) {
+			assert.ifError(err);
+			assert(ctx.works);
+			assert.equal(iter, 1);
+			done();
+		});
+	});
+
+	it('retry works with rescue', function(done) {
+		var st = new RetryOnError({
+			rescue: function(err, ctx) {
+				if (err !== 'error') return err;
+				ctx.rescue = true;
+			},
+			run: function(ctx) {
+				throw 'error';
+			}
+		});
+		st.execute({}, function(err, ctx) {
+			assert.ifError(err);
+			assert.ifError(ctx.works);
+			assert(ctx.rescue);
+			done();
+		});
+	});
+
+	it('retry works as function', function(done) {
+		var iter = 0;
+		var st = new RetryOnError({
+			retry: function(err, ctx, iter) {
+				return err === 'error'
+			},
+			run: function(ctx) {
+				if (iter == 0) {
+					iter++;
+					throw 'error';
+				}
+				ctx.works = true;
+			}
+		});
+		st.execute({}, function(err, ctx) {
+			assert.ifError(err);
+			assert(ctx.works);
+			assert.equal(iter, 1);
+			done();
+		});
+	});
+
+	it('retry works as number', function(done) {
+		var iter = 0;
+		var st = new RetryOnError({
+			retry: 1,
+			run: function(ctx) {
+				if (iter == 0) {
+					iter++;
+					throw 'error';
+				}
+				ctx.works = true;
+			}
+		});
+		st.execute({}, function(err, ctx) {
+			assert.ifError(err);
+			assert(ctx.works);
+			assert.equal(iter, 1);
+			done();
+		});
+	});
+
+});
+
+describe('MWS', function() {
 
 	it('works', function(done) {
 		var sw = new MultiWaySwitch();
@@ -2067,7 +2164,7 @@ describe("Complex", function() {
 				},
 				stage: new Stage({
 					run: function(ctx) {
-						throw 'error'; 
+						throw 'error';
 					}
 				})
 			}));
