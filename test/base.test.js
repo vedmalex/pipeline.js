@@ -819,7 +819,6 @@ describe('Pipeline', function() {
 			var ctx1 = new Context({
 				one: 1
 			});
-			debugger;
 			pipe.execute(ctx1, function(err, data) {
 				assert.equal(data.one, 8);
 				gotit();
@@ -1989,3 +1988,109 @@ describe('Utils', function() {
 		done();
 	});
 });
+
+describe("Complex", function() {
+	describe("throwing exceptoins", function() {
+		it("pipelie + stages", function(done) {
+			var pipe = new Pipeline();
+			pipe.addStage(new Stage({
+				run: function(ctx) {
+					ctx.step1 = true;
+				}
+			}));
+			pipe.addStage(new Pipeline({
+				rescue: function(err, ctx) {
+					if (err !== 'error') return err;
+					ctx.rescue1 = true;
+				},
+				stages: [
+					new Stage({
+						run: function() {
+							this.step2 = true;
+						}
+					}),
+					new Stage({
+						run: function(ctx) {
+							throw 'error';
+						}
+					}),
+					new Stage({
+						run: function(ctx) {
+							ctx.step3 = true;
+						}
+					})
+				]
+			}));
+			pipe.addStage(new Stage({
+				run: function(ctx) {
+					ctx.step4 = true;
+				}
+			}));
+
+			pipe.addStage(new IfElse({
+				failed: new Stage({
+					name: "failure",
+					rescue: function(err, ctx) {
+						if (err !== 'error') return err;
+						ctx.rescue2 = true;
+					},
+					run: function() {
+						throw 'error';
+					}
+				}),
+				success: new Stage(function() {}),
+				condition: function() {
+					return false;
+				}
+			}));
+
+			pipe.addStage(new IfElse({
+				rescue: function(err, ctx) {
+					if (err !== 'error') return err;
+					ctx.rescue3 = true;
+				},
+				failed: new Stage({
+					run: function() {
+						throw 'error';
+					}
+				}),
+				success: new Stage(function() {}),
+				condition: function() {
+					return false;
+				}
+			}));
+
+			pipe.addStage(new Wrap({
+				rescue: function(err, ctx) {
+					if (err !== 'error') return err;
+					ctx.rescue4 = true;
+				},
+				stage: new Stage({
+					run: function(ctx) {
+						throw 'error'; 
+					}
+				})
+			}));
+
+			pipe.execute({}, function(err, ctx) {
+				assert.ifError(err);
+				assert(ctx.step1);
+				assert(ctx.step2);
+				assert(ctx.rescue1);
+				assert(ctx.rescue2);
+				assert(ctx.rescue3);
+				assert(ctx.rescue4);
+				assert.ifError(ctx.step3);
+				assert(ctx.step4);
+				done();
+			});
+		});
+	});
+});
+
+// продумать то, как работает код!! с разными Stage
+// rescue! как его использовать в MWS
+// rescue! как его использовать в Sequential
+// rescue! как его использовать в Parallel
+// rescue! как его использовать в Timeout
+// rescue! как его использовать в Wrap

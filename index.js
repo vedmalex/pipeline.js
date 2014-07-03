@@ -8,3 +8,4 @@ exports.Context = require('./lib/context').Context;
 exports.Util = require('./lib/util').Util;
 exports.Timeout = require('./lib/timeout').Timeout;
 exports.Wrap = require('./lib/wrap').Wrap;
+exports.RetryOnError = require('./lib/retryonerror').RetryOnError;
