@@ -12,7 +12,8 @@
     "pipeline"
   ],
   "dependencies": {
-    "js-schema": "0.6.2"
+    "js-schema": "0.6.2",
+    "comparator.js": "*"
   },
   "devDependencies": {
     "mocha": "*",
