@@ -950,32 +950,44 @@ describe('Sequential', function() {
 		});
 	});
 
-	it('prepare context', function(done) {
+	it('prepare context -> moved to Wrap', function(done) {
 		var stage0 = new Stage(function(err, ctx, done) {
-			ctx.iter++;
+			ctx.iteration++;
 			done();
 		});
-		var cnt = 0;
-		var stage = new Sequential({
-			stage: stage0,
-			prepareContext: function(ctx) {
+		debugger;
+		var stage = new Wrap({
+			prepare: function(ctx) {
 				return {
-					iter: ctx.iter
+					iteration: ctx.iter
 				};
 			},
-			split: function(ctx, iter) {
-				cnt++;
-				return ctx.fork();
+			finalize: function(ctx, retCtx){
+				ctx.iter = retCtx.iteration;
 			},
-			reachEnd: function(err, ctx, iter) {
-				return err || iter == 10;
-			}
+			stage: new Sequential({
+				stage: stage0,
+				split: function(ctx, iter) {
+					return ctx.fork();
+				},
+				combine: function(ctx, childrenCtx){
+					var chld;
+					for (var i = 0, len = childrenCtx.length; i < len; i++) {
+						chld = childrenCtx[i];
+						ctx.iteration += chld.iteration;
+					}
+				},
+				reachEnd: function(err, ctx, iter) {
+					return err || iter == 10;
+				}
+			})
 		});
+
 		stage.execute({
-			iter: -1
+			iter: 0
 		}, function(err, context) {
-			assert.equal(context.iter, -1);
-			assert.equal(cnt, 10);
+			assert.equal(context.iter, 10);
+			assert.ifError(context.iteration);
 			done();
 		});
 	});
@@ -1002,7 +1014,7 @@ describe('Sequential', function() {
 			reachEnd: function(err, ctx, iter) {
 				return err || iter == len;
 			},
-			combine: function(innerCtx, ctx, childs) {
+			combine: function(ctx, childs) {
 				var len = childs.length;
 				ctx.result = 0;
 				for (var i = 0; i < len; i++) {
@@ -1039,7 +1051,7 @@ describe('Sequential', function() {
 			reachEnd: function(err, ctx, iter) {
 				return err || iter == len;
 			},
-			combine: function(innerCtx, ctx, childs) {
+			combine: function(ctx, childs) {
 				var len = childs.length;
 				ctx.result = 0;
 				for (var i = 0; i < len; i++) {
@@ -1056,9 +1068,9 @@ describe('Sequential', function() {
 
 	it('cheks context as well', function(done) {
 		var stage0 = new Stage({
-			validate: function(ctx){
-				if(ctx.iter > 5) return 'error';
-					return true;
+			validate: function(ctx) {
+				if (ctx.iter > 5) return 'error';
+				return true;
 			},
 			run: function(err, ctx, done) {
 				ctx.liter = 1;
@@ -1079,7 +1091,7 @@ describe('Sequential', function() {
 			reachEnd: function(err, ctx, iter) {
 				return err || iter == len;
 			},
-			combine: function(innerCtx, ctx, childs) {
+			combine: function(ctx, childs) {
 				var len = childs.length;
 				ctx.result = 0;
 				for (var i = 0; i < len; i++) {
@@ -1113,7 +1125,7 @@ describe('Sequential', function() {
 			reachEnd: function(err, ctx, iter) {
 				return err || iter == len;
 			},
-			combine: function(innerCtx, ctx, chlds) {
+			combine: function(ctx, chlds) {
 				var childs = ctx.getChilds();
 				var len = childs.length;
 				ctx.result = 0;

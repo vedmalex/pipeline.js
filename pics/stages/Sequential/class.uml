@@ -10,7 +10,6 @@
 		+split:function(ctx, iter)
 		+reachEnd:function(err, ctx, iter)
 		+combine:function(innerCtx, ctx, children)
-		+checkContext: function(err, ctx, iter, callback)
 	}
 
  	Stage <|-- Sequential
