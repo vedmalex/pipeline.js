@@ -293,14 +293,6 @@ var hasMany = new pipeline.Sequential({
 		});
 		return lcontext;
 	},
-	checkContext: function(err, ctx, iter, callback) {
-		if (!err && iter < ctx.count) {
-			var hmItem = ctx.hasManyList[iter];
-			var rel = getRelationDef(ctx.serverModel, hmItem.key);
-			if (!rel) err = new Error(format('%s has no relation %s', ctx.serverModel, hmItem.key));
-		}
-		callback(err, ctx);
-	},
 	reachEnd: function(err, ctx, iter) {
 		return iter === ctx.count || err;
 	},
@@ -410,14 +402,6 @@ var belongsTo = new pipeline.Sequential({
 			dest: btItem
 		});
 		return lcontext;
-	},
-	checkContext: function(err, ctx, iter, callback) {
-		if (!err && iter < ctx.count) {
-			var btItem = ctx.belongsToList[iter];
-			var rel = getRelationDef(ctx.serverModel, btItem.key);
-			if (!rel) err = new Error(format('%s has no relation %s', ctx.serverModel, btItem.key));
-		}
-		callback(err, ctx);
 	},
 	reachEnd: function(err, ctx, iter) {
 		return iter === ctx.count || err;
