@@ -12,6 +12,7 @@ Class Stage {
 ===	
 	+reportName: function():String
 	+execute: function(context, callback)
+	+rescue: function(err, context[, callback])
 	- ensure: function(context, callback)
 	- sign:function(context)
 	- run:function()
