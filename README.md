@@ -60,4 +60,9 @@ it reachs end only after all data will be processed. It returns list of error.
 
 ###Timeout
 ![hierarchy](./stages/Timeout/class.png)
-*Timeout*
+*Timeout* can be configured to run stage and wait for specified timeout time and throw error or run different stage.
+
+###RetryOnError
+![hierarchy](./stages/Timeout/class.png)
+*RetryOnError* can be configured to run specified stage for certain lap until it will success. `retry` can either `function` or `number`.
+

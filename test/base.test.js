@@ -1898,7 +1898,7 @@ describe('MWS', function() {
 			combine: function(ctx, retCtx) {
 				ctx.size += retCtx.cnt;
 			},
-			exHandler: function(err, ctx) {
+			rescue: function(err, ctx) {
 				return err;
 			}
 		});
@@ -1911,27 +1911,70 @@ describe('MWS', function() {
 		});
 	});
 
-	it('exception handler work', function(done) {
+	it('rescue work as expected 1 ', function(done) {
 		var pipe0 = new Pipeline([
 
-			function(err, ctx, done) {
+			function(ctx) {
 				ctx.cnt = 1;
-				done();
 			},
-			function(err, ctx, done) {
+			function(ctx) {
 				ctx.cnt += 1;
-				done();
 			}
 		]);
+
+		var pipe1 = new Pipeline({
+			rescue: function(err, ctx) {
+				return;
+			},
+			stages: [
+
+				function(ctx) {
+					ctx.cnt = 1;
+				},
+				function(ctx, done) {
+					ctx.cnt += 1;
+					done('error');
+				}
+			]
+		});
+
+		var sw = new MultiWaySwitch({
+			cases: [pipe0, pipe1],
+			split: function(ctx) {
+				return ctx.fork();
+			},
+			combine: function(ctx, retCtx) {
+				ctx.size += retCtx.cnt;
+			}
+		});
+		sw.execute({
+			size: 0
+		}, function(err, ctx) {
+			assert.equal(ctx.size, 4);
+			assert.ifError(err);
+			done();
+		});
+	});
+
+	it('rescue work as expected 2', function(done) {
+		var pipe0 = new Pipeline([
+
+			function(ctx) {
+				ctx.cnt = 1;
+			},
+			function(ctx) {
+				ctx.cnt += 1;
+			}
+		]);
+		// THIS STAGE WILL BE FAILED
 		var pipe1 = new Pipeline([
 
-			function(err, ctx, done) {
+			function(ctx) {
 				ctx.cnt = 1;
-				done();
 			},
-			function(err, ctx, done) {
+			function(ctx, done) {
 				ctx.cnt += 1;
-				done(new Error());
+				done('error');
 			}
 		]);
 
@@ -1943,15 +1986,15 @@ describe('MWS', function() {
 			combine: function(ctx, retCtx) {
 				ctx.size += retCtx.cnt;
 			},
-			exHandler: function(err, ctx) {
-				return false;
-			}
+			rescue: function(err, ctx) {
+				return;
+			},
 		});
 		sw.execute({
 			size: 0
 		}, function(err, ctx) {
-			assert.equal(ctx.size, 4);
-			assert.equal(!!err, false);
+			assert.equal(ctx.size, 2);
+			assert.ifError(err);
 			done();
 		});
 	});
@@ -1968,24 +2011,26 @@ describe('MWS', function() {
 				done();
 			}
 		]);
-		var pipe1 = new Pipeline([
-
-			function(err, ctx, done) {
-				ctx.cnt = 1;
-				done();
+		var pipe1 = new Pipeline({
+			rescue: function() {
+				return false;
 			},
-			function(err, ctx, done) {
-				ctx.cnt += 1;
-				done(new Error());
-			}
-		]);
+			stages: [
+
+				function(err, ctx, done) {
+					ctx.cnt = 1;
+					done();
+				},
+				function(err, ctx, done) {
+					ctx.cnt += 1;
+					done(new Error());
+				}
+			]
+		});
 
 		var sw = new MultiWaySwitch({
 			cases: [pipe0, {
-				stage: pipe1,
-				exHandler: function() {
-					return false;
-				}
+				stage: pipe1
 			}],
 			split: function(ctx) {
 				return ctx.fork();
@@ -2015,25 +2060,27 @@ describe('MWS', function() {
 				done();
 			}
 		]);
-		var pipe1 = new Pipeline([
-
-			function(err, ctx, done) {
-				ctx.cnt = 1;
-				done();
+		var pipe1 = new Pipeline({
+			rescue: function() {
+				return false;
 			},
-			function(err, ctx, done) {
-				ctx.cnt += 1;
-				done(new Error());
-			}
-		]);
+			stages: [
+
+				function(err, ctx, done) {
+					ctx.cnt = 1;
+					done();
+				},
+				function(err, ctx, done) {
+					ctx.cnt += 1;
+					done(new Error());
+				}
+			]
+		});
 
 		var sw = new MultiWaySwitch({
 			cases: [pipe0, {
 				stage: pipe1,
-				evaluate: true,
-				exHandler: function() {
-					return false;
-				}
+				evaluate: true
 			}],
 			split: function(ctx) {
 				return ctx.fork();

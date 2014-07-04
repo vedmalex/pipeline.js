@@ -9,9 +9,7 @@ fork
     :**split** for Case #1;
     :run **stage** for Case #1;
     if(error) then (handleError)
-        if(**exHandler** for Case #1)
         :logError;
-        endif
     endif 
 fork again
     :...;
@@ -20,9 +18,7 @@ fork again
     :**split** for Case #n;
     :run **stage** for Case #n;
     if(error) then (handleError)
-        if(**exHandler** for Case #n)
         :logError;
-        endif
     endif 
 end fork
 

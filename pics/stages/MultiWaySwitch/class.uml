@@ -5,7 +5,6 @@
 		+constructor:function(cfg)
 ===
 		cases:CaseItem[]
-		exHandler:function(err, ctx)
 		split:function(ctx)
 		combine:function(ctx, resCtx)
 ===		
@@ -14,7 +13,6 @@
   	Class CaseItem {
  		stage:Stage
  		evaluate: boolean | function(ctx):Boolean
- 		exHandler:function(err, ctx)
 		split:function(ctx)
 		combine:function(ctx, resCtx)
  	}

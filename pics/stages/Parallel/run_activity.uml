@@ -9,23 +9,14 @@ start
 fork
     :run **stage** for piece #1;
     if(error) then (handleError)
-        if(**exHandler**)
         :logError;
-        endif
     endif 
 fork again
-    :run **stage** for piece ...;
-    if(error) then (handleError)
-        if(**exHandler**)
-        :logError;
-        endif
-    endif 
+:...;
 fork again
     :run **stage** for piece #n;
     if(error) then (handleError)
-        if(**exHandler**)
         :logError;
-        endif
     endif 
 end fork
 

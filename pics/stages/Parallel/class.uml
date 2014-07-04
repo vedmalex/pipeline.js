@@ -9,7 +9,6 @@
 		+prepareContext:function(ctx):Context
 		+split:function(ctx, iter)
 		+combine:function(innerCtx, ctx, children)
-		+exHandler: function(err, ctx, iter, callback)
 	}
 
  	Stage <|-- Parallel
