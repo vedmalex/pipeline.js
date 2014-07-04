@@ -632,7 +632,7 @@ describe('Pipeline', function() {
 		pipe.execute({
 			item: 0
 		}, function(err, ctx) {
-			assert.equal(!!err, false);
+			assert.ifError(err);
 			assert.equal(1, ctx.item);
 			done();
 		});
@@ -1056,6 +1056,10 @@ describe('Sequential', function() {
 
 	it('cheks context as well', function(done) {
 		var stage0 = new Stage({
+			validate: function(ctx){
+				if(ctx.iter > 5) return 'error';
+					return true;
+			},
 			run: function(err, ctx, done) {
 				ctx.liter = 1;
 				done();
@@ -1067,10 +1071,6 @@ describe('Sequential', function() {
 		var len = ctx.some.length;
 		var stage = new Sequential({
 			stage: stage0,
-			checkContext: function(err, ctx, iter, callback) {
-				var _e = ctx.some[iter] > 4 ? new Error() : null;
-				callback(_e, ctx);
-			},
 			split: function(ctx, iter) {
 				return {
 					iter: ctx.some[iter]
@@ -1089,7 +1089,7 @@ describe('Sequential', function() {
 		});
 
 		stage.execute(ctx, function(err, context) {
-			assert.equal(!!err, true);
+			assert.equal(err, "error");
 			done();
 		});
 	});
@@ -2023,7 +2023,7 @@ describe('MWS', function() {
 				},
 				function(err, ctx, done) {
 					ctx.cnt += 1;
-					done(new Error());
+					done('error');
 				}
 			]
 		});
@@ -2043,7 +2043,7 @@ describe('MWS', function() {
 			size: 0
 		}, function(err, ctx) {
 			assert.equal(ctx.size, 2);
-			assert.equal(!!err, false);
+			assert.ifError(err);
 			done();
 		});
 	});
@@ -2093,7 +2093,7 @@ describe('MWS', function() {
 			size: 0
 		}, function(err, ctx) {
 			assert.equal(ctx.size, 4);
-			assert.equal(!!err, false);
+			assert.ifError(err);
 			done();
 		});
 	});
@@ -2114,7 +2114,7 @@ describe('MWS', function() {
 			}]
 		});
 		sw.execute({}, function(err, ctx) {
-			assert.equal(!!err, false);
+			assert.ifError(err);
 			done();
 		});
 	});
@@ -2135,7 +2135,7 @@ describe('MWS', function() {
 			}]
 		});
 		sw.execute({}, function(err, ctx) {
-			assert.equal(!!err, false);
+			assert.ifError(err);
 			done();
 		});
 	});
