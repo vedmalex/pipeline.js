@@ -338,7 +338,52 @@ describe('Context', function() {
 		done();
 	});
 
+	it('overwrite', function(done) {
+		var c = new Context({
+			some: 1,
+			someOther: [1, 2, 3, 4, 5]
+		});
+		assert.equal(c.some, 1);
+		assert.equal(c.someOther[0], 1);
+		assert.equal(c.someOther.length, 5);
+		c.overwrite({
+			some: 2,
+			thirdParty: 3
+		});
+		assert.equal(c.some, 2);
+		assert.equal(c.thirdParty, 3);
+		assert.equal(c.someOther[0], 1);
+		assert.equal(c.someOther.length, 5);
+
+		done();
+	});
+
+	it('get', function(done) {
+		var c = new Context({
+			embedded: {
+				some: 1,
+				someOther: [1, 2, 3, 4, 5],
+				deep1: {
+					other: [12, 23, 34],
+					liter: "a"
+				}
+			},
+			name: "test"
+		});
+		var ce = c.get('embedded');
+		assert(ce instanceof Context);
+		assert.equal(ce.some, 1);
+		assert.equal(c.embedded.some, 1);
+		assert.equal(ce.someOther, c.embedded.someOther);
+		assert.equal(ce.deep1.liter, c.embedded.deep1.liter);
+		ce.deep1.liter = "12345";
+		assert.equal(ce.deep1.liter, c.embedded.deep1.liter);
+		done();
+	});
+
 	it('clone context');
+	// проверить все типы данных .... на клониноварие.
+	// и на случай с вложенными контекстами тоже, когда через get выбираем часть
 	it('toJSON context');
 
 	it('not allows to use constructor as a function', function(done) {
