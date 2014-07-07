@@ -254,12 +254,15 @@ describe('Stage', function() {
 
 		stage.execute({}, function(err, data) {});
 	});
+	
 	it('prepare and finalize context');
+
 	it('ensureContext', function(done) {
 		var stage = new Stage();
 		var ensure = 0;
-		stage.ensure = function() {
+		stage.ensure = function(ctx, callback) {
 			ensure++;
+			callback();
 		};
 		stage.execute({});
 		assert.equal(ensure, 1, 'ensure must called by default');
@@ -607,7 +610,7 @@ describe('Pipeline', function() {
 
 		var ensure = 0;
 		pipe._ensure = pipe.ensure;
-		pipe.ensure = function() {
+		pipe.ensure = function(ctx, callback) {
 			ensure++;
 			this._ensure.apply(this, arguments);
 		};
@@ -931,54 +934,66 @@ describe('Sequential', function() {
 			done();
 		}
 	});
+
 	it('run stage', function(done) {
-		var stage0 = new Stage(function(err, ctx, done) {
+		var stage0 = new Stage(function(ctx) {
 			ctx.iter++;
-			done();
 		});
 		var stage = new Sequential({
 			stage: stage0,
-			reachEnd: function(err, ctx, iter) {
-				return err || iter == 10;
+			split: function(ctx) {
+				ctx.split = [0, 0, 0, 0, 0];
+				ctx.split = ctx.split.map(function(i) {
+					return {
+						iter: 0
+					};
+				});
+				return ctx.split;
+			},
+			combine: function(ctx, children) {
+				ctx.iter = children.reduce(function(p, c, i, a) {
+					return p + c.iter;
+				}, 0);
+				delete ctx.split;
+				return ctx;
 			}
 		});
-		stage.execute({
-			iter: -1
-		}, function(err, context) {
-			assert.equal(context.iter, 9);
+		stage.execute({}, function(err, context) {
+			assert.equal(context.iter, 5);
 			done();
 		});
 	});
 
 	it('prepare context -> moved to Wrap', function(done) {
-		var stage0 = new Stage(function(err, ctx, done) {
+		var stage0 = new Stage(function(ctx) {
 			ctx.iteration++;
-			done();
 		});
-		debugger;
 		var stage = new Wrap({
 			prepare: function(ctx) {
 				return {
 					iteration: ctx.iter
 				};
 			},
-			finalize: function(ctx, retCtx){
+			finalize: function(ctx, retCtx) {
 				ctx.iter = retCtx.iteration;
 			},
 			stage: new Sequential({
 				stage: stage0,
-				split: function(ctx, iter) {
-					return ctx.fork();
+				split: function(ctx) {
+					ctx.split = [0, 0, 0, 0, 0];
+					ctx.split = ctx.split.map(function(i) {
+						return {
+							iteration: 0
+						};
+					});
+					return ctx.split;
 				},
-				combine: function(ctx, childrenCtx){
-					var chld;
-					for (var i = 0, len = childrenCtx.length; i < len; i++) {
-						chld = childrenCtx[i];
-						ctx.iteration += chld.iteration;
-					}
-				},
-				reachEnd: function(err, ctx, iter) {
-					return err || iter == 10;
+				combine: function(ctx, children) {
+					ctx.iteration = children.reduce(function(p, c, i, a) {
+						return p + c.iteration;
+					}, 0);
+					delete ctx.split;
+					return ctx;
 				}
 			})
 		});
@@ -986,160 +1001,11 @@ describe('Sequential', function() {
 		stage.execute({
 			iter: 0
 		}, function(err, context) {
-			assert.equal(context.iter, 10);
+			assert.ifError(err);
+			assert.equal(context.iter, 5);
 			assert.ifError(context.iteration);
 			done();
 		});
-	});
-
-	it('complex example 1', function(done) {
-
-		var stage0 = new Stage({
-			run: function(err, ctx, done) {
-				ctx.liter = 1;
-				done();
-			}
-		});
-		var ctx = {
-			some: [1, 2, 3, 4, 5, 6, 7]
-		};
-		var len = ctx.some.length;
-		var stage = new Sequential({
-			stage: stage0,
-			split: function(ctx, iter) {
-				return {
-					iter: ctx.some[iter]
-				};
-			},
-			reachEnd: function(err, ctx, iter) {
-				return err || iter == len;
-			},
-			combine: function(ctx, childs) {
-				var len = childs.length;
-				ctx.result = 0;
-				for (var i = 0; i < len; i++) {
-					ctx.result += childs[i].liter;
-				}
-			}
-		});
-
-		stage.execute(ctx, function(err, context) {
-			assert.equal(context.result, 7);
-			done();
-		});
-	});
-
-	it('complex example 1 error handling', function(done) {
-		var stage0 = new Stage({
-			run: function(err, ctx, done) {
-				ctx.liter = 1;
-				if (ctx.iter === 4) done(new Error());
-				else done();
-			}
-		});
-		var ctx = {
-			some: [1, 2, 3, 4, 5, 6, 7]
-		};
-		var len = ctx.some.length;
-		var stage = new Sequential({
-			stege: stage0,
-			split: function(ctx, iter) {
-				return {
-					iter: ctx.some[iter]
-				};
-			},
-			reachEnd: function(err, ctx, iter) {
-				return err || iter == len;
-			},
-			combine: function(ctx, childs) {
-				var len = childs.length;
-				ctx.result = 0;
-				for (var i = 0; i < len; i++) {
-					ctx.result += childs[i].liter;
-				}
-			}
-		});
-
-		stage.execute(ctx, function(err, context) {
-			assert.equal(!context.result, true);
-			done();
-		});
-	});
-
-	it('cheks context as well', function(done) {
-		var stage0 = new Stage({
-			validate: function(ctx) {
-				if (ctx.iter > 5) return 'error';
-				return true;
-			},
-			run: function(err, ctx, done) {
-				ctx.liter = 1;
-				done();
-			}
-		});
-		var ctx = {
-			some: [1, 2, 3, 4, 5, 6, 7]
-		};
-		var len = ctx.some.length;
-		var stage = new Sequential({
-			stage: stage0,
-			split: function(ctx, iter) {
-				return {
-					iter: ctx.some[iter]
-				};
-			},
-			reachEnd: function(err, ctx, iter) {
-				return err || iter == len;
-			},
-			combine: function(ctx, childs) {
-				var len = childs.length;
-				ctx.result = 0;
-				for (var i = 0; i < len; i++) {
-					ctx.result += childs[i].liter;
-				}
-			}
-		});
-
-		stage.execute(ctx, function(err, context) {
-			assert.equal(err, "error");
-			done();
-		});
-	});
-
-	it('complex example 2', function(done) {
-		var stage0 = new Stage({
-			run: function(err, ctx, done) {
-				ctx.liter = 1;
-				done();
-			}
-		});
-		var ctx = {
-			some: [1, 2, 3, 4, 5, 6, 7]
-		};
-		var len = ctx.some.length;
-		var stage = new Sequential({
-			stage: stage0,
-			split: function(ctx, iter) {
-				return ctx.fork();
-			},
-			reachEnd: function(err, ctx, iter) {
-				return err || iter == len;
-			},
-			combine: function(ctx, chlds) {
-				var childs = ctx.getChilds();
-				var len = childs.length;
-				ctx.result = 0;
-				for (var i = 0; i < len; i++) {
-					ctx.result += childs[i].liter;
-				}
-			}
-		});
-
-		stage.execute(ctx, function(err, context) {
-			assert.equal(context.result, 7);
-			done();
-		});
-
 	});
 
 });
@@ -1234,9 +1100,6 @@ describe('Parallel', function() {
 				return res;
 
 			},
-			exHandler: function(err, ctx, iter) {
-				return err;
-			},
 			combine: function(ctx, childs) {
 				var len = childs.length;
 				ctx.result = 0;
@@ -1252,10 +1115,11 @@ describe('Parallel', function() {
 	});
 
 	it('complex example 1 - Error Handling', function(done) {
+		debugger;
 		var stage0 = new Stage(function(err, ctx, done) {
 			ctx.liter = 1;
-			if (ctx.some == 4) done(new Error());
-			if (ctx.some == 5) done(new Error());
+			if (ctx.some == 4) done("4");
+			else if (ctx.some == 5) done("5");
 			else done();
 		});
 		var ctx = {
@@ -1273,10 +1137,6 @@ describe('Parallel', function() {
 					});
 				}
 				return res;
-
-			},
-			exHandler: function(err, ctx, iter) {
-				return err;
 			},
 			combine: function(ctx, childs) {
 				var len = childs.length;
@@ -1312,9 +1172,6 @@ describe('Parallel', function() {
 					res.push(ctx.fork());
 				}
 				return res;
-			},
-			exHandler: function(err, ctx, iter) {
-				return err || iter == len;
 			},
 			combine: function(ctx) {
 				var childs = ctx.getChilds();
@@ -1864,9 +1721,6 @@ describe('MWS', function() {
 			},
 			combine: function(ctx, retCtx) {
 				ctx.size += retCtx.cnt;
-			},
-			exHandler: function(err, ctx) {
-				return err;
 			}
 		});
 		sw.execute({
