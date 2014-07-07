@@ -3,11 +3,11 @@
 title Sequential run()
 
 start
-:**prepareContext**;
+:**split**;
 repeat
-    :**split** next part;
+	:get next child;
     :run **stage**;
-repeat while (!**reachEnd**)
+repeat while (!not finished)
 
 if(error) 
     :done(error);

@@ -3,8 +3,7 @@
 title Parallel run()
 
 start
-:**prepareContext**;
-:**split** all;
+:**split**;
 
 fork
     :run **stage** for piece #1;

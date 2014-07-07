@@ -6,9 +6,7 @@
 ===
 		-stage:Stage
 ===		
-		+prepareContext:function(ctx):Context
 		+split:function(ctx, iter)
-		+reachEnd:function(err, ctx, iter)
 		+combine:function(innerCtx, ctx, children)
 	}
 

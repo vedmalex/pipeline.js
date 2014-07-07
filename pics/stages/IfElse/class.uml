@@ -8,7 +8,6 @@
 		+failure:Stage
 		+condition: function(ctx)
 ===		
-		**override**
 		+compile:function()
 		+execute:function(context, callback)
 		+run:function(ctx, done)
