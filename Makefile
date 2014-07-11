@@ -30,9 +30,9 @@ docs: docclean gendocs
 
 gendocs:
 	./node_modules/doxx/bin/doxx --source lib --target docs
+	rsync -a --include='*.png' pics/stages ./docs/ 
 
 docclean:
 	rm -rf ./docs/*
-	rsync -a --include='*.png' pics/stages ./docs/ 
 
 .PHONY: test
