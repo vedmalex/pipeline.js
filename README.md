@@ -25,44 +25,57 @@ We can `fork` context, take the parent context using `getParent`, and all errors
 
 ## One way Context processing
 ### Stage
-![hierarchy](./stages/Stage/class.png)
-
 *Stage* is the eventEmitter sublcass. We can either subscribe to events or use callback to catch-up end of processing.
 *Stage* is by default asyncronous.
+![hierarchy](./stages/Stage/class.png)
+![hierarchy](./stages/Stage/execute_activity.png)
+![hierarchy](./stages/Stage/execute_async.png)
+![hierarchy](./stages/Stage/execute_sync.png)
 
 ### Pipeline
-![hierarchy](./stages/Pipeline/class.png)
 *Pipeline* is by subclass of Stage. the main purpose of it is to run sequence of different stages one after another.
+![hierarchy](./stages/Pipeline/class.png)
+![hierarchy](./stages/Pipeline/execute.png)
+![hierarchy](./stages/Pipeline/compile.png)
+![hierarchy](./stages/Pipeline/addStage.png)
+![hierarchy](./stages/Pipeline/run.png)
 
 ## Processing with alternatives
 ### IfElse
-![hierarchy](./stages/IfElse/class.png)
 *IfElse* is the type of stage that use condition to choose which one of two *Stage* we need to run according to specific condition.
+![hierarchy](./stages/IfElse/class.png)
+![hierarchy](./stages/IfElse/run_activity.png)
 
 ### MultiWaySwitch
-![hierarchy](./stages/MultiWaySwitch/class.png)
 *MultiWaySwitch* is more complex *Stage* than *IfElse* is.
 we can provide each stage in the list with condition, by examining which *MultiWaySwitch* make decision wheather the specific stage can be run or not.
 notable feature is that on context can be processed from 0 to n times with the *MultiWaySwitch*.
+![hierarchy](./stages/MultiWaySwitch/class.png)
+![hierarchy](./stages/MultiWaySwitch/run_activity.png)
 
 ### Parallel
-![hierarchy](./stages/Parallel/class.png)
 *Parallel* is the *Stage* that make possible process of stage that contain enumeration in it with parallel options. It runs one stage as parallel processing on series of data of the processing context.
 it reachs end only after all data will be processed. It returns list of error.
+![hierarchy](./stages/Parallel/class.png)
+![hierarchy](./stages/Parallel/run_activity.png)
 
 ### Sequential
-![hierarchy](./stages/Sequential/class.png)
 *Sequential* is the *Stage* that work almost like *Parallel*, but it run stage in sequential manner. So it first error occures we can manage it to stop processing or continue if we decide that the error not significant.
+![hierarchy](./stages/Sequential/class.png)
+![hierarchy](./stages/Sequential/run_activity.png)
 
 ###Wrap
-![hierarchy](./stages/Sequential/class.png)
 *Wrap*per is a kind of stage that make possible to change context structure for specific type of stage. Using this we one can reuse existing stages more than once for different parts of common context
+![hierarchy](./stages/Sequential/class.png)
+![hierarchy](./stages/Sequential/run_activity.png)
 
 ###Timeout
-![hierarchy](./stages/Timeout/class.png)
 *Timeout* can be configured to run stage and wait for specified timeout time and throw error or run different stage.
+![hierarchy](./stages/Timeout/class.png)
+![hierarchy](./stages/Timeout/run_activity.png)
 
 ###RetryOnError
-![hierarchy](./stages/Timeout/class.png)
 *RetryOnError* can be configured to run specified stage for certain lap until it will success. `retry` can either `function` or `number`.
+![hierarchy](./stages/Timeout/class.png)
+![hierarchy](./stages/Timeout/run_activity.png)
 
