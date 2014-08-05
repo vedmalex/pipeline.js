@@ -152,7 +152,17 @@ describe('Stage', function() {
 		}
 	});
 
-
+	it('runs within stage', function(done){ debugger;
+		var s = new Stage(function(ctx, done){
+			assert.equal(this.someCode, 100);
+			done();
+		});
+		s.someCode = 100;
+		s.execute({}, function(err, ctx){
+			assert.ifError(err);
+			done();
+		});
+	});
 
 	it('converts context if it is not typeof Context in emit', function(done) {
 		var stage = new Stage(function(err, context, done) {
