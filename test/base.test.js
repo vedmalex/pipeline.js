@@ -974,6 +974,25 @@ describe('Sequential', function() {
 		});
 	});
 
+	it('empty split run combine', function(done) {
+		var stage0 = new Stage(function(ctx) {
+		});
+		var stage = new Sequential({
+			stage: stage0,
+			split: function(ctx) {
+				return [];
+			},
+			combine: function(ctx, children) {
+				ctx.combine = true;
+				return ctx;
+			}
+		});
+		stage.execute({}, function(err, context) {
+			assert.equal(context.combine, true);
+			done();
+		});
+	});
+
 	it('prepare context -> moved to Wrap', function(done) {
 		var stage0 = new Stage(function(ctx) {
 			ctx.iteration++;
@@ -1065,6 +1084,26 @@ describe('Parallel', function() {
 			iter: 1
 		}, function(err, context) {
 			assert.equal(context.iter, 2);
+			done();
+		});
+	});
+
+	it('empty split run combine', function(done) {
+		var stage0 = new Stage(function(ctx) {
+		});
+		var stage = new Parallel({
+			stage: stage0,
+			split: function(ctx) {
+				return [];
+			},
+			combine: function(ctx, children) {
+				ctx.combine = true;
+				return ctx;
+			}
+		});
+
+		stage.execute({}, function(err, context) {
+			assert.equal(context.combine, true);
 			done();
 		});
 	});
@@ -1970,6 +2009,25 @@ describe('MWS', function() {
 		}, function(err, ctx) {
 			assert.equal(ctx.size, 4);
 			assert.ifError(err);
+			done();
+		});
+	});
+
+	it('empty split run combine', function(done) {
+		var stage0 = new Stage(function(ctx) {
+		});
+		var stage = new MultiWaySwitch({
+			cases: [stage0],
+			split: function(ctx) {
+				return [];
+			},
+			combine: function(ctx, children) {
+				ctx.combine = true;
+				return ctx;
+			}
+		});
+		stage.execute({}, function(err, context) {
+			assert.equal(context.combine, true);
 			done();
 		});
 	});
