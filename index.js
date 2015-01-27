@@ -6,6 +6,7 @@ exports.MultiWaySwitch = require('./lib/multywayswitch').MultiWaySwitch;
 exports.Parallel = require('./lib/parallel').Parallel;
 exports.Context = require('./lib/context').Context;
 exports.Util = require('./lib/util').Util;
+exports.ErrorList = require('./lib/util').ErrorList;
 exports.Timeout = require('./lib/timeout').Timeout;
 exports.Wrap = require('./lib/wrap').Wrap;
 exports.RetryOnError = require('./lib/retryonerror').RetryOnError;

@@ -54,11 +54,11 @@ describe('Stage', function() {
 		it('sync', function(done) {
 			var st = new Stage({
 				rescue: function(err, ctx) {
-					assert.equal('some', err);
+					assert.equal('some', err.message);
 				},
 				run: function(ctx) {
 					ctx.n = 1;
-					throw 'some';
+					throw new Error('some');
 				}
 			});
 			st.execute({}, function(err, ctx) {
@@ -71,11 +71,11 @@ describe('Stage', function() {
 		it('async', function(done) {
 			var st = new Stage({
 				rescue: function(err, ctx) {
-					assert.equal('some', err);
+					assert.equal('some', err.message);
 				},
 				run: function(ctx, done) {
 					ctx.n = 1;
-					throw 'some';
+					throw new Error('some');
 				}
 			});
 			st.execute({}, function(err, ctx) {
@@ -86,28 +86,21 @@ describe('Stage', function() {
 		});
 
 		it('async deep', function(done) {
-			var domain = require('domain').create();
-			domain.on('error', function(err) {
-				assert.equal('some', err);
-			});
 			var st = new Stage({
 				rescue: function(err, ctx) {
-					assert.equal('some', err);
+					assert.equal('some', err.message);
 				},
 				run: function(ctx, done) {
 					ctx.n = 1;
 					setImmediate(function() {
-						throw 'some';
+						throw new Error('some');
 					});
 				}
 			});
 			st.on('end', function() {
-				domain.exit();
 				done();
 			});
-			domain.run(function() {
-				st.execute({}, function(err, ctx) {});
-			});
+			st.execute({});
 
 		});
 
@@ -152,13 +145,13 @@ describe('Stage', function() {
 		}
 	});
 
-	it('runs within stage', function(done){ debugger;
-		var s = new Stage(function(ctx, done){
+	it('runs within stage', function(done) {
+		var s = new Stage(function(ctx, done) {
 			assert.equal(this.someCode, 100);
 			done();
 		});
 		s.someCode = 100;
-		s.execute({}, function(err, ctx){
+		s.execute({}, function(err, ctx) {
 			assert.ifError(err);
 			done();
 		});
@@ -264,7 +257,7 @@ describe('Stage', function() {
 
 		stage.execute({}, function(err, data) {});
 	});
-	
+
 	it('prepare and finalize context');
 
 	it('ensureContext', function(done) {
@@ -297,7 +290,7 @@ describe('Stage', function() {
 		var ensure = 0;
 		var ctx = new Context({});
 		stage.once('error', function(err) {
-			assert.equal(ctx.hasErrors(), true);
+			// assert.equal(ctx.hasErrors(), true);
 			assert.equal(/Error\: STG\: reports\: run is not a function/.test(err.toString()), true);
 			done();
 		});
@@ -346,7 +339,7 @@ describe('Context', function() {
 	it('default empty', function(done) {
 		var ctx = new Context();
 		assert.equal(ctx.__parent === undefined, true, "MUST BE EMPTY");
-		assert.equal(ctx.__errors === undefined, true, "MUST BE EMPTY");
+		// assert.equal(ctx.__errors === undefined, true, "MUST BE EMPTY");
 		assert.equal(ctx.__childs === undefined, true, "MUST BE EMPTY");
 		done();
 	});
@@ -450,20 +443,20 @@ describe('Context', function() {
 		done();
 	});
 
-	it('all errors goes to top most Parent', function(done) {
-		var context = new Context({
-			a: 1,
-			b: 2,
-			c: 3
-		});
-		var child = context.fork();
-		var childchild = child.fork();
-		childchild.addError(new Error());
-		assert.equal(childchild.hasErrors(), true);
-		assert.equal(child.hasErrors(), true);
-		assert.equal(context.hasErrors(), true);
-		done();
-	});
+	// it('all errors goes to top most Parent', function(done) {
+	// 	var context = new Context({
+	// 		a: 1,
+	// 		b: 2,
+	// 		c: 3
+	// 	});
+	// 	var child = context.fork();
+	// 	var childchild = child.fork();
+	// 	childchild.addError(new Error());
+	// 	assert.equal(childchild.hasErrors(), true);
+	// 	assert.equal(child.hasErrors(), true);
+	// 	assert.equal(context.hasErrors(), true);
+	// 	done();
+	// });
 
 	it('fork with extra config', function(done) {
 		var ctx = new Context({
@@ -475,6 +468,16 @@ describe('Context', function() {
 		assert.equal(subCtx.another, 1);
 		done();
 	});
+
+	// it('do not add the same error twice', function(done){
+	// 	var ctx = new Context({});
+	// 	var err = new Error();
+	// 	ctx.addError(err);
+	// 	assert.equal(ctx.__errors.length, 1);
+	// 	ctx.addError(err);
+	// 	assert.equal(ctx.__errors.length, 1);
+	// 	done();
+	// });
 });
 
 describe('Pipeline', function() {
@@ -515,10 +518,10 @@ describe('Pipeline', function() {
 	it('catch throw errors', function(done) {
 		var pipe = new Pipeline();
 		pipe.addStage(function(err, ctx, done) {
-			throw 'error';
+			throw new Error('error');
 		});
 		pipe.execute({}, function(err, ctx) {
-			assert.equal('error', err);
+			assert.equal('error', err.message);
 			done();
 		});
 	});
@@ -527,10 +530,10 @@ describe('Pipeline', function() {
 		var pipe = new Pipeline();
 		var st = new Stage({
 			run: function(err, ctx, done) {
-				throw 'error';
+				throw new Error('error');
 			},
 			rescue: function(err, conext) {
-				if (err !== 'error')
+				if (err.message !== 'error')
 					return err;
 			}
 		});
@@ -680,9 +683,9 @@ describe('Pipeline', function() {
 		pipe.addStage(s1);
 		pipe.addStage(s2);
 		pipe.once('error', function(err) {
-			assert.equal(!err, false);
-			assert.equal(ctx1.hasErrors(), true, 'must has errors 1');
-			assert.equal(ctx1.getErrors()[0] == error, true, 'must has error 2');
+			assert.equal(err, error);
+			// assert.equal(ctx1.hasErrors(), true, 'must has errors 1');
+			// assert.equal(ctx1.getErrors()[0] == error, true, 'must has error 2');
 			assert.equal(ctx1.s1, true, 's1 pass');
 			assert.equal(ctx1.s2, true, 's2 pass');
 			assert.equal(ctx1.s3, false, 's3 not passed');
@@ -898,18 +901,25 @@ describe('Sequential', function() {
 	});
 
 	it('rescue', function(done) {
-		var pipe = new Pipeline();
 		var st = new Stage({
 			run: function(err, ctx, done) {
-				throw 'error';
+				throw new Error('error');
 			},
 			rescue: function(err, conext) {
-				if (err !== 'error')
+				if (err.message !== 'some')
 					return err;
 			}
 		});
-		pipe.addStage(st);
-		pipe.execute({}, function(err, ctx) {
+
+		var stage = new Sequential({
+			stage: st,
+			rescue: function(err, conext) {
+				if (err.errors[0].err.message !== 'error')
+					return err;
+			}
+		});
+
+		stage.execute({}, function(err, ctx) {
 			assert.ifError(err);
 			done();
 		});
@@ -975,8 +985,7 @@ describe('Sequential', function() {
 	});
 
 	it('empty split run combine', function(done) {
-		var stage0 = new Stage(function(ctx) {
-		});
+		var stage0 = new Stage(function(ctx) {});
 		var stage = new Sequential({
 			stage: stage0,
 			split: function(ctx) {
@@ -1089,8 +1098,7 @@ describe('Parallel', function() {
 	});
 
 	it('empty split run combine', function(done) {
-		var stage0 = new Stage(function(ctx) {
-		});
+		var stage0 = new Stage(function(ctx) {});
 		var stage = new Parallel({
 			stage: stage0,
 			split: function(ctx) {
@@ -1164,11 +1172,10 @@ describe('Parallel', function() {
 	});
 
 	it('complex example 1 - Error Handling', function(done) {
-		debugger;
 		var stage0 = new Stage(function(err, ctx, done) {
 			ctx.liter = 1;
-			if (ctx.some == 4) done("4");
-			else if (ctx.some == 5) done("5");
+			if (ctx.some == 4) done(new Error("4"));
+			else if (ctx.some == 5) done(new Error("5"));
 			else done();
 		});
 		var ctx = {
@@ -1196,8 +1203,8 @@ describe('Parallel', function() {
 			}
 		});
 		stage.execute(ctx, function(err, context) {
-			assert.equal(err instanceof Array, true);
-			assert.equal(err.length, 2);
+			assert.equal(err instanceof Error, true);
+			assert.equal(err.errors.length, 2);
 			assert.equal(!context.result, true);
 			done();
 		});
@@ -1494,7 +1501,7 @@ describe('RetryOnError', function() {
 			run: function(ctx) {
 				if (iter == 0) {
 					iter++;
-					throw 'error';
+					throw new Error('error');
 				}
 				ctx.works = true;
 			}
@@ -1510,11 +1517,11 @@ describe('RetryOnError', function() {
 	it('retry works with rescue', function(done) {
 		var st = new RetryOnError({
 			rescue: function(err, ctx) {
-				if (err !== 'error') return err;
+				if (err.message !== 'error') return err;
 				ctx.rescue = true;
 			},
 			run: function(ctx) {
-				throw 'error';
+				throw new Error('error');
 			}
 		});
 		st.execute({}, function(err, ctx) {
@@ -1529,12 +1536,12 @@ describe('RetryOnError', function() {
 		var iter = 0;
 		var st = new RetryOnError({
 			retry: function(err, ctx, iter) {
-				return err === 'error'
+				return err.message === 'error'
 			},
 			run: function(ctx) {
 				if (iter == 0) {
 					iter++;
-					throw 'error';
+					throw new Error('error');
 				}
 				ctx.works = true;
 			}
@@ -1554,7 +1561,7 @@ describe('RetryOnError', function() {
 			run: function(ctx) {
 				if (iter == 0) {
 					iter++;
-					throw 'error';
+					throw new Error('error');
 				}
 				ctx.works = true;
 			}
@@ -1776,7 +1783,7 @@ describe('MWS', function() {
 			size: 0
 		}, function(err, ctx) {
 			assert.equal(ctx.size, 2);
-			assert.equal(err instanceof Array, true);
+			assert.equal(err instanceof Error, true);
 			done();
 		});
 	});
@@ -1821,7 +1828,7 @@ describe('MWS', function() {
 			size: 0
 		}, function(err, ctx) {
 			assert.equal(ctx.size, 2);
-			assert.equal(err instanceof Array, true);
+			assert.equal(err instanceof Error, true);
 			done();
 		});
 	});
@@ -1889,7 +1896,7 @@ describe('MWS', function() {
 			},
 			function(ctx, done) {
 				ctx.cnt += 1;
-				done('error');
+				done(new Error('error'));
 			}
 		]);
 
@@ -1938,7 +1945,7 @@ describe('MWS', function() {
 				},
 				function(err, ctx, done) {
 					ctx.cnt += 1;
-					done('error');
+					done(new Error('error'));
 				}
 			]
 		});
@@ -2014,8 +2021,7 @@ describe('MWS', function() {
 	});
 
 	it('empty split run combine', function(done) {
-		var stage0 = new Stage(function(ctx) {
-		});
+		var stage0 = new Stage(function(ctx) {});
 		var stage = new MultiWaySwitch({
 			cases: [stage0],
 			split: function(ctx) {
@@ -2123,7 +2129,7 @@ describe("Complex", function() {
 			}));
 			pipe.addStage(new Pipeline({
 				rescue: function(err, ctx) {
-					if (err !== 'error') return err;
+					if (err.message !== 'error') return err;
 					ctx.rescue1 = true;
 				},
 				stages: [
@@ -2134,7 +2140,7 @@ describe("Complex", function() {
 					}),
 					new Stage({
 						run: function(ctx) {
-							throw 'error';
+							throw new Error('error');
 						}
 					}),
 					new Stage({
@@ -2154,11 +2160,11 @@ describe("Complex", function() {
 				failed: new Stage({
 					name: "failure",
 					rescue: function(err, ctx) {
-						if (err !== 'error') return err;
+						if (err.message !== 'error') return err;
 						ctx.rescue2 = true;
 					},
 					run: function() {
-						throw 'error';
+						throw new Error('error');
 					}
 				}),
 				success: new Stage(function() {}),
@@ -2169,12 +2175,12 @@ describe("Complex", function() {
 
 			pipe.addStage(new IfElse({
 				rescue: function(err, ctx) {
-					if (err !== 'error') return err;
+					if (err.message !== 'error') return err;
 					ctx.rescue3 = true;
 				},
 				failed: new Stage({
 					run: function() {
-						throw 'error';
+						throw new Error('error');
 					}
 				}),
 				success: new Stage(function() {}),
@@ -2185,12 +2191,12 @@ describe("Complex", function() {
 
 			pipe.addStage(new Wrap({
 				rescue: function(err, ctx) {
-					if (err !== 'error') return err;
+					if (err.message !== 'error') return err;
 					ctx.rescue4 = true;
 				},
 				stage: new Stage({
 					run: function(ctx) {
-						throw 'error';
+						throw new Error('error');
 					}
 				})
 			}));

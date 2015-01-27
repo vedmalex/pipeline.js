@@ -6,4 +6,7 @@ exports.MultiWaySwitch = require('./lib-cov/multywayswitch').MultiWaySwitch;
 exports.Parallel = require('./lib-cov/parallel').Parallel;
 exports.Context = require('./lib-cov/context').Context;
 exports.Util = require('./lib-cov/util').Util;
+exports.ErrorList = require('./lib/util').ErrorList;
 exports.Timeout = require('./lib-cov/timeout').Timeout;
+exports.Wrap = require('./lib-cov/wrap').Wrap;
+exports.RetryOnError = require('./lib-cov/retryonerror').RetryOnError;
