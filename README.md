@@ -79,3 +79,4 @@ it reachs end only after all data will be processed. It returns list of error.
 ![hierarchy](./stages/Timeout/class.png)
 ![hierarchy](./stages/Timeout/run_activity.png)
 
+### DoWhile.... old new Sequential is returns!

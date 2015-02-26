@@ -9,6 +9,7 @@ var Timeout = require(index).Timeout;
 var Wrap = require(index).Wrap;
 var RetryOnError = require(index).RetryOnError;
 var MultiWaySwitch = require(index).MultiWaySwitch;
+var DoWhile = require(index).DoWhile;
 var Util = require(index).Util;
 
 var schema = require('js-schema');
@@ -106,6 +107,25 @@ describe('Stage', function() {
 
 	});
 
+	it('do not handle Error it stage signature is (err, ctx, done)', function(done) {
+		var flag = false;
+		var st = new Stage({
+			validate: function(ctx) {
+				return false;
+			},
+			run: function(err, ctx, done) {
+				flag = true;
+				assert(err);
+				done(err);
+			}
+		});
+		st.execute({}, function(err, context) {
+			assert(flag);
+			assert(err);
+			done();
+		});
+	});
+
 	it('accepts name as config', function(done) {
 		var name = 'new Name';
 		var v = new Stage(name);
@@ -192,9 +212,11 @@ describe('Stage', function() {
 		stage.execute({});
 	});
 
+	//	это не нужно, поскольку слишком сложная архитектура будет, все передавать через контекст
 	// it('extra parameters to emit and to callback', function(done){
 	// 	// сделать передачу дополнительных параметров в done, по принципу err, p1,p2,p3...
 	// });
+
 	it('emits error with context', function(done) {
 		var stage = new Stage(function(err, context, done) {
 			done(new Error());
@@ -443,21 +465,6 @@ describe('Context', function() {
 		done();
 	});
 
-	// it('all errors goes to top most Parent', function(done) {
-	// 	var context = new Context({
-	// 		a: 1,
-	// 		b: 2,
-	// 		c: 3
-	// 	});
-	// 	var child = context.fork();
-	// 	var childchild = child.fork();
-	// 	childchild.addError(new Error());
-	// 	assert.equal(childchild.hasErrors(), true);
-	// 	assert.equal(child.hasErrors(), true);
-	// 	assert.equal(context.hasErrors(), true);
-	// 	done();
-	// });
-
 	it('fork with extra config', function(done) {
 		var ctx = new Context({
 			some: 1
@@ -469,15 +476,6 @@ describe('Context', function() {
 		done();
 	});
 
-	// it('do not add the same error twice', function(done){
-	// 	var ctx = new Context({});
-	// 	var err = new Error();
-	// 	ctx.addError(err);
-	// 	assert.equal(ctx.__errors.length, 1);
-	// 	ctx.addError(err);
-	// 	assert.equal(ctx.__errors.length, 1);
-	// 	done();
-	// });
 });
 
 describe('Pipeline', function() {
@@ -724,7 +722,7 @@ describe('Pipeline', function() {
 			done();
 		});
 		pipe.once('error', function(err) {
-			assert.equal(/Error\: STG\: 0\: Wrong Value/.test(err.toString()), true);
+			assert.equal(/Error: STG: 0 reports: run is not a function/.test(err.toString()), true);
 			done();
 		});
 		pipe.execute(ctx);
@@ -2215,6 +2213,278 @@ describe("Complex", function() {
 			});
 		});
 	});
+});
+
+
+describe('DoWhile', function() {
+	it('works with default', function(done) {
+		var stage = new DoWhile();
+		assert(stage instanceof Stage);
+		stage.execute({}, function(err, context) {
+			assert.equal(context instanceof Context, true);
+			done();
+		});
+
+	});
+
+	it('rescue', function(done) {
+		var pipe = new Pipeline();
+		var st = new Stage({
+			run: function(err, ctx, done) {
+				throw 'error';
+			},
+			rescue: function(err, conext) {
+				if (err !== 'error')
+					return err;
+			}
+		});
+		pipe.addStage(st);
+		pipe.execute({}, function(err, ctx) {
+			assert.ifError(err);
+			done();
+		});
+	});
+
+	it('works with config as Stage', function(done) {
+		var stage = new DoWhile(new Stage(function(err, ctx, done) {
+			done();
+		}));
+		stage.execute({}, function(err, context) {
+			assert.equal(context instanceof Context, true);
+			done();
+		});
+	});
+
+	it('works with config as Stage', function(done) {
+		var stage = new DoWhile({
+			stage: function(err, ctx, done) {
+				done();
+			}
+		});
+		stage.execute({}, function(err, context) {
+			assert.equal(context instanceof Context, true);
+			done();
+		});
+	});
+
+	it('not allows to use constructor as a function', function(done) {
+		try {
+			var s = DoWhile();
+		} catch (err) {
+			done();
+		}
+	});
+	it('run stage', function(done) {
+		var stage0 = new Stage(function(err, ctx, done) {
+			ctx.iter++;
+			done();
+		});
+		var stage = new DoWhile({
+			stage: stage0,
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == 10;
+			}
+		});
+		stage.execute({
+			iter: -1
+		}, function(err, context) {
+			assert.equal(context.iter, 9);
+			done();
+		});
+	});
+
+	it('prepare context -> moved to Wrap', function(done) {
+		var stage0 = new Stage(function(err, ctx, done) {
+			ctx.iteration++;
+			done();
+		});
+		debugger;
+		var stage = new Wrap({
+			prepare: function(ctx) {
+				return {
+					iteration: ctx.iter
+				};
+			},
+			finalize: function(ctx, retCtx) {
+				ctx.iter = retCtx.iteration;
+			},
+			stage: new DoWhile({
+				stage: stage0,
+				split: function(ctx, iter) {
+					return ctx.fork();
+				},
+				combine: function(ctx, childrenCtx) {
+					var chld;
+					for (var i = 0, len = childrenCtx.length; i < len; i++) {
+						chld = childrenCtx[i];
+						ctx.iteration += chld.iteration;
+					}
+				},
+				reachEnd: function(err, ctx, iter) {
+					return err || iter == 10;
+				}
+			})
+		});
+
+		stage.execute({
+			iter: 0
+		}, function(err, context) {
+			assert.equal(context.iter, 10);
+			assert.ifError(context.iteration);
+			done();
+		});
+	});
+
+	it('complex example 1', function(done) {
+
+		var stage0 = new Stage({
+			run: function(err, ctx, done) {
+				ctx.liter = 1;
+				done();
+			}
+		});
+		var ctx = {
+			some: [1, 2, 3, 4, 5, 6, 7]
+		};
+		var len = ctx.some.length;
+		var stage = new DoWhile({
+			stage: stage0,
+			split: function(ctx, iter) {
+				return {
+					iter: ctx.some[iter]
+				};
+			},
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == len;
+			},
+			combine: function(ctx, childs) {
+				var len = childs.length;
+				ctx.result = 0;
+				for (var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
+			}
+		});
+
+		stage.execute(ctx, function(err, context) {
+			assert.equal(context.result, 7);
+			done();
+		});
+	});
+
+	it('complex example 1 error handling', function(done) {
+		var stage0 = new Stage({
+			run: function(err, ctx, done) {
+				ctx.liter = 1;
+				if (ctx.iter === 4) done(new Error());
+				else done();
+			}
+		});
+		var ctx = {
+			some: [1, 2, 3, 4, 5, 6, 7]
+		};
+		var len = ctx.some.length;
+		var stage = new DoWhile({
+			stege: stage0,
+			split: function(ctx, iter) {
+				return {
+					iter: ctx.some[iter]
+				};
+			},
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == len;
+			},
+			combine: function(ctx, childs) {
+				var len = childs.length;
+				ctx.result = 0;
+				for (var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
+			}
+		});
+
+		stage.execute(ctx, function(err, context) {
+			assert.equal(!context.result, true);
+			done();
+		});
+	});
+
+	it('cheks context as well', function(done) {
+		var stage0 = new Stage({
+			validate: function(ctx) {
+				if (ctx.iter > 5) return new Error('error');
+				return true;
+			},
+			run: function(ctx, done) {
+				ctx.liter = 1;
+				done();
+			}
+		});
+		var ctx = {
+			some: [1, 2, 3, 4, 5, 6, 7]
+		};
+		var len = ctx.some.length;
+		var stage = new DoWhile({
+			stage: stage0,
+			split: function(ctx, iter) {
+				return {
+					iter: ctx.some[iter]
+				};
+			},
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == len;
+			},
+			combine: function(ctx, childs) {
+				var len = childs.length;
+				ctx.result = 0;
+				for (var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
+			}
+		});
+
+		stage.execute(ctx, function(err, context) {
+			assert.equal(err.message, "error");
+			done();
+		});
+	});
+
+	it('complex example 2', function(done) {
+		var stage0 = new Stage({
+			run: function(err, ctx, done) {
+				ctx.liter = 1;
+				done();
+			}
+		});
+		var ctx = {
+			some: [1, 2, 3, 4, 5, 6, 7]
+		};
+		var len = ctx.some.length;
+		var stage = new DoWhile({
+			stage: stage0,
+			split: function(ctx, iter) {
+				return ctx.fork();
+			},
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == len;
+			},
+			combine: function(ctx, chlds) {
+				var childs = ctx.getChilds();
+				var len = childs.length;
+				ctx.result = 0;
+				for (var i = 0; i < len; i++) {
+					ctx.result += childs[i].liter;
+				}
+			}
+		});
+
+		stage.execute(ctx, function(err, context) {
+			assert.equal(context.result, 7);
+			done();
+		});
+
+	});
+
 });
 
 // продумать то, как работает код!! с разными Stage
