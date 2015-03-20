@@ -11,3 +11,4 @@ exports.Timeout = require('./lib/timeout').Timeout;
 exports.Wrap = require('./lib/wrap').Wrap;
 exports.RetryOnError = require('./lib/retryonerror').RetryOnError;
 exports.DoWhile = require('./lib/dowhile').DoWhile;
+exports.Empty = require('./lib/empty').Empty;

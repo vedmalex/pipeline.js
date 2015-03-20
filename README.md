@@ -79,4 +79,8 @@ it reachs end only after all data will be processed. It returns list of error.
 ![hierarchy](./stages/Timeout/class.png)
 ![hierarchy](./stages/Timeout/run_activity.png)
 
-### DoWhile.... old new Sequential is returns!
+### DoWhile
+*DoWhile* loop while *Sequential* and *Parallel* works with the series of the data that has predefined length, this type of stage is not limited to the length. So it can be configured to run unlimited loop... 
+
+###Empty
+Just the Empty Stage. On execute return context to callback.

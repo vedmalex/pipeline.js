@@ -18,7 +18,7 @@ digraph stages {
 	subgraph cluster_conditional {
 		rank="same" 
 		node [style="filled", fillcolor="yellow"]
-		IfElse, MultiWaySwitch
+		IfElse, MultiWaySwitch, DoWhile
 		label="Conditionals"
 	}
 
@@ -29,4 +29,6 @@ digraph stages {
 	MultiWaySwitch -> Stage
 	Timeout -> Stage
 	Wrap -> Stage
+	DoWhile -> Stage
+	Empty -> Stage
 }

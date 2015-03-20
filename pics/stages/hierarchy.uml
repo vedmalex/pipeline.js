@@ -15,6 +15,9 @@ Class IfElse
 Class Wrap
 Class Timeout
 
+Class DoWhile
+Class Empty
+
 Stage -up-|> EventEmitter
 Pipeline -|> Stage
 
@@ -26,5 +29,8 @@ IfElse --up-|> Stage
 
 Wrap ---up-|> Stage 
 Timeout ---up-|> Stage 
+
+DoWhile ---up-|> Stage 
+Empty ---up-|> Stage 
 
 @enduml

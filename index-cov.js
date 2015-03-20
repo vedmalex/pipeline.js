@@ -11,3 +11,4 @@ exports.Timeout = require('./lib-cov/timeout').Timeout;
 exports.Wrap = require('./lib-cov/wrap').Wrap;
 exports.RetryOnError = require('./lib-cov/retryonerror').RetryOnError;
 exports.DoWhile = require('./lib-cov/dowhile').DoWhile;
+exports.Empty = require('./lib-cov/empty').Empty;

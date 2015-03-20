@@ -10,6 +10,7 @@ var Wrap = require(index).Wrap;
 var RetryOnError = require(index).RetryOnError;
 var MultiWaySwitch = require(index).MultiWaySwitch;
 var DoWhile = require(index).DoWhile;
+var Empty = require(index).Empty;
 var Util = require(index).Util;
 
 var schema = require('js-schema');
@@ -48,6 +49,17 @@ describe('Stage', function() {
 				done();
 			});
 		});
+	});
+
+	it('throws error if error is not Error instance', function(done) {
+		var st = new Stage(function(ctx, done) {
+			done('error');
+		});
+		assert.throws(function() {
+			st.execute({}, function(err, ctx) {
+				done;
+			});
+		})
 	});
 
 	describe("rescue", function() {
@@ -2231,10 +2243,10 @@ describe('DoWhile', function() {
 		var pipe = new Pipeline();
 		var st = new Stage({
 			run: function(err, ctx, done) {
-				throw 'error';
+				throw new Error('error');
 			},
 			rescue: function(err, conext) {
-				if (err !== 'error')
+				if (err.message !== 'error')
 					return err;
 			}
 		});
@@ -2294,11 +2306,9 @@ describe('DoWhile', function() {
 	});
 
 	it('prepare context -> moved to Wrap', function(done) {
-		var stage0 = new Stage(function(err, ctx, done) {
+		var stage0 = new Stage(function(ctx) {
 			ctx.iteration++;
-			done();
 		});
-		debugger;
 		var stage = new Wrap({
 			prepare: function(ctx) {
 				return {
@@ -2311,14 +2321,7 @@ describe('DoWhile', function() {
 			stage: new DoWhile({
 				stage: stage0,
 				split: function(ctx, iter) {
-					return ctx.fork();
-				},
-				combine: function(ctx, childrenCtx) {
-					var chld;
-					for (var i = 0, len = childrenCtx.length; i < len; i++) {
-						chld = childrenCtx[i];
-						ctx.iteration += chld.iteration;
-					}
+					return ctx;
 				},
 				reachEnd: function(err, ctx, iter) {
 					return err || iter == 10;
@@ -2336,11 +2339,35 @@ describe('DoWhile', function() {
 	});
 
 	it('complex example 1', function(done) {
-
 		var stage0 = new Stage({
-			run: function(err, ctx, done) {
+			run: function(ctx) {
+				result++;
+			}
+		});
+		var ctx = {
+			some: [1, 2, 3, 4, 5, 6, 7]
+		};
+		var len = ctx.some.length;
+		var result = 0;
+		var stage = new DoWhile({
+			stage: stage0,
+			reachEnd: function(err, ctx, iter) {
+				return err || iter == len;
+			}
+		});
+
+		stage.execute(ctx, function(err, context) {
+			assert.equal(result, 7);
+			done();
+		});
+	});
+
+	it('complex example 1 error handling', function(done) {
+		var stage0 = new Stage({
+			run: function(ctx, done) {
 				ctx.liter = 1;
-				done();
+				if (ctx.iter === 4) done(new Error());
+				else done();
 			}
 		});
 		var ctx = {
@@ -2356,50 +2383,6 @@ describe('DoWhile', function() {
 			},
 			reachEnd: function(err, ctx, iter) {
 				return err || iter == len;
-			},
-			combine: function(ctx, childs) {
-				var len = childs.length;
-				ctx.result = 0;
-				for (var i = 0; i < len; i++) {
-					ctx.result += childs[i].liter;
-				}
-			}
-		});
-
-		stage.execute(ctx, function(err, context) {
-			assert.equal(context.result, 7);
-			done();
-		});
-	});
-
-	it('complex example 1 error handling', function(done) {
-		var stage0 = new Stage({
-			run: function(err, ctx, done) {
-				ctx.liter = 1;
-				if (ctx.iter === 4) done(new Error());
-				else done();
-			}
-		});
-		var ctx = {
-			some: [1, 2, 3, 4, 5, 6, 7]
-		};
-		var len = ctx.some.length;
-		var stage = new DoWhile({
-			stege: stage0,
-			split: function(ctx, iter) {
-				return {
-					iter: ctx.some[iter]
-				};
-			},
-			reachEnd: function(err, ctx, iter) {
-				return err || iter == len;
-			},
-			combine: function(ctx, childs) {
-				var len = childs.length;
-				ctx.result = 0;
-				for (var i = 0; i < len; i++) {
-					ctx.result += childs[i].liter;
-				}
 			}
 		});
 
@@ -2433,13 +2416,6 @@ describe('DoWhile', function() {
 			},
 			reachEnd: function(err, ctx, iter) {
 				return err || iter == len;
-			},
-			combine: function(ctx, childs) {
-				var len = childs.length;
-				ctx.result = 0;
-				for (var i = 0; i < len; i++) {
-					ctx.result += childs[i].liter;
-				}
 			}
 		});
 
@@ -2448,45 +2424,17 @@ describe('DoWhile', function() {
 			done();
 		});
 	});
-
-	it('complex example 2', function(done) {
-		var stage0 = new Stage({
-			run: function(err, ctx, done) {
-				ctx.liter = 1;
-				done();
-			}
-		});
-		var ctx = {
-			some: [1, 2, 3, 4, 5, 6, 7]
-		};
-		var len = ctx.some.length;
-		var stage = new DoWhile({
-			stage: stage0,
-			split: function(ctx, iter) {
-				return ctx.fork();
-			},
-			reachEnd: function(err, ctx, iter) {
-				return err || iter == len;
-			},
-			combine: function(ctx, chlds) {
-				var childs = ctx.getChilds();
-				var len = childs.length;
-				ctx.result = 0;
-				for (var i = 0; i < len; i++) {
-					ctx.result += childs[i].liter;
-				}
-			}
-		});
-
-		stage.execute(ctx, function(err, context) {
-			assert.equal(context.result, 7);
-			done();
-		});
-
-	});
-
 });
 
+describe('Empty', function() {
+	it('Works', function(done) {
+		var stg = new Empty();
+		stg.execute({}, function(err, ctx) {
+			assert(!err);
+			done()
+		});
+	});
+});
 // продумать то, как работает код!! с разными Stage
 // rescue! как его использовать в MWS
 // rescue! как его использовать в Sequential
