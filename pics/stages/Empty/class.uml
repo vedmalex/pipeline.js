@@ -1,0 +1,12 @@
+@startuml
+
+	Class Stage
+	Class Sequential{
+		+constructor:function()
+===
+		+execute:function(ctx,callback)
+	}
+
+ 	Stage <|-- Sequential
+
+@enduml

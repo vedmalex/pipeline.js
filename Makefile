@@ -28,6 +28,9 @@ coverage:
 
 docs: docclean gendocs
 
+ghpages:
+	git checkout gh-pages
+
 gendocs:
 	./node_modules/doxx/bin/doxx --source lib --target docs
 	rsync -a --include='*.png' pics/stages ./docs/ 
