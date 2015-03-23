@@ -1,0 +1,26 @@
+# stage 
+
+@startuml
+
+Class  EventEmitter
+
+Class Stage {
+	+constructor: function(config)
+===
+	name: String
+	emitAnyway: Boolean
+===	
+	+reportName: function():String
+	+execute: function(context, callback)
+	+rescue: function(err, context[, callback])
+	- ensure: function(context, callback)
+	- sign:function(context)
+	- run:function()
+	- run:function(ctx)
+	- run:function(ctx, done)
+	- run:function(err, ctx, done)
+}
+
+Stage -up-|> EventEmitter
+
+@enduml

@@ -1,0 +1,15 @@
+@startuml
+
+	Class Stage
+	Class DoWhile{
+		+constructor:function(cfg)
+===
+		-stage:Stage
+===		
+		+split:function(ctx, iter)
+		+reachEnd:function(innerCtx, ctx, children)
+	}
+
+ 	Stage <|-- DoWhile
+
+@enduml

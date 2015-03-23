@@ -1,0 +1,30 @@
+@startuml
+
+title Parallel run()
+
+start
+:**split**;
+
+fork
+    :run **stage** for piece #1;
+    if(error) then (handleError)
+        :logError;
+    endif 
+fork again
+:...;
+fork again
+    :run **stage** for piece #n;
+    if(error) then (handleError)
+        :logError;
+    endif 
+end fork
+
+if(has errors) 
+    :done(errors);
+else
+    :**combine**;
+    :done();
+endif
+stop
+
+@enduml

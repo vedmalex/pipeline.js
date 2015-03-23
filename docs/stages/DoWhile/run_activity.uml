@@ -1,0 +1,19 @@
+
+@startuml
+
+title DoWhile run()
+
+start
+repeat
+	:**split**;
+    :run **stage**;
+repeat while (!not finished)
+
+if(error) 
+    :done(error);
+else
+    :done();
+endif
+stop
+
+@enduml

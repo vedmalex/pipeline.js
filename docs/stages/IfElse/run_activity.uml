@@ -1,0 +1,13 @@
+@startuml
+
+title IfElse run()
+
+start
+if(condition) then (success)
+:**success**;
+else
+:**failure**;
+endif
+stop
+
+@enduml

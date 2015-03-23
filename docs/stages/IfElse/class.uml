@@ -1,0 +1,19 @@
+@startuml
+
+	Class Stage
+	Class IfElse{
+		+constructor:function(cfg)
+===
+		+succes:Stage
+		+failure:Stage
+		+condition: function(ctx)
+===		
+		+compile:function()
+		+execute:function(context, callback)
+		+run:function(ctx, done)
+
+	}
+
+ 	Stage <|-- IfElse
+
+@enduml

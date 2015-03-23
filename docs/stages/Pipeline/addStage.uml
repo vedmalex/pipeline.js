@@ -1,0 +1,18 @@
+@startuml
+	
+	start
+
+	:check **stage** arg is valid;
+	if (**stage** is valid) then (yes)
+	
+	:create **stage**;
+		:self.run = 0;
+		note right
+			will be recompiled when 
+			will be executed 
+		end note
+	endif
+	
+	stop
+
+@enduml

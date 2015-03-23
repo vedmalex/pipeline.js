@@ -1,0 +1,17 @@
+@startuml
+
+hide footbox
+[-> Pipeline: exectute(ctx, callback)
+activate Pipeline
+alt self.run is not assigned
+Pipeline -> Pipeline: compile()
+end
+Pipeline -> Stage: call inherites execute()
+deactivate Pipeline
+activate Stage
+ref over Stage
+	Stage.run() async
+end
+[<-- Stage: callback(err, ctx)
+deactivate Stage
+@enduml

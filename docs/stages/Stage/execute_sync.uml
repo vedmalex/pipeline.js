@@ -1,0 +1,32 @@
+@startuml
+
+Title Stage.run() async
+
+hide footbox
+
+[-> Stage: exectute(ctx, callback)
+activate Stage
+Stage -> Stage: sing(ctx)
+
+Stage -> Stage: ensure(ctx)
+note right: ensures that context is valid
+activate Stage
+alt run have 0 params
+Stage -> Stage: run.apply(ctx)
+note right
+	ctx is the context 
+	for the run function
+end note
+else run have 1 param
+Stage -> Stage: run(ctx)
+note right
+	ctx is the first argument 
+	for the run function
+end note
+
+end
+[<-- Stage:callback(err, ctx)
+deactivate Stage
+deactivate Stage
+
+@enduml

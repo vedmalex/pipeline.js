@@ -1,0 +1,13 @@
+@startuml
+
+title RetryOnError run()
+
+start
+
+repeat
+    :run **stage**;
+repeat while (!**retry**)
+
+stop
+
+@enduml
