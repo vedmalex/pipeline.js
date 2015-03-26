@@ -55,15 +55,14 @@ describe('Stage', function() {
 		var st = new Stage(function(ctx, done) {
 			done('error');
 		});
-		assert.throws(function() {
-			st.execute({}, function(err, ctx) {
-				done;
-			});
-		})
+
+		st.execute({}, function(err, ctx) {
+			assert(err instanceof Error);
+			done();
+		});
 	});
 
 	describe("rescue", function() {
-
 		it('sync', function(done) {
 			var st = new Stage({
 				rescue: function(err, ctx) {
@@ -1439,18 +1438,19 @@ describe('Timeout', function() {
 		});
 	});
 
-	it('accepts pass error to next stage', function(done) {
+	it('timeout can be a function!', function(done) {
 		var to = new Timeout({
-			timeout: 100,
+			timeout: function(ctx){
+				return ctx.to;
+			},
 			stage: new Stage(function(err, ctx, done) {
 				setTimeout(function() {
 					done();
 				}, 10000);
 			})
 		});
-
-		to.compile();
-		to.run(new Error(), new Context({}), function(err, data) {
+		to.execute({to:1000}, function(err, ctx) {
+			assert.ok(err);
 			done();
 		});
 	});

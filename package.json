@@ -1,7 +1,7 @@
 {
   "name": "pipeline.js",
   "description": "Pipeline.js - async workflow framework for node.js",
-  "version": "0.3.8",
+  "version": "0.3.10",
   "author": {
     "name": "Alex Vedmedenko",
     "email": "vedmalex@gmail.com"
@@ -12,7 +12,7 @@
     "pipeline"
   ],
   "dependencies": {
-    "js-schema": "0.6.2",
+    "js-schema": "*",
     "comparator.js": "*",
     "debug":"*",
     "colors":"*"
@@ -42,5 +42,5 @@
   "bugs": {
     "url": "https://github.com/vedmalex/pipeline.js/issues"
   },
-  "homepage": "https://github.com/vedmalex/pipeline.js",
+  "homepage": "https://github.com/vedmalex/pipeline.js"
 }

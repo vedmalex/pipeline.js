@@ -14,6 +14,7 @@ Class IfElse
 
 Class Wrap
 Class Timeout
+Class RetryOnError
 
 Class DoWhile
 Class Empty
@@ -29,6 +30,7 @@ IfElse --up-|> Stage
 
 Wrap ---up-|> Stage 
 Timeout ---up-|> Stage 
+RetryOnError ---up-|> Stage 
 
 DoWhile ---up-|> Stage 
 Empty ---up-|> Stage 
