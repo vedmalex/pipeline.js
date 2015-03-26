@@ -71,6 +71,7 @@ it reachs end only after all data will be processed. It returns list of error.
 
 ###Timeout
 *Timeout* can be configured to run stage and wait for specified timeout time and throw error or run different stage.
+it also supports timeout time as a function from context
 ![hierarchy](./stages/Timeout/class.png)
 ![hierarchy](./stages/Timeout/run_activity.png)
 
