@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width" charset="utf-8">
-    <title>Title Not Set</title>
+    <title>pipeline.js</title>
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap-responsive.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/docs.css">
@@ -63,7 +63,7 @@
     </div>
     <header id="overview" class="jumbotron subhead">
       <div class="container">
-        <h1>Title Not Set</h1>
+        <h1>pipeline.js</h1>
         <p class="lead"></p>
       </div>
     </header>
@@ -173,7 +173,7 @@
 	} else if (config.overdue instanceof Function) {
 		self.overdue = config.overdue;
 	}
-	
+
 	self.overdue = new Stage(self.overdue);
 	self.name = config.name;
 }</code></pre>
@@ -226,36 +226,36 @@
           </section>
           <div class="description"><p>override of compile</p> </div>
           <pre><code class="language-javascript">Timeout.prototype.compile = function() {
-
 	var self = this;
 
 	if (!self.name) {
 		self.name = &quot;success: &quot; + self.stage.reportName() + &quot; failure: &quot; + self.overdue.reportName();
 	}
 
-	var run = function(err, ctx, done) {
-		process.nextTick(function() {
-			var to;
-			var localDone = function(err) {
-
-				if (to) {
-					clearTimeout(to);
-					to = null;
-					done(err);
-				}
-			};
-
-			if (!err) {
-				to = setTimeout(function() {
-					if (to) {
-						self.overdue.execute(ctx, localDone);
-					}
-				}, self.timeout);
-				self.stage.execute(ctx, localDone);
-			} else {
+	var run = function(ctx, done) {
+		var to;
+		var localDone = function(err) {
+			if (to) {
+				clearTimeout(to);
+				to = null;
 				done(err);
 			}
-		});
+		};
+		var waitFor;
+
+		if (self.timeout instanceof Function) {
+			waitFor = self.timeout(ctx);
+		} else {
+			waitFor = self.timeout;
+		}
+		
+		to = setTimeout(function() {
+			if (to) {
+				self.overdue.execute(ctx, localDone);
+			}</code></pre>
+          <div class="description"><p>else {<br />                here can be some sort of caching operation<br />            }</p> </div>
+          <pre><code class="language-javascript">}, waitFor);
+self.stage.execute(ctx, localDone);
 	};
 	self.run = run;
 };</code></pre>

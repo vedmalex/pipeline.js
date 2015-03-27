@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width" charset="utf-8">
-    <title>Title Not Set</title>
+    <title>pipeline.js</title>
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap-responsive.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/docs.css">
@@ -63,7 +63,7 @@
     </div>
     <header id="overview" class="jumbotron subhead">
       <div class="container">
-        <h1>Title Not Set</h1>
+        <h1>pipeline.js</h1>
         <p class="lead"></p>
       </div>
     </header>
@@ -108,7 +108,7 @@
 <p><em>Parallel</em> is the <em>Stage</em> that make possible process of stage that contain enumeration in it with parallel options. It runs one stage as parallel processing on series of data of the processing context.<br />it reachs end only after all data will be processed. It returns list of error.<br /><img src="./stages/Parallel/class.png" alt="hierarchy"><br /><img src="./stages/Parallel/run_activity.png" alt="hierarchy"></p><h3>Sequential</h3>
 <p><em>Sequential</em> is the <em>Stage</em> that work almost like <em>Parallel</em>, but it run stage in sequential manner. So it first error occures we can manage it to stop processing or continue if we decide that the error not significant.<br /><img src="./stages/Sequential/class.png" alt="hierarchy"><br /><img src="./stages/Sequential/run_activity.png" alt="hierarchy"></p><h3>Wrap</h3>
 <p><em>Wrap</em>per is a kind of stage that make possible to change context structure for specific type of stage. Using this we one can reuse existing stages more than once for different parts of common context<br /><img src="./stages/Sequential/class.png" alt="hierarchy"><br /><img src="./stages/Sequential/run_activity.png" alt="hierarchy"></p><h3>Timeout</h3>
-<p><em>Timeout</em> can be configured to run stage and wait for specified timeout time and throw error or run different stage.<br /><img src="./stages/Timeout/class.png" alt="hierarchy"><br /><img src="./stages/Timeout/run_activity.png" alt="hierarchy"></p><h3>RetryOnError</h3>
+<p><em>Timeout</em> can be configured to run stage and wait for specified timeout time and throw error or run different stage.<br />it also supports timeout time as a function from context<br /><img src="./stages/Timeout/class.png" alt="hierarchy"><br /><img src="./stages/Timeout/run_activity.png" alt="hierarchy"></p><h3>RetryOnError</h3>
 <p><em>RetryOnError</em> can be configured to run specified stage for certain lap until it will success. <code>retry</code> can either <code>function</code> or <code>number</code>.<br /><img src="./stages/Timeout/class.png" alt="hierarchy"><br /><img src="./stages/Timeout/run_activity.png" alt="hierarchy"></p><h3>DoWhile</h3>
 <p><em>DoWhile</em> loop while <em>Sequential</em> and <em>Parallel</em> works with the series of the data that has predefined length, this type of stage is not limited to the length. So it can be configured to run unlimited loop... </p><p><img src="./stages/DoWhile/class.png" alt="hierarchy"><br /><img src="./stages/DoWhile/run_activity.png" alt="hierarchy"></p><h3>Empty</h3>
 <p>Just the Empty Stage. On execute return context to callback.<br /><img src="./stages/Empty/class.png" alt="hierarchy"></p><p>More info see <a href="/docs/index.html">documentation</a></p></section>

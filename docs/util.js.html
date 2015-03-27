@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width" charset="utf-8">
-    <title>Title Not Set</title>
+    <title>pipeline.js</title>
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap-responsive.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/docs.css">
@@ -63,7 +63,7 @@
     </div>
     <header id="overview" class="jumbotron subhead">
       <div class="container">
-        <h1>Title Not Set</h1>
+        <h1>pipeline.js</h1>
         <p class="lead"></p>
       </div>
     </header>
@@ -93,6 +93,29 @@
           </div>
         </div>
         <div class="span9">
+          <div class="description"><p>return function() {<br />    // посмотреть может быть нужно убрать setImmediate?!<br />    var args = Array.prototype.slice.call(arguments);<br />    args.unshift(fn);<br />    setImmediate.apply(null, args);<br />  };</p> </div>
+          <pre><code class="language-javascript">}
+
+exports.failproofSyncCall = failproofSyncCall;</code></pre>
+          <div class="description"><p>return function() {<br />    // посмотреть может быть нужно убрать setImmediate?!<br />    var args = Array.prototype.slice.call(arguments);<br />    args.unshift(fn);<br />    setImmediate.apply(null, args);<br />  };</p> </div>
+          <pre><code class="language-javascript">}
+
+exports.failproofAsyncCall = failproofAsyncCall;
+
+function ErrorList(list) {
+  var self = this;
+  if (!(self instanceof ErrorList)) {
+    throw new Error('constructor is not a function');
+  }
+  Error.apply(self);
+  self.message = &quot;Complex Error&quot;;
+  self.errors = list;
+}
+
+ErrorList.prototype.errors = undefined;
+exports.Util.inherits(ErrorList, Error);
+
+exports.ErrorList = ErrorList;</code></pre>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width" charset="utf-8">
-    <title>Title Not Set</title>
+    <title>pipeline.js</title>
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap-responsive.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/docs.css">
@@ -63,7 +63,7 @@
     </div>
     <header id="overview" class="jumbotron subhead">
       <div class="container">
-        <h1>Title Not Set</h1>
+        <h1>pipeline.js</h1>
         <p class="lead"></p>
       </div>
     </header>
@@ -92,8 +92,6 @@
               <li><a href="#Context"><i class="alert alert-info"></i><span>Context</span></a>
               </li>
               <li><a href="#overwrite"><i class="alert alert-info"></i><span>overwrite</span></a>
-              </li>
-              <li><a href="#addToStack"><i class="alert alert-info"></i><span>addToStack</span></a>
               </li>
               <li><a href="#getChilds"><i class="alert alert-info"></i><span>getChilds</span></a>
               </li>
@@ -154,51 +152,6 @@
 					self[prop] = config[prop];
 			}
 		}
-		// ensure that traceability is also copied
-		self.__trace = config.trace || config.__trace;
-	}
-};</code></pre>
-          <section id="addToStack">
-            <h1>addToStack</h1>
-            <h5 class="subheader"></h5>
-            <p>
-              <div class="label label-info radius ctx-type">method</div><span>Context.prototype.addToStack()</span>
-            </p>
-          </section>
-          <table class="table table-bordered table-striped">
-            <thead>
-              <tr>
-                <th style="width:20%">Option name</th>
-                <th style="width:20%">Type</th>
-                <th>Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>name</td>
-                <td>String</td>
-                <td><p>name of stored object</p></td>
-              </tr>
-              <tr>
-                <td>obj</td>
-                <td>Object,any</td>
-                <td><p>containment</p></td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="description"><p>Allow to add some object to stack with specific name</p> </div>
-          <pre><code class="language-javascript">Context.prototype.addToStack = function(name, obj) {
-	var self = this;
-	if (self.__trace) {
-		var current = self.__stack.pop();
-		if ('object' !== typeof current || !current) {
-			current = {
-				name: current,
-				forks: []
-			};
-		}
-		current[name] = obj;
-		self.__stack.push(current);
 	}
 };</code></pre>
           <section id="getChilds">
@@ -344,28 +297,9 @@
 	if (!self.hasChild(ctx)) {
 		var child = Context.ensure(ctx);
 		child.__parent = self;
-		child.__trace = self.__trace;
 		if (!self.__children) {
 			self.__children = [];
 		}
-		if (self.__trace) {
-			if (!self.__stack) {
-				self.__stack = [];
-			}
-			child.__stack = [];
-
-			var current = self.__stack.pop();
-			if ('object' !== typeof current || !current) {
-				current = {
-					name: current,
-					forks: []
-				};
-			}
-			self.__stack.push(current);
-			child.__stack.push(current.name);
-			current.forks.push(child.__stack);
-		}
-
 		self.__children.push(child);
 	}
 };</code></pre>
@@ -400,7 +334,6 @@
 	for (var p in config) {
 		child[p] = config[p];
 	}
-	child.__trace = self.__trace;
 	return child;
 };</code></pre>
           <section id="get">
@@ -440,7 +373,6 @@
 			result = this.ensureIsChild(result);
 			set(this, path, result);
 		}
-		result.__trace = this.__trace;
 		return result;
 	}
 };</code></pre>

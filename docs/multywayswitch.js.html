@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width" charset="utf-8">
-    <title>Title Not Set</title>
+    <title>pipeline.js</title>
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap-responsive.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/docs.css">
@@ -63,7 +63,7 @@
     </div>
     <header id="overview" class="jumbotron subhead">
       <div class="container">
-        <h1>Title Not Set</h1>
+        <h1>pipeline.js</h1>
         <p class="lead"></p>
       </div>
     </header>
@@ -280,6 +280,14 @@
 	// Apply to each stage own environment: evaluate, split, combine
 	for (i = 0; i &lt; len; i++) {
 		caseItem = self.cases[i];
+		
+		if (caseItem instanceof Function) {
+			caseItem = {
+				stage: new Stage(caseItem),
+				evaluate: true
+			};
+		}
+
 		if (caseItem instanceof Stage) {
 			caseItem = {
 				stage: caseItem,

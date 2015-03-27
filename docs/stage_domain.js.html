@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width" charset="utf-8">
-    <title>Title Not Set</title>
+    <title>pipeline.js</title>
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/bootstrap-responsive.css">
     <link rel="stylesheet" href="http://getbootstrap.com/2.3.2/assets/css/docs.css">
@@ -63,7 +63,7 @@
     </div>
     <header id="overview" class="jumbotron subhead">
       <div class="container">
-        <h1>Title Not Set</h1>
+        <h1>pipeline.js</h1>
         <p class="lead"></p>
       </div>
     </header>
@@ -100,8 +100,6 @@
               <li><a href="#validate"><i class="alert alert-info"></i><span>validate</span></a>
               </li>
               <li><a href="#rescue"><i class="alert alert-info"></i><span>rescue</span></a>
-              </li>
-              <li><a href="#sign"><i class="alert alert-info"></i><span>sign</span></a>
               </li>
               <li><a href="#run"><i class="alert alert-success"></i><span>run</span></a>
               </li>
@@ -340,20 +338,6 @@
 		return err;
 	}
 };</code></pre>
-          <section id="sign">
-            <h1>sign</h1>
-            <h5 class="subheader"></h5>
-            <p>
-              <div class="label label-info radius ctx-type">method</div><span>Stage.prototype.sign()</span>
-            </p>
-          </section>
-          <div class="description"><p>sing context with stage name.<br />used for tracing</p> </div>
-          <pre><code class="language-javascript">Stage.prototype.sign = function(context) {
-	var self = this;
-	if (context instanceof Context) {
-		context.__signWith(self.reportName());
-	}
-};</code></pre>
           <section id="run">
             <h1>run</h1>
             <h5 class="subheader"></h5>
@@ -363,6 +347,10 @@
           </section>
           <div class="description"><p>run function, can be assigned by child class<br />Singature<br />function(err, ctx, done) -- async wit custom error handler! deprecated. err always null.<br />function(ctx, done) -- async<br />function(ctx) -- sync call<br />function() -- sync call <code>context</code> applyed as this for function.</p> </div>
           <pre><code class="language-javascript">Stage.prototype.run = 0;</code></pre>
+          <div class="description"><p>return d.bind(function() {<br />        var args = Array.prototype.slice.call(arguments);<br />        args.unshift(fn);<br />        setImmediate.apply(null, args);<br />    });</p> </div>
+          <pre><code class="language-javascript">}</code></pre>
+          <div class="description"><p>return d.bind(function() {<br />        var args = Array.prototype.slice.call(arguments);<br />        args.unshift(fn);<br />        setImmediate.apply(null, args);<br />    });</p> </div>
+          <pre><code class="language-javascript">}</code></pre>
           <section id="execute">
             <h1>execute</h1>
             <h5 class="subheader"></h5>
@@ -452,11 +440,6 @@
 	function afterEnsure(err) {
 		if (!err) { // passing 
 			if (typeof(self.run) == 'function') {
-
-				if (context.__trace) {
-					context.addToStack('context', context.toObject());
-					// console.log(self.name);
-				}
 				var hasError = null;
 				switch (self.run.length) {
 					case 0:
@@ -482,7 +465,6 @@
 		}
 	}
 
-	self.sign(context);
 	switch (self.ensure.length) {
 		case 2:
 			self.ensure(context, afterEnsure);
