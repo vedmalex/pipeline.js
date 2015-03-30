@@ -1931,7 +1931,57 @@ describe('MWS', function() {
 		});
 	});
 
-	it('not evaluate if missing evaluate property', function(done) {
+	it('not evaluate if missing evaluate property only if they are strongly evaluate = false', function(done) {
+		var pipe0 = new Pipeline([
+
+			function(err, ctx, done) {
+				ctx.cnt = 1;
+				done();
+			},
+			function(err, ctx, done) {
+				ctx.cnt += 1;
+				done();
+			}
+		]);
+		var pipe1 = new Pipeline({
+			rescue: function() {
+				return false;
+			},
+			stages: [
+
+				function(err, ctx, done) {
+					ctx.cnt = 1;
+					done();
+				},
+				function(err, ctx, done) {
+					ctx.cnt += 1;
+					done(new Error('error'));
+				}
+			]
+		});
+
+		var sw = new MultiWaySwitch({
+			cases: [pipe0, {
+				stage: pipe1,
+				evaluate:false
+			}],
+			split: function(ctx) {
+				return ctx.fork();
+			},
+			combine: function(ctx, retCtx) {
+				ctx.size += retCtx.cnt;
+			}
+		});
+		sw.execute({
+			size: 0
+		}, function(err, ctx) {
+			assert.equal(ctx.size, 2);
+			assert.ifError(err);
+			done();
+		});
+	});
+
+	it('evaluate if missing evaluate property', function(done) {
 		var pipe0 = new Pipeline([
 
 			function(err, ctx, done) {
@@ -1974,7 +2024,7 @@ describe('MWS', function() {
 		sw.execute({
 			size: 0
 		}, function(err, ctx) {
-			assert.equal(ctx.size, 2);
+			assert.equal(ctx.size, 10);
 			assert.ifError(err);
 			done();
 		});
