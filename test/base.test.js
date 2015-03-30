@@ -194,7 +194,6 @@ describe('Stage', function() {
 		});
 		stage.once('done', function(context) {
 			assert.equal(context instanceof Context, true);
-			assert.equal(!context.getChilds, false);
 			done();
 		});
 		stage.execute({});
@@ -207,7 +206,6 @@ describe('Stage', function() {
 
 		stage.execute({}, function(err, context) {
 			assert.equal(context instanceof Context, true);
-			assert.equal(!context.getChilds, false);
 			done();
 		});
 	});
@@ -448,12 +446,6 @@ describe('Context', function() {
 		done();
 	});
 
-	it('fork getChilds', function(done) {
-		var childs = new Context().getChilds();
-		assert.equal(childs.length, 0, "MUST BE EQUAL");
-		done();
-	});
-
 	it('fork getParent', function(done) {
 		var parent = new Context().getParent();
 		assert.equal(parent === undefined, true, "MUST BE EQUAL");
@@ -469,7 +461,6 @@ describe('Context', function() {
 		};
 		var ctx = new Context(config);
 		var ctx2 = ctx.fork();
-		assert.equal(ctx.__children.length, 1, "MUST HAVE CHILDS");
 		assert.equal(ctx.config.some, ctx2.config.some, "MUST BE EQUAL");
 		assert.equal(ctx.notConfig, ctx2.notConfig, "MUST BE EQUAL");
 		assert.equal(ctx2.getParent() === ctx, true, "parent is context");
@@ -1238,8 +1229,8 @@ describe('Parallel', function() {
 				}
 				return res;
 			},
-			combine: function(ctx) {
-				var childs = ctx.getChilds();
+			combine: function(ctx, children) {
+				var childs = children;
 				var len = childs.length;
 				ctx.result = 0;
 				for (var i = 0; i < len; i++) {
