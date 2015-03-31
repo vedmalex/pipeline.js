@@ -2459,7 +2459,6 @@ describe('DoWhile', function() {
 				return err || iter == len;
 			}
 		});
-
 		stage.execute(ctx, function(err, context) {
 			assert.equal(err.message, "error");
 			done();
