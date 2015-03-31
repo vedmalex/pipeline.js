@@ -914,7 +914,8 @@ describe('Sequential', function() {
 		var stage = new Sequential({
 			stage: st,
 			rescue: function(err, conext) {
-				if (err.errors[0].err.message !== 'error')
+				debugger;
+				if (err.errors.err.message !== 'error')
 					return err;
 			}
 		});
@@ -984,7 +985,7 @@ describe('Sequential', function() {
 		});
 	});
 
-	it('empty split run combine', function(done) {
+	it('empty split not run combine', function(done) {
 		var stage0 = new Stage(function(ctx) {});
 		var stage = new Sequential({
 			stage: stage0,
@@ -997,7 +998,7 @@ describe('Sequential', function() {
 			}
 		});
 		stage.execute({}, function(err, context) {
-			assert.equal(context.combine, true);
+			assert.equal(!context.combine, true);
 			done();
 		});
 	});
@@ -1097,7 +1098,7 @@ describe('Parallel', function() {
 		});
 	});
 
-	it('empty split run combine', function(done) {
+	it('empty split not run combine', function(done) {
 		var stage0 = new Stage(function(ctx) {});
 		var stage = new Parallel({
 			stage: stage0,
@@ -1111,7 +1112,7 @@ describe('Parallel', function() {
 		});
 
 		stage.execute({}, function(err, context) {
-			assert.equal(context.combine, true);
+			assert.equal(!context.combine, true);
 			done();
 		});
 	});
