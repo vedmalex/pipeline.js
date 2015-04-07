@@ -914,7 +914,6 @@ describe('Sequential', function() {
 		var stage = new Sequential({
 			stage: st,
 			rescue: function(err, conext) {
-				debugger;
 				if (err.errors.err.message !== 'error')
 					return err;
 			}
