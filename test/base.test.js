@@ -109,11 +109,10 @@ describe('Stage', function() {
 					});
 				}
 			});
-			st.on('end', function() {
+
+			st.execute({},function(){
 				done();
 			});
-			st.execute({});
-
 		});
 
 	});
@@ -192,11 +191,11 @@ describe('Stage', function() {
 		var stage = new Stage(function(err, context, done) {
 			done();
 		});
-		stage.once('done', function(context) {
-			assert.equal(context instanceof Context, true);
+		debugger;
+		stage.execute({}, function(err, ctx) {
+			assert.equal(ctx instanceof Context, true);
 			done();
 		});
-		stage.execute({});
 	});
 
 	it('converts context if it is not typeof Context in callback', function(done) {
@@ -214,11 +213,10 @@ describe('Stage', function() {
 		var stage = new Stage(function(err, context, done) {
 			done();
 		});
-		stage.once('done', function(conext) {
+		stage.execute({}, function() {
 			assert.equal(!context, false);
 			done();
 		});
-		stage.execute({});
 	});
 
 	//	это не нужно, поскольку слишком сложная архитектура будет, все передавать через контекст
@@ -231,12 +229,11 @@ describe('Stage', function() {
 			done(new Error());
 		});
 
-		stage.once('error', function(err, conext) {
+		stage.execute({}, function(err, ctx) {
 			assert.equal(!err, false);
 			assert.equal(!context, false);
 			done();
 		});
-		stage.execute({});
 	});
 
 	it('emits error if it configured to do so', function(done) {
@@ -246,13 +243,11 @@ describe('Stage', function() {
 			}
 		});
 
-		stage.once('error', function(err, conext) {
+		stage.execute({}, function(err, data) {
 			assert.equal(!err, false);
 			assert.equal(!context, false);
 			done();
 		});
-
-		stage.execute({}, function(err, data) {});
 	});
 
 	it('can be traced with {trace:true}', function(done) {
@@ -281,12 +276,11 @@ describe('Stage', function() {
 		var stage = new Stage(function(err, context, done) {
 			done();
 		});
-		stage.once('done', function(err, conext) {
+
+		stage.execute({}, function(err, data) {
 			assert.equal(!context, false);
 			done();
 		});
-
-		stage.execute({}, function(err, data) {});
 	});
 
 	it('prepare and finalize context');
@@ -320,12 +314,12 @@ describe('Stage', function() {
 		var stage = new Stage();
 		var ensure = 0;
 		var ctx = new Context({});
-		stage.once('error', function(err) {
+
+		stage.execute(ctx, function(err) {
 			// assert.equal(ctx.hasErrors(), true);
 			assert.equal(/Error\: STG\: reports\: run is not a function/.test(err.toString()), true);
 			done();
 		});
-		stage.execute(ctx, 100);
 	});
 
 	it('stage with no run call callback with error', function(done) {
@@ -679,10 +673,11 @@ describe('Pipeline', function() {
 			done();
 		});
 
-
+		debugger;
 		pipe.addStage(s1);
 		pipe.addStage(s2);
-		pipe.once('error', function(err) {
+
+		pipe.execute(ctx1, function(err) {
 			assert.equal(err, error);
 			// assert.equal(ctx1.hasErrors(), true, 'must has errors 1');
 			// assert.equal(ctx1.getErrors()[0] == error, true, 'must has error 2');
@@ -691,7 +686,6 @@ describe('Pipeline', function() {
 			assert.equal(ctx1.s3, false, 's3 not passed');
 			done();
 		});
-		pipe.execute(ctx1);
 	});
 
 	it('ensure Context Error use', function(done) {
@@ -719,15 +713,10 @@ describe('Pipeline', function() {
 		};
 		var s2 = new Stage(stage2);
 		pipe.addStage(s2);
-		pipe.once('done', function(err) {
-			assert.equal(true, false, "must fail");
-			done();
-		});
-		pipe.once('error', function(err) {
+		pipe.execute(ctx, function(err) {
 			assert.equal(/Error: STG: 0 reports: run is not a function/.test(err.toString()), true);
 			done();
 		});
-		pipe.execute(ctx);
 	});
 
 	it('pipeline accept only ensure', function(done) {
@@ -802,10 +791,9 @@ describe('Pipeline', function() {
 			some: {},
 			other: 'other'
 		});
-		stg.once('done', function() {
+		stg.execute(ctx, function() {
 			done();
 		});
-		stg.execute(ctx);
 	});
 
 	it('invalid context fails execution', function(done) {
@@ -820,10 +808,12 @@ describe('Pipeline', function() {
 			some: {},
 			other: 'other'
 		});
-		stg.once('error', function(err) {
-			done();
+
+		stg.execute(ctx, function(err) {
+			if (err) {
+				done();
+			}
 		});
-		stg.execute(ctx);
 	});
 
 	it('can do subclassing of Pipeline', function(done) {
@@ -1431,7 +1421,7 @@ describe('Timeout', function() {
 
 	it('timeout can be a function!', function(done) {
 		var to = new Timeout({
-			timeout: function(ctx){
+			timeout: function(ctx) {
 				return ctx.to;
 			},
 			stage: new Stage(function(err, ctx, done) {
@@ -1440,7 +1430,9 @@ describe('Timeout', function() {
 				}, 10000);
 			})
 		});
-		to.execute({to:1000}, function(err, ctx) {
+		to.execute({
+			to: 1000
+		}, function(err, ctx) {
 			assert.ok(err);
 			done();
 		});
@@ -1954,7 +1946,7 @@ describe('MWS', function() {
 		var sw = new MultiWaySwitch({
 			cases: [pipe0, {
 				stage: pipe1,
-				evaluate:false
+				evaluate: false
 			}],
 			split: function(ctx) {
 				return ctx.fork();
