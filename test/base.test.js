@@ -110,7 +110,7 @@ describe('Stage', function() {
 				}
 			});
 
-			st.execute({},function(){
+			st.execute({}, function() {
 				done();
 			});
 		});
@@ -191,7 +191,7 @@ describe('Stage', function() {
 		var stage = new Stage(function(err, context, done) {
 			done();
 		});
-		debugger;
+
 		stage.execute({}, function(err, ctx) {
 			assert.equal(ctx instanceof Context, true);
 			done();
@@ -314,7 +314,6 @@ describe('Stage', function() {
 		var stage = new Stage();
 		var ensure = 0;
 		var ctx = new Context({});
-
 		stage.execute(ctx, function(err) {
 			// assert.equal(ctx.hasErrors(), true);
 			assert.equal(/Error\: STG\: reports\: run is not a function/.test(err.toString()), true);
@@ -597,9 +596,9 @@ describe('Pipeline', function() {
 		var pipe = new Pipeline();
 		pipe.addStage(new Stage());
 		pipe.compile();
-		assert.equal(typeof(pipe.run), 'function', 'must have run-function after compile');
+		assert.equal(typeof(pipe._runVal), 'function', 'must have run-function after compile');
 		pipe.addStage(new Stage());
-		assert.equal(!pipe.run, true, 'after addStage nothing need recompoile');
+		assert.equal(!pipe._runVal, true, 'after addStage nothing need recompoile');
 		done();
 	});
 
@@ -673,7 +672,6 @@ describe('Pipeline', function() {
 			done();
 		});
 
-		debugger;
 		pipe.addStage(s1);
 		pipe.addStage(s2);
 
@@ -738,7 +736,7 @@ describe('Pipeline', function() {
 		var p1 = new Stage(ensure);
 		assert.equal(p1.ensure != ensure, true, 'not accept ensure as function');
 		assert.equal(p1.validate != ensure, true, 'accept only run as function');
-		assert.equal(p1.run == ensure, true, 'accept only run as function');
+		assert.equal(p1._runVal == ensure, true, 'accept only run as function');
 		var p2 = new Stage({
 			ensure: ensure,
 			run: ensure,
@@ -746,7 +744,7 @@ describe('Pipeline', function() {
 		});
 		assert.equal(p2.ensure === ensure, true, 'accept ensure');
 		assert.equal(p2.validate === ensure, true, 'accept validate');
-		assert.equal(p2.run === ensure, true, 'accept run');
+		assert.equal(p2._runVal === ensure, true, 'accept run');
 		done();
 	});
 
@@ -836,28 +834,24 @@ describe('Pipeline', function() {
 	});
 
 	it('allow reenterability', function(done) {
-
-
+		debugger;
 		var pipe = new Pipeline();
-		var st = new Stage(function(err, context, done) {
-			context.one++;
-			done();
-		});
-		pipe.addStage(function(err, context, done) {
+
+		pipe.addStage(function(context, done) {
 			process.nextTick(function() {
 				context.one++;
 				done();
 			});
 		});
 
-		pipe.addStage(function(err, context, done) {
+		pipe.addStage(function(context, done) {
 			process.nextTick(function() {
 				context.one += 1;
 				done();
 			});
 		});
 
-		pipe.addStage(function(err, context, done) {
+		pipe.addStage(function(context, done) {
 			context.one += 5;
 			done();
 		});
@@ -868,13 +862,15 @@ describe('Pipeline', function() {
 			if (++l == 10) done();
 		}
 		for (var i = 0; i < 10; i++) {
-			var ctx1 = new Context({
-				one: 1
-			});
-			pipe.execute(ctx1, function(err, data) {
-				assert.equal(data.one, 8);
-				gotit();
-			});
+			(function() {
+				var ctx1 = new Context({
+					one: 1
+				});
+				pipe.execute(ctx1, function(err, data) {
+					assert.equal(data.one, 8);
+					gotit();
+				});
+			})();
 		}
 	});
 });
@@ -1060,7 +1056,7 @@ describe('Parallel', function() {
 		var pp = new Parallel({
 			stage: st
 		});
-		assert(st === pp.stage.run);
+		assert(st === pp.stage._runVal);
 		done();
 	});
 
