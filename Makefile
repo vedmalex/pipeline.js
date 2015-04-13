@@ -10,6 +10,9 @@ test:
 test-dbg:
 	@time ./node_modules/.bin/mocha $(T) -t 1000000 --debug-brk --async-only $(TESTS)
 
+test-dbg-2:
+	@time ./node_modules/.bin/mocha $(T) -t 1000000 --debug-brk --async-only $(TESTS) --grep Stage
+
 bench:
 	@time node ./benchmark/run.js
 
