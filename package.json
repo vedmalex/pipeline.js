@@ -15,7 +15,9 @@
     "js-schema": "*",
     "comparator.js": "*",
     "debug":"*",
-    "colors":"*"
+    "colors":"*",
+    "fte.js":"*",
+    "clone":"*"
   },
   "devDependencies": {
     "mocha": "*",
