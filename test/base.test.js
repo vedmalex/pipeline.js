@@ -118,6 +118,7 @@ describe('Stage', function() {
 	});
 
 	it('do not handle Error it stage signature is (err, ctx, done)', function(done) {
+		debugger;
 		var flag = false;
 		var st = new Stage({
 			validate: function(ctx) {
@@ -187,7 +188,8 @@ describe('Stage', function() {
 		});
 	});
 
-	it('converts context if it is not typeof Context in emit', function(done) {
+	/* deprecated context now is any js object
+	it('converts context if it is not typeof Context in callback', function(done) {
 		var stage = new Stage(function(err, context, done) {
 			done();
 		});
@@ -196,18 +198,7 @@ describe('Stage', function() {
 			assert.equal(ctx instanceof Context, true);
 			done();
 		});
-	});
-
-	it('converts context if it is not typeof Context in callback', function(done) {
-		var stage = new Stage(function(err, context, done) {
-			done();
-		});
-
-		stage.execute({}, function(err, context) {
-			assert.equal(context instanceof Context, true);
-			done();
-		});
-	});
+	});*/
 
 	it('emits done', function(done) {
 		var stage = new Stage(function(err, context, done) {
@@ -286,14 +277,31 @@ describe('Stage', function() {
 	it('prepare and finalize context');
 
 	it('ensureContext', function(done) {
+		debugger;
+		var stage = new Stage(function(ctx) {
+			ctx.done = 1;
+		});
+		var ensure = 0;
+		stage.ensure = function(ctx, callback) {
+			ensure++;
+			callback(null, context);
+		};
+		stage.execute({}, function(err, ctx) {
+			assert.equal(ensure, 1, 'ensure must called by default');
+			assert.equal(ctx.done, 1, 'ensure must called by default');
+			done();
+		});
+	});
+
+	it('not run ensureContext if there is no run function', function(done) {
 		var stage = new Stage();
 		var ensure = 0;
 		stage.ensure = function(ctx, callback) {
 			ensure++;
-			callback();
+			callback(null, context);
 		};
 		stage.execute({});
-		assert.equal(ensure, 1, 'ensure must called by default');
+		assert.equal(ensure, 0);
 		done();
 	});
 
@@ -876,17 +884,18 @@ describe('Pipeline', function() {
 });
 
 describe('Sequential', function() {
-	it('works with default', function(done) {
+	it('works not with default', function(done) {
 		var stage = new Sequential();
 		assert(stage instanceof Stage);
 		stage.execute({}, function(err, context) {
-			assert.equal(context instanceof Context, true);
+			assert(err);
 			done();
 		});
 
 	});
 
 	it('rescue', function(done) {
+		debugger;
 		var st = new Stage({
 			run: function(err, ctx, done) {
 				throw new Error('error');
@@ -916,19 +925,7 @@ describe('Sequential', function() {
 			done();
 		}));
 		stage.execute({}, function(err, context) {
-			assert.equal(context instanceof Context, true);
-			done();
-		});
-	});
-
-	it('works with config as Stage', function(done) {
-		var stage = new Sequential({
-			stage: function(err, ctx, done) {
-				done();
-			}
-		});
-		stage.execute({}, function(err, context) {
-			assert.equal(context instanceof Context, true);
+			// assert.equal(context instanceof Context, true);
 			done();
 		});
 	});
@@ -1039,7 +1036,7 @@ describe('Parallel', function() {
 		var stage = new Parallel();
 		assert(stage instanceof Stage);
 		stage.execute({}, function(err, context) {
-			assert.equal(context instanceof Context, true);
+			// assert.equal(context instanceof Context, true);
 			done();
 		});
 	});
@@ -1201,9 +1198,9 @@ describe('Parallel', function() {
 			ctx.liter = 1;
 			done();
 		});
-		var ctx = {
+		var ctx = new Context({
 			some: [1, 2, 3, 4, 5, 6, 7]
-		};
+		});
 		var len = ctx.some.length;
 		var stage = new Parallel({
 			stage: stage0,
@@ -1239,7 +1236,7 @@ describe('if->else', function() {
 		var stage = new IfElse();
 		assert(stage instanceof Stage);
 		stage.execute({}, function(err, context) {
-			assert.equal(context instanceof Context, true);
+			// assert.equal(context instanceof Context, true);
 			done();
 		});
 	});
@@ -1488,11 +1485,11 @@ describe('RetryOnError', function() {
 		var iter = 0;
 		var st = new RetryOnError({
 			run: function(ctx) {
+				ctx.works = true;
 				if (iter == 0) {
 					iter++;
 					throw new Error('error');
 				}
-				ctx.works = true;
 			}
 		});
 		st.execute({}, function(err, ctx) {
@@ -1502,6 +1499,42 @@ describe('RetryOnError', function() {
 			done();
 		});
 	});
+
+	it('retry use custom restore and backup', function(done) {
+		var iter = -1;
+		var st = new RetryOnError({
+			run: function(ctx) {
+				ctx.works = true;
+				if (iter++ < 3) {
+					throw new Error('error');
+				}
+			},
+			retry:4,
+			backup: function(ctx) {
+				ctx.backup++;
+				return {
+					works: ctx.works
+				};
+			},
+			restore: function(ctx, backup) {
+				ctx.restore++;
+				ctx.works = backup.works;
+			}
+		});
+		st.execute({
+			works: false,
+			backup:0,
+			restore:0
+		}, function(err, ctx) {
+			assert.ifError(err);
+			assert(ctx.works);
+			assert.equal(iter, 4);
+			assert.equal(ctx.backup, 1);
+			assert.equal(ctx.restore, 4);
+			done();
+		});
+	});
+
 
 	it('retry works with rescue', function(done) {
 		var st = new RetryOnError({
@@ -2262,7 +2295,7 @@ describe('DoWhile', function() {
 		var stage = new DoWhile();
 		assert(stage instanceof Stage);
 		stage.execute({}, function(err, context) {
-			assert.equal(context instanceof Context, true);
+			// assert.equal(context instanceof Context, true);
 			done();
 		});
 
@@ -2291,7 +2324,7 @@ describe('DoWhile', function() {
 			done();
 		}));
 		stage.execute({}, function(err, context) {
-			assert.equal(context instanceof Context, true);
+			// assert.equal(context instanceof Context, true);
 			done();
 		});
 	});
@@ -2303,7 +2336,7 @@ describe('DoWhile', function() {
 			}
 		});
 		stage.execute({}, function(err, context) {
-			assert.equal(context instanceof Context, true);
+			// assert.equal(context instanceof Context, true);
 			done();
 		});
 	});
