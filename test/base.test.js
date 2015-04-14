@@ -1509,7 +1509,7 @@ describe('RetryOnError', function() {
 					throw new Error('error');
 				}
 			},
-			retry:4,
+			retry: 4,
 			backup: function(ctx) {
 				ctx.backup++;
 				return {
@@ -1523,8 +1523,8 @@ describe('RetryOnError', function() {
 		});
 		st.execute({
 			works: false,
-			backup:0,
-			restore:0
+			backup: 0,
+			restore: 0
 		}, function(err, ctx) {
 			assert.ifError(err);
 			assert(ctx.works);
@@ -1760,9 +1760,9 @@ describe('MWS', function() {
 				ctx.size += retCtx.cnt;
 			}
 		});
-		sw.execute({
-			size: 0
-		}, function(err, ctx) {
+		sw.execute(new Context({
+					size: 0
+				}), function(err, ctx) {
 			assert.equal(ctx.size, 4);
 			done();
 		});
@@ -1801,9 +1801,9 @@ describe('MWS', function() {
 				ctx.size += retCtx.cnt;
 			}
 		});
-		sw.execute({
-			size: 0
-		}, function(err, ctx) {
+		sw.execute(new Context({
+					size: 0
+				}), function(err, ctx) {
 			assert.equal(ctx.size, 2);
 			assert.equal(err instanceof Error, true);
 			done();
@@ -1846,9 +1846,9 @@ describe('MWS', function() {
 				return err;
 			}
 		});
-		sw.execute({
-			size: 0
-		}, function(err, ctx) {
+		sw.execute(new Context({
+					size: 0
+				}), function(err, ctx) {
 			assert.equal(ctx.size, 2);
 			assert.equal(err instanceof Error, true);
 			done();
@@ -1891,9 +1891,9 @@ describe('MWS', function() {
 				ctx.size += retCtx.cnt;
 			}
 		});
-		sw.execute({
-			size: 0
-		}, function(err, ctx) {
+		sw.execute(new Context({
+					size: 0
+				}), function(err, ctx) {
 			assert.equal(ctx.size, 4);
 			assert.ifError(err);
 			done();
@@ -1934,9 +1934,9 @@ describe('MWS', function() {
 				return;
 			},
 		});
-		sw.execute({
-			size: 0
-		}, function(err, ctx) {
+		sw.execute(new Context({
+					size: 0
+				}), function(err, ctx) {
 			assert.equal(ctx.size, 2);
 			assert.ifError(err);
 			done();
@@ -1984,9 +1984,9 @@ describe('MWS', function() {
 				ctx.size += retCtx.cnt;
 			}
 		});
-		sw.execute({
-			size: 0
-		}, function(err, ctx) {
+		sw.execute(new Context({
+					size: 0
+				}), function(err, ctx) {
 			assert.equal(ctx.size, 2);
 			assert.ifError(err);
 			done();
@@ -2033,9 +2033,9 @@ describe('MWS', function() {
 				ctx.size += retCtx.cnt;
 			}
 		});
-		sw.execute({
+		sw.execute(new Context({
 			size: 0
-		}, function(err, ctx) {
+		}), function(err, ctx) {
 			assert.equal(ctx.size, 10);
 			assert.ifError(err);
 			done();
@@ -2083,9 +2083,9 @@ describe('MWS', function() {
 				ctx.size += retCtx.cnt;
 			}
 		});
-		sw.execute({
+		sw.execute(new Context({
 			size: 0
-		}, function(err, ctx) {
+		}), function(err, ctx) {
 			assert.equal(ctx.size, 4);
 			assert.ifError(err);
 			done();
