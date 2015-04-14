@@ -11,7 +11,11 @@ test-dbg:
 	@time ./node_modules/.bin/mocha $(T) -t 1000000 --debug-brk --async-only $(TESTS)
 
 test-dbg-2:
-	@time ./node_modules/.bin/mocha $(T) -t 1000000 --debug-brk --async-only $(TESTS) --grep Stage
+	@time ./node_modules/.bin/mocha $(T) -t 1000000 --debug-brk --async-only $(TESTS) --grep "MWS individual exception handler work"
+
+test2:
+	@time ./node_modules/.bin/mocha $(T) $(TESTS) --grep "MWS individual exception handler work"
+
 
 bench:
 	@time node ./benchmark/run.js
