@@ -596,9 +596,9 @@ describe('Pipeline', function() {
 		var pipe = new Pipeline();
 		pipe.addStage(new Stage());
 		pipe.compile();
-		assert.equal(typeof(pipe._runVal), 'function', 'must have run-function after compile');
+		assert.equal(typeof(pipe.run), 'function', 'must have run-function after compile');
 		pipe.addStage(new Stage());
-		assert.equal(!pipe._runVal, true, 'after addStage nothing need recompoile');
+		assert.equal(!pipe.run, true, 'after addStage nothing need recompoile');
 		done();
 	});
 
@@ -736,7 +736,7 @@ describe('Pipeline', function() {
 		var p1 = new Stage(ensure);
 		assert.equal(p1.ensure != ensure, true, 'not accept ensure as function');
 		assert.equal(p1.validate != ensure, true, 'accept only run as function');
-		assert.equal(p1._runVal == ensure, true, 'accept only run as function');
+		assert.equal(p1.run == ensure, true, 'accept only run as function');
 		var p2 = new Stage({
 			ensure: ensure,
 			run: ensure,
@@ -744,7 +744,7 @@ describe('Pipeline', function() {
 		});
 		assert.equal(p2.ensure === ensure, true, 'accept ensure');
 		assert.equal(p2.validate === ensure, true, 'accept validate');
-		assert.equal(p2._runVal === ensure, true, 'accept run');
+		assert.equal(p2.run === ensure, true, 'accept run');
 		done();
 	});
 
@@ -1056,7 +1056,7 @@ describe('Parallel', function() {
 		var pp = new Parallel({
 			stage: st
 		});
-		assert(st === pp.stage._runVal);
+		assert(st === pp.stage.run);
 		done();
 	});
 
