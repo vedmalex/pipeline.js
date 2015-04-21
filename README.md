@@ -31,10 +31,10 @@ We can `fork` context, take the parent context using `getParent`, and all errors
 ### Stage
 *Stage* is the eventEmitter sublcass. We can either subscribe to events or use callback to catch-up end of processing.
 *Stage* is by default asyncronous.
-![hierarchy](./stages/Stage/class.png)
-![hierarchy](./stages/Stage/execute_activity.png)
-![hierarchy](./stages/Stage/execute_async.png)
-![hierarchy](./stages/Stage/execute_sync.png)
+![hierarchy](./pics/stages/Stage/class.png)
+![hierarchy](./pics/stages/Stage/execute_activity.png)
+![hierarchy](./pics/stages/Stage/execute_async.png)
+![hierarchy](./pics/stages/Stage/execute_sync.png)
 
 ### Pipeline
 *Pipeline* is by subclass of Stage. the main purpose of it is to run sequence of different stages one after another.
