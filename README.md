@@ -1,7 +1,7 @@
 # pipeline.js
 pipeline.js is modular pipeline like developer tool for node.js
 
-# some one may say "I just want to write regular code and not thinking how the async code muste be organized..."
+# some one may say "I just want to write regular code and not thinking how the async code must be organized..."
 be explicit... in what you want to do, and it is nevermind how it happons it must just works... implicit in what you realy don't want to know!
 
 
