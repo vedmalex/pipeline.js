@@ -1,0 +1,2305 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"e",
+				"execute"
+			],
+			[
+				"th",
+				"throws"
+			],
+			[
+				"con",
+				"config"
+			],
+			[
+				"defa",
+				"default"
+			],
+			[
+				"emit",
+				"emitAnyway"
+			],
+			[
+				"instance",
+				"instanceof"
+			],
+			[
+				"me",
+				"message"
+			],
+			[
+				"success",
+				"success"
+			],
+			[
+				"kill",
+				"killSession"
+			],
+			[
+				"session",
+				"session"
+			],
+			[
+				"sess",
+				"sessionID"
+			],
+			[
+				"use",
+				"usersSocketPool"
+			],
+			[
+				"ki",
+				"killSession"
+			],
+			[
+				"profile",
+				"profile"
+			],
+			[
+				"sessio",
+				"session"
+			],
+			[
+				"time",
+				"timestamp"
+			],
+			[
+				"online",
+				"onlineUser"
+			],
+			[
+				"user",
+				"username"
+			],
+			[
+				"se",
+				"sessionstore"
+			],
+			[
+				"sere",
+				"secret"
+			],
+			[
+				"conf",
+				"configureIo"
+			],
+			[
+				"configure",
+				"configureIo"
+			],
+			[
+				"fun",
+				"function"
+			],
+			[
+				"new",
+				"newValue"
+			],
+			[
+				"pi",
+				"pipeline"
+			],
+			[
+				"pro",
+				"process"
+			],
+			[
+				"exec",
+				"execFile"
+			],
+			[
+				"er",
+				"error"
+			],
+			[
+				"gene",
+				"generatesApps"
+			],
+			[
+				"for",
+				"forEach"
+			],
+			[
+				"GENERA",
+				"generatesApps"
+			],
+			[
+				"E",
+				"ExtMobile"
+			],
+			[
+				"ns",
+				"nsLRoot"
+			],
+			[
+				"nsL",
+				"nsLRoot"
+			],
+			[
+				"thing",
+				"things"
+			],
+			[
+				"ge",
+				"genUtils"
+			],
+			[
+				"names",
+				"namespace"
+			],
+			[
+				"state",
+				"states"
+			],
+			[
+				"st",
+				"style"
+			],
+			[
+				"staet",
+				"stateMachine"
+			],
+			[
+				"thin",
+				"thing"
+			],
+			[
+				"sta",
+				"stateMachine"
+			],
+			[
+				"xss",
+				"xssField"
+			],
+			[
+				"proper",
+				"properties"
+			],
+			[
+				"conte",
+				"context"
+			],
+			[
+				"firstPAge",
+				"firstPage"
+			],
+			[
+				"pa",
+				"passReqToCallback"
+			],
+			[
+				"Pro",
+				"Profiles"
+			],
+			[
+				"pat",
+				"path"
+			],
+			[
+				"templ",
+				"template"
+			],
+			[
+				"templa",
+				"templates"
+			],
+			[
+				"call",
+				"callback"
+			],
+			[
+				"worker",
+				"worker"
+			],
+			[
+				"work",
+				"worker"
+			],
+			[
+				"en",
+				"ensure"
+			],
+			[
+				"Con",
+				"ControllerContext"
+			],
+			[
+				"sor",
+				"sortPr"
+			],
+			[
+				"so",
+				"sortProperty"
+			],
+			[
+				"loa",
+				"load"
+			],
+			[
+				"get",
+				"getValue"
+			],
+			[
+				"sche",
+				"schemaFolder"
+			],
+			[
+				"backup",
+				"backupFolderName"
+			],
+			[
+				"schema",
+				"schemaFolder"
+			],
+			[
+				"folder",
+				"folderSchema"
+			],
+			[
+				"diff",
+				"diffLines"
+			],
+			[
+				"cmp",
+				"cmpRes"
+			],
+			[
+				"len",
+				"length"
+			],
+			[
+				"re",
+				"removedLen"
+			],
+			[
+				"REM",
+				"removedLen"
+			],
+			[
+				"lo",
+				"looseEq"
+			],
+			[
+				"remove",
+				"removedCnt"
+			],
+			[
+				"remo",
+				"removedLen"
+			],
+			[
+				"add",
+				"addedCnt"
+			],
+			[
+				"unchanged",
+				"unchangedCnt"
+			],
+			[
+				"adde",
+				"addedLen"
+			],
+			[
+				"s",
+				"stringify"
+			],
+			[
+				"js",
+				"jsdiff"
+			],
+			[
+				"l",
+				"list"
+			],
+			[
+				"ol",
+				"folderSchemaOld"
+			],
+			[
+				"default",
+				"defaults"
+			],
+			[
+				"too",
+				"toolbars"
+			],
+			[
+				"defau",
+				"defaultMerger"
+			],
+			[
+				"defaul",
+				"defaults"
+			],
+			[
+				"Object",
+				"object"
+			],
+			[
+				"is",
+				"isHash"
+			],
+			[
+				"from",
+				"fromToolbar"
+			],
+			[
+				"b",
+				"bTrue"
+			],
+			[
+				"dump",
+				"dump_old"
+			],
+			[
+				"register",
+				"registerWorker"
+			],
+			[
+				"Select",
+				"selectProfile"
+			],
+			[
+				"registe",
+				"registerWorker"
+			],
+			[
+				"check",
+				"checkUser"
+			],
+			[
+				"rege",
+				"regexp"
+			],
+			[
+				"cons",
+				"console"
+			],
+			[
+				"ens",
+				"ensureTemplate"
+			],
+			[
+				"proil",
+				"profile"
+			],
+			[
+				"tep",
+				"template"
+			],
+			[
+				"mer",
+				"mergeParent"
+			],
+			[
+				"Err",
+				"error"
+			],
+			[
+				"numbe",
+				"numberfield"
+			],
+			[
+				"compi",
+				"compileRoute"
+			],
+			[
+				"a",
+				"aliases"
+			],
+			[
+				"Re",
+				"registerController"
+			],
+			[
+				"route",
+				"routes"
+			],
+			[
+				"temp",
+				"templateList"
+			],
+			[
+				"require",
+				"requires"
+			],
+			[
+				"te",
+				"template"
+			],
+			[
+				"tem",
+				"template"
+			],
+			[
+				"client",
+				"clientMethods"
+			],
+			[
+				"star",
+				"startRaw"
+			],
+			[
+				"end",
+				"endRaw"
+			],
+			[
+				"file",
+				"fileName"
+			],
+			[
+				"c",
+				"c1"
+			],
+			[
+				"compile",
+				"compileLight"
+			],
+			[
+				"cop",
+				"compile"
+			],
+			[
+				"r",
+				"rq"
+			],
+			[
+				"req",
+				"reqList"
+			],
+			[
+				"fo",
+				"force"
+			],
+			[
+				"ali",
+				"alias"
+			],
+			[
+				"alia",
+				"aliases"
+			],
+			[
+				"reuire",
+				"require"
+			],
+			[
+				"fi",
+				"fileName"
+			],
+			[
+				"v",
+				"vm"
+			],
+			[
+				"make",
+				"makeBlock"
+			],
+			[
+				"Templ",
+				"TemplateFactory"
+			],
+			[
+				"blo",
+				"blocks"
+			],
+			[
+				"prop",
+				"propName"
+			],
+			[
+				"ret",
+				"ret"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/tools.js",
+			"settings":
+			{
+				"buffer_size": 3418,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/markdown.js",
+			"settings":
+			{
+				"buffer_size": 34316,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/data.js",
+			"settings":
+			{
+				"buffer_size": 12072,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "Searching 5 files for \"markdown.js\"\n\n0 matches across 0 files\n\n\nSearching 10 files for \"markdown.js\"\n\n0 matches across 0 files\n\n\nSearching 10 files for \"markdown\"\n\n/home/vedanta-krit/Work/wheat/README.markdown:\n    3: Wheat is a blogging engine that reads a git repo full of markdown articles and presents them as a website.\n\n/home/vedanta-krit/Work/wheat/lib/wheat/data.js:\n    8: function preProcessMarkdown(markdown) {\n    9:   if (!(typeof markdown === 'string')) {\n   10:     markdown = markdown.toString();\n   16:   while(match = markdown.match(/^([a-z]+):\\s*(.*)\\s*\\n/i)) {\n   19:     markdown = markdown.substr(match[0].length);\n   22:   props.markdown = markdown;\n   26:   props.snippets = (markdown.match(/(\\r\\n|\\n)<[^<>:\\s]+\\.[a-z]{2,4}(\\*|[#].+)?>(\\r\\n|\\n)/g) || []).map(\n  211:       function getArticleMarkdown() {\n  212:         Git.readFile(version, \"articles/\" + name + \".markdown\", this);\n  214:       function (err, markdown) {\n  216:         props = preProcessMarkdown(markdown);\n  254:         Git.log(\"articles/\" + name + \".markdown\", this.parallel());\n  285:       function getAuthorMarkdown() {\n  290:         Git.readFile(version, \"authors/\" + name + \".markdown\", this);\n  292:       function process(err, markdown) {\n  294:         return preProcessMarkdown(markdown);\n  314:           if (!(/\\.markdown$/.test(filename))) {\n  317:           var name = filename.replace(/\\.markdown$/, '');\n  348:           if (!(/\\.markdown$/.test(filename))) {\n  351:           var name = filename.replace(/\\.markdown$/, '');\n  381:           if (!(/\\.markdown$/.test(filename))) {\n  384:           var name = filename.replace(/\\.markdown$/, '');\n\n/home/vedanta-krit/Work/wheat/lib/wheat/markdown.js:\n    2: // showdown.js -- A javascript port of Markdown.\n    6: // Original Markdown Copyright (c) 2004-2005 John Gruber\n    7: //   <http://daringfireball.net/projects/markdown/>\n   23: // of the Perl version of Markdown.\n   30: // More importantly, Showdown behaves like markdown.pl in most\n   42: // this file with markdown.pl in a useful way.  A little tweaking\n   43: // helps: in a copy of markdown.pl, replace \"#\" with \"//\" and\n   52: //   var text = \"Markdown *rocks*.\";\n   54: //   var markdown = require(\"markdown\");\n   55: //   var html = markdown.encode(text);\n   97:     // magic in Markdown will work.\n  348: 	// We already ran _HashHTMLBlocks() before, in Markdown(), but that\n  349: 	// was to escape raw HTML in the original Markdown source. This time,\n  390: // don't conflict with their use in Markdown for code, italics and strong.\n  408: // Turn Markdown link shortcuts into XHTML <a> tags.\n  539: // Turn Markdown image shortcuts into <img> tags.\n  626: 	// attacklab: Markdown.pl adds empty title attributes to images.\n  782: 	// an aspect of Markdown's syntax that's hard to parse perfectly\n  835: //  Process Markdown `<pre><code>` blocks.\n  936: // Encode/escape certain characters inside Markdown code runs.\n  938: // and lose their special Markdown meanings.\n  941: 	// entities within a Markdown code span.\n  948: 	// Now, escape characters that are magic in Markdown:\n 1283: exports.encode = exports.markdown = function (src) {\n 1290:         system.stdout.write(exports.markdown(system.stdin.read())).flush();\n 1296:             system.fs.write(out, exports.markdown(system.fs.read(arg)));\n\n/home/vedanta-krit/Work/wheat/lib/wheat/renderers.js:\n   91: function insertSnippets(markdown, snippets, callback) {\n  100:         markdown = markdown.replace(snippet.original, html);\n  102:       return markdown;\n  117:         Git.readFile(head, \"description.markdown\", this.parallel());\n  149:           insertSnippets(article.markdown, article.snippets, group());\n  152:       function applyTemplate(err, markdowns) {\n  154:         markdowns.forEach(function (markdown, i) {\n  155:           articles[i].markdown = markdown;\n  182:         insertSnippets(article.markdown, article.snippets, this.parallel());\n  183:         Git.readFile(head, \"description.markdown\", this.parallel());\n  185:       function applyTemplate(err, markdown, description) {\n  187:         article.markdown = markdown;\n  213:         Git.readFile(head, \"description.markdown\", this.parallel());\n\n/home/vedanta-krit/Work/wheat/lib/wheat/tools.js:\n    3:     Markdown = require('./markdown'),\n   11:   intro: function intro(markdown) {\n   12:     var html = Markdown.encode(markdown);\n   15:   markdownEncode: function markdownEncode(markdown) {\n   16:     return Markdown.encode(markdown+\"\");\n\n83 matches across 5 files\n\n\nSearching 163 files for \"markdownEncode\"\n\n/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/tools.js:\n   15:   markdownEncode: function markdownEncode(markdown) {\n\n2 matches in 1 file\n\n\nSearching 682 files for \"markdownEncode\"\n\n/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/tools.js:\n   15:   markdownEncode: function markdownEncode(markdown) {\n\n/home/vedanta-krit/Work/howtonode.org/skin/article.haml:\n    7:     = markdownEncode(article.markdown)\n  131:   .bubble= markdownEncode(description)\n\n/home/vedanta-krit/Work/howtonode.org/skin/feed.xml.haml:\n   17:         %description&= markdownEncode(article.markdown)\n\n/home/vedanta-krit/Work/howtonode.org/skin/index.haml:\n   15:     = markdownEncode(description)\n\n6 matches across 4 files\n",
+			"settings":
+			{
+				"buffer_size": 5314,
+				"line_ending": "Unix",
+				"name": "Find Results",
+				"scratch": true
+			}
+		},
+		{
+			"file": "/home/vedanta-krit/Work/howtonode.org/skin/article.haml",
+			"settings":
+			{
+				"buffer_size": 3702,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/renderers.js",
+			"settings":
+			{
+				"buffer_size": 8671,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/vedanta-krit/Work/howtonode.org/articles/what-is-this.markdown",
+			"settings":
+			{
+				"buffer_size": 10421,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/vedanta-krit/Work/howtonode.org/articles/object-graphs.markdown",
+			"settings":
+			{
+				"buffer_size": 5946,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"settings":
+			{
+				"buffer_size": 0,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "Packages/User/tsc-build.sublime-build",
+	"command_palette":
+	{
+		"height": 392.0,
+		"selected_items":
+		[
+			[
+				"Package Control: ",
+				"Package Control: Disable Package"
+			],
+			[
+				"nj",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"ena",
+				"Package Control: Enable Package"
+			],
+			[
+				"peg",
+				"Set Syntax: PEGjs"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"java",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"html",
+				"Set Syntax: HTML"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Control: insta",
+				"Package Control: Install Package"
+			],
+			[
+				"dis",
+				"Package Control: Disable Package"
+			],
+			[
+				"Package Control: ins",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Control: in",
+				"Package Control: Install Package"
+			],
+			[
+				"tj",
+				"Set Syntax: TaskJuggler III"
+			],
+			[
+				"instal",
+				"Package Control: Install Package"
+			],
+			[
+				"ja",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"tas",
+				"Set Syntax: TaskJuggler III"
+			],
+			[
+				"nhtm",
+				"Set Syntax: nHTML"
+			],
+			[
+				"njava",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"Package Control:",
+				"Package Control: Install Package"
+			],
+			[
+				"type",
+				"Compile TypeScript"
+			],
+			[
+				"typs",
+				"Compile TypeScript"
+			],
+			[
+				"ty",
+				"Compile TypeScript"
+			],
+			[
+				"nJa",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nJ",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nh",
+				"Set Syntax: nHTML"
+			],
+			[
+				"nhm",
+				"Set Syntax: nHTML"
+			],
+			[
+				"nHTML",
+				"Set Syntax: nHTML"
+			],
+			[
+				"nJS",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nHTM",
+				"Set Syntax: nHTML"
+			],
+			[
+				"n",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nH",
+				"Set Syntax: nHTML"
+			],
+			[
+				"m",
+				"Set Syntax: Markdown"
+			],
+			[
+				"Java",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"javaScri",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"JAva",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"nJAva",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nja",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nJava",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nJasa",
+				"Set Syntax: JavaScript (Rails)"
+			],
+			[
+				"mark",
+				"Set Syntax: Markdown"
+			],
+			[
+				"nJav",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nJA",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nJsa",
+				"Set Syntax: JSON Generic Array"
+			],
+			[
+				"toc",
+				"MarkdownTOC:Insert TOC"
+			],
+			[
+				"TO",
+				"MarkdownTOC:Insert TOC"
+			],
+			[
+				"markdownTo",
+				"MarkdownTOC:Insert TOC"
+			],
+			[
+				"update",
+				"MarkdownTOC:Update TOC"
+			],
+			[
+				"inse",
+				"MarkdownTOC:Insert TOC"
+			],
+			[
+				"mard",
+				"Markdown Preview: Github Flavored Markdown: Preview in Browser"
+			],
+			[
+				"Ja",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"nHm",
+				"Set Syntax: nHTML"
+			],
+			[
+				"nah",
+				"Set Syntax: HTML"
+			],
+			[
+				"nHM",
+				"Set Syntax: nHTML"
+			],
+			[
+				"NjAVA",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"J",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"javaS",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"javaScript",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"javas",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"nava",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"ma",
+				"Set Syntax: MultiMarkdown"
+			],
+			[
+				"bas",
+				"Set Syntax: Shell Script (Bash)"
+			],
+			[
+				"she",
+				"Set Syntax: Shell Script (Bash)"
+			],
+			[
+				"nht",
+				"Set Syntax: nHTML"
+			],
+			[
+				"mak",
+				"Set Syntax: MultiMarkdown"
+			],
+			[
+				"scr",
+				"Set Syntax: Shell Script (Bash)"
+			],
+			[
+				"bash",
+				"Set Syntax: Shell Script (Bash)"
+			],
+			[
+				"nJs",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"te",
+				"Set Syntax: Plain Text"
+			],
+			[
+				"ejs",
+				"Set Syntax: EJS"
+			],
+			[
+				"multi",
+				"Set Syntax: MultiMarkdown"
+			],
+			[
+				"mul",
+				"Set Syntax: MultiMarkdown"
+			],
+			[
+				"Mul",
+				"Set Syntax: MultiMarkdown"
+			],
+			[
+				"mar",
+				"Set Syntax: Markdown"
+			],
+			[
+				"sublime",
+				"Set Syntax: Sublime Text Syntax Definition"
+			],
+			[
+				"muti",
+				"Set Syntax: MultiMarkdown"
+			],
+			[
+				"mu",
+				"Set Syntax: MultiMarkdown"
+			],
+			[
+				"Nj",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nHtml",
+				"Set Syntax: nHTML"
+			],
+			[
+				"njav",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"nhtml",
+				"Set Syntax: nHTML"
+			],
+			[
+				"snippe",
+				"Set Syntax: Sublime Text Snippet (Raw)"
+			],
+			[
+				"njs",
+				"Set Syntax: nJavaScript"
+			],
+			[
+				"njst",
+				"Set Syntax: njst"
+			],
+			[
+				"EJS",
+				"Set Syntax: EJS"
+			],
+			[
+				"jst",
+				"Set Syntax: njst"
+			],
+			[
+				"ECT",
+				"Set Syntax: ECT <%"
+			],
+			[
+				"sublime tes",
+				"Set Syntax: Sublime Text Syntax Definition"
+			],
+			[
+				"json",
+				"Set Syntax: JSON"
+			],
+			[
+				"for",
+				"Snippet: for (…) {…} (Improved Native For-Loop)"
+			],
+			[
+				"reide",
+				"Indentation: Reindent Lines"
+			],
+			[
+				"show",
+				"Show TODOs: Open files only"
+			],
+			[
+				"shoe",
+				"Show TODOs: Project and open files"
+			],
+			[
+				"sho",
+				"Show TODOs: Open files only"
+			],
+			[
+				"Package Control:in",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 647.0
+	},
+	"console":
+	{
+		"height": 220.0,
+		"history":
+		[
+			"python",
+			"import urllib.request,os,hashlib; h = '7183a2d3e96f11eeadd761d777e62404' + 'e330c659d4bb41d3bdf022e94cab3cd0'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)",
+			"import urllib2,os; pf='Package Control.sublime-package'; ipp=sublime.installed_packages_path(); os.makedirs(ipp) if not os.path.exists(ipp) else None; urllib2.install_opener(urllib2.build_opener(urllib2.ProxyHandler())); open(os.path.join(ipp,pf),'wb').write(urllib2.urlopen('http://sublime.wbond.net/'+pf.replace(' ','%20')).read()); print('Please restart Sublime Text to finish installation')"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": true,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": true,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/vedanta-krit/Work/wheat/lib/wheat/tools.js",
+		"/home/vedanta-krit/Work/wheat/lib/wheat/markdown.js",
+		"/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/renderers.js",
+		"/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/prettify.js",
+		"/home/vedanta-krit/Work/howtonode.org/skin/snippet.haml",
+		"/home/vedanta-krit/Work/howtonode.org/articles/simplifying-chores-with-grunt.markdown",
+		"/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat.js",
+		"/home/vedanta-krit/Work/howtonode.org/README.markdown",
+		"/home/vedanta-krit/Work/howtonode.org/articles/hello-node.markdown",
+		"/home/vedanta-krit/Work/howtonode.org/skin/public/volcano.less",
+		"/var/lib/grainjs/node_modules/pipeline.js/lib/stage.js",
+		"/var/lib/grainjs/node_modules/twostep/lib/twoStep.js",
+		"/home/vedanta-krit/Work/pipeline.js/index.js",
+		"/home/vedanta-krit/Work/fTE.js/node_modules/mocha/lib/runnable.js",
+		"/home/vedanta-krit/Work/pipeline.js/lib/stage.js",
+		"/home/vedanta-krit/Work/pipeline.js/lib/ifelse.js",
+		"/home/vedanta-krit/Work/pipeline.js/lib/context.js",
+		"/home/vedanta-krit/Work/pipeline.js/lib/multywayswitch.js",
+		"/home/vedanta-krit/Work/pipeline.js/lib/parallel.js",
+		"/var/lib/grainjs/lib/h2e4.js",
+		"/home/vedanta-krit/Work/pipeline.js/lib/pipeline.js",
+		"/home/vedanta-krit/Work/pipeline.js/lib/sequential.js",
+		"/var/lib/grainjs/generators/extjs/thing.classic.njs",
+		"/var/lib/grainjs/web/routes/login.js",
+		"/var/lib/grainjs/server.js",
+		"/var/lib/grainjs/app.gen/schema/Meta/DestThingRelationSettings.js",
+		"/var/lib/grainjs/app.gen/schema/Application/ScreenThingRef.js",
+		"/home/vedanta-krit/Work/grainTest/grainjs/app.gen/schema/Application/ScreenThingRef.js",
+		"/var/lib/grainjs/grainjsdbg.sh",
+		"/var/lib/grainjs/grainjs.sh",
+		"/var/lib/grainjs/app/direct/userMonitor.js",
+		"/var/lib/grainjs/app.gen/schema/Abstraction/Cardinality.js",
+		"/var/lib/grainjs/app.gen/schema/Meta/Direct.js",
+		"/var/lib/grainjs/app.gen/schema/Application/ScreenThingCalendar.js",
+		"/home/vedanta-krit/Work/grainTest/grainjs/app.gen/direct/Application/ScreenThingRef.js",
+		"/var/lib/grainjs/generators/extjs/schema.item.njs",
+		"/var/lib/grainjs/web/pipes/SelectProfile.js",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/pipes/SelectProfile.js",
+		"/var/lib/grainjs/web/views/logoff.nhtml",
+		"/home/vedanta-krit/Work/grainTest/grainjs/app.gen/direct/Meta/Direct.js",
+		"/var/lib/grainjs/grainjsdb.sh",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/templates/bootstrap/Tabs.nhtml",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/pageContainer.nhtml",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/templates/bootstrap/NavbarSelectableHorizontal.nhtml",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/login.checkUser.selectProfile.nhtml",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/redirect404.nhtml",
+		"/var/lib/grainjs/web/views/templates/bootstrap/NavbarSelectableHorizontal.nhtml",
+		"/var/lib/grainjs/web/views/templates/bootstrap/redirect.nhtml",
+		"/var/lib/grainjs/web/views/login.checkUser.nhtml",
+		"/var/lib/grainjs/web/views/login.checkUser.selectProfile.nhtml",
+		"/var/lib/grainjs/web/pipes/CheckUser.js",
+		"/var/lib/grainjs/web/views/login.checkUser.scripts.nhtml",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/login.checkUser.scripts.nhtml",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/redirection.nhtml",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/pipes/client/currentProject.js",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/client/CompletedProjects.nhtml",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/client/CurrentProject.nhtml",
+		"/home/vedanta-krit/Work/grainTest/grainjs/schema/Meta.Thing/Application.UserOnline.js",
+		"/home/vedanta-krit/Work/grainTest/grainjs/schema/Meta.Thing/Application.UserActivityLog.js",
+		"/var/lib/grainjs/public/ticker/ticker.js",
+		"/var/lib/grainjs/app/statics/Application.ejs",
+		"/var/lib/grainjs/public/HashedArray.js",
+		"/var/lib/grainjs/app/direct/userLastLogin.js",
+		"/var/lib/grainjs/web/lib/middleware.js",
+		"/var/lib/grainjs/web/lib/registerController.js",
+		"/home/vedanta-krit/Work/grainTest/grainjs/app.gen/direct/Application/Config.js",
+		"/home/vedanta-krit/Work/grainTest/grainjs/web/routes/killSession.js",
+		"/var/lib/grainjs/public/bootstrapper/relations.js",
+		"/var/lib/grainjs/generators/extjs/ext.store.njs",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/pipes/client/account.js",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/pipes/client/dashboard.js",
+		"/var/lib/grainjs/app/controller/Modeleditor.js",
+		"/var/lib/grainjs/generators/extjs/application.view-toolbar.njs",
+		"/var/lib/grainjs/profiles/default/ToolBar.js",
+		"/var/lib/grainjs/web/pipes/logoff.js",
+		"/var/lib/grainjs/strategy.js",
+		"/home/vedanta-krit/Work/newReps/newatlantis/app.public/extjs/profiles/default/things/Atlantis/CollectionPointTour.js",
+		"/var/lib/grainjs/app/direct/UserLastLogin.js",
+		"/home/vedanta-krit/Work/grainTest/grainjs/app/UserLastLogin.js",
+		"/home/vedanta-krit/Work/grainTest/grainjs/app.gen/direct/UserLastLogin.js",
+		"/home/vedanta-krit/Downloads/page_174.swf.txt",
+		"/home/vedanta-krit/Downloads/page_174.swf",
+		"/home/vedanta-krit/Work/grainTest/grainjs/web/views/sessionKillResult.nhtml",
+		"/var/lib/grainjs/TODO",
+		"/home/vedanta-krit/Work/grainTest/grainjs/schema/Application.User/user.js",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/public/js/upload.js",
+		"/var/lib/grainjs/socket-server/register.js",
+		"/var/lib/grainjs/node_modules/socket.io/lib/manager.js",
+		"/var/lib/grainjs/node_modules/express/node_modules/connect/node_modules/express-session/index.js",
+		"/var/lib/grainjs/app.js",
+		"/var/lib/grainjs/node_modules/connect-mongo/lib/connect-mongo.js",
+		"/var/lib/grainjs/web/views/pageContainer.nhtml",
+		"/home/vedanta-krit/Downloads/BOOTCAT.INI",
+		"/media/vedanta-krit/ZVERUSB/MENU.LST",
+		"/var/lib/grainjs/app.gen/schema/Application/User.js",
+		"/home/vedanta-krit/Work/grainTest/grainjs/schema/Meta.Thing/Meta.AuditTrail.js",
+		"/var/lib/grainjs/node_modules/passport.socketio/lib/index.js",
+		"/var/lib/grainjs/web/views/templates/bootstrap/PageContainerWithHeaderFooter.nhtml",
+		"/var/lib/grainjs/web/views/templates/bootstrap/BottomNavbar.nhtml",
+		"/var/lib/grainjs/node_modules/socket.io/Readme.md",
+		"/var/lib/grainjs/web/views/templates/bootstrap/Navbar.nhtml",
+		"/var/lib/grainjs/web/views/login.nhtml",
+		"/var/lib/grainjs/node_modules/passport.socketio/test/fixture/index.js",
+		"/var/lib/grainjs/node_modules/passport.socketio/test/authorizer.withSuccess.test.js",
+		"/var/lib/grainjs/generators/codeTemplates/serverSideModule.js",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/client/Account.nhtml",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/MessageOpen.scripts.nhtml",
+		"/home/vedanta-krit/Work/newReps/Sharan/app/statics/Application.ejs",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/web/lib/queries.account.js",
+		"/var/lib/grainjs/app/direct/serverTrans.js",
+		"/home/vedanta-krit/Work/newReps/newatlantis/app/direct/Atlantis/Order.js",
+		"/var/lib/grainjs/web/pipes/topNavbarEmpty.js",
+		"/var/lib/grainjs/web/pipes/topNavbar.js",
+		"/var/lib/grainjs/web/views/templates/bootstrap/NavbarContainer.nhtml",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/node_modules/psd.js/node_modules/coffee-script/.npmignore",
+		"/home/vedanta-krit/Work/Logoworks/Logoworks/node_modules/coffee-script/.npmignore",
+		"/home/vedanta-krit/Work/newReps/newatlantis/app/direct/Atlantis/Tour.js",
+		"/var/lib/grainjs/node_modules/js-schema/package.json",
+		"/home/vedanta-krit/Work/disciplesDb/app/view/DisciplesApp/Edit/default/Modeleditor.view.DisciplesApp.Edit.Disciple.js",
+		"/var/lib/grainjs/generators/make.application.js",
+		"/var/lib/grainjs/generators/application.gen.js",
+		"/var/lib/grainjs/generators/generateAll.js",
+		"/var/lib/grainjs/updateStatics.js",
+		"/var/lib/grainjs/node_modules/pipeline.js/test/base.test.js",
+		"/var/lib/grainjs/install.sh",
+		"/var/lib/grainjs/grain.js",
+		"/var/lib/grainjs/app/controller/Login.js",
+		"/home/vedanta-krit/Downloads/Dhanurdhara_Swami_volny_predannosti/Дханурдхара Свами - Волны преданности.txt"
+	],
+	"find":
+	{
+		"height": 35.0
+	},
+	"find_in_files":
+	{
+		"height": 93.0,
+		"where_history":
+		[
+			"/home/vedanta-krit/Work/howtonode.org",
+			"/home/vedanta-krit/Work/howtonode.org/node_modules/wheat",
+			"/home/vedanta-krit/Work/wheat",
+			"/home/vedanta-krit/Work/wheat/lib/wheat",
+			"/home/vedanta-krit/Work/howtonode.org/node_modules/wheat",
+			"/home/vedanta-krit/Work/howtonode.org/skin",
+			"/home/vedanta-krit/Work/howtonode.org",
+			"/home/vedanta-krit/Work/howtonode.org/node_modules",
+			"/home/vedanta-krit/Work/howtonode.org",
+			"/home/vedanta-krit/Work/howtonode.org/node_modules/wheat",
+			"/home/vedanta-krit/Work/howtonode.org",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/app.gen",
+			"/var/lib/grainjs/lib",
+			"/home/vedanta-krit/Work/newReps/Sharan/schema",
+			"/var/lib/grainjs/generators/extjs",
+			"/home/vedanta-krit/Work/pipeline.js/lib",
+			"/var/lib/grainjs/app.gen",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/pipes",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views",
+			"/var/lib/grainjs/web/views",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/web/views",
+			"/var/lib/grainjs/generators",
+			"/var/lib/grainjs/public/bootstrapper",
+			"/var/lib/grainjs/public",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs/node_modules/socket.io",
+			"/var/lib/grainjs/web/views",
+			"/var/lib/grainjs/node_modules/socket.io",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs/node_modules/express",
+			"/home/vedanta-krit/Work/newReps/Sharan",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/public",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/public",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs/web/views",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/app",
+			"/var/lib/grainjs/generators",
+			"/home/vedanta-krit/Work/newReps/newatlantis/applications/Atlantis",
+			"/var/lib/grainjs/node_modules/pipeline.js",
+			"/var/lib/grainjs",
+			"/home/vedanta-krit/Work/newReps/newatlantis",
+			"/home/vedanta-krit/Work/newReps/Sharan/applications/Sharan",
+			"/home/vedanta-krit/Work/newReps/Sharan",
+			"/home/vedanta-krit/Work/grainTest/grainjs/app.public",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/templates/bootstrap",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/routes",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/routes",
+			"/var/lib/grainjs/generators/uml2",
+			"/var/lib/grainjs/generators",
+			"/var/lib/grainjs/schemaExport",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs/web/views",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views/templates/bootstrap",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/pipes",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/routes",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs/web/views",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/web",
+			"/var/lib/grainjs",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/views",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web/pipes",
+			"/home/vedanta-krit/Work/Logoworks/Logoworks/web",
+			"/var/lib/grainjs/node_modules/mongoose/lib",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/app",
+			"/home/vedanta-krit/Work/grainTest/grainjs/app.gen",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/schema",
+			"/home/vedanta-krit/Work/grainTest/grainjs/app.gen",
+			"/var/lib/grainjs/app.gen",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/lib",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/pipe",
+			"/var/lib/grainjs",
+			"/var/lib/grainjs/generators",
+			"/var/lib/grainjs/schema",
+			"/var/lib/grainjs/app.gen",
+			"/var/lib/grainjs/schema",
+			"/home/vedanta-krit/Work/newReps/Sharan/schema",
+			"/home/vedanta-krit/Work/newReps/Sharan",
+			"/var/lib/grainjs/schema",
+			"/var/lib/grainjs/pipe"
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"exports",
+			"fullArticle",
+			"markdownEncode",
+			"encode",
+			"Markdown",
+			"markdown",
+			"markdown.js",
+			"exports",
+			"activateSnippets",
+			"sandbox",
+			"preProcessMarkdown",
+			"sandbox",
+			"debugger",
+			"debugger	",
+			"debugger",
+			"slice",
+			"loadExtras",
+			"activateSnippets",
+			"sandbox",
+			"Data",
+			"fullArticle",
+			"insertSnippets",
+			"snippet",
+			"output",
+			".js*",
+			"evaluate",
+			"*>",
+			"\\*>",
+			"\\*\\>",
+			"*>",
+			"output",
+			"dot",
+			"js",
+			"TransactionCache",
+			"var TransactionCache = trans.TransactionCache",
+			"context",
+			"ensureWeb",
+			"init",
+			"showAppSrc",
+			"app.public",
+			"global[\\\"stateMachineHash\\\"]",
+			"global[\"stateMachineHash\"]",
+			"getStatus",
+			"пetStatus",
+			".getStatus",
+			"downloadFile",
+			"describe",
+			"context",
+			"clone",
+			"setCurrentStackName",
+			"defaults",
+			"function",
+			"defaults",
+			"default",
+			"debugger",
+			"RUN",
+			"defaults",
+			"evaluate",
+			"condition",
+			"describe",
+			"Stage.apply(self);",
+			"throw new Error('constructor is not a function');",
+			"parallel",
+			"throw",
+			"pipeline",
+			"debugger",
+			"Stage",
+			"\n			",
+			"localDoneOverdue",
+			"if",
+			"this",
+			"return",
+			"this",
+			"failed",
+			"Timeout",
+			"IfElse",
+			"directWorker",
+			"directWor",
+			"alreadyOverriden",
+			"Application.ScreenItemBase",
+			"debug",
+			"loginPanel",
+			"redirection.",
+			"redirection",
+			"url",
+			"redirect\"",
+			"redirect'",
+			"redirect.",
+			"updateDisplay",
+			"selectProfile",
+			"profDispName",
+			"redirect.nhtml",
+			"redirect",
+			"tabs",
+			"NavbarSelectableHorizontal",
+			"tabs",
+			"readOnly",
+			"store",
+			"page",
+			"store",
+			"staticStore",
+			"store",
+			"static",
+			"user",
+			"Ext.message",
+			"icon-signout",
+			"workerList",
+			"registerWorker",
+			"ensureTemplate",
+			"errorExtractor",
+			"defaultSuccess",
+			"ensure",
+			"User",
+			"user",
+			"session",
+			"authenticate",
+			"registerController",
+			"killSession",
+			"online",
+			"passport",
+			"init",
+			"basic",
+			"LocalStrategy",
+			"ensure",
+			"init",
+			"socket.io",
+			"logActivity",
+			"log"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"var middleware = require(RESOLVEONE('web/lib/middleware.js'));",
+			"RESOLVEONE('web/lib/middleware.js')",
+			"ctx.$options.req",
+			"$$$defaultProfile",
+			"",
+			"{\n	strict: 1,\n	loose: 1,\n	structure: 1,\n	diff: 1\n}",
+			"Compare",
+			"\"name\":",
+			"//\"labelAlign",
+			"//labelAlign",
+			"Grainjs",
+			"\"app.",
+			"app",
+			"'app.",
+			"'qb",
+			".qb",
+			"QB",
+			"\\u",
+			" \\u",
+			"type: StringRef",
+			"",
+			"'",
+			"",
+			"uml",
+			"UML:",
+			"Meta",
+			"Relation",
+			"DepCreates",
+			"Thing",
+			"$1",
+			"../public/images",
+			"../images/uncheckbox.png",
+			"db",
+			"grain-ria-desktop",
+			"sencha-desktop",
+			"generators",
+			" \n \n",
+			" ",
+			".\n\n\n",
+			"",
+			"getValue(\"$1\",settings)",
+			"getValue(\"$1\",item)",
+			"getValue(\"$1\",item),",
+			"",
+			"get",
+			"getItems(load)",
+			".make(100)",
+			"false",
+			"}],",
+			"},",
+			" ",
+			"",
+			"relations",
+			"",
+			"--",
+			"",
+			";",
+			"-> object",
+			"",
+			"max-age=0",
+			"",
+			"intact",
+			"= src[prop] ? src[prop].length : 0;",
+			"for",
+			"",
+			"Client",
+			"",
+			"\"",
+			"",
+			"/",
+			"",
+			"ipel",
+			"$$$Namespace",
+			"// debugger",
+			");\\nE",
+			"root",
+			"1",
+			"\"",
+			"pathlib",
+			"helpers.resolveNames",
+			"if (err) console.log(err);",
+			"<work folder>",
+			"\"",
+			"\"$ne\"",
+			"",
+			"property",
+			"\\);\\n var",
+			"\\);\\n",
+			"\\),\\n var",
+			"prototype.schema",
+			".exec(",
+			"prototype.schema",
+			"var db = null;",
+			"Array.isArray",
+			"fs.exists",
+			"**",
+			"**КОММЕНТАРИЙ**:",
+			"\\t",
+			">",
+			"ТЕКСТ",
+			"*КОММЕНТАРИЙ:*",
+			"КОММЕНТАРИЙ",
+			"\\n\\n",
+			" ",
+			"NL",
+			"\\n\\n",
+			"\\n",
+			"\\r\\nNL\\r\\n",
+			"\\nNL\\n",
+			"",
+			"\\n\\n",
+			"",
+			"NL",
+			" ",
+			"",
+			"\\n\\n",
+			"",
+			"\\n\\n",
+			"",
+			"\\n",
+			"##ГЛАВА",
+			"###TЕКСT",
+			"\\n\\n",
+			"###TEKCT",
+			"\\n\\t",
+			"path.",
+			"resultExport.",
+			"= "
+		],
+		"reverse": false,
+		"show_context": false,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/tools.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3418,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								536,
+								536
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/markdown.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 34316,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								33042,
+								33042
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 22611.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/data.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 12072,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4369,
+								4369
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": -0.0,
+						"translation.y": 1993.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5314,
+						"regions":
+						{
+							"match":
+							{
+								"flags": 112,
+								"regions":
+								[
+									[
+										275,
+										283
+									],
+									[
+										401,
+										409
+									],
+									[
+										410,
+										418
+									],
+									[
+										444,
+										452
+									],
+									[
+										481,
+										489
+									],
+									[
+										492,
+										500
+									],
+									[
+										536,
+										544
+									],
+									[
+										592,
+										600
+									],
+									[
+										603,
+										611
+									],
+									[
+										652,
+										660
+									],
+									[
+										663,
+										671
+									],
+									[
+										700,
+										708
+									],
+									[
+										816,
+										824
+									],
+									[
+										889,
+										897
+									],
+									[
+										935,
+										943
+									],
+									[
+										980,
+										988
+									],
+									[
+										989,
+										997
+									],
+									[
+										1046,
+										1054
+									],
+									[
+										1106,
+										1114
+									],
+									[
+										1178,
+										1186
+									],
+									[
+										1231,
+										1239
+									],
+									[
+										1275,
+										1283
+									],
+									[
+										1284,
+										1292
+									],
+									[
+										1321,
+										1329
+									],
+									[
+										1399,
+										1407
+									],
+									[
+										1442,
+										1450
+									],
+									[
+										1520,
+										1528
+									],
+									[
+										1563,
+										1571
+									],
+									[
+										1641,
+										1649
+									],
+									[
+										1758,
+										1766
+									],
+									[
+										1787,
+										1795
+									],
+									[
+										1880,
+										1888
+									],
+									[
+										1924,
+										1932
+									],
+									[
+										1984,
+										1992
+									],
+									[
+										2029,
+										2037
+									],
+									[
+										2107,
+										2115
+									],
+									[
+										2170,
+										2178
+									],
+									[
+										2206,
+										2214
+									],
+									[
+										2226,
+										2234
+									],
+									[
+										2261,
+										2269
+									],
+									[
+										2307,
+										2315
+									],
+									[
+										2382,
+										2390
+									],
+									[
+										2453,
+										2461
+									],
+									[
+										2524,
+										2532
+									],
+									[
+										2578,
+										2586
+									],
+									[
+										2638,
+										2646
+									],
+									[
+										2702,
+										2710
+									],
+									[
+										2777,
+										2785
+									],
+									[
+										2845,
+										2853
+									],
+									[
+										2926,
+										2934
+									],
+									[
+										2979,
+										2987
+									],
+									[
+										3027,
+										3035
+									],
+									[
+										3099,
+										3107
+									],
+									[
+										3141,
+										3149
+									],
+									[
+										3212,
+										3220
+									],
+									[
+										3300,
+										3308
+									],
+									[
+										3418,
+										3426
+									],
+									[
+										3465,
+										3473
+									],
+									[
+										3476,
+										3484
+									],
+									[
+										3538,
+										3546
+									],
+									[
+										3595,
+										3603
+									],
+									[
+										3664,
+										3672
+									],
+									[
+										3743,
+										3751
+									],
+									[
+										3771,
+										3779
+									],
+									[
+										3799,
+										3807
+									],
+									[
+										3843,
+										3851
+									],
+									[
+										3854,
+										3862
+									],
+									[
+										3902,
+										3910
+									],
+									[
+										3995,
+										4003
+									],
+									[
+										4065,
+										4073
+									],
+									[
+										4113,
+										4121
+									],
+									[
+										4124,
+										4132
+									],
+									[
+										4181,
+										4189
+									],
+									[
+										4272,
+										4280
+									],
+									[
+										4294,
+										4302
+									],
+									[
+										4337,
+										4345
+									],
+									[
+										4371,
+										4379
+									],
+									[
+										4387,
+										4395
+									],
+									[
+										4407,
+										4415
+									],
+									[
+										4432,
+										4440
+									],
+									[
+										4447,
+										4455
+									],
+									[
+										4477,
+										4485
+									],
+									[
+										4493,
+										4501
+									],
+									[
+										4664,
+										4678
+									],
+									[
+										4689,
+										4703
+									],
+									[
+										4867,
+										4881
+									],
+									[
+										4892,
+										4906
+									],
+									[
+										4990,
+										5004
+									],
+									[
+										5041,
+										5055
+									],
+									[
+										5158,
+										5172
+									],
+									[
+										5260,
+										5274
+									]
+								],
+								"scope": ""
+							}
+						},
+						"selection":
+						[
+							[
+								4899,
+								4899
+							]
+						],
+						"settings":
+						{
+							"detect_indentation": false,
+							"line_numbers": false,
+							"output_tag": 5,
+							"result_base_dir": "",
+							"result_file_regex": "^([A-Za-z\\\\/<].*):$",
+							"result_line_regex": "^ +([0-9]+):",
+							"scroll_past_end": true,
+							"syntax": "Packages/Default/Find Results.hidden-tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 1782.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "/home/vedanta-krit/Work/howtonode.org/skin/article.haml",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3702,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								203,
+								203
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Rails/Ruby Haml.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "/home/vedanta-krit/Work/howtonode.org/node_modules/wheat/lib/wheat/renderers.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8671,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								5047,
+								5047
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 594.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 8,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "/home/vedanta-krit/Work/howtonode.org/articles/what-is-this.markdown",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 10421,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3942,
+								3942
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Markdown Extended/Syntaxes/Markdown Extended.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 864.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 7,
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "/home/vedanta-krit/Work/howtonode.org/articles/object-graphs.markdown",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5946,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								760,
+								760
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Markdown Extended/Syntaxes/Markdown Extended.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 0,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 27.0
+	},
+	"input":
+	{
+		"height": 29.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.GoSublime-main-output":
+	{
+		"height": 112.0
+	},
+	"output.GoSublime-source-output":
+	{
+		"height": 112.0
+	},
+	"output.MarGo-output":
+	{
+		"height": 112.0
+	},
+	"output.aaa_package_dev":
+	{
+		"height": 46.0
+	},
+	"output.exec":
+	{
+		"height": 200.0
+	},
+	"output.find_results":
+	{
+		"height": 349.0
+	},
+	"output.jslint_result_view":
+	{
+		"height": 121.0
+	},
+	"output.unsaved_changes":
+	{
+		"height": 51.0
+	},
+	"project": "Pipeline project.sublime-project",
+	"replace":
+	{
+		"height": 50.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+			[
+				"",
+				"~/Work/GrainJS-Dev.sublime-project"
+			],
+			[
+				"1",
+				"/home/Video/2013.01 - БВСМ/набор лекций.sublime-project"
+			]
+		],
+		"width": 706.0
+	},
+	"select_symbol":
+	{
+		"height": 392.0,
+		"selected_items":
+		[
+		],
+		"width": 752.0
+	},
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 357.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
