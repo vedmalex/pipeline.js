@@ -909,7 +909,7 @@ describe('Sequential', function() {
 		var stage = new Sequential({
 			stage: st,
 			rescue: function(err, conext) {
-				if (err.errors.err.message !== 'error')
+				if (err.errors[0].err.message !== 'error')
 					return err;
 			}
 		});
