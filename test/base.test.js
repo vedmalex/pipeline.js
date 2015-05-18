@@ -884,18 +884,17 @@ describe('Pipeline', function() {
 });
 
 describe('Sequential', function() {
-	it('works not with default', function(done) {
+	it('works with default', function(done) {
 		var stage = new Sequential();
 		assert(stage instanceof Stage);
 		stage.execute({}, function(err, context) {
-			assert(err);
+			assert.ifError(err);
 			done();
 		});
 
 	});
 
 	it('rescue', function(done) {
-		debugger;
 		var st = new Stage({
 			run: function(err, ctx, done) {
 				throw new Error('error');
@@ -1036,6 +1035,7 @@ describe('Parallel', function() {
 		var stage = new Parallel();
 		assert(stage instanceof Stage);
 		stage.execute({}, function(err, context) {
+			assert.ifError(err);
 			// assert.equal(context instanceof Context, true);
 			done();
 		});
@@ -1805,6 +1805,7 @@ describe('MWS', function() {
 					size: 0
 				}), function(err, ctx) {
 			assert.equal(ctx.size, 2);
+			debugger;
 			assert.equal(err instanceof Error, true);
 			done();
 		});
@@ -1995,7 +1996,6 @@ describe('MWS', function() {
 
 	it('evaluate if missing evaluate property', function(done) {
 		var pipe0 = new Pipeline([
-
 			function(err, ctx, done) {
 				ctx.cnt = 1;
 				done();
@@ -2036,7 +2036,7 @@ describe('MWS', function() {
 		sw.execute(new Context({
 			size: 0
 		}), function(err, ctx) {
-			assert.equal(ctx.size, 10);
+			assert.equal(ctx.size, 4);
 			assert.ifError(err);
 			done();
 		});
@@ -2295,6 +2295,7 @@ describe('DoWhile', function() {
 		var stage = new DoWhile();
 		assert(stage instanceof Stage);
 		stage.execute({}, function(err, context) {
+			assert.ifError(err);
 			// assert.equal(context instanceof Context, true);
 			done();
 		});
