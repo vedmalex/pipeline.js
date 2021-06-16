@@ -1,0 +1,69 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`stage create named: names stage 1`] = `
+Stage {
+  "config": Object {
+    "name": "name",
+  },
+}
+`;
+
+exports[`stage create with Config: config stage 1`] = `
+Stage {
+  "config": Object {
+    "name": "(err, ctx, done) => {
+            if (!err) {
+                ctx.name = 'run the stage';
+                done(null, ctx);
+            }
+            else {
+                done(err);
+            }
+        }",
+    "run": [Function],
+  },
+}
+`;
+
+exports[`stage create with Lambda 2: lambda stage 1`] = `
+Stage {
+  "config": Object {
+    "name": "(err, ctx) => {
+            if (!err) {
+                ctx.name = 'run the stage';
+                return Promise.resolve(ctx);
+            }
+            else {
+                return Promise.reject(err);
+            }
+        }",
+    "run": [Function],
+  },
+}
+`;
+
+exports[`stage create with Lambda 3: lambda stage 1`] = `
+Stage {
+  "config": Object {
+    "name": "(err, ctx, done) => {
+            if (!err) {
+                ctx.name = 'run the stage';
+                done(null, ctx);
+            }
+            else {
+                done(err);
+            }
+        }",
+    "run": [Function],
+  },
+}
+`;
+
+exports[`stage create with function: function stage 1`] = `
+Stage {
+  "config": Object {
+    "name": "RunStage",
+    "run": [Function],
+  },
+}
+`;
