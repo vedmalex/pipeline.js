@@ -2,11 +2,14 @@ export class ErrorList extends Error {
   errors: Array<any>
   constructor(list: Array<any> | any) {
     super('Complex Error')
-    var self = this
-    if (!(self instanceof ErrorList)) {
-      throw new Error('constructor is not a function')
+    if (Array.isArray(list)) {
+      if (list.length > 1) {
+        this.errors = Array.isArray(list) ? list : [list]
+      } else if ((list.length = 1)) {
+        return list[0]
+      }
+    } else {
+      return list
     }
-    self.message = 'Complex Error'
-    self.errors = Array.isArray(list) ? list : [list]
   }
 }

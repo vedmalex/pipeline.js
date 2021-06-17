@@ -1,5 +1,5 @@
 import 'jest'
-import { Stage } from '../stage'
+import { Stage, StageConfigSchema } from '../stage'
 
 describe('stage', () => {
   it('create named', () => {
@@ -25,6 +25,42 @@ describe('stage', () => {
       }
     })
     expect(s).toMatchSnapshot('lambda stage')
+  })
+
+  it('creates throws when both parameters validate and schema are passed', () => {
+    expect(
+      () =>
+        new Stage({
+          run: () => {},
+          schema: {},
+          validate: {},
+        } as any),
+    ).toThrow()
+  })
+
+  it('intialize using schema and validate separately', () => {
+    expect(
+      () => new Stage({ run: () => {}, validate: (_ctx: {}) => true }),
+    ).not.toThrow()
+    expect(
+      () =>
+        new Stage({
+          run: () => {},
+          schema: {},
+        }),
+    ).not.toThrow()
+  })
+
+  it('initialize other stuff sucessfully', () => {
+    let stage = new Stage({
+      run: () => {},
+      ensure: () => {},
+      rescue: () => {},
+      name: 'stage',
+    })
+    expect(stage.name).toBe('stage')
+    expect(stage.reportName).toBe(`STG:${stage.name}`)
+    expect(stage).toMatchSnapshot('schema stage 1')
   })
 
   it('create with Lambda 2', () => {

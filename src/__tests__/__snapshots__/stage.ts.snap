@@ -67,3 +67,14 @@ Stage {
   },
 }
 `;
+
+exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
+Stage {
+  "config": Object {
+    "ensure": [Function],
+    "name": "stage",
+    "run": [Function],
+  },
+  "rescue": [Function],
+}
+`;
