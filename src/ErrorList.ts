@@ -7,6 +7,8 @@ export class ErrorList extends Error {
         this.errors = Array.isArray(list) ? list : [list]
       } else if ((list.length = 1)) {
         return list[0]
+      } else {
+        return null
       }
     } else {
       return list

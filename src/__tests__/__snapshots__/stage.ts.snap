@@ -51,7 +51,7 @@ Stage {
                 done(null, ctx);
             }
             else {
-                done(err);
+                done(err, null);
             }
         }",
     "run": [Function],
@@ -71,10 +71,9 @@ Stage {
 exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
 Stage {
   "config": Object {
-    "ensure": [Function],
     "name": "stage",
+    "rescue": [Function],
     "run": [Function],
   },
-  "rescue": [Function],
 }
 `;

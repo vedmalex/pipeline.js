@@ -1,5 +1,5 @@
 import 'jest'
-import { Stage, StageConfigSchema } from '../stage'
+import { Stage } from '../stage'
 
 describe('stage', () => {
   it('create named', () => {
@@ -16,12 +16,12 @@ describe('stage', () => {
   })
 
   it('create with Lambda 3', () => {
-    const s = new Stage((err, ctx, done) => {
+    const s = new Stage<{ name: string }>((err, ctx, done) => {
       if (!err) {
         ctx.name = 'run the stage'
         done(null, ctx)
       } else {
-        done(err)
+        done(err, null)
       }
     })
     expect(s).toMatchSnapshot('lambda stage')

@@ -1,90 +1,77 @@
-import { isAsyncFunction } from 'util/types'
-import { ContextFactory, Context } from './context'
-import { is_async } from './utils/is_async'
-import { ErrorList } from './ErrorList'
+import { Context } from './context'
+import { is_func2_async, is_func3, is_func3_async } from './utils/types'
+import {
+  is_func0,
+  is_func2,
+  is_func0_async,
+  is_func1_async,
+  is_func1,
+} from './utils/types'
+import {
+  Func0Sync,
+  is_async,
+  Func0Async,
+  Func1Sync,
+  Func1Async,
+  Func2Sync,
+  Func2Async,
+  Func3Sync,
+} from './utils/types'
 
-export type CallbackFunction<T extends object> = (
-  err: Error | any,
-  result?: Context<T> | any,
-) => void
+export type Thanable<T> = {
+  then: Promise<T>['then']
+  catch: Promise<T>['catch']
+}
 
-export type SingleStageFunction<T extends object> =
-  | ((err: Error, context: Context<T>) => Promise<Context<T>>)
-  | ((err: Error, context: Context<T>, callback: CallbackFunction<T>) => void)
+export function is_thenable<T>(inp: any): inp is Thanable<T> {
+  return typeof inp == 'object' && inp.hasOwnProperty('then')
+}
 
-export type RunPipelineConfig<T extends object> =
-  | (() => void)
-  | (() => Promise<void>)
-  | ((context: Context<T>) => void)
-  | ((context: Context<T>) => Promise<Context<T>>)
-  | ((context: Context<T>, callback: CallbackFunction<T>) => void)
-  | ((err: Error, context: Context<T>) => Promise<Context<T>>)
-  | ((err: Error, context: Context<T>, callback: CallbackFunction<T>) => void)
+export type CallbackFunction<T> =
+  | Func1Sync<void, Error>
+  | Func2Sync<void, Error, T>
 
-export type Rescue<T extends object> =
-  | ((err: Error) => void)
-  | ((err: Error) => Promise<Context<T>>)
-  | ((err: Error, context?: Context<T>) => void)
-  | ((err: Error, context?: Context<T>) => Promise<Context<T>>)
-  | ((err: Error, context?: Context<T>, callback?: CallbackFunction<T>) => void)
+export type SingleStageFunction<T> =
+  | Func2Async<T, Error, T>
+  | Func3Sync<void, Error, T, CallbackFunction<T>>
 
-export type EnsureStage<T extends object> =
-  | EnsureStagePromise<T>
-  | EnsureStageCallback<T>
+export type RunPipelineConfig<T> =
+  | Func0Sync<void | Promise<void> | Thanable<void>>
+  | Func0Async<void>
+  | Func1Sync<void | Promise<void> | Thanable<void>, T>
+  | Func1Async<void, T>
+  | Func2Sync<void, T, CallbackFunction<T>>
+  | Func2Async<void | Promise<void> | Thanable<void>, Error, T>
+  | Func3Sync<void, Error, T, CallbackFunction<T>>
 
-export type EnsureStagePromise<T extends object> = (
-  context: Context<T>,
-) => Promise<boolean>
+export type Rescue<T> =
+  // context is applied as this
+  | Func1Sync<void | Promise<void> | Thanable<void>, Error>
+  | Func1Async<T, Error>
+  // not applied as this
+  | Func2Sync<void | Promise<void> | Thanable<void>, Error, T>
+  | Func2Async<void, Error, T>
+  | Func3Sync<void, Error, T, CallbackFunction<T>>
 
-export type EnsureStageCallback<T extends object> = (
-  context: Context<T>,
-  callback: CallbackFunction<T>,
-) => void
+export type ValidateFunction<T> =
+  // will throw error
+  | Func1Sync<boolean | Promise<boolean> | Thanable<boolean>, T>
+  // will refect with error
+  | Func1Async<boolean, T>
+  // will return error in callback
+  | Func2Sync<void, T, CallbackFunction<T>>
 
-export type ValidateFunction<T extends object> =
-  | ((context: Context<T>) => boolean)
-  | ((context: Context<T>) => Promise<boolean>)
-
-export interface StageConfigValidate<T extends object> {
+const ERROR = {
+  signature: 'unacceptable run method signature',
+}
+export interface StageConfig<T> {
   name?: string
   rescue?: Rescue<T>
   validate?: ValidateFunction<T>
   run: RunPipelineConfig<T>
 }
-export interface StageConfigSchema<T extends object> {
-  name?: string
-  rescue?: Rescue<T>
-  schema?: object
-  run: RunPipelineConfig<T>
-}
 
-export interface StageConfigEnsure<T extends object> {
-  name?: string
-  ensure?: EnsureStage<T>
-  rescue?: Rescue<T>
-  run: RunPipelineConfig<T>
-}
-
-export type StageConfig<T extends object> =
-  | StageConfigValidate<T>
-  | StageConfigSchema<T>
-  | StageConfigEnsure<T>
-
-export class Stage<T extends object = {}> {
-  // static createWithFunction<T extends object>(config: StageConfig<T>) {
-  //   return new Stage<T>(config)
-  // }
-  // static createWithName<T extends object>(config: string) {
-  //   return new Stage<T>(config)
-  // }
-  // static createWithSchema<T extends object>(config: StageConfigSchema<T>) {
-  //   return new Stage<T>(config)
-  // }
-  // static createWithValidation<T extends object>(
-  //   config: StageConfigValidate<T>,
-  // ) {
-  //   return new Stage<T>(config)
-  // }
+export class Stage<T> {
   protected config: StageConfig<T>
   constructor(config: string | StageConfig<T> | SingleStageFunction<T>) {
     this.config = {} as StageConfig<T>
@@ -97,32 +84,13 @@ export class Stage<T extends object = {}> {
         this.config.name = config.name
       }
       if (config.rescue) {
-        this.rescue = config.rescue
+        this.config.rescue = config.rescue
       }
       if (config.run) {
         this.config.run = config.run as RunPipelineConfig<T>
       }
-      if (
-        config.hasOwnProperty('ensure') &&
-        config.hasOwnProperty('schema') &&
-        config.hasOwnProperty('validate')
-      ) {
-        throw new Error('use either validate or schema or ensure')
-      }
-      if (config.hasOwnProperty('ensure')) {
-        ;(this.config as StageConfigEnsure<T>).ensure = (
-          config as StageConfigEnsure<T>
-        ).ensure
-      }
-      if (config.hasOwnProperty('schema')) {
-        ;(this.config as StageConfigSchema<T>).schema = (
-          config as StageConfigSchema<T>
-        ).schema
-      }
-      if (config.hasOwnProperty('schema')) {
-        ;(this.config as StageConfigValidate<T>).validate = (
-          config as StageConfigValidate<T>
-        ).validate
+      if (config.validate) {
+        this.config.validate = config.validate
       }
     }
 
@@ -145,174 +113,79 @@ export class Stage<T extends object = {}> {
     return this.config.name
   }
 
-  public execute(context: Context<T>, callback: CallbackFunction<T>)
+  // может быть вызван как Promise
+  // сделать все дубликаты и проверки методов для работы с промисами
+  public execute(context: T): Promise<T>
+  public execute(context: T, callback: CallbackFunction<T>)
+  public execute(err: Error, context: T, callback: CallbackFunction<T>)
   public execute(
-    _err?: Error | Context<T>,
-    _context?: Context<T> | CallbackFunction<T>,
+    _err?: Error | T,
+    _context?: T | CallbackFunction<T>,
     _callback?: CallbackFunction<T>,
-  ) {
-    const { context, callback, err } = ensure_execute_params(
+  ): void | Promise<T> {
+    const { context, callback, err, is_promise } = ensure_execute_params(
       _err,
       _context,
       _callback,
     )
-    if (err) return this.handleError(err, context, callback)
-    this.run(context, callback)
-  }
-
-  run(context: Context<T>, callback: CallbackFunction<T>) {
-    var eLen = this.config.ensure ? this.config.ensure.length : -1
-    // run ensure if we have
-    switch (eLen) {
-      case 2:
-        {
-          let ensure = this.config.ensure as EnsureStageCallback<T>
-          ensure(context, (_err: any, context: any) => {
-            this.stage(new ErrorList([err, _err]), context, callback)
-          })
-        }
-        break
-      case 1:
-        {
-          let ensure = this.config.ensure as EnsureStagePromise<T>
-          ensure(context)
-            .then(res =>
-              res
-                ? this.stage(err, context, callback)
-                : this.stage(
-                    new Error('some validation is failed'),
-                    context,
-                    callback,
-                  ),
-            )
-            .catch(err => this.stage(err, context, callback))
-        }
-        break
-      default:
-        this.ensure(context)
-        this.stage(err, context, callback)
-    }
-  }
-
-  stage(context: Context<T>, callback: CallbackFunction<T>) {
-    const done = (err?: Error) => {
-      this.doneIt(err, context, callback)
-    }
-
-    this.validate(context)
-
-    switch (this.config.run.length) {
-      // this is the context of the run function
-      case 0:
-        try {
-          this.config.run.apply(context)
-          done()
-        } catch (err) {
-          return this.handleError(err, context, callback)
-        }
-        break
-      case 1:
-        if (err) return this.handleError(err, context, callback)
-        try {
-          const val = this.config.run.bind(this)
-
-          val(context)
-          done()
-        } catch (er) {
-          return this.handleError(er, context, callback)
-        }
-        break
-      case 2:
-        if (err) return this.handleError(err, context, callback)
-        try {
-          const val = this.config.run.bind(this)
-
-          val(context, done)
-        } catch (er) {
-          return this.handleError(er, context, callback)
-        }
-        break
-      case 3:
-        try {
-          const val = this.config.run.bind(this)
-
-          val(err, context, done)
-        } catch (er) {
-          this.handleError(er, context, callback)
-        }
-        break
-      default:
-        this.handleError(
-          new Error('unacceptable run method signature'),
-          context,
-          callback,
-        )
-    }
-  }
-
-  protected doneIt(
-    err: Error | any,
-    context: Context<T>,
-    callback: CallbackFunction<T>,
-  ) {
-    if (err) {
-      this.handleError(err, context, callback)
-    } else {
-      this.finishIt(undefined, context, callback)
-    }
-  }
-
-  protected handleError(
-    err: Error | any,
-    context: Context<T>,
-    callback: CallbackFunction<T>,
-  ) {
-    if (err && !(err instanceof Error)) {
-      if ('string' === typeof err) err = Error(err)
-    }
-
-    var len = this.rescue ? this.rescue.length : -1
-    switch (len) {
-      case 0:
-        this.finishIt(this.rescue(), context, callback)
-        break
-
-      case 1:
-        this.finishIt(this.rescue(err), context, callback)
-        break
-
-      case 2:
-        this.finishIt(this.rescue(err, context), context, callback)
-        break
-
-      case 3:
-        this.rescue(err, context, function (err) {
-          this.finishIt(err, context, callback)
+    // обработка ошибок может происходить внутри функции
+    if (is_promise) {
+      return new Promise((res, rej) => {
+        this.execute(err as Error, context as T, (err: Error, context: T) => {
+          if (err) rej(err)
+          else res(context)
         })
-        break
-
-      default:
-        this.finishIt(err, context, callback)
+      })
+    } else if (err && !can_fix_error(this.config.run)) {
+      this.rescue(err, context, callback)
+    } else {
+      this.ensure(context, (err_: Error, ctx: T) => {
+        if (err || err_) {
+          if (!can_fix_error(this.config.run)) {
+            this.rescue(new ErrorList([err, err_]), ctx, callback)
+          } else {
+          }
+        } else {
+          this.stage(err, ctx, callback)
+        }
+      })
     }
+  }
+
+  stage(err: Error, context: T, callback: CallbackFunction<T>) {
+    const done = (err?: Error) => {
+      if (err) {
+        this.rescue(err, context, callback)
+      } else {
+        this.finishIt(undefined, context, callback)
+      }
+    }
+
+    execute_callback(err, this.config.run, context, done)
   }
 
   protected rescue(
-    err?: Error | any,
-    context?: Context<T>,
-    callback?: CallbackFunction<T>,
+    err: Error | any,
+    context: T,
+    callback: CallbackFunction<T>,
   ) {
-    if (typeof callback === 'function') {
-      callback(err, context)
+    if (err && !(err instanceof Error)) {
+      if (typeof err == 'string') err = Error(err)
+    }
+    if (this.config.rescue) {
+      execute_rescue(this.config.rescue, err, context, (err?: Error) => {
+        this.finishIt(err, context, callback)
+      })
     } else {
-      return err
+      this.finishIt(err, context, callback)
     }
   }
 
   protected finishIt(
     err: Error | any,
-    context: Context<T>,
+    context: T,
     callback?: CallbackFunction<T>,
-  ): void | Promise<Context<T>> {
+  ): void | Promise<T> {
     if (callback) {
       globalThis.process
         ? process.nextTick(() => callback(err, context))
@@ -330,55 +203,320 @@ export class Stage<T extends object = {}> {
     return '[pipeline Stage]'
   }
 
-  protected ensure(context: Context<T>, callback: CallbackFunction<T>) {
+  protected ensure(context: T, callback: CallbackFunction<T>) {
     if (this.config.validate) {
-      if (is_async(this.config.validate)) {
-        const res = this.config.validate(context)
-        if (typeof res == 'object') {
-          ;(res as Promise<boolean>).then(res =>
-            this.isValid(res, callback, context),
-          )
+      execute_validate(this.config.validate, context, (err, result) => {
+        if (err) {
+          callback(err, context)
         } else {
-          this.isValid(res, callback, context)
+          if (result) {
+            if ('boolean' === typeof result) {
+              callback(null, context)
+            } else if (
+              Array.isArray(result) &&
+              result.length > 0 &&
+              typeof result[0] == 'string'
+            ) {
+              callback(new ErrorList(result), context)
+            } else {
+              // ensure works
+              callback(null, result as T)
+            }
+          } else {
+            callback(
+              new Error(this.reportName + ' reports: T is invalid'),
+              context,
+            )
+          }
         }
-      } else {
-        this.isValid(this.config.validate(context), callback, context)
-      }
+      })
     } else {
       callback(null, context)
     }
   }
-
-  private isValid(
-    isValid: any,
-    callback: CallbackFunction<T>,
-    context: Context<T>,
-  ) {
-    if (isValid) {
-      if ('boolean' === typeof isValid) {
-        callback(null, context)
-      } else {
-        callback(isValid, context)
-      }
-    } else {
-      callback(new Error(this.reportName + ' reports: Context<T> is invalid'))
-    }
-  }
 }
 
-function ensure_execute_params<T extends object>(
-  err: Error | Context<T>,
-  context: Context<T> | CallbackFunction<T>,
-  callback: CallbackFunction<T>,
+// может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
+
+function execute_callback<T>(
+  err: Error,
+  run: RunPipelineConfig<T>,
+  context: T,
+  done: (err?: Error | null, res?: T) => void,
 ) {
-  if (context instanceof Function) {
-    callback = context
-    context = err as Context<T>
-    err = undefined
-  } else if (!context && !(err instanceof Error)) {
-    context = err as Context<T>
-    err = undefined
-    callback = undefined
+  switch (run.length) {
+    // this is the context of the run function
+    case 0:
+      if (is_func0_async<T>(run)) {
+        try {
+          ;(run.bind(context) as Func0Async<T>)()
+            .then(res => done(null, res || context))
+            .catch(done)
+        } catch (err) {
+          done(err)
+        }
+      } else if (is_func0(run)) {
+        try {
+          const res = run.apply(context) as
+            | void
+            | Promise<void>
+            | Thanable<void>
+          if (res instanceof Promise) {
+            res.then(_ => done(null, context)).catch(done)
+          } else if (is_thenable(res)) {
+            res.then(_ => done(null, context)).catch(done)
+          } else {
+            done(null, context)
+          }
+        } catch (err) {
+          done(err)
+        }
+      }
+      break
+    case 1:
+      if (is_func1_async(run)) {
+        try {
+          run(context)
+            .then(_ => done())
+            .catch(done)
+        } catch (err) {
+          done(err)
+        }
+      } else if (is_func1(run)) {
+        try {
+          const res = run(context)
+          if (res instanceof Promise) {
+            res.then(_ => done(null, context)).catch(done)
+          } else if (is_thenable(res)) {
+            res.then(_ => done(null, context)).catch(done)
+          } else {
+            done(null, context)
+          }
+        } catch (err) {
+          done(err)
+        }
+      } else {
+        done(new Error(ERROR.signature))
+      }
+      break
+    case 2:
+      if (is_func2_async(run)) {
+        try {
+          ;(run as Func2Async<void, Error, T>)(err, context)
+            .then(_ => done())
+            .catch(done)
+        } catch (err) {
+          done(err)
+        }
+      } else if (is_func2(run)) {
+        try {
+          run(context, done)
+        } catch (err) {
+          done(err)
+        }
+      } else {
+        done(new Error(ERROR.signature))
+      }
+      break
+    case 3:
+      if (is_func3(run) && !is_func3_async(run)) {
+        try {
+          ;(run as Func3Sync<void, Error, T, CallbackFunction<T>>)(
+            err as Error,
+            context,
+            done,
+          )
+        } catch (err) {
+          done(err)
+        }
+      } else {
+        done(new Error(ERROR.signature))
+      }
+      break
+    default:
+      done(new Error(ERROR.signature))
   }
-  return { context, callback, err }
 }
+
+function execute_rescue<T>(
+  rescue: Rescue<T>,
+  err: Error,
+  context: T,
+  done: (err?: Error) => void,
+) {
+  switch (rescue.length) {
+    case 1:
+      if (is_func1_async(rescue)) {
+        try {
+          rescue(err)
+            .then(_ => done())
+            .catch(done)
+        } catch (err) {
+          done(err)
+        }
+      } else if (is_func1(rescue)) {
+        try {
+          const res = rescue(err)
+          if (res instanceof Promise) {
+            res.then(_ => done()).catch(done)
+          } else if (is_thenable(res)) {
+            res.then(_ => done()).catch(done)
+          } else {
+            done()
+          }
+        } catch (err) {
+          done(err)
+        }
+      } else {
+        done(new Error(ERROR.signature))
+      }
+      break
+    case 2:
+      if (is_func2_async(rescue)) {
+        try {
+          rescue(err, context)
+            .then(_ => done())
+            .catch(done)
+        } catch (err) {
+          done(err)
+        }
+      } else if (is_func2(rescue)) {
+        try {
+          const res = rescue(err, context)
+          if (res instanceof Promise) {
+            res.then(_ => done()).catch(done)
+          } else if (is_thenable(res)) {
+            res.then(_ => done()).catch(done)
+          } else {
+            done()
+          }
+          done()
+        } catch (err) {
+          done(err)
+        }
+      } else {
+        done(new Error(ERROR.signature))
+      }
+      break
+    case 3:
+      if (is_func3(rescue) && !is_func3_async(rescue)) {
+        try {
+          ;(rescue as Func3Sync<void, Error, T, CallbackFunction<T>>)(
+            null,
+            context,
+            done,
+          )
+        } catch (err) {
+          done(err)
+        }
+      } else {
+        done(new Error(ERROR.signature))
+      }
+      break
+    default:
+      done(new Error(ERROR.signature))
+  }
+}
+
+function execute_validate<T>(
+  validate: ValidateFunction<T>,
+  context: T,
+  done: CallbackFunction<boolean | string[] | T>,
+) {
+  switch (validate.length) {
+    case 1:
+      if (is_func1_async(validate)) {
+        try {
+          validate(context)
+            .then(res => done(null, res))
+            .catch(err => done(err, false))
+        } catch (err) {
+          done(err, false)
+        }
+      } else if (is_func1(validate)) {
+        try {
+          const res = validate(context)
+          if (res instanceof Promise) {
+            res.then(res => done(null, res)).catch(err => done(err, false))
+          } else if (is_thenable(res)) {
+            res.then(res => done(null, res)).catch(err => done(err, false))
+          } else {
+            done(null, res)
+          }
+        } catch (err) {
+          done(err, false)
+        }
+      } else {
+        done(new Error(ERROR.signature), false)
+      }
+      break
+    case 2:
+      if (is_func2(validate)) {
+        try {
+          validate(context, (err, ctx) => {
+            done(err, ctx)
+          })
+        } catch (err) {
+          done(err, false)
+        }
+      } else {
+        done(new Error(ERROR.signature), false)
+      }
+      break
+    default:
+      done(new Error(ERROR.signature), false)
+  }
+}
+
+function ensure_execute_params<T>(
+  _err: Error | T,
+  _context: T | CallbackFunction<T>,
+  _callback: CallbackFunction<T>,
+) {
+  let err: Error,
+    context: T,
+    callback: CallbackFunction<T>,
+    is_promise: boolean = false
+
+  if (arguments.length == 1) {
+    context = _err as T
+    is_promise = true
+    //promise
+  } else if (arguments.length == 2) {
+    if (typeof _context == 'function') {
+      // callback
+      context = _err as T
+      err = null
+      callback = _context as CallbackFunction<T>
+    } else {
+      //promise
+      is_promise = true
+      err = _err as Error
+      context = _context as T
+    }
+  } else if (arguments.length == 3) {
+    // callback
+    err = _err as Error
+    context = _context as T
+    callback = _callback
+    is_promise = false
+  }
+
+  return { context, callback, err, is_promise }
+}
+
+function can_fix_error<T>(run: RunPipelineConfig<T>) {
+  return is_func2_async(run) || (is_func3(run) && !is_func3_async(run))
+}
+
+/**
+ * breakin changes
+ * - ensure, validate, schema is dropped down
+ * - run function not bind to the context in case when there is more than 0 params
+ * - use external validation tools that always throw erros somehow
+ */
+
+// смотрим дальше
+// контекст всегда мутабельный
+
+// написать тесты для проверки всего и описать общий поток, если нужно
