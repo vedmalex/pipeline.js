@@ -1,8 +1,9 @@
 export class ErrorList extends Error {
   errors: Array<any>
-  constructor(list: Array<any> | any) {
+  constructor(_list: Array<any> | any) {
     super('Complex Error')
-    if (Array.isArray(list)) {
+    if (Array.isArray(_list)) {
+      const list = _list.filter(e => e)
       if (list.length > 1) {
         this.errors = Array.isArray(list) ? list : [list]
       } else if ((list.length = 1)) {
@@ -11,7 +12,7 @@ export class ErrorList extends Error {
         return null
       }
     } else {
-      return list
+      return _list
     }
   }
 }

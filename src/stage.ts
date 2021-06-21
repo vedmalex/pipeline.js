@@ -1,5 +1,16 @@
-import { Context } from './context'
-import { is_func2_async, is_func3, is_func3_async } from './utils/types'
+import {
+  CallbackFunction,
+  is_func2_async,
+  is_func3,
+  is_func3_async,
+  is_thenable,
+  Rescue,
+  RunPipelineConfig,
+  SingleStageFunction,
+  StageConfig,
+  Thanable,
+  ValidateFunction,
+} from './utils/types'
 import {
   is_func0,
   is_func2,
@@ -7,68 +18,10 @@ import {
   is_func1_async,
   is_func1,
 } from './utils/types'
-import {
-  Func0Sync,
-  is_async,
-  Func0Async,
-  Func1Sync,
-  Func1Async,
-  Func2Sync,
-  Func2Async,
-  Func3Sync,
-} from './utils/types'
-
-export type Thanable<T> = {
-  then: Promise<T>['then']
-  catch: Promise<T>['catch']
-}
-
-export function is_thenable<T>(inp: any): inp is Thanable<T> {
-  return typeof inp == 'object' && inp.hasOwnProperty('then')
-}
-
-export type CallbackFunction<T> =
-  | Func1Sync<void, Error>
-  | Func2Sync<void, Error, T>
-
-export type SingleStageFunction<T> =
-  | Func2Async<T, Error, T>
-  | Func3Sync<void, Error, T, CallbackFunction<T>>
-
-export type RunPipelineConfig<T> =
-  | Func0Sync<void | Promise<void> | Thanable<void>>
-  | Func0Async<void>
-  | Func1Sync<void | Promise<void> | Thanable<void>, T>
-  | Func1Async<void, T>
-  | Func2Sync<void, T, CallbackFunction<T>>
-  | Func2Async<void | Promise<void> | Thanable<void>, Error, T>
-  | Func3Sync<void, Error, T, CallbackFunction<T>>
-
-export type Rescue<T> =
-  // context is applied as this
-  | Func1Sync<void | Promise<void> | Thanable<void>, Error>
-  | Func1Async<T, Error>
-  // not applied as this
-  | Func2Sync<void | Promise<void> | Thanable<void>, Error, T>
-  | Func2Async<void, Error, T>
-  | Func3Sync<void, Error, T, CallbackFunction<T>>
-
-export type ValidateFunction<T> =
-  // will throw error
-  | Func1Sync<boolean | Promise<boolean> | Thanable<boolean>, T>
-  // will refect with error
-  | Func1Async<boolean, T>
-  // will return error in callback
-  | Func2Sync<void, T, CallbackFunction<T>>
+import { Func0Async, Func2Async, Func3Sync } from './utils/types'
 
 const ERROR = {
   signature: 'unacceptable run method signature',
-}
-export interface StageConfig<T> {
-  name?: string
-  rescue?: Rescue<T>
-  validate?: ValidateFunction<T>
-  run: RunPipelineConfig<T>
 }
 
 export class Stage<T> {
@@ -128,7 +81,6 @@ export class Stage<T> {
       _context,
       _callback,
     )
-    // обработка ошибок может происходить внутри функции
     if (is_promise) {
       return new Promise((res, rej) => {
         this.execute(err as Error, context as T, (err: Error, context: T) => {
@@ -139,20 +91,26 @@ export class Stage<T> {
     } else if (err && !can_fix_error(this.config.run)) {
       this.rescue(err, context, callback)
     } else {
-      this.ensure(context, (err_: Error, ctx: T) => {
-        if (err || err_) {
-          if (!can_fix_error(this.config.run)) {
-            this.rescue(new ErrorList([err, err_]), ctx, callback)
+      if (this.config.validate) {
+        this.ensure(context, (err_: Error, ctx: T) => {
+          if (err || err_) {
+            if (!can_fix_error(this.config.run)) {
+              this.rescue(new ErrorList([err, err_]), ctx, callback)
+            } else {
+              // обработка ошибок может происходить внутри функции
+              this.stage(new ErrorList([err, err_]), ctx, callback)
+            }
           } else {
+            this.stage(null, ctx, callback)
           }
-        } else {
-          this.stage(err, ctx, callback)
-        }
-      })
+        })
+      } else {
+        this.stage(null, context, callback)
+      }
     }
   }
 
-  stage(err: Error, context: T, callback: CallbackFunction<T>) {
+  protected stage(err: Error, context: T, callback: CallbackFunction<T>) {
     const done = (err?: Error) => {
       if (err) {
         this.rescue(err, context, callback)
@@ -180,59 +138,52 @@ export class Stage<T> {
       this.finishIt(err, context, callback)
     }
   }
-
+  //TODO: подумать и посмотреть, а нужен ли этот код
+  // скорее всего не нужен, код может работать и синхронно и асинхронно
+  //
   protected finishIt(
     err: Error | any,
     context: T,
-    callback?: CallbackFunction<T>,
+    callback: CallbackFunction<T>,
   ): void | Promise<T> {
-    if (callback) {
-      globalThis.process
-        ? process.nextTick(() => callback(err, context))
-        : globalThis.setImmediate
-        ? setImmediate(() => callback(err, context))
-        : setTimeout(() => callback(err, context), 0)
-    } else {
-      if (err) {
-        return Promise.reject(err)
-      } else return Promise.resolve(context)
-    }
+    callback(err, context)
+    // globalThis.process
+    //   ? process.nextTick(() => callback(err, context))
+    //   : globalThis.setImmediate
+    //   ? setImmediate(() => callback(err, context))
+    //   : setTimeout(() => callback(err, context), 0)
   }
 
-  toString() {
+  public toString() {
     return '[pipeline Stage]'
   }
 
   protected ensure(context: T, callback: CallbackFunction<T>) {
-    if (this.config.validate) {
-      execute_validate(this.config.validate, context, (err, result) => {
-        if (err) {
-          callback(err, context)
-        } else {
-          if (result) {
-            if ('boolean' === typeof result) {
-              callback(null, context)
-            } else if (
-              Array.isArray(result) &&
-              result.length > 0 &&
-              typeof result[0] == 'string'
-            ) {
-              callback(new ErrorList(result), context)
-            } else {
-              // ensure works
-              callback(null, result as T)
-            }
+    execute_validate(this.config.validate, context, (err, result) => {
+      if (err) {
+        callback(err, context)
+      } else {
+        if (result) {
+          if ('boolean' === typeof result) {
+            callback(null, context)
+          } else if (
+            Array.isArray(result) &&
+            result.length > 0 &&
+            typeof result[0] == 'string'
+          ) {
+            callback(new ErrorList(result), context)
           } else {
-            callback(
-              new Error(this.reportName + ' reports: T is invalid'),
-              context,
-            )
+            // ensure works
+            callback(null, result as T)
           }
+        } else {
+          callback(
+            new Error(this.reportName + ' reports: T is invalid'),
+            context,
+          )
         }
-      })
-    } else {
-      callback(null, context)
-    }
+      }
+    })
   }
 }
 

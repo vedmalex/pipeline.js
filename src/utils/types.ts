@@ -75,3 +75,53 @@ export function is_func3_async<R, P1, P2, P3>(
 ): inp is Func3Async<R, P1, P2, P3> {
   return is_async(inp) && is_func3(inp)
 }
+
+export type Thanable<T> = {
+  then: Promise<T>['then']
+  catch: Promise<T>['catch']
+}
+
+export function is_thenable<T>(inp: any): inp is Thanable<T> {
+  return typeof inp == 'object' && inp.hasOwnProperty('then')
+}
+
+export type CallbackFunction<T> =
+  | Func1Sync<void, Error>
+  | Func2Sync<void, Error, T>
+
+export type SingleStageFunction<T> =
+  | Func2Async<T, Error, T>
+  | Func3Sync<void, Error, T, CallbackFunction<T>>
+
+export type RunPipelineConfig<T> =
+  | Func0Sync<void | Promise<void> | Thanable<void>>
+  | Func0Async<void>
+  | Func1Sync<void | Promise<void> | Thanable<void>, T>
+  | Func1Async<void, T>
+  | Func2Sync<void, T, CallbackFunction<T>>
+  | Func2Async<void | Promise<void> | Thanable<void>, Error, T>
+  | Func3Sync<void, Error, T, CallbackFunction<T>>
+
+export type Rescue<T> =
+  // context is applied as this
+  | Func1Sync<void | Promise<void> | Thanable<void>, Error>
+  | Func1Async<T, Error>
+  // not applied as this
+  | Func2Sync<void | Promise<void> | Thanable<void>, Error, T>
+  | Func2Async<void, Error, T>
+  | Func3Sync<void, Error, T, CallbackFunction<T>>
+
+export type ValidateFunction<T> =
+  // will throw error
+  | Func1Sync<boolean | Promise<boolean> | Thanable<boolean>, T>
+  // will refect with error
+  | Func1Async<boolean, T>
+  // will return error in callback
+  | Func2Sync<void, T, CallbackFunction<T>>
+
+export interface StageConfig<T> {
+  name?: string
+  rescue?: Rescue<T>
+  validate?: ValidateFunction<T>
+  run: RunPipelineConfig<T>
+}
