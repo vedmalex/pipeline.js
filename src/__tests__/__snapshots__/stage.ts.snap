@@ -2,7 +2,7 @@
 
 exports[`stage create named: names stage 1`] = `
 Stage {
-  "config": Object {
+  "_config": Object {
     "name": "name",
   },
 }
@@ -10,7 +10,7 @@ Stage {
 
 exports[`stage create with Config: config stage 1`] = `
 Stage {
-  "config": Object {
+  "_config": Object {
     "name": "(err, ctx, done) => {
             if (!err) {
                 ctx.name = 'run the stage';
@@ -27,7 +27,7 @@ Stage {
 
 exports[`stage create with Lambda 2: lambda stage 1`] = `
 Stage {
-  "config": Object {
+  "_config": Object {
     "name": "(err, ctx) => {
             if (!err) {
                 ctx.name = 'run the stage';
@@ -44,7 +44,7 @@ Stage {
 
 exports[`stage create with Lambda 3: lambda stage 1`] = `
 Stage {
-  "config": Object {
+  "_config": Object {
     "name": "(err, ctx, done) => {
             if (!err) {
                 ctx.name = 'run the stage';
@@ -61,7 +61,7 @@ Stage {
 
 exports[`stage create with function: function stage 1`] = `
 Stage {
-  "config": Object {
+  "_config": Object {
     "name": "RunStage",
     "run": [Function],
   },
@@ -70,7 +70,8 @@ Stage {
 
 exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
 Stage {
-  "config": Object {
+  "_config": Object {
+    "ensure": [Function],
     "name": "stage",
     "rescue": [Function],
     "run": [Function],

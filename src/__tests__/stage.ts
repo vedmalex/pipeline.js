@@ -40,7 +40,11 @@ describe('stage', () => {
 
   it('intialize using schema and validate separately', () => {
     expect(
-      () => new Stage({ run: () => {}, validate: (_ctx: {}) => true }),
+      () =>
+        new Stage<{ name?: string }>({
+          run: () => {},
+          validate: (_ctx: {}) => true,
+        }),
     ).not.toThrow()
     expect(
       () =>
@@ -76,7 +80,7 @@ describe('stage', () => {
   })
 
   it('create with Config', () => {
-    const s = new Stage((err, ctx, done) => {
+    const s = new Stage<{ name: string }>((err, ctx, done) => {
       if (!err) {
         ctx.name = 'run the stage'
         done(null, ctx)

@@ -1,12 +1,18 @@
-export interface IStage<T> {
+import { JSONSchemaType } from 'ajv'
+
+export interface IStage<T, R> {
   get name(): string
   get reportName(): string
   toString(): string
-  execute(context: T): Promise<T>
-  execute(context: T, callback: CallbackFunction<T>)
-  execute(err: Error, context: T, callback: CallbackFunction<T>)
+  execute(context: T): Promise<R | T>
+  execute(context: T, callback: CallbackFunction<R | T>): void
+  execute(
+    err: Error | undefined,
+    context: T,
+    callback: CallbackFunction<R | T>,
+  ): void
   compile(rebuild?: boolean): void
-  get config(): StageConfig<T>
+  get config(): StageConfig<T, R>
 }
 
 export type Func0Sync<R> = () => R
@@ -44,45 +50,47 @@ export type Func<R, P1, P2, P3> =
 
 export function is_async<R, P1 = void, P2 = void, P3 = void>(
   // inp: Func<R, P1, P2, P3>,
-  inp: any,
+  inp: Function,
 ): inp is FuncAsync<R, P1, P2, P3> {
   return inp?.constructor?.name == 'AsyncFunction'
 }
 
-export function is_func0<R>(inp: any): inp is Func0Sync<R> {
+export function is_func0<R>(inp: Function): inp is Func0Sync<R> {
   return inp.length == 0
 }
 
-export function is_func1<R, P1>(inp: any): inp is Func1Sync<R, P1> {
+export function is_func1<R, P1>(inp: Function): inp is Func1Sync<R, P1> {
   return inp.length == 1
 }
 
-export function is_func2<R, P1, P2>(inp: any): inp is Func2Sync<R, P1, P2> {
+export function is_func2<R, P1, P2>(
+  inp: Function,
+): inp is Func2Sync<R, P1, P2> {
   return inp.length == 2
 }
 
 export function is_func3<R, P1, P2, P3>(
-  inp: any,
+  inp: Function,
 ): inp is Func3Sync<R, P1, P2, P3> {
   return inp.length == 3
 }
 
-export function is_func0_async<R>(inp: any): inp is Func0Async<R> {
+export function is_func0_async<R>(inp: Function): inp is Func0Async<R> {
   return is_async(inp) && is_func0(inp)
 }
 
-export function is_func1_async<R, P1>(inp: any): inp is Func1Async<R, P1> {
+export function is_func1_async<R, P1>(inp: Function): inp is Func1Async<R, P1> {
   return is_async(inp) && is_func1(inp)
 }
 
 export function is_func2_async<R, P1, P2>(
-  inp: any,
+  inp: Function,
 ): inp is Func2Async<R, P1, P2> {
   return is_async(inp) && is_func2(inp)
 }
 
 export function is_func3_async<R, P1, P2, P3>(
-  inp: any,
+  inp: Function,
 ): inp is Func3Async<R, P1, P2, P3> {
   return is_async(inp) && is_func3(inp)
 }
@@ -96,45 +104,61 @@ export function is_thenable<T>(inp: any): inp is Thanable<T> {
   return typeof inp == 'object' && inp.hasOwnProperty('then')
 }
 
-export type CallbackFunction<T> =
-  | Func1Sync<void, Error>
-  | Func2Sync<void, Error, T>
+export type CallbackFunction<T> = (err?: Error, res?: T) => void
 
 export type SingleStageFunction<T> =
   | Func2Async<T, Error, T>
   | Func3Sync<void, Error, T, CallbackFunction<T>>
 
-export type RunPipelineConfig<T> =
-  | Func0Sync<void | Promise<void> | Thanable<void>>
-  | Func0Async<void>
-  | Func1Sync<void | Promise<void> | Thanable<void>, T>
-  | Func1Async<void, T>
-  | Func2Sync<void, T, CallbackFunction<T>>
-  | Func2Async<void | Promise<void> | Thanable<void>, Error, T>
-  | Func3Sync<void, Error, T, CallbackFunction<T>>
+export type RunPipelineConfig<T, R> =
+  | Func0Async<R | T>
+  | Func0Sync<R | T | Promise<R | T> | Thanable<R | T>>
+  | Func1Async<R | T, T>
+  | Func1Sync<R | T | Promise<R | T> | Thanable<R | T>, T>
+  | Func2Async<R | T, Error, T>
+  | Func2Sync<void, T, CallbackFunction<R | T>>
+  | Func3Sync<void, Error, T, CallbackFunction<T | R>>
 
-export type Rescue<T> =
+export type Rescue<T, R> =
   // context is applied as this
-  | Func1Sync<void | Promise<void> | Thanable<void>, Error>
-  | Func1Async<T, Error>
+  | Func1Async<R | T, Error>
+  | Func1Sync<R | Promise<R> | Thanable<R>, Error>
   // not applied as this
-  | Func2Sync<void | Promise<void> | Thanable<void>, Error, T>
-  | Func2Async<void, Error, T>
-  | Func3Sync<void, Error, T, CallbackFunction<T>>
+  | Func2Async<R | T, Error | undefined, T>
+  | Func2Sync<R | Promise<R> | Thanable<R>, Error, T>
+  | Func3Sync<void, Error, T, CallbackFunction<R | T>>
 
+// validate and ensure
 export type ValidateFunction<T> =
   // will throw error
   | Func1Sync<boolean | Promise<boolean> | Thanable<boolean>, T>
   // will refect with error
   | Func1Async<boolean, T>
   // will return error in callback
+  | Func2Sync<void, T, CallbackFunction<boolean>>
+
+// validate and ensure
+export type EnsureFunction<T> =
+  // will throw error
+  | Func1Sync<T | Promise<T> | Thanable<T>, T>
+  // will refect with error
+  | Func1Async<T, T>
+  // will return error in callback
   | Func2Sync<void, T, CallbackFunction<T>>
 
-export interface StageConfig<T> {
+export interface StageConfig<T, R> {
   name?: string
-  rescue?: Rescue<T>
+  rescue?: Rescue<T, R>
+  schema?: JSONSchemaType<T>
+  ensure?: EnsureFunction<T>
   validate?: ValidateFunction<T>
-  run: RunPipelineConfig<T>
-  compile: (this: IStage<T>, rebuild: boolean) => void
+  run: RunPipelineConfig<T, R>
+  compile: (this: IStage<T, R>, rebuild: boolean) => StageRun<T, R>
   precompile: () => void
 }
+
+export type StageRun<T, R> = (
+  err: Error | undefined,
+  context: T,
+  callback: CallbackFunction<T | R>,
+) => void
