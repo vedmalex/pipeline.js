@@ -1,5 +1,6 @@
 import {
   CallbackFunction,
+  IStage,
   is_func2_async,
   is_func3,
   is_func3_async,
@@ -24,46 +25,51 @@ const ERROR = {
   signature: 'unacceptable run method signature',
 }
 
-export class Stage<T> {
-  protected config: StageConfig<T>
+// make possibility to context be immutable for debug purposes
+
+export class Stage<T, R = T> implements IStage<T> {
+  public get config() {
+    return this._config
+  }
+  protected _config: StageConfig<T>
   constructor(config: string | StageConfig<T> | SingleStageFunction<T>) {
-    this.config = {} as StageConfig<T>
+    this._config = {} as StageConfig<T>
     if (typeof config == 'string') {
-      this.config.name = config
+      this._config.name = config
     } else if (typeof config == 'function') {
-      this.config.run = config as SingleStageFunction<T>
+      this._config.run = config as SingleStageFunction<T>
     } else if (typeof config == 'object') {
       if (config.name) {
-        this.config.name = config.name
+        this._config.name = config.name
       }
       if (config.rescue) {
-        this.config.rescue = config.rescue
+        this._config.rescue = config.rescue
       }
       if (config.run) {
-        this.config.run = config.run as RunPipelineConfig<T>
+        this._config.run = config.run as RunPipelineConfig<T>
       }
       if (config.validate) {
-        this.config.validate = config.validate
+        this._config.validate = config.validate
       }
     }
 
-    if (!this.config.name && this.config.run) {
-      var match = this.config.run.toString().match(/function\s*(\w+)\s*\(/)
+    if (!this._config.name && this._config.run) {
+      var match = this._config.run.toString().match(/function\s*(\w+)\s*\(/)
 
       if (match && match[1]) {
-        this.config.name = match[1]
+        this._config.name = match[1]
       } else {
-        this.config.name = this.config.run.toString()
+        this._config.name = this._config.run.toString()
       }
     }
   }
 
   public get reportName() {
-    return `STG:${this.config.name ? this.config.name : ''}`
+    return `STG:${this._config.name ? this._config.name : ''}`
   }
 
   public get name() {
-    return this.config.name
+    return this._config.name
   }
 
   // может быть вызван как Promise
@@ -88,40 +94,52 @@ export class Stage<T> {
           else res(context)
         })
       })
-    } else if (err && !can_fix_error(this.config.run)) {
+    } else if (err && !can_fix_error(this._config.run)) {
       this.rescue(err, context, callback)
     } else {
-      if (this.config.validate) {
+      if (this._config.validate) {
         this.ensure(context, (err_: Error, ctx: T) => {
           if (err || err_) {
-            if (!can_fix_error(this.config.run)) {
+            if (!can_fix_error(this._config.run)) {
               this.rescue(new ErrorList([err, err_]), ctx, callback)
             } else {
               // обработка ошибок может происходить внутри функции
-              this.stage(new ErrorList([err, err_]), ctx, callback)
+              this.run(new ErrorList([err, err_]), ctx, callback)
             }
           } else {
-            this.stage(null, ctx, callback)
+            this.run(null, ctx, callback)
           }
         })
       } else {
-        this.stage(null, context, callback)
+        this.run(null, context, callback)
       }
     }
   }
 
   protected stage(err: Error, context: T, callback: CallbackFunction<T>) {
-    const done = (err?: Error) => {
+    execute_callback(err, this._config.run, context, (err?: Error) => {
       if (err) {
         this.rescue(err, context, callback)
       } else {
-        this.finishIt(undefined, context, callback)
+        callback(null, context)
       }
-    }
-
-    execute_callback(err, this.config.run, context, done)
+    })
   }
 
+  protected compiled: boolean
+  public compile(rebuild: boolean = false) {
+    if (this._config.compile) {
+      this._config.compile.apply(this, rebuild)
+      this.compiled = true
+    } else if (!this.compiled || rebuild) {
+      this.run = this.stage
+      this.compiled = true
+    }
+  }
+  // to be overridden by compile
+  protected run: (err: Error, context: T, callback: CallbackFunction<T>) => void
+
+  // объединение ошибок сделать
   protected rescue(
     err: Error | any,
     context: T,
@@ -130,28 +148,13 @@ export class Stage<T> {
     if (err && !(err instanceof Error)) {
       if (typeof err == 'string') err = Error(err)
     }
-    if (this.config.rescue) {
-      execute_rescue(this.config.rescue, err, context, (err?: Error) => {
-        this.finishIt(err, context, callback)
+    if (this._config.rescue) {
+      execute_rescue(this._config.rescue, err, context, (_err?: Error) => {
+        callback(new ErrorList([err, _err]), context)
       })
     } else {
-      this.finishIt(err, context, callback)
+      callback(err, context)
     }
-  }
-  //TODO: подумать и посмотреть, а нужен ли этот код
-  // скорее всего не нужен, код может работать и синхронно и асинхронно
-  //
-  protected finishIt(
-    err: Error | any,
-    context: T,
-    callback: CallbackFunction<T>,
-  ): void | Promise<T> {
-    callback(err, context)
-    // globalThis.process
-    //   ? process.nextTick(() => callback(err, context))
-    //   : globalThis.setImmediate
-    //   ? setImmediate(() => callback(err, context))
-    //   : setTimeout(() => callback(err, context), 0)
   }
 
   public toString() {
@@ -159,7 +162,7 @@ export class Stage<T> {
   }
 
   protected ensure(context: T, callback: CallbackFunction<T>) {
-    execute_validate(this.config.validate, context, (err, result) => {
+    execute_validate(this._config.validate, context, (err, result) => {
       if (err) {
         callback(err, context)
       } else {
@@ -353,7 +356,7 @@ function execute_rescue<T>(
       if (is_func3(rescue) && !is_func3_async(rescue)) {
         try {
           ;(rescue as Func3Sync<void, Error, T, CallbackFunction<T>>)(
-            null,
+            err,
             context,
             done,
           )
@@ -471,3 +474,5 @@ function can_fix_error<T>(run: RunPipelineConfig<T>) {
 // контекст всегда мутабельный
 
 // написать тесты для проверки всего и описать общий поток, если нужно
+
+// результат функции может быть промисом в любом месте???

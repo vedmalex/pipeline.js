@@ -1,9 +1,9 @@
 import { Stage } from './stage'
-
-export class Empty extends Stage {
+export class Empty<T> extends Stage<T> {
   constructor(name?: string) {
     super(name)
-    this.run = (err, context, callback) => callback(err, context)
+    this.compiled = true
+    this._config.run = (err, context, callback) => callback(err, context)
   }
 
   toString() {

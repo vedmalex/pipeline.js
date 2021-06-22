@@ -1,3 +1,14 @@
+export interface IStage<T> {
+  get name(): string
+  get reportName(): string
+  toString(): string
+  execute(context: T): Promise<T>
+  execute(context: T, callback: CallbackFunction<T>)
+  execute(err: Error, context: T, callback: CallbackFunction<T>)
+  compile(rebuild?: boolean): void
+  get config(): StageConfig<T>
+}
+
 export type Func0Sync<R> = () => R
 export type Func1Sync<R, P1> = (p1: P1) => R
 export type Func2Sync<R, P1, P2> = (p1: P1, p2: P2) => R
@@ -124,4 +135,6 @@ export interface StageConfig<T> {
   rescue?: Rescue<T>
   validate?: ValidateFunction<T>
   run: RunPipelineConfig<T>
+  compile: (this: IStage<T>, rebuild: boolean) => void
+  precompile: () => void
 }
