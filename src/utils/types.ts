@@ -153,8 +153,8 @@ export interface StageConfig<T, R> {
   ensure?: EnsureFunction<T>
   validate?: ValidateFunction<T>
   run: RunPipelineConfig<T, R>
-  compile: (this: IStage<T, R>, rebuild: boolean) => StageRun<T, R>
-  precompile: () => void
+  compile?: (this: IStage<T, R>, rebuild: boolean) => StageRun<T, R>
+  precompile?: () => void
 }
 
 export type StageRun<T, R> = (

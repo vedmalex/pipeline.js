@@ -1,3 +1,4 @@
+import { ErrorList } from './ErrorList'
 import {
   CallbackFunction,
   EnsureFunction,
@@ -111,43 +112,49 @@ export class Stage<T, R = T> implements IStage<T, R> {
     _context?: T | CallbackFunction<R | T>,
     _callback?: CallbackFunction<R | T>,
   ): void | Promise<R | T> {
-    const { context, callback, err, is_promise } = ensure_execute_params(
-      _err,
-      _context,
-      _callback,
-    )
-    if (!this.run) {
-      this.compile()
+    // discover arguments
+    let err: Error | undefined,
+      context: T,
+      __callback: CallbackFunction<R | T> | undefined
+
+    if (arguments.length == 1) {
+      context = _err as T
+      //promise
+    } else if (arguments.length == 2) {
+      if (typeof _context == 'function') {
+        // callback
+        context = _err as T
+        err = undefined
+        __callback = _context as CallbackFunction<R | T>
+      } else {
+        //promise
+        err = _err as Error
+        context = _context as T
+      }
+    } else {
+      // callback
+      err = _err as Error
+      context = _context as T
+      __callback = _callback as CallbackFunction<R | T>
     }
-    if (is_promise) {
+
+    if (!this.run) {
+      this.run = this.compile()
+    }
+    if (!__callback) {
       return new Promise((res, rej) => {
         this.execute(err, context as T, (err?: Error, ctx?: R | T) => {
           if (err) rej(err)
           else res(ctx as R | T)
         })
       })
-    } else if (err && !can_fix_error(this._config.run) && callback) {
-      this.rescue(err, context, callback)
-    } else if (callback && this.run) {
-      const run = this.run
-      if (this.config.ensure) {
-        this.ensure(this.config.ensure, context, (err_?: Error, ctx?: T) => {
-          if (err || err_) {
-            if (!can_fix_error(this._config.run)) {
-              this.rescue(new ErrorList([err, err_]), ctx ?? context, callback)
-            } else {
-              // обработка ошибок может происходить внутри функции
-              run(new ErrorList([err, err_]), ctx ?? context, callback)
-            }
-          } else {
-            run(undefined, ctx ?? context, callback)
-          }
-        })
-      } else if (this._config.validate) {
-        this.validate(
-          this._config.validate,
-          context,
-          (err_?: Error, ctx?: T) => {
+    } else {
+      const callback = __callback
+      if (err && !can_fix_error(this._config.run)) {
+        this.rescue(err, context, callback)
+      } else {
+        if (this.config.ensure) {
+          this.ensure(this.config.ensure, context, (err_?: Error, ctx?: T) => {
             if (err || err_) {
               if (!can_fix_error(this._config.run)) {
                 this.rescue(
@@ -157,15 +164,40 @@ export class Stage<T, R = T> implements IStage<T, R> {
                 )
               } else {
                 // обработка ошибок может происходить внутри функции
-                run(new ErrorList([err, err_]), ctx ?? context, callback)
+                this.run?.(new ErrorList([err, err_]), ctx ?? context, callback)
               }
             } else {
-              run(undefined, ctx ?? context, callback)
+              this.run?.(undefined, ctx ?? context, callback)
             }
-          },
-        )
-      } else {
-        run(undefined, context, callback)
+          })
+        } else if (this._config.validate) {
+          this.validate(
+            this._config.validate,
+            context,
+            (err_?: Error, ctx?: T) => {
+              if (err || err_) {
+                if (!can_fix_error(this._config.run)) {
+                  this.rescue(
+                    new ErrorList([err, err_]),
+                    ctx ?? context,
+                    callback,
+                  )
+                } else {
+                  // обработка ошибок может происходить внутри функции
+                  this.run?.(
+                    new ErrorList([err, err_]),
+                    ctx ?? context,
+                    callback,
+                  )
+                }
+              } else {
+                this.run?.(undefined, ctx ?? context, callback)
+              }
+            },
+          )
+        } else {
+          this.run?.(undefined, context, callback)
+        }
       }
     }
   }
@@ -572,7 +604,7 @@ export type EnsureParams<T, R> = {
 }
 
 function ensure_execute_params<T, R>(
-  _err?: Error | T,
+  _err: Error | T | undefined,
   _context?: T | CallbackFunction<R | T>,
   _callback?: CallbackFunction<R | T>,
 ): EnsureParams<T, R> {
@@ -623,3 +655,53 @@ function can_fix_error<T, R>(run: RunPipelineConfig<T, R>) {
 // написать тесты для проверки всего и описать общий поток, если нужно
 
 // результат функции может быть промисом в любом месте???
+
+function failproofAsyncCall(handleError: Function, _this: any, _fn: Function) {
+  var fn = function () {
+    var args = Array.prototype.slice.call(arguments)
+    try {
+      _fn.apply(_this, args)
+    } catch (err) {
+      handleError(
+        err,
+        _fn.length === 2 ? args[0] : args[1],
+        _fn.length === 2 ? args[1] : args[2],
+      )
+    }
+  }
+  return fn
+  /*return function() {
+    // посмотреть может быть нужно убрать setImmediate?!
+    var args = Array.prototype.slice.call(arguments);
+    args.unshift(fn);
+    setImmediate.apply(null, args);
+  };*/
+}
+
+function failproofSyncCall(
+  handleError: Function,
+  _this: any,
+  _fn: Function,
+  finalize: Function,
+) {
+  var fn = function () {
+    var failed = false
+    var args = Array.prototype.slice.call(arguments)
+    try {
+      _fn.apply(_this, args)
+    } catch (err) {
+      failed = true
+      handleError(err, _fn.length === 1 ? args[0] : _this, finalize)
+    }
+    if (!failed) {
+      finalize()
+    }
+  }
+  return fn
+  /*return function() {
+    // посмотреть может быть нужно убрать setImmediate?!
+    var args = Array.prototype.slice.call(arguments);
+    args.unshift(fn);
+    setImmediate.apply(null, args);
+  };*/
+}
