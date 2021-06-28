@@ -14,7 +14,7 @@ Stage {
     "name": "(err, ctx, done) => {
             if (!err) {
                 ctx.name = 'run the stage';
-                done(null, ctx);
+                done(undefined, ctx);
             }
             else {
                 done(err);
@@ -48,10 +48,10 @@ Stage {
     "name": "(err, ctx, done) => {
             if (!err) {
                 ctx.name = 'run the stage';
-                done(null, ctx);
+                done(undefined, ctx);
             }
             else {
-                done(err, null);
+                done(err);
             }
         }",
     "run": [Function],
@@ -78,3 +78,5 @@ Stage {
   },
 }
 `;
+
+exports[`stage validate using schema 1`] = `[Error: data should be an object with a name property]`;

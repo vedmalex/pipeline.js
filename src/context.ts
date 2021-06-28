@@ -37,8 +37,8 @@ const RESERVED = {
 export type Context<T extends object> = IContextProxy<T> & T
 
 export interface IContextProxy<T extends object> {
-  getParent()
-  setParent(parent: Context<T>)
+  getParent(): Context<T>
+  setParent(parent: Context<T>): void
   toJSON(): string
   toObject(clean?: boolean): T
   toString(): string
@@ -52,46 +52,58 @@ export interface IContextProxy<T extends object> {
  *  @param {Object} config The object that is the source for the **Context**.
  */
 export class ContextFactory<T extends object> implements IContextProxy<T> {
-  public static ensure<T extends object>(config: Partial<T>): Context<T> {
-    if (ContextFactory.isContext<T>(config)) {
-      return config as unknown as Context<T>
+  public static ensure<T extends object>(_config?: Partial<T>): Context<T> {
+    if (ContextFactory.isContext<T>(_config)) {
+      return _config as unknown as Context<T>
     } else {
-      return new ContextFactory(config) as unknown as Context<T>
+      return new ContextFactory(_config ?? {}) as unknown as Context<T>
     }
   }
-  public static isContext<T extends object>(obj: any): obj is IContextProxy<T> {
-    return !!obj[ContextSymbol]
+  public static isContext<T extends object>(
+    obj?: any,
+  ): obj is IContextProxy<T> {
+    return obj ? obj[ContextSymbol] : false
   }
   protected ctx: T
-  protected __parent: Context<T>
-  protected __stack: string[]
+  protected __parent!: Context<T>
+  protected __stack?: string[]
 
   private constructor(config: T) {
     this.ctx = config
     const res = new Proxy(this, {
-      get(target: ContextFactory<T>, key: string | symbol, _proxy) {
+      get(target: ContextFactory<T>, key: string | symbol, _proxy): any {
         if (key == ContextSymbol) return true
 
         if (!RESERVED.hasOwnProperty(key)) {
-          return target.ctx[key]
+          return (target.ctx as any)[key]
         } else {
-          return target[key]
+          if (typeof (target as any)[key] == 'function') {
+            return (target as any)[key].bind(target)
+          } else return (target as any)[key]
         }
       },
-      set(target: ContextFactory<T>, key: string | symbol, value) {
+      set(
+        target: ContextFactory<T>,
+        key: keyof typeof RESERVED | string | symbol,
+        value,
+      ): boolean {
         if (!RESERVED.hasOwnProperty(key)) {
-          target.ctx[key] = value
+          ;(target.ctx as any)[key] = value
           return true
-        } else if (!RESERVED[key]) {
+        } else if (
+          typeof key == 'string' &&
+          RESERVED.hasOwnProperty(key) &&
+          !RESERVED[key as keyof typeof RESERVED]
+        ) {
           return false
         } else {
-          target[key] = value
+          ;(target as any)[key] = value
           return true
         }
       },
       deleteProperty(target: ContextFactory<T>, key: string | symbol) {
         if (!RESERVED.hasOwnProperty(key)) {
-          return delete target.ctx[key]
+          return delete target.ctx[key as keyof T]
         } else {
           return false
         }
@@ -203,7 +215,7 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
     const obj = {} as T
     for (var p of Object.getOwnPropertyNames(this)) {
       if (!RESERVED.hasOwnProperty(p)) {
-        obj[p] = clone(this[p], clean)
+        ;(obj as any)[p] = clone((this as any)[p], clean)
       }
     }
     return obj

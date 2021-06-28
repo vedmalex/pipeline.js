@@ -8,18 +8,20 @@
     "declarationMap": true,
     "removeComments": true,
     "strict": true,
-    "noImplicitAny": true,
     "strictNullChecks": true,
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
     "strictPropertyInitialization": true,
+    "noImplicitAny": true,
     "noImplicitReturns": false,
+    "noImplicitOverride": true,
+    "noImplicitThis": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedParameters": false,
-    "noUnusedLocals": false,
+    "noUnusedLocals": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["ES2020"],
-    "types": ["node"],
+    "types": ["node", "jest"],
     "baseUrl": "./",
     "rootDir": "./src",
     "outDir": "lib_",
@@ -28,6 +30,6 @@
     "experimentalDecorators": true,
     "moduleResolution": "node"
   },
-  "include": ["src/**/*"],
-  "exclude": ["**/__tests__", "**/__mocks__"]
+  "include": ["src/**/*"]
+  // "exclude": ["**/__tests__", "**/__mocks__"]
 }

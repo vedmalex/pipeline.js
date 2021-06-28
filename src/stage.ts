@@ -1,4 +1,4 @@
-import { ErrorList } from './ErrorList'
+import { CreateError } from './ErrorList'
 import {
   CallbackFunction,
   EnsureFunction,
@@ -12,6 +12,7 @@ import {
   Rescue,
   RunPipelineConfig,
   SingleStageFunction,
+  StageConfigInput,
   StageConfig,
   StageRun,
   Thanable,
@@ -24,13 +25,13 @@ import {
   is_func1_async,
   is_func1,
 } from './utils/types'
-import {
-  Func0Async,
-  Func2Async,
-  Func3Sync,
-  Func0Sync,
-  Func1Async,
-} from './utils/types'
+import { Func2Async, Func3Sync, Func1Async } from './utils/types'
+
+import Ajv from 'ajv'
+
+import ajvFormats from 'ajv-formats'
+import ajvKeywords from 'ajv-keywords'
+import ajvErrors from 'ajv-errors'
 
 const ERROR = {
   signature: 'unacceptable run method signature',
@@ -38,13 +39,19 @@ const ERROR = {
 
 // make possibility to context be immutable for debug purposes
 
-export class Stage<T, R = T> implements IStage<T, R> {
-  public get config() {
+export class Stage<
+  T,
+  R,
+  I extends StageConfigInput<T, R>,
+  S extends StageConfig<T, R>,
+> implements IStage<T, R>
+{
+  public get config(): S {
     return this._config
   }
-  protected _config: StageConfig<T, R>
-  constructor(config: string | StageConfig<T, R> | SingleStageFunction<T>) {
-    this._config = {} as StageConfig<T, R>
+  protected _config: S
+  constructor(config?: string | I | SingleStageFunction<T>) {
+    this._config = {} as S
     if (typeof config == 'string') {
       this._config.name = config
     } else if (typeof config == 'function') {
@@ -60,13 +67,13 @@ export class Stage<T, R = T> implements IStage<T, R> {
         this._config.run = config.run as RunPipelineConfig<T, R>
       }
       if (config.validate && config.schema) {
-        throw new Error('use only one `validate` or `schema`')
+        throw CreateError('use only one `validate` or `schema`')
       }
       if (config.ensure && config.schema) {
-        throw new Error('use only one `ensure` or `schema`')
+        throw CreateError('use only one `ensure` or `schema`')
       }
       if (config.ensure && config.validate) {
-        throw new Error('use only one `ensure` or `validate`')
+        throw CreateError('use only one `ensure` or `validate`')
       }
       if (config.validate) {
         this._config.validate = config.validate
@@ -74,8 +81,24 @@ export class Stage<T, R = T> implements IStage<T, R> {
       if (config.ensure) {
         this._config.ensure = config.ensure
       }
+      if (config.compile) {
+        this._config.compile = config.compile
+      }
+      if (config.precompile) {
+        this._config.precompile = config.precompile
+      }
       if (config.schema) {
         this._config.schema = config.schema
+        const ajv = new Ajv({ allErrors: true })
+        ajvFormats(ajv)
+        ajvErrors(ajv, { singleError: true })
+        ajvKeywords(ajv)
+        const validate = ajv.compile(config.schema)
+        this._config.validate = (ctx: T): boolean => {
+          if (!validate(ctx) && validate.errors) {
+            throw CreateError(ajv.errorsText(validate.errors))
+          } else return true
+        }
       }
     }
 
@@ -150,21 +173,17 @@ export class Stage<T, R = T> implements IStage<T, R> {
       })
     } else {
       const callback = __callback
-      if (err && !can_fix_error(this._config.run)) {
+      if (err && this._config.run && !can_fix_error(this._config.run)) {
         this.rescue(err, context, callback)
       } else {
         if (this.config.ensure) {
           this.ensure(this.config.ensure, context, (err_?: Error, ctx?: T) => {
             if (err || err_) {
-              if (!can_fix_error(this._config.run)) {
-                this.rescue(
-                  new ErrorList([err, err_]),
-                  ctx ?? context,
-                  callback,
-                )
+              if (this._config.run && !can_fix_error(this._config.run)) {
+                this.rescue(CreateError([err, err_]), ctx ?? context, callback)
               } else {
                 // обработка ошибок может происходить внутри функции
-                this.run?.(new ErrorList([err, err_]), ctx ?? context, callback)
+                this.run?.(CreateError([err, err_]), ctx ?? context, callback)
               }
             } else {
               this.run?.(undefined, ctx ?? context, callback)
@@ -176,19 +195,15 @@ export class Stage<T, R = T> implements IStage<T, R> {
             context,
             (err_?: Error, ctx?: T) => {
               if (err || err_) {
-                if (!can_fix_error(this._config.run)) {
+                if (this._config.run && !can_fix_error(this._config.run)) {
                   this.rescue(
-                    new ErrorList([err, err_]),
+                    CreateError([err, err_]),
                     ctx ?? context,
                     callback,
                   )
                 } else {
                   // обработка ошибок может происходить внутри функции
-                  this.run?.(
-                    new ErrorList([err, err_]),
-                    ctx ?? context,
-                    callback,
-                  )
+                  this.run?.(CreateError([err, err_]), ctx ?? context, callback)
                 }
               } else {
                 this.run?.(undefined, ctx ?? context, callback)
@@ -207,17 +222,28 @@ export class Stage<T, R = T> implements IStage<T, R> {
     context: T,
     callback: CallbackFunction<T | R>,
   ) {
-    execute_callback(err, this._config.run, context, (err?: Error) => {
-      if (err) {
-        this.rescue(err, context, callback)
-      } else {
-        callback(undefined, context)
-      }
-    })
+    if (this._config.run) {
+      execute_callback(err, this._config.run, context, (err?: Error) => {
+        if (err) {
+          this.rescue(err, context, callback)
+        } else {
+          callback(undefined, context)
+        }
+      })
+    } else {
+      this.rescue(
+        CreateError([this.reportName + ' reports: run is not a function', err]),
+        context,
+        callback,
+      )
+    }
   }
 
   public compile(rebuild: boolean = false): StageRun<T, R> {
     let res: StageRun<T, R>
+    if (this.config.precompile) {
+      this.config.precompile()
+    }
     if (this._config.compile) {
       res = this._config.compile.call(this, rebuild)
     } else if (!this.run || rebuild) {
@@ -231,13 +257,17 @@ export class Stage<T, R = T> implements IStage<T, R> {
   protected run?: StageRun<T, R>
 
   // объединение ошибок сделать
-  protected rescue(err: Error, context: T, callback: CallbackFunction<T | R>) {
+  protected rescue(
+    err: Error | undefined,
+    context: T,
+    callback: CallbackFunction<T | R>,
+  ) {
     if (err && !(err instanceof Error)) {
-      if (typeof err == 'string') err = Error(err)
+      if (typeof err == 'string') err = CreateError(err)
     }
-    if (this._config.rescue) {
+    if (err && this._config.rescue) {
       execute_rescue(this._config.rescue, err, context, (_err?: Error) => {
-        callback(new ErrorList([err, _err]), context)
+        callback(_err, context)
       })
     } else {
       // отправить ошибку дальше
@@ -262,13 +292,13 @@ export class Stage<T, R = T> implements IStage<T, R> {
           if ('boolean' === typeof result) {
             callback(undefined, context)
           } else if (Array.isArray(result)) {
-            callback(new ErrorList(result))
+            callback(CreateError(result))
           } else {
             // ensure works
             callback(undefined, result)
           }
         } else {
-          callback(new Error(this.reportName + ' reports: T is invalid'))
+          callback(CreateError(this.reportName + ' reports: T is invalid'))
         }
       }
     })
@@ -286,13 +316,13 @@ export class Stage<T, R = T> implements IStage<T, R> {
           if ('boolean' === typeof result) {
             callback(undefined, context)
           } else if (Array.isArray(result)) {
-            callback(new ErrorList(result))
+            callback(CreateError(result))
           } else {
             // ensure works
             callback(undefined, result)
           }
         } else {
-          callback(new Error(this.reportName + ' reports: T is invalid'))
+          callback(CreateError(this.reportName + ' reports: T is invalid'))
         }
       }
     })
@@ -357,7 +387,7 @@ function execute_callback<T, R>(
           processError(err, done)
         }
       } else {
-        done(new Error(ERROR.signature))
+        done(CreateError(ERROR.signature))
       }
       break
     case 2:
@@ -376,7 +406,7 @@ function execute_callback<T, R>(
           processError(err, done)
         }
       } else {
-        done(new Error(ERROR.signature))
+        done(CreateError(ERROR.signature))
       }
       break
     case 3:
@@ -391,11 +421,11 @@ function execute_callback<T, R>(
           processError(err, done)
         }
       } else {
-        done(new Error(ERROR.signature))
+        done(CreateError(ERROR.signature))
       }
       break
     default:
-      done(new Error(ERROR.signature))
+      done(CreateError(ERROR.signature))
   }
 }
 
@@ -403,9 +433,9 @@ function processError<T>(err: unknown, done: CallbackFunction<T>) {
   if (err instanceof Error) {
     done(err)
   } else if (typeof err == 'string') {
-    done(new Error(err))
+    done(CreateError(err))
   } else {
-    done(new Error(String(err)))
+    done(CreateError(String(err)))
   }
 }
 
@@ -439,7 +469,7 @@ function execute_rescue<T, R>(
           processError(err, done)
         }
       } else {
-        done(new Error(ERROR.signature))
+        done(CreateError(ERROR.signature))
       }
       break
     case 2:
@@ -461,12 +491,11 @@ function execute_rescue<T, R>(
           } else {
             done()
           }
-          done()
         } catch (err) {
           processError(err, done)
         }
       } else {
-        done(new Error(ERROR.signature))
+        done(CreateError(ERROR.signature))
       }
       break
     case 3:
@@ -481,11 +510,11 @@ function execute_rescue<T, R>(
           processError(err, done)
         }
       } else {
-        done(new Error(ERROR.signature))
+        done(CreateError(ERROR.signature))
       }
       break
     default:
-      done(new Error(ERROR.signature))
+      done(CreateError(ERROR.signature))
   }
 }
 
@@ -523,7 +552,7 @@ function execute_validate<T>(
           processError(err, done)
         }
       } else {
-        done(new Error(ERROR.signature))
+        done(CreateError(ERROR.signature))
       }
       break
     case 2:
@@ -536,11 +565,11 @@ function execute_validate<T>(
           processError(err, done)
         }
       } else {
-        done(new Error(ERROR.signature))
+        done(CreateError(ERROR.signature))
       }
       break
     default:
-      done(new Error(ERROR.signature))
+      done(CreateError(ERROR.signature))
   }
 }
 
@@ -575,7 +604,7 @@ function execute_ensure<T>(
           processError(err, done)
         }
       } else {
-        done(new Error(ERROR.signature))
+        done(CreateError(ERROR.signature))
       }
       break
     case 2:
@@ -588,11 +617,11 @@ function execute_ensure<T>(
           processError(err, done)
         }
       } else {
-        done(new Error(ERROR.signature))
+        done(CreateError(ERROR.signature))
       }
       break
     default:
-      done(new Error(ERROR.signature))
+      done(CreateError(ERROR.signature))
   }
 }
 
@@ -656,52 +685,5 @@ function can_fix_error<T, R>(run: RunPipelineConfig<T, R>) {
 
 // результат функции может быть промисом в любом месте???
 
-function failproofAsyncCall(handleError: Function, _this: any, _fn: Function) {
-  var fn = function () {
-    var args = Array.prototype.slice.call(arguments)
-    try {
-      _fn.apply(_this, args)
-    } catch (err) {
-      handleError(
-        err,
-        _fn.length === 2 ? args[0] : args[1],
-        _fn.length === 2 ? args[1] : args[2],
-      )
-    }
-  }
-  return fn
-  /*return function() {
-    // посмотреть может быть нужно убрать setImmediate?!
-    var args = Array.prototype.slice.call(arguments);
-    args.unshift(fn);
-    setImmediate.apply(null, args);
-  };*/
-}
-
-function failproofSyncCall(
-  handleError: Function,
-  _this: any,
-  _fn: Function,
-  finalize: Function,
-) {
-  var fn = function () {
-    var failed = false
-    var args = Array.prototype.slice.call(arguments)
-    try {
-      _fn.apply(_this, args)
-    } catch (err) {
-      failed = true
-      handleError(err, _fn.length === 1 ? args[0] : _this, finalize)
-    }
-    if (!failed) {
-      finalize()
-    }
-  }
-  return fn
-  /*return function() {
-    // посмотреть может быть нужно убрать setImmediate?!
-    var args = Array.prototype.slice.call(arguments);
-    args.unshift(fn);
-    setImmediate.apply(null, args);
-  };*/
-}
+// DONE: сделать валидацию по схеме в инициализации
+// сделать проверку ошибок

@@ -3,7 +3,7 @@ import { ContextFactory, ContextSymbol } from '../context'
 
 describe('context', () => {
   it('create a context object as Proxy', () => {
-    const context = { name: 'alex', age: 43 }
+    const context: { name: string; age?: number } = { name: 'alex', age: 43 }
     const ctx = ContextFactory.ensure(context)
     expect(ctx.name).toBe('alex')
     expect(ctx.age).toBe(43)

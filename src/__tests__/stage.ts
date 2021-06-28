@@ -8,7 +8,9 @@ describe('stage', () => {
     expect(s).toMatchSnapshot('names stage')
   })
   it('create with function', () => {
-    const s = new Stage(function RunStage() {
+    const s = new Stage<{ name?: string }>(function RunStage(this: {
+      name?: string
+    }) {
       this.name = 'run this Stage'
     })
     expect(s).not.toBeNull()
@@ -19,9 +21,9 @@ describe('stage', () => {
     const s = new Stage<{ name: string }>((err, ctx, done) => {
       if (!err) {
         ctx.name = 'run the stage'
-        done(null, ctx)
+        done(undefined, ctx)
       } else {
-        done(err, null)
+        done(err)
       }
     })
     expect(s).toMatchSnapshot('lambda stage')
@@ -55,6 +57,26 @@ describe('stage', () => {
     ).not.toThrow()
   })
 
+  it('validate using schema', () => {
+    const st = new Stage<{ name: string }>({
+      run: () => {},
+      schema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+        },
+        required: ['name'],
+        additionalProperties: false,
+        errorMessage: 'should be an object with a name property',
+      },
+    })
+
+    st.execute({ fullname: 1 }, (err, res) => {
+      expect(err).not.toBeUndefined()
+      expect(err).toMatchSnapshot()
+    })
+  })
+
   it('initialize other stuff sucessfully', () => {
     let stage = new Stage({
       run: () => {},
@@ -83,7 +105,7 @@ describe('stage', () => {
     const s = new Stage<{ name: string }>((err, ctx, done) => {
       if (!err) {
         ctx.name = 'run the stage'
-        done(null, ctx)
+        done(undefined, ctx)
       } else {
         done(err)
       }

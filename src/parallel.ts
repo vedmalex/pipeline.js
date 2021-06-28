@@ -1,10 +1,12 @@
-/*! 
- * Module dependency
- */
-var Stage = require('./stage').Stage;
-var util = require('./util').Util;
-var ErrorList = require('./util').ErrorList;
-var Empty = require('./empty').Empty;
+import {
+  CallbackFunction,
+  IStage,
+  ParallelConfigInput,
+  ParallelConfig,
+  StageRun,
+} from './utils/types'
+import { Stage } from './stage'
+import { CreateError } from './ErrorList'
 
 /**
  * Process staging in parallel way
@@ -23,179 +25,149 @@ var Empty = require('./empty').Empty;
  *
  * @param {Object} config configuration object
  */
-function Parallel(config) {
+export class Parallel<
+  T,
+  R,
+  I extends ParallelConfigInput<T, R> = ParallelConfigInput<T, R>,
+  S extends ParallelConfig<T, R> = ParallelConfig<T, R>,
+> extends Stage<T, R, I, S> {
+  constructor(_config?: I | Stage<T, R, I, S>) {
+    let config: S = {} as S
+    if (_config instanceof Stage) {
+      super()
+      this.config.stage = _config
+    } else if (typeof _config == 'object') {
+      if (_config?.run instanceof Function) {
+        config.stage = new Stage(_config.run) as IStage<T, R>
+        delete _config.run
+      } else if (_config?.stage instanceof Stage) {
+        config.stage = _config.stage
+        delete _config.stage
+      } else if (_config?.stage instanceof Function) {
+        config.stage = new Stage(_config.stage) as IStage<T, R>
+        delete _config.stage
+      } else {
+        config.stage = new Empty()
+      }
+      if (_config.split instanceof Function) {
+        config.split = _config.split
+        delete _config.split
+      }
+      if (_config.combine instanceof Function) {
+        config.combine = _config.combine
+        delete _config.combine
+      }
+      super(_config)
+      this._config = { ...this._config, ...config }
+    } else {
+      super()
+    }
+  }
 
-	var self = this;
+  split(ctx: T | R): Array<any> {
+    return this._config.split ? this._config.split(ctx) : [ctx]
+  }
 
-	if (!(self instanceof Parallel)) {
-		throw new Error('constructor is not a function');
-	}
+  combine(ctx: T | R, children: Array<any>): T | R {
+    let res: T | R
+    if (this.config.combine) {
+      let c = this.config.combine(ctx, children)
+      res = c ?? ctx
+    } else {
+      res = ctx
+    }
+    return res
+  }
 
-	if (config && config.run instanceof Function) {
-		config.stage = new Stage(config.run);
-		delete config.run;
-	}
+  public override get reportName() {
+    return `PLL:${this.config.name ? this.config.name : ''}`
+  }
+  public override toString() {
+    return '[pipeline Pipeline]'
+  }
 
-	Stage.apply(self, arguments);
+  public override get name(): string {
+    return this._config.name ?? this._config.stage?.name ?? ''
+  }
 
-	if (!config) {
-		config = {};
-	}
+  override compile(rebuild: boolean = false): StageRun<T, R> {
+    if (this.config.stage) {
+      var run: StageRun<T, R> = (
+        err: Error | undefined,
+        ctx: T | R,
+        done: CallbackFunction<T | R>,
+      ) => {
+        var iter = 0
+        var children = this.split(ctx)
+        var len = children ? children.length : 0
+        let errors: Array<StageError<ParallelError>>
+        let hasError = false
 
-	if (config instanceof Stage) {
-		config = {
-			stage: config
-		};
-	}
+        var next = (index: number) => {
+          return (err: Error | undefined, retCtx: any) => {
+            if (!err) {
+              children[index] = retCtx
+            } else {
+              if (!hasError) {
+                hasError = true
+                errors = []
+              }
+              errors.push(
+                new StageError({
+                  name: 'Parallel stage Error',
+                  stage: this.name,
+                  index: index,
+                  err: err,
+                  ctx: children[index],
+                }),
+              )
+            }
 
-	if (config.stage instanceof Stage) {
-		self.stage = config.stage;
-	} else {
-		if (config.stage instanceof Function) {
-			self.stage = new Stage(config.stage);
-		} else {
-			self.stage = new Empty();
-		}
-	}
+            if (++iter >= len) {
+              if (!hasError) {
+                let result = this.combine(ctx, children)
+                return done(undefined, result)
+              } else {
+                return done(CreateError(errors), ctx)
+              }
+            }
+          }
+        }
 
-	if (config.split instanceof Function) {
-		self.split = config.split;
-	}
+        if (len === 0) {
+          return done(err, ctx)
+        } else {
+          for (var i = 0; i < len; i++) {
+            this.config.stage.execute(err, children[i], next(i))
+          }
+        }
+      }
+      this.run = run
+    } else {
+      this.run = function (
+        err: Error | undefined,
+        context: T | R,
+        done: CallbackFunction<T | R>,
+      ) {
+        done(err, context)
+      }
+    }
 
-	if (config.combine instanceof Function) {
-		self.combine = config.combine;
-	}
-
-	self.name = config.name;
+    return super.compile()
+  }
 }
 
-/*!
- * Inherited from Stage
- */
-util.inherits(Parallel, Stage);
-
-/**
- * internal declaration fo `success`
- */
-Parallel.prototype.stage = undefined;
-
-/**
- * internal declaration fo `success`
- */
-// Parallel.prototype.split = function(ctx) {
-// 	return [ctx];
-// };
-
-/**
- * internal declaration fo `combine`
- * @param {Context} ctx main context
- * @param {Context[]} children  list of all children contexts
- */
-// Parallel.prototype.combine = function(ctx, children) {};
-
-/**
- * override of `reportName`
- * @api public
- */
-Parallel.prototype.reportName = function() {
-	var self = this;
-	return "PLL:" + self.name;
-};
-
-/**
- * override of compile
- * split all and run all
- * @api protected
- */
-Parallel.prototype.compile = function() {
-	var self = this;
-	if (!self.name) {
-		self.name = self.stage.reportName();
-	}
-	var hasCombine = !!self.combine;
-	var run = function(err, ctx, done) {
-		var iter = 0;
-		var children = self.split ? self.split(ctx) : [ctx];
-		var len = children ? children.length : 0;
-		var errors;
-		var hasError = false;
-		var combined = hasCombine;
-
-		var next = function(index) {
-			return function(err, retCtx) {
-				if (!err) {
-					children[index] = retCtx;
-				} else {
-					if (!hasError) {
-						hasError = true;
-						errors = [];
-					}
-					errors.push({
-						stage: self.name,
-						index: index,
-						err: err,
-						stack: err.stack,
-						ctx: children[index]
-					});
-				}
-
-				if (++iter >= len) {
-					if (!hasError) {
-						if (combined) {
-							self.combine(ctx, children);
-						}
-						return done();
-					} else {
-						return done(new ErrorList(errors));
-					}
-				}
-			};
-		};
-
-		if (len === 0) {
-			return done(err);
-		} else {
-			for (var i = 0; i < len; i++) {
-				self.stage.execute(err, children[i], next(i));
-			}
-		}
-	};
-	self.run = run;
-	Parallel.super_.prototype.compile.call(self);
-};
-
-/**
- * override of execute
- * @param {Error} err error from previous execution
- * @param {Context} context evaluating context
- * @param {Context} [callback] returning callback
- * @api public
- */
-Parallel.prototype.execute = function(err, context, callback) {
-	if (context instanceof Function) {
-		callback = context;
-		context = err;
-		err = undefined;
-	} else if (!context && !(err instanceof Error)) {
-		context = err;
-		err = undefined;
-		callback = undefined;
-	}
-	var self = this;
-	if (!self.run) {
-		self.compile();
-	}
-	Parallel.super_.prototype.execute.call(self, err, context, callback);
-};
-
-/*!
- * toString
- */
-Parallel.prototype.toString = function() {
-	return "[pipeline Parallel]";
-};
-
-/*!
- * exports
- */
-exports.Parallel = Parallel;
+export type ParallelError = {
+  name: string
+  stage: string
+  index: number
+  err: Error
+  ctx: any
+}
+export class StageError<T extends { name: string }> extends Error {
+  info!: T
+  constructor(err: T) {
+    super(err.name)
+    this.info = err
+  }
+}

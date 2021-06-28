@@ -12,9 +12,18 @@ export interface IStage<T, R> {
     callback: CallbackFunction<R | T>,
   ): void
   compile(rebuild?: boolean): void
-  get config(): StageConfig<T, R>
+  get config(): StageConfigInput<T, R>
 }
 
+export function isIStage<T, R>(inp: any): inp is IStage<T, R> {
+  if (inp) {
+    return (
+      typeof inp.compile == 'function' &&
+      typeof inp.execute == 'function' &&
+      typeof inp.config == 'object'
+    )
+  } else return false
+}
 export type Func0Sync<R> = () => R
 export type Func1Sync<R, P1> = (p1: P1) => R
 export type Func2Sync<R, P1, P2> = (p1: P1, p2: P2) => R
@@ -132,7 +141,7 @@ export type Rescue<T, R> =
 export type ValidateFunction<T> =
   // will throw error
   | Func1Sync<boolean | Promise<boolean> | Thanable<boolean>, T>
-  // will refect with error
+  // will reject with error
   | Func1Async<boolean, T>
   // will return error in callback
   | Func2Sync<void, T, CallbackFunction<boolean>>
@@ -146,15 +155,59 @@ export type EnsureFunction<T> =
   // will return error in callback
   | Func2Sync<void, T, CallbackFunction<T>>
 
+export interface StageConfigInput<T, R> {
+  name?: string
+  rescue?: Rescue<T, R>
+  schema?: JSONSchemaType<T>
+  ensure?: EnsureFunction<T>
+  validate?: ValidateFunction<T>
+  run?: RunPipelineConfig<T, R> | SingleStageFunction<T>
+  compile?: (this: IStage<T, R>, rebuild: boolean) => StageRun<T, R>
+  precompile?: () => void
+}
+
+export interface StageConfigInput<T, R> {
+  name?: string
+  rescue?: Rescue<T, R>
+  schema?: JSONSchemaType<T>
+  ensure?: EnsureFunction<T>
+  validate?: ValidateFunction<T>
+  run?: RunPipelineConfig<T, R> | SingleStageFunction<T>
+  compile?: (this: IStage<T, R>, rebuild: boolean) => StageRun<T, R>
+  precompile?: () => void
+}
 export interface StageConfig<T, R> {
   name?: string
   rescue?: Rescue<T, R>
   schema?: JSONSchemaType<T>
   ensure?: EnsureFunction<T>
   validate?: ValidateFunction<T>
-  run: RunPipelineConfig<T, R>
+  run?: RunPipelineConfig<T, R>
   compile?: (this: IStage<T, R>, rebuild: boolean) => StageRun<T, R>
   precompile?: () => void
+}
+
+export interface PipelineConfigInput<T, R> extends StageConfigInput<T, R> {
+  stages?: Array<IStage<any, any>>
+  run?: SingleStageFunction<T>
+}
+
+export interface PipelineConfig<T, R> extends StageConfig<T, R> {
+  stages: Array<IStage<any, any>>
+  run: SingleStageFunction<T>
+}
+
+export interface ParallelConfigInput<T, R> extends StageConfigInput<T, R> {
+  stage?: IStage<T, R> | SingleStageFunction<T>
+  split?: Func1Sync<Array<any>, T | R>
+  combine?: Func2Sync<T | R | void, T | R, Array<any>>
+  run?: SingleStageFunction<T>
+}
+
+export interface ParallelConfig<T, R> extends StageConfig<T, R> {
+  stage: IStage<T, R>
+  split?: Func1Sync<Array<any>, T | R>
+  combine?: Func2Sync<T | R | void, T | R, Array<any>>
 }
 
 export type StageRun<T, R> = (
