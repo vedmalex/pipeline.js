@@ -1,6 +1,6 @@
 import 'jest'
-import { empty_run } from 'src/utils/empty_run'
-import { run_or_execute } from 'src/utils/run_or_execute'
+import { empty_run } from '../utils/empty_run'
+import { run_or_execute } from '../utils/run_or_execute'
 import { Stage } from '../stage'
 import {
   StageConfig,

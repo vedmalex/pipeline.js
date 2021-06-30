@@ -24,7 +24,7 @@
     "types": ["node", "jest"],
     "baseUrl": "./",
     "rootDir": "./src",
-    "outDir": "lib_",
+    "outDir": "lib",
     "allowSyntheticDefaultImports": true,
     "target": "es2018",
     "experimentalDecorators": true,

@@ -26,7 +26,7 @@ describe('Parallel', function () {
     var pp = new Parallel({
       stage: st,
     })
-    expect(st === pp.config.stage.config.run).toBeTruthy()
+    expect(st === pp.config.stage).toBeTruthy()
     done()
   })
 
