@@ -1,50 +1,44 @@
 /*!
  * Module dependency
  */
-exports.Util = {}
-exports.Util.getClass = function (obj) {
-  if (
-    obj &&
-    typeof obj === 'object' &&
-    Object.prototype.toString.call(obj) !== '[object Array]' &&
-    obj.constructor &&
-    obj !== global
-  ) {
-    var res = obj.constructor.toString().match(/function\s*(\w+)\s*\(/)
+exports.Util = {};
+exports.Util.getClass = function(obj) {
+  if (obj && typeof obj === 'object' && Object.prototype.toString.call(obj) !== '[object Array]' && obj.constructor && obj !== global) {
+    var res = obj.constructor.toString().match(/function\s*(\w+)\s*\(/);
     if (res && res.length === 2) {
-      return res[1]
+      return res[1];
     }
   }
-  return false
-}
-exports.Util.inherits = function (ctor, superCtor) {
-  ctor.super_ = superCtor
+  return false;
+};
+exports.Util.inherits = function(ctor, superCtor) {
+  ctor.super_ = superCtor;
   ctor.prototype = Object.create(superCtor.prototype, {
     constructor: {
       value: ctor,
-      enumerable: false,
-    },
-  })
-}
+      enumerable: false
+    }
+  });
+};
 
 /*!
  * failproff wrapper for Sync call
  */
 function failproofSyncCall(handleError, _this, _fn, finalize) {
-  var fn = function () {
-    var failed = false
-    var args = Array.prototype.slice.call(arguments)
+  var fn = function() {
+    var failed = false;
+    var args = Array.prototype.slice.call(arguments);
     try {
-      _fn.apply(_this, args)
+      _fn.apply(_this, args);
     } catch (err) {
-      failed = true
-      handleError(err, _fn.length === 1 ? args[0] : _this, finalize)
+      failed = true;
+      handleError(err, (_fn.length === 1) ? args[0] : _this, finalize);
     }
     if (!failed) {
-      finalize()
+      finalize();
     }
-  }
-  return fn
+  };
+  return fn;
   /*return function() {
     // посмотреть может быть нужно убрать setImmediate?!
     var args = Array.prototype.slice.call(arguments);
@@ -53,25 +47,21 @@ function failproofSyncCall(handleError, _this, _fn, finalize) {
   };*/
 }
 
-exports.failproofSyncCall = failproofSyncCall
+exports.failproofSyncCall = failproofSyncCall;
 
 /*!
  * failproff wrapper for Async call
  */
 function failproofAsyncCall(handleError, _this, _fn) {
-  var fn = function () {
-    var args = Array.prototype.slice.call(arguments)
+  var fn = function() {
+    var args = Array.prototype.slice.call(arguments);
     try {
-      _fn.apply(_this, args)
+      _fn.apply(_this, args);
     } catch (err) {
-      handleError(
-        err,
-        _fn.length === 2 ? args[0] : args[1],
-        _fn.length === 2 ? args[1] : args[2],
-      )
+      handleError(err, (_fn.length === 2) ? args[0] : args[1], (_fn.length === 2) ? args[1] : args[2]);
     }
-  }
-  return fn
+  };
+  return fn;
   /*return function() {
     // посмотреть может быть нужно убрать setImmediate?!
     var args = Array.prototype.slice.call(arguments);
@@ -80,22 +70,23 @@ function failproofAsyncCall(handleError, _this, _fn) {
   };*/
 }
 
-exports.failproofAsyncCall = failproofAsyncCall
+exports.failproofAsyncCall = failproofAsyncCall;
 
 function ErrorList(list) {
-  var self = this
+  var self = this;
   if (!(self instanceof ErrorList)) {
-    throw new Error('constructor is not a function')
+    throw new Error('constructor is not a function');
   }
-  Error.apply(self)
-  self.message = 'Complex Error'
-  self.errors = Array.isArray(list) ? list : [list]
+  Error.apply(self);
+  self.message = "Complex Error";
+  self.errors = Array.isArray(list) ? list : [list];
 }
 
-ErrorList.prototype.errors = undefined
-exports.Util.inherits(ErrorList, Error)
+ErrorList.prototype.errors = undefined;
+exports.Util.inherits(ErrorList, Error);
 
-exports.ErrorList = ErrorList
+exports.ErrorList = ErrorList;
+
 
 /**
  * Extracts symbolic name of the class if exists
@@ -104,8 +95,8 @@ exports.ErrorList = ErrorList
  * @return {String}
  */
 function extractType(v) {
-  var ts = Object.prototype.toString
-  return ts.call(v).match(/\[object (.+)\]/)[1]
+  var ts = Object.prototype.toString;
+  return ts.call(v).match(/\[object (.+)\]/)[1];
 }
 
 /**
@@ -116,42 +107,42 @@ function extractType(v) {
  * @return {Object|any}
  */
 function clone(src, clean) {
-  var type = extractType(src)
+  var type = extractType(src);
   switch (type) {
     case 'Boolean':
     case 'String':
     case 'Number':
-      return src
+      return src;
     case 'RegExp':
-      return new RegExp(src.toString())
+      return new RegExp(src.toString());
     case 'Date':
-      return new Date(Number(src))
+      return new Date(Number(src));
     case 'Object':
       if (src.toObject instanceof Function) {
-        return src.toObject()
+        return src.toObject();
       } else {
         if (src.constructor === Object) {
-          var obj = {}
+          var obj = {};
           for (var p in src) {
-            obj[p] = clone(src[p])
+            obj[p] = clone(src[p]);
           }
-          return obj
+          return obj;
         } else {
-          return clean ? undefined : src
+          return clean ? undefined : src;
         }
       }
-      break
+      break;
     case 'Array':
-      var res = []
+      var res = [];
       for (var i = 0, len = src.length; i < len; i++) {
-        res.push(clone(src[i], clean))
+        res.push(clone(src[i], clean));
       }
-      return res
+      return res;
     case 'Undefined':
     case 'Null':
-      return src
+      return src;
     default:
   }
 }
 
-exports.clone = clone
+exports.clone = clone;

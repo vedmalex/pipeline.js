@@ -1,100 +1,200 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Pipeline = void 0;
-const ErrorList_1 = require("./utils/ErrorList");
-const run_or_execute_1 = require("./utils/run_or_execute");
-const stage_1 = require("./stage");
-const empty_run_1 = require("./utils/empty_run");
-const types_1 = require("./utils/types");
-class Pipeline extends stage_1.Stage {
-    constructor(config) {
-        let stages = [];
-        if (typeof config == 'object') {
-            if (config instanceof stage_1.Stage) {
-                stages.push(config);
-                super();
-            }
-            else {
-                if (config.run instanceof Function) {
-                    stages.push(config.run);
-                    delete config.run;
-                }
-                if (Array.isArray(config.stages)) {
-                    stages.push(...config.stages);
-                }
-                if (config instanceof Array) {
-                    stages.push.apply(stages, config);
-                }
-                super(config);
-            }
-            this.stages = [];
-            for (let i = 0; i < stages.length; i++) {
-                this.addStage(stages[i]);
-            }
-        }
-        else if (typeof config == 'string') {
-            super(config);
-            this.stages = [];
-        }
-        else if (config) {
-            throw ErrorList_1.CreateError('wrong arguments check documentation');
-        }
-        else {
-            super();
-            this.stages = [];
-        }
-    }
-    get reportName() {
-        return `PIPE:${this.config.name ? this.config.name : ''}`;
-    }
-    addStage(_stage) {
-        let stage;
-        if (typeof _stage === 'function') {
-            stage = _stage;
-        }
-        else {
-            if (typeof _stage === 'object') {
-                if (!types_1.isIStage(_stage)) {
-                    stage = new stage_1.Stage(_stage);
-                }
-                else {
-                    stage = _stage;
-                }
-            }
-        }
-        if (stage) {
-            this.stages.push(stage);
-            this.run = undefined;
-        }
-    }
-    toString() {
-        return '[pipeline Pipeline]';
-    }
-    compile(rebuild = false) {
-        let run = (err, context, done) => {
-            let i = -1;
-            let next = (err, context) => {
-                i += 1;
-                if (i < this.stages.length) {
-                    run_or_execute_1.run_or_execute(this.stages[i], err, context, next);
-                }
-                else if (i == this.stages.length) {
-                    done(err, context);
-                }
-                else {
-                    done(new Error('done call more than once'), context);
-                }
-            };
-            next(err, context);
-        };
-        if (this.stages.length > 0) {
-            this.run = run;
-        }
-        else {
-            this.run = empty_run_1.empty_run;
-        }
-        return super.compile(rebuild);
-    }
+/*!
+ * Module dependency
+ */
+var Stage = require('./stage').Stage;
+var util = require('./util.js').Util;
+
+/**
+ * it make possible to choose which stage to run according to result of `condition` evaluation
+ *  - config as 
+ 		- `Function` --- first Stage for pipeline
+ * 		- `Stage` --- first Stage 
+ * 		- `Array` --- list of stages
+ * 		- `Object` --- config for Pipeline
+ *			  - `stages` list of stages
+ *			  - `name` name of pipeline
+ * 		- `Empty` --- empty pipeline
+ *
+ * @param {Object} config configuration object
+ */
+function Pipeline(config) {
+
+	var self = this;
+
+	if (!(self instanceof Pipeline)) {
+		throw new Error('constructor is not a function');
+	}
+
+	self.stages = [];
+	var stages = [];
+
+	if (config) {
+
+		if (config.run instanceof Function) {
+			config.stage = new Stage(config.run);
+			delete config.run;
+		}
+
+		if (Array.isArray(config.stages)) {
+			stages.push.apply(stages, config.stages);
+			delete config.stages;
+		}
+
+		if (config instanceof Array) {
+			stages.push.apply(stages, config);
+		}
+
+		if (typeof(config.run) === 'function') {
+			stages.push(config.run);
+			var stg = config.run;
+			delete config.run;
+		}
+
+		if (typeof(config) instanceof Stage) {
+			stages.push(config);
+		}
+
+		if (typeof(config) === 'object') {
+			Stage.call(self, config);
+		}
+		if (typeof(config) === 'string') {
+			Stage.call(self);
+			self.name = config;
+		}
+
+	} else {
+		Stage.call(self);
+	}
+
+	if (config && config.name) {
+		self.name = config.name;
+	}
+
+	if (!self.name) {
+		self.name = [];
+	}
+
+	var len = stages.length;
+	for (var i = 0; i < len; i++) {
+		self.addStage(stages[i]);
+	}
 }
+
+/*!
+ * Inherited from Stage
+ */
+util.inherits(Pipeline, Stage);
+
+/**
+ * internal declaration for stage store
+ */
+Pipeline.prototype.stages = undefined;
+
+/**
+ * override of `reportName`
+ * @api public
+ */
+Pipeline.prototype.reportName = function() {
+	var self = this;
+	return "PIPE:" + self.name;
+};
+
+/**
+ * add Stages to Pipeline
+ * it reset run method to compile it again
+ * @api public
+ * @param {Stage} stage new stage to evaluate in pipeline
+ */
+Pipeline.prototype.addStage = function(stage) {
+	var self = this;
+	var empty = false;
+	if (!(stage instanceof Stage)) {
+		if (typeof(stage) === 'function') {
+			stage = new Stage(stage);
+		} else {
+			if (typeof(stage) === 'object') {
+				stage = new Stage(stage);
+			} else {
+				empty = true;
+			}
+		}
+	}
+	if (!empty) {
+		self.stages.push(stage);
+		if (self.run) {
+			//reset run method
+			self.run = 0;
+		}
+	}
+};
+
+/**
+ * override of compile
+ * run different stages one after another one
+ * @api protected
+ */
+Pipeline.prototype.compile = function() {
+	var self = this;
+	var len = self.stages.length;
+	var nameUndefined = (Array.isArray(self.name) || !self.name);
+	if (nameUndefined) {
+		self.name = self.stages.map(function(st) {
+			return st.reportName();
+		}).join('->');
+	}
+
+	var run = function(err, context, done) {
+		var i = -1;
+		var stlen = len; // hack to avoid upper context search;
+		var stList = self.stages; // the same hack
+		//sequential run;
+		var next = function(err, context) {
+			if (!err && i > stlen) err = new Error(' the method \'done\' of pipeline is called more that ones');
+			if (++i >= stlen || err) return done(err);
+			else stList[i].execute(err, context, next);
+		};
+		next(err, context);
+	};
+
+	if (len > 0) {
+		self.run = run;
+	} else {
+		self.run = function() {};
+	}
+	Pipeline.super_.prototype.compile.call(self);
+};
+
+/**
+ * override of execute
+ * @param {Context} context evaluating context
+ * @param {Context} [callback] returning callback
+ * @api public
+ */
+Pipeline.prototype.execute = function(err, context, callback) {
+	if (context instanceof Function) {
+		callback = context;
+		context = err;
+		err = undefined;
+	} else if (!context && !(err instanceof Error)) {
+		context = err;
+		err = undefined;
+		callback = undefined;
+	}
+	var self = this;
+	if (!self.run) {
+		self.compile();
+	}
+	Pipeline.super_.prototype.execute.call(self, err, context, callback);
+};
+
+/*!
+ * toString
+ */
+Pipeline.prototype.toString = function() {
+	return "[pipeline Pipeline]";
+};
+
+/*!
+ * exports
+ */
 exports.Pipeline = Pipeline;
-//# sourceMappingURL=pipeline.js.map

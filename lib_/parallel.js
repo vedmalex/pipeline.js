@@ -1,127 +1,201 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.StageError = exports.Parallel = void 0;
-const stage_1 = require("./stage");
-const ErrorList_1 = require("./utils/ErrorList");
-const run_or_execute_1 = require("./utils/run_or_execute");
-const empty_run_1 = require("./utils/empty_run");
-class Parallel extends stage_1.Stage {
-    constructor(_config) {
-        let config = {};
-        if (_config instanceof stage_1.Stage) {
-            super();
-            this.config.stage = _config;
-        }
-        else if (typeof _config == 'object') {
-            if (config.run && config.stage) {
-                throw ErrorList_1.CreateError('use or run or stage, not both');
-            }
-            if (_config === null || _config === void 0 ? void 0 : _config.run) {
-                config.stage = new stage_1.Stage(_config.run);
-                delete _config.run;
-            }
-            else if (_config === null || _config === void 0 ? void 0 : _config.stage) {
-                config.stage = _config.stage;
-            }
-            if (_config.split) {
-                config.split = _config.split;
-                delete _config.split;
-            }
-            if (_config.combine) {
-                config.combine = _config.combine;
-                delete _config.combine;
-            }
-            super(_config);
-            this._config = { ...this._config, ...config };
-        }
-        else {
-            super();
-        }
-    }
-    split(ctx) {
-        return this._config.split ? this._config.split(ctx) : [ctx];
-    }
-    combine(ctx, children) {
-        let res;
-        if (this.config.combine) {
-            let c = this.config.combine(ctx, children);
-            res = c !== null && c !== void 0 ? c : ctx;
-        }
-        else {
-            res = ctx;
-        }
-        return res;
-    }
-    get reportName() {
-        return `PLL:${this.config.name ? this.config.name : ''}`;
-    }
-    toString() {
-        return '[pipeline Pipeline]';
-    }
-    get name() {
-        var _a, _b, _c;
-        return (_c = (_a = this._config.name) !== null && _a !== void 0 ? _a : (_b = this._config.stage) === null || _b === void 0 ? void 0 : _b.name) !== null && _c !== void 0 ? _c : '';
-    }
-    compile(rebuild = false) {
-        if (this.config.stage) {
-            var run = (err, ctx, done) => {
-                var iter = 0;
-                var children = this.split(ctx);
-                var len = children ? children.length : 0;
-                let errors;
-                let hasError = false;
-                var next = (index) => {
-                    return (err, retCtx) => {
-                        if (!err) {
-                            children[index] = retCtx;
-                        }
-                        else {
-                            if (!hasError) {
-                                hasError = true;
-                                errors = [];
-                            }
-                            errors.push(new StageError({
-                                name: 'Parallel stage Error',
-                                stage: this.name,
-                                index: index,
-                                err: err,
-                                ctx: children[index],
-                            }));
-                        }
-                        if (++iter >= len) {
-                            if (!hasError) {
-                                let result = this.combine(ctx, children);
-                                return done(undefined, result);
-                            }
-                            else {
-                                return done(ErrorList_1.CreateError(errors), ctx);
-                            }
-                        }
-                    };
-                };
-                if (len === 0) {
-                    return done(err, ctx);
-                }
-                else {
-                    for (var i = 0; i < len; i++) {
-                        run_or_execute_1.run_or_execute(this.config.stage, err, children[i], next(i));
-                    }
-                }
-            };
-            this.run = run;
-        }
-        else {
-            this.run = empty_run_1.empty_run;
-        }
-        return super.compile();
-    }
+/*! 
+ * Module dependency
+ */
+var Stage = require('./stage').Stage;
+var util = require('./util').Util;
+var ErrorList = require('./util').ErrorList;
+var Empty = require('./empty').Empty;
+
+/**
+ * Process staging in parallel way
+ * ### config as _Object_
+ *
+ * - `stage`
+ * 		evaluating stage
+ * - `split`
+ *		function that split existing stage into smalls parts, it needed
+ * - `combine`
+ * 		if any result combining is need, this can be used to combine splited parts and update context
+ *
+ * > **Note**
+ * 		`split` does not require `combine` it will return parent context;
+ * 		in cases that have no declaration for `split` configured or default will be used
+ *
+ * @param {Object} config configuration object
+ */
+function Parallel(config) {
+
+	var self = this;
+
+	if (!(self instanceof Parallel)) {
+		throw new Error('constructor is not a function');
+	}
+
+	if (config && config.run instanceof Function) {
+		config.stage = new Stage(config.run);
+		delete config.run;
+	}
+
+	Stage.apply(self, arguments);
+
+	if (!config) {
+		config = {};
+	}
+
+	if (config instanceof Stage) {
+		config = {
+			stage: config
+		};
+	}
+
+	if (config.stage instanceof Stage) {
+		self.stage = config.stage;
+	} else {
+		if (config.stage instanceof Function) {
+			self.stage = new Stage(config.stage);
+		} else {
+			self.stage = new Empty();
+		}
+	}
+
+	if (config.split instanceof Function) {
+		self.split = config.split;
+	}
+
+	if (config.combine instanceof Function) {
+		self.combine = config.combine;
+	}
+
+	self.name = config.name;
 }
+
+/*!
+ * Inherited from Stage
+ */
+util.inherits(Parallel, Stage);
+
+/**
+ * internal declaration fo `success`
+ */
+Parallel.prototype.stage = undefined;
+
+/**
+ * internal declaration fo `success`
+ */
+// Parallel.prototype.split = function(ctx) {
+// 	return [ctx];
+// };
+
+/**
+ * internal declaration fo `combine`
+ * @param {Context} ctx main context
+ * @param {Context[]} children  list of all children contexts
+ */
+// Parallel.prototype.combine = function(ctx, children) {};
+
+/**
+ * override of `reportName`
+ * @api public
+ */
+Parallel.prototype.reportName = function() {
+	var self = this;
+	return "PLL:" + self.name;
+};
+
+/**
+ * override of compile
+ * split all and run all
+ * @api protected
+ */
+Parallel.prototype.compile = function() {
+	var self = this;
+	if (!self.name) {
+		self.name = self.stage.reportName();
+	}
+	var hasCombine = !!self.combine;
+	var run = function(err, ctx, done) {
+		var iter = 0;
+		var children = self.split ? self.split(ctx) : [ctx];
+		var len = children ? children.length : 0;
+		var errors;
+		var hasError = false;
+		var combined = hasCombine;
+
+		var next = function(index) {
+			return function(err, retCtx) {
+				if (!err) {
+					children[index] = retCtx;
+				} else {
+					if (!hasError) {
+						hasError = true;
+						errors = [];
+					}
+					errors.push({
+						stage: self.name,
+						index: index,
+						err: err,
+						stack: err.stack,
+						ctx: children[index]
+					});
+				}
+
+				if (++iter >= len) {
+					if (!hasError) {
+						if (combined) {
+							self.combine(ctx, children);
+						}
+						return done();
+					} else {
+						return done(new ErrorList(errors));
+					}
+				}
+			};
+		};
+
+		if (len === 0) {
+			return done(err);
+		} else {
+			for (var i = 0; i < len; i++) {
+				self.stage.execute(err, children[i], next(i));
+			}
+		}
+	};
+	self.run = run;
+	Parallel.super_.prototype.compile.call(self);
+};
+
+/**
+ * override of execute
+ * @param {Error} err error from previous execution
+ * @param {Context} context evaluating context
+ * @param {Context} [callback] returning callback
+ * @api public
+ */
+Parallel.prototype.execute = function(err, context, callback) {
+	if (context instanceof Function) {
+		callback = context;
+		context = err;
+		err = undefined;
+	} else if (!context && !(err instanceof Error)) {
+		context = err;
+		err = undefined;
+		callback = undefined;
+	}
+	var self = this;
+	if (!self.run) {
+		self.compile();
+	}
+	Parallel.super_.prototype.execute.call(self, err, context, callback);
+};
+
+/*!
+ * toString
+ */
+Parallel.prototype.toString = function() {
+	return "[pipeline Parallel]";
+};
+
+/*!
+ * exports
+ */
 exports.Parallel = Parallel;
-class StageError extends Error {
-    constructor(err) {
-        super(err.name);
-        this.info = err;
-    }
-}
-exports.StageError = StageError;
-//# sourceMappingURL=parallel.js.map

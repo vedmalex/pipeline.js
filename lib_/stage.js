@@ -1,268 +1,430 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Stage = void 0;
-const ErrorList_1 = require("./utils/ErrorList");
-const ajv_1 = __importDefault(require("ajv"));
-const ajv_formats_1 = __importDefault(require("ajv-formats"));
-const ajv_keywords_1 = __importDefault(require("ajv-keywords"));
-const ajv_errors_1 = __importDefault(require("ajv-errors"));
-const execute_ensure_1 = require("./utils/execute_ensure");
-const execute_validate_1 = require("./utils/execute_validate");
-const execute_rescue_1 = require("./utils/execute_rescue");
-const execute_callback_1 = require("./utils/execute_callback");
-const can_fix_error_1 = require("./utils/can_fix_error");
-class Stage {
-    constructor(config) {
-        this._config = {};
-        if (typeof config == 'string') {
-            this._config.name = config;
-        }
-        else if (typeof config == 'function') {
-            this._config.run = config;
-        }
-        else if (typeof config == 'object') {
-            if (config.name) {
-                this._config.name = config.name;
-            }
-            if (config.rescue) {
-                this._config.rescue = config.rescue;
-            }
-            if (config.run) {
-                this._config.run = config.run;
-            }
-            if (config.validate && config.schema) {
-                throw ErrorList_1.CreateError('use only one `validate` or `schema`');
-            }
-            if (config.ensure && config.schema) {
-                throw ErrorList_1.CreateError('use only one `ensure` or `schema`');
-            }
-            if (config.ensure && config.validate) {
-                throw ErrorList_1.CreateError('use only one `ensure` or `validate`');
-            }
-            if (config.validate) {
-                this._config.validate = config.validate;
-            }
-            if (config.ensure) {
-                this._config.ensure = config.ensure;
-            }
-            if (config.compile) {
-                this._config.compile = config.compile;
-            }
-            if (config.precompile) {
-                this._config.precompile = config.precompile;
-            }
-            if (config.schema) {
-                this._config.schema = config.schema;
-                const ajv = new ajv_1.default({ allErrors: true });
-                ajv_formats_1.default(ajv);
-                ajv_errors_1.default(ajv, { singleError: true });
-                ajv_keywords_1.default(ajv);
-                const validate = ajv.compile(config.schema);
-                this._config.validate = (ctx) => {
-                    if (!validate(ctx) && validate.errors) {
-                        throw ErrorList_1.CreateError(ajv.errorsText(validate.errors));
-                    }
-                    else
-                        return true;
-                };
-            }
-        }
-        if (!this._config.name && this._config.run) {
-            var match = this._config.run.toString().match(/function\s*(\w+)\s*\(/);
-            if (match && match[1]) {
-                this._config.name = match[1];
-            }
-            else {
-                this._config.name = this._config.run.toString();
-            }
-        }
-    }
-    get config() {
-        return this._config;
-    }
-    get reportName() {
-        return `STG:${this._config.name ? this._config.name : ''}`;
-    }
-    get name() {
-        var _a;
-        return (_a = this._config.name) !== null && _a !== void 0 ? _a : '';
-    }
-    execute(_err, _context, _callback) {
-        var _a;
-        let err, context, __callback;
-        if (arguments.length == 1) {
-            context = _err;
-        }
-        else if (arguments.length == 2) {
-            if (typeof _context == 'function') {
-                context = _err;
-                err = undefined;
-                __callback = _context;
-            }
-            else {
-                err = _err;
-                context = _context;
-            }
-        }
-        else {
-            err = _err;
-            context = _context;
-            __callback = _callback;
-        }
-        if (!this.run) {
-            this.run = this.compile();
-        }
-        if (!__callback) {
-            return new Promise((res, rej) => {
-                this.execute(err, context, (err, ctx) => {
-                    if (err)
-                        rej(err);
-                    else
-                        res(ctx);
-                });
-            });
-        }
-        else {
-            const callback = __callback;
-            if (err && this._config.run && !can_fix_error_1.can_fix_error(this._config.run)) {
-                this.rescue(err, context, callback);
-            }
-            else {
-                if (this.config.ensure) {
-                    this.ensure(this.config.ensure, context, (err_, ctx) => {
-                        var _a, _b;
-                        if (err || err_) {
-                            if (this._config.run && !can_fix_error_1.can_fix_error(this._config.run)) {
-                                this.rescue(ErrorList_1.CreateError([err, err_]), ctx !== null && ctx !== void 0 ? ctx : context, callback);
-                            }
-                            else {
-                                (_a = this.run) === null || _a === void 0 ? void 0 : _a.call(this, ErrorList_1.CreateError([err, err_]), ctx !== null && ctx !== void 0 ? ctx : context, callback);
-                            }
-                        }
-                        else {
-                            (_b = this.run) === null || _b === void 0 ? void 0 : _b.call(this, undefined, ctx !== null && ctx !== void 0 ? ctx : context, callback);
-                        }
-                    });
-                }
-                else if (this._config.validate) {
-                    this.validate(this._config.validate, context, (err_, ctx) => {
-                        var _a, _b;
-                        if (err || err_) {
-                            if (this._config.run && !can_fix_error_1.can_fix_error(this._config.run)) {
-                                this.rescue(ErrorList_1.CreateError([err, err_]), ctx !== null && ctx !== void 0 ? ctx : context, callback);
-                            }
-                            else {
-                                (_a = this.run) === null || _a === void 0 ? void 0 : _a.call(this, ErrorList_1.CreateError([err, err_]), ctx !== null && ctx !== void 0 ? ctx : context, callback);
-                            }
-                        }
-                        else {
-                            (_b = this.run) === null || _b === void 0 ? void 0 : _b.call(this, undefined, ctx !== null && ctx !== void 0 ? ctx : context, callback);
-                        }
-                    });
-                }
-                else {
-                    (_a = this.run) === null || _a === void 0 ? void 0 : _a.call(this, undefined, context, callback);
-                }
-            }
-        }
-    }
-    stage(err, context, callback) {
-        if (this._config.run) {
-            execute_callback_1.execute_callback(err, this._config.run, context, (err) => {
-                if (err) {
-                    this.rescue(err, context, callback);
-                }
-                else {
-                    callback(undefined, context);
-                }
-            });
-        }
-        else {
-            this.rescue(ErrorList_1.CreateError([this.reportName + ' reports: run is not a function', err]), context, callback);
-        }
-    }
-    compile(rebuild = false) {
-        let res;
-        if (this.config.precompile) {
-            this.config.precompile();
-        }
-        if (this._config.compile) {
-            res = this._config.compile.call(this, rebuild);
-        }
-        else if (!this.run || rebuild) {
-            res = this.stage;
-        }
-        else {
-            res = this.run;
-        }
-        return res;
-    }
-    rescue(err, context, callback) {
-        if (err && !(err instanceof Error)) {
-            if (typeof err == 'string')
-                err = ErrorList_1.CreateError(err);
-        }
-        if (err && this._config.rescue) {
-            execute_rescue_1.execute_rescue(this._config.rescue, err, context, (_err) => {
-                callback(_err, context);
-            });
-        }
-        else {
-            callback(err, context);
-        }
-    }
-    toString() {
-        return '[pipeline Stage]';
-    }
-    validate(validate, context, callback) {
-        execute_validate_1.execute_validate(validate, context, (err, result) => {
-            if (err) {
-                callback(err, context);
-            }
-            else {
-                if (result) {
-                    if ('boolean' === typeof result) {
-                        callback(undefined, context);
-                    }
-                    else if (Array.isArray(result)) {
-                        callback(ErrorList_1.CreateError(result));
-                    }
-                    else {
-                        callback(undefined, result);
-                    }
-                }
-                else {
-                    callback(ErrorList_1.CreateError(this.reportName + ' reports: T is invalid'));
-                }
-            }
-        });
-    }
-    ensure(ensure, context, callback) {
-        execute_ensure_1.execute_ensure(ensure, context, (err, result) => {
-            if (err) {
-                callback(err, context);
-            }
-            else {
-                if (result) {
-                    if ('boolean' === typeof result) {
-                        callback(undefined, context);
-                    }
-                    else if (Array.isArray(result)) {
-                        callback(ErrorList_1.CreateError(result));
-                    }
-                    else {
-                        callback(undefined, result);
-                    }
-                }
-                else {
-                    callback(ErrorList_1.CreateError(this.reportName + ' reports: T is invalid'));
-                }
-            }
-        });
-    }
+/*!
+ * Module dependency
+ */
+var EventEmitter = require("events").EventEmitter;
+var schema = require('js-schema');
+var util = require('./util').Util;
+var useDIN = process.env['USEFTE'];
+var useVm = useDIN && useDIN === 'vm';
+var useEval = useDIN && useDIN === 'eval';
+var semver = require('semver');
+var useImmediate = (semver.major(process.versions.node) === 0 && semver.minor(process.versions.node) <= 10);
+
+/** 
+ * The Stage class, core of the pipeline.js
+ *
+ * **events**:
+ *
+ *- `error`
+ *		error whiule executing stage
+ *- `done`
+ * 		resulting context of staging
+ *- `end`
+ *		examine that stage executing is complete
+ *
+ * **General Stage definition**
+ *
+ * - `config` as `Object`:
+ * 	- ensure
+ *   method for ensuring the context
+ * 	- rescue
+ *	 method for rescue stage from errors
+ * 	- validate
+ *	 validate contect method
+ * 	- schema
+ *	 schema validation for context
+ * 	- run
+ *	 the method that will be evaluated as worker
+ *
+ * - `config` as `Function`
+ *
+ *  - `config` is the `run` method of the stage
+ *
+ * 	- `config` as `String` is the `name` of the stage
+ *
+ * @param {Object|Function|String} config Stage configuration
+ * @api public
+ */
+function Stage(config) {
+
+	var self = this;
+
+	if (!(self instanceof Stage)) {
+		throw new Error('constructor is not a function');
+	}
+
+	if (config) {
+
+		if (typeof(config) === 'object') {
+
+			if (typeof(config.ensure) === 'function') {
+				self.ensure = config.ensure;
+			}
+
+			if (typeof(config.rescue) === 'function') {
+				self.rescue = config.rescue;
+			} else {
+				self.rescue = undefined;
+			}
+
+			if (config.validate && config.schema) {
+				throw new Error('use either validate or schema');
+			}
+
+
+			if (typeof(config.validate) === 'function') {
+				self.validate = config.validate;
+			}
+
+			if (typeof(config.schema) === 'object') {
+				self.validate = schema(config.schema);
+			}
+
+			if (!config.validate && !config.schema && !config.ensure) {
+				self.ensure = undefined;
+			}
+
+			if (typeof(config.run) === 'function') {
+				self.run = config.run;
+			}
+		} else {
+
+			if (typeof(config) === 'function') {
+				self.run = config;
+			}
+		}
+
+		if (typeof(config) === 'string') {
+			self.name = config;
+		} else {
+
+			if (config.name) {
+				self.name = config.name;
+			} else {
+				var match = self.run.toString().match(/function\s*(\w+)\s*\(/);
+
+				if (match && match[1]) {
+					self.name = match[1];
+				} else {
+					self.name = self.run.toString();
+				}
+			}
+		}
+	}
 }
+
+/*!
+ * Inherited from Event Emitter
+ */
+// util.inherits(Stage, EventEmitter);
+
+/**
+ * provaide a way to get stage name for reports used for tracing
+ * @return String
+ */
+Stage.prototype.reportName = function() {
+	var self = this;
+	return 'STG:' + (self.name ? (' ' + self.name) : '');
+};
+
+/**
+ * Ensures context validity
+ * this can be overridden by user
+ * in sync or async way
+ * in sync way it has signature
+ * `function(context):Error` so it must return error if context is invalid
+ * sync signature
+ * @param {Context} context
+ * @param {Function} callback
+ */
+Stage.prototype.ensure = function(context, callback) {
+	var self = this;
+	var validation = self.validate ? self.validate(context) : true;
+
+	if (validation) {
+		if ('boolean' === typeof validation) {
+			callback(null, context);
+		} else {
+			callback(validation, context);
+		}
+	} else {
+		callback(new Error(self.reportName() + ' reports: Context is invalid'), context);
+	}
+};
+
+/**
+ * internal storage for name
+ */
+Stage.prototype.name = undefined;
+
+/**
+ * default `validate` implementation
+ * @param {Context} validatee
+ */
+// Stage.prototype.validate = function(context) {
+// 	return true;
+// };
+
+/**
+ * Allpurpose Error handler for stage
+ * it must return na Error or undefined,
+ * by default it renturns error but one can override it with some business ligic
+ * @param Error|null err
+ * @param Context context
+ * @param Function [callback] callback for async rescue process
+ * @returns {Error|undefined|null}
+ *
+ * it can be also sync like this
+ *```javascript
+ * Stage.prototype.rescue = function(err, context) {
+ *		// verys simple error check with context ot without it
+ *		return err;
+ *	};
+ *```
+ */
+
+Stage.prototype.rescue = function(err, context, callback) {
+	if (typeof callback === 'function') {
+		callback(err, context);
+	} else {
+		return err;
+	}
+};
+
+/**
+ * run function, can be assigned by child class
+ * Singature
+ * function(err, ctx, done) -- async with custom error handler!
+ * > NOTE: All errors must be handled withing the function.
+ * function(ctx, done) -- async
+ * function(ctx) -- sync call
+ * function() -- sync call `context` applyed as this for function.
+ */
+
+if (useImmediate) {
+	Stage.prototype.finishIt = function(err, context, callback) {
+		if (callback instanceof Function) {
+			setImmediate(function() {
+				callback(err, context);
+			});
+		}
+	};
+} else {
+	Stage.prototype.finishIt = function(err, context, callback) {
+		if (callback instanceof Function) {
+			process.nextTick(function() {
+				callback(err, context);
+			});
+		}
+	};
+}
+
+
+Stage.prototype.handleError = function(_err, context, callback) {
+	var self = this;
+	if (_err && !(_err instanceof Error)) {
+		if ('string' === typeof _err)
+			_err = Error(_err);
+	}
+
+	var len = self.rescue ? self.rescue.length : -1;
+	switch (len) {
+		case 0:
+			self.finishIt(self.rescue(), context, callback);
+			break;
+
+		case 1:
+			self.finishIt(self.rescue(_err), context, callback);
+			break;
+
+		case 2:
+			self.finishIt(self.rescue(_err, context), context, callback);
+			break;
+
+		case 3:
+			self.rescue(_err, context, function(err) {
+				self.finishIt(err, context, callback);
+			});
+			break;
+
+		default:
+			self.finishIt(_err, context, callback);
+	}
+};
+
+Stage.prototype.doneIt = function(err, context, callback) {
+	var self = this;
+	if (err) {
+		self.handleError(err, context, callback);
+	} else {
+		self.finishIt(undefined, context, callback);
+	}
+};
+
+var fpSyncCall = require('./util.js').failproofSyncCall;
+var fpAsyncCall = require('./util.js').failproofAsyncCall;
+
+Stage.prototype.run = 0;
+
+var Factory = require('fte.js').Factory;
+
+var f = new Factory({
+	root: ['./']
+});
+
+if (useVm) {
+	var vm = require('vm');
+}
+
+Stage.prototype.compileItFte = function() {
+	var self = this;
+	var code;
+	if (useVm) {
+		code = f.run({
+			self: this
+		}, __dirname + '/templates/stage_vm.njs', true);
+		vm.runInNewContext(code, {
+			THIS: this,
+			Context: Context,
+			fpAsyncCall: fpAsyncCall,
+			fpSyncCall: fpSyncCall
+
+		}, {
+			filename: 'compiledStage'
+		});
+	} else if (useEval) {
+		code = f.run({
+			self: this
+		}, __dirname + '/templates/stage_eval.njs', true);
+		this.exec = eval(code);
+	} else {
+		throw new Error('unknown Dinamic booster for pipeline.js');
+	}
+
+	this.compiled = true;
+};
+
+Stage.prototype.compileIt = function(_val) {
+	var self = this;
+
+	if (typeof(_val) == 'function') {
+		var val = _val.bind(self);
+		var runStage = function(err, context, callback) {
+			var done = function(err) {
+				self.doneIt(err, context, callback);
+			};
+			var failed = false;
+			var hasError = null;
+			switch (_val.length) {
+				case 0:
+					if (err) return self.handleError(err, context, callback);
+					try {
+						_val.apply(context);
+					} catch (er) {
+						var failed = true;
+						self.handleError(er, context, callback);
+					}
+					if (!failed) {
+						done();
+					}
+					break;
+				case 1:
+					if (err) return self.handleError(err, context, callback);
+					try {
+						val(context);
+					} catch (er) {
+						failed = true;
+						self.handleError(er, context, callback);
+					}
+					if (!failed) {
+						done();
+					}
+					break;
+				case 2:
+					if (err) return self.handleError(err, context, callback);
+					try {
+						val(context, done);
+					} catch (er) {
+						self.handleError(er, context, callback);
+					}
+					break;
+				case 3:
+					try {
+						val(err, context, done);
+					} catch (er) {
+						self.handleError(er, context, callback);
+					}
+					break;
+				default:
+					self.handleError(new Error('unacceptable signature'), context, callback);
+			}
+		};
+
+		this.compiled = true;
+		return function(err, context, callback) {
+			var eLen = self.ensure ? self.ensure.length : -1;
+
+			switch (eLen) {
+				case 2:
+					self.ensure(context, function(err, context) {
+						runStage(err, context, callback);
+					});
+					break;
+				case 1:
+					runStage(self.ensure(context), context, callback);
+					break;
+				default:
+					runStage(undefined, context, callback);
+			}
+		};
+	} else {
+		return function(err, context, callback) {
+			self.handleError(new Error(self.reportName() + ' reports: run is not a function'), context, callback);
+		};
+	}
+};
+
+Stage.prototype.compile = function() {
+	if (!useDIN)
+		this.run = this.compileIt(this.run);
+	else
+		this.compileItFte();
+};
+
+/**
+ * executes stage and return result to callback
+ * always async
+ * @param {Error} err error from previous execution
+ * @param {Object} incoming context
+ * @param {callback} Function incoming callback function function(err, ctx)
+ */
+Stage.prototype.execute = function(err, context, callback) {
+	if (context instanceof Function) {
+		callback = context;
+		context = err;
+		err = undefined;
+	} else if (!context && !(err instanceof Error)) {
+		context = err;
+		err = undefined;
+		callback = undefined;
+	}
+	if (!this.compiled) {
+		this.compile();
+	}
+	if (!useDIN)
+		this.run(err, context, callback);
+	else
+		this.exec(err, context, callback);
+};
+
+/*!
+ * toString
+ */
+Stage.prototype.toString = function() {
+	return "[pipeline Stage]";
+};
+
+/*!
+ * exports
+ */
 exports.Stage = Stage;
-//# sourceMappingURL=stage.js.map

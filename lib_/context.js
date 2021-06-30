@@ -1,159 +1,228 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ContextFactory = exports.RESERVATIONS = exports.ProxySymbol = exports.ContextSymbol = void 0;
-const lodash_1 = require("lodash");
-exports.ContextSymbol = Symbol('Context');
-exports.ProxySymbol = Symbol('Handler');
-var RESERVATIONS;
-(function (RESERVATIONS) {
-    RESERVATIONS[RESERVATIONS["prop"] = 0] = "prop";
-    RESERVATIONS[RESERVATIONS["func_this"] = 1] = "func_this";
-    RESERVATIONS[RESERVATIONS["func_ctx"] = 2] = "func_ctx";
-})(RESERVATIONS = exports.RESERVATIONS || (exports.RESERVATIONS = {}));
-const RESERVED = {
-    getParent: RESERVATIONS.func_ctx,
-    setParent: RESERVATIONS.func_ctx,
-    toString: RESERVATIONS.func_ctx,
-    __parent: RESERVATIONS.prop,
-    __stack: RESERVATIONS.prop,
-    hasChild: RESERVATIONS.func_ctx,
-    ensure: RESERVATIONS.func_ctx,
-    ensureIsChild: RESERVATIONS.func_ctx,
-    addChild: RESERVATIONS.func_ctx,
-    toJSON: RESERVATIONS.func_ctx,
-    toObject: RESERVATIONS.func_ctx,
-    fork: RESERVATIONS.func_this,
-    overwrite: RESERVATIONS.func_ctx,
-    get: RESERVATIONS.func_this,
+/*!
+ * Module dependency
+ */
+var cmp = require('comparator.js');
+var get = cmp.get;
+var set = cmp.set;
+var clone = require('./util.js').clone;
+
+// добавить время обработки ctx на процессоре
+// оптимизировать код, чтобы работал быстрее....
+// может быть где-то убрать где-то добавить.
+//контекст может быть массивом, не обязательно 
+// весь объект инициализировать сделать внутреннее хранилище, для неизменяемости ссылки....
+
+/*!
+ * List of reserver words for context.
+ * Used to check wheater or not property is the Context-class property
+ */
+
+var reserved = {
+	"getChilds": 1,
+	"getParent": 1,
+	"__parent": 1,
+	"__signWith": 1,
+	"__stack": 1,
+	"hasChild": 1,
+	"ensure": 1,
+	"ensureIsChild": 1,
+	"addChild": 1,
+	"toJSON": 1,
+	"toObject": 1,
+	"fork": 1,
+	"overwrite": 1,
+	"get": 1,
 };
-class ContextFactory {
-    constructor(config) {
-        this.ctx = config;
-        const res = new Proxy(this, {
-            get(target, key, _proxy) {
-                if (key == exports.ContextSymbol)
-                    return true;
-                if (key == exports.ProxySymbol)
-                    return _proxy;
-                if (!RESERVED.hasOwnProperty(key)) {
-                    return target.ctx[key];
-                }
-                else {
-                    if (RESERVED[key] == RESERVATIONS.func_ctx) {
-                        return target[key].bind(target);
-                    }
-                    if (RESERVED[key] == RESERVATIONS.func_this) {
-                        return target[key];
-                    }
-                    else
-                        return target[key];
-                }
-            },
-            set(target, key, value) {
-                if (!RESERVED.hasOwnProperty(key)) {
-                    ;
-                    target.ctx[key] = value;
-                    return true;
-                }
-                else if (typeof key == 'string' &&
-                    RESERVED.hasOwnProperty(key) &&
-                    RESERVED[key] != RESERVATIONS.prop) {
-                    return false;
-                }
-                else {
-                    ;
-                    target[key] = value;
-                    return true;
-                }
-            },
-            deleteProperty(target, key) {
-                if (!RESERVED.hasOwnProperty(key)) {
-                    return delete target.ctx[key];
-                }
-                else {
-                    return false;
-                }
-            },
-            has(target, key) {
-                if (!RESERVED.hasOwnProperty(key)) {
-                    return key in target.ctx;
-                }
-                else {
-                    return false;
-                }
-            },
-            ownKeys(target) {
-                return Reflect.ownKeys(target.ctx);
-            },
-        });
-        this.proxy = res;
-        return res;
-    }
-    static ensure(_config) {
-        if (ContextFactory.isContext(_config)) {
-            return _config;
-        }
-        else {
-            return new ContextFactory(_config !== null && _config !== void 0 ? _config : {});
-        }
-    }
-    static isContext(obj) {
-        return obj ? obj[exports.ContextSymbol] : false;
-    }
-    fork(config) {
-        var child = ContextFactory.ensure(config);
-        this.addChild(child);
-        lodash_1.defaultsDeep(child, this.toObject());
-        return child;
-    }
-    get(path) {
-        var root = lodash_1.get(this, path);
-        if (root instanceof Object) {
-            var result = root;
-            if (!ContextFactory.isContext(result)) {
-                result = this.ensureIsChild(result);
-                lodash_1.set(this, path, result);
-            }
-            return result;
-        }
-    }
-    getParent() {
-        return this.__parent;
-    }
-    setParent(parent) {
-        this.__parent = parent;
-    }
-    hasChild(ctx) {
-        if (ContextFactory.isContext(ctx) && ctx.__parent) {
-            return (ctx.__parent == this.proxy ||
-                this.proxy == ctx);
-        }
-        else {
-            return false;
-        }
-    }
-    ensureIsChild(ctx) {
-        var lctx = ContextFactory.ensure(ctx);
-        this.addChild(lctx);
-        return lctx;
-    }
-    addChild(ctx) {
-        if (!this.hasChild(ctx)) {
-            var child = ContextFactory.ensure(ctx);
-            child.setParent(this.proxy);
-        }
-    }
-    toObject() {
-        const obj = {};
-        lodash_1.defaultsDeep(obj, this.ctx);
-        return obj;
-    }
-    toJSON() {
-        return JSON.stringify(this.toObject());
-    }
-    toString() {
-        return '[pipeline Context]';
-    }
+
+/**
+ *  The **Context** itself
+ *  not allowed to use as a function
+ *  @param {Object} config The object that is the source for the **Context**.
+ */
+
+function Context(config) {
+	var self = this;
+
+	if (!(self instanceof Context)) {
+		throw new Error('constructor is not a function');
+	}
+	self.overwrite(config);
 }
-exports.ContextFactory = ContextFactory;
-//# sourceMappingURL=context.js.map
+
+/**
+ * Used to apply changes to context;
+ */
+Context.prototype.overwrite = function(config) {
+	var self = this;
+	if (config) {
+		var val;
+		for (var prop in config) {
+			val = config[prop];
+			if (!reserved[prop]) {
+				if (val !== undefined && val !== null)
+					self[prop] = config[prop];
+			}
+		}
+	}
+};
+
+/**
+ * Reference to parent
+ * @api private
+ */
+Context.prototype.__parent = undefined;
+
+/**
+ * Reference to list of errors
+ * @api private
+ */
+Context.prototype.__errors = undefined;
+
+/**
+ * Return parent Context
+ * @api public
+ * @return {Context}
+ */
+Context.prototype.getParent = function() {
+	var self = this;
+	return self.__parent;
+};
+
+/**
+ * checks wheater or not context has specific child context
+ * it return `true` also if `ctx` is `self`;
+ * @api public
+ * @return {Boolean}
+ */
+Context.prototype.hasChild = function(ctx) {
+	var self = this;
+	if (ctx instanceof Context) {
+		return ctx.__parent === self || self === ctx;
+	}
+};
+
+/**	
+ * static function which ensures that the object is proper Type
+ * @api public
+ * @param {Object|Context} ctx verified context
+ * @return {Context};
+ */
+Context.ensure = function(ctx, Class) {
+	// была идея сделать в stage тип контекста... 
+	// но чего-то не вижу смысла...
+	// поскольку пока необходимо чтобы context был типа Context.
+	if (!Class) {
+		if (!(ctx instanceof Context)) {
+			return new Context(ctx);
+		} else {
+			return ctx;
+		}
+	} else {
+		if (!(ctx instanceof Class)) {
+			return new Context(ctx);
+		} else {
+			return ctx;
+		}
+	}
+};
+
+/**
+ * Ensures that the context is the child of current context, and returns right context
+ * @api public
+ * @param {Object|Context} ctx
+ * @return {Context}
+ */
+Context.prototype.ensureIsChild = function(ctx) {
+	var self = this;
+	var lctx = Context.ensure(ctx);
+	if (!self.hasChild(lctx)) {
+		self.addChild(lctx);
+	}
+	return lctx;
+};
+
+/**
+ * Add child Context to current
+ * !Note! All children contexts has parent list of error. This allow to be sure that any fork
+ * @api public
+ * @param {Context} ctx new child context
+ */
+Context.prototype.addChild = function(ctx) {
+	var self = this;
+	if (!self.hasChild(ctx)) {
+		var child = Context.ensure(ctx);
+		child.__parent = self;
+	}
+};
+
+/**
+ * Makes fork of current context and add it to current as a child context
+ * @api public
+ * @param {Object|Context} [config] new properties that must exists in new fork
+ * @retrun {Context}
+ */
+Context.prototype.fork = function(config) {
+	var self = this;
+	var child = new(self.constructor)(self);
+	self.addChild(child);
+	for (var p in config) {
+		child[p] = config[p];
+	}
+	return child;
+};
+/**
+ * Same but different as a fork. it make possible get piece of context as context;
+ * @param path String path to context object that need to be a Context instance
+ * @return {Context} | {Primitive type}
+ */
+
+Context.prototype.get = function(path) {
+	var root = get(this, path);
+	if (root instanceof Object) {
+		var result = root;
+		if (!(result instanceof Context)) {
+			result = this.ensureIsChild(result);
+			set(this, path, result);
+		}
+		return result;
+	}
+};
+
+/*!
+ * toString
+ */
+Context.prototype.toString = function() {
+	return "[pipeline Context]";
+};
+
+/**
+ * Convert context to raw Object;
+ * @api public
+ * @param {Boolean} [clean]  `true` it need to clean object from referenced Types except Function and raw Object(js hash)
+ * @return {Object}
+ */
+Context.prototype.toObject = function(clean) {
+	var self = this;
+	var obj = {};
+	for (var p in self) {
+		if (!reserved[p]) {
+			obj[p] = clone(self[p], clean);
+		}
+	}
+	return obj;
+};
+
+/**
+ * Conterts context to JSON
+ * @api public
+ * @return {String}
+ */
+Context.prototype.toJSON = function() {
+	var self = this;
+	// always cleaning the object
+	return JSON.stringify(self.toObject(true));
+};
+/*!
+ * exports
+ */
+exports.Context = Context;
