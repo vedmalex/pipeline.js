@@ -1,12 +1,13 @@
 import {
   CallbackFunction,
   IStage,
-  ParallelConfigInput,
   ParallelConfig,
   StageRun,
 } from './utils/types'
 import { Stage } from './stage'
-import { CreateError } from './ErrorList'
+import { CreateError } from './utils/ErrorList'
+import { run_or_execute } from './utils/run_or_execute'
+import { empty_run } from './utils/empty_run'
 
 /**
  * Process staging in parallel way
@@ -25,35 +26,31 @@ import { CreateError } from './ErrorList'
  *
  * @param {Object} config configuration object
  */
-export class Parallel<
+export class Parallel<T, C extends ParallelConfig<T, R>, R> extends Stage<
   T,
-  R,
-  I extends ParallelConfigInput<T, R> = ParallelConfigInput<T, R>,
-  S extends ParallelConfig<T, R> = ParallelConfig<T, R>,
-> extends Stage<T, R, I, S> {
-  constructor(_config?: I | Stage<T, R, I, S>) {
-    let config: S = {} as S
+  C,
+  R
+> {
+  constructor(_config?: C | Stage<T, C, R>) {
+    let config: C = {} as C
     if (_config instanceof Stage) {
       super()
       this.config.stage = _config
     } else if (typeof _config == 'object') {
-      if (_config?.run instanceof Function) {
-        config.stage = new Stage(_config.run) as IStage<T, R>
-        delete _config.run
-      } else if (_config?.stage instanceof Stage) {
-        config.stage = _config.stage
-        delete _config.stage
-      } else if (_config?.stage instanceof Function) {
-        config.stage = new Stage(_config.stage) as IStage<T, R>
-        delete _config.stage
-      } else {
-        config.stage = new Empty()
+      if (config.run && config.stage) {
+        throw CreateError('use or run or stage, not both')
       }
-      if (_config.split instanceof Function) {
+      if (_config?.run) {
+        config.stage = new Stage<T, C, R>(_config.run) as IStage<T, C, R>
+        delete _config.run
+      } else if (_config?.stage) {
+        config.stage = _config.stage
+      }
+      if (_config.split) {
         config.split = _config.split
         delete _config.split
       }
-      if (_config.combine instanceof Function) {
+      if (_config.combine) {
         config.combine = _config.combine
         delete _config.combine
       }
@@ -138,19 +135,18 @@ export class Parallel<
           return done(err, ctx)
         } else {
           for (var i = 0; i < len; i++) {
-            this.config.stage.execute(err, children[i], next(i))
+            run_or_execute<T, C, R>(
+              this.config.stage,
+              err,
+              children[i],
+              next(i),
+            )
           }
         }
       }
       this.run = run
     } else {
-      this.run = function (
-        err: Error | undefined,
-        context: T | R,
-        done: CallbackFunction<T | R>,
-      ) {
-        done(err, context)
-      }
+      this.run = empty_run
     }
 
     return super.compile()

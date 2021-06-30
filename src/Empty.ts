@@ -1,12 +1,12 @@
 import { Stage } from './stage'
-export class Empty<T> extends Stage<T> {
+import { StageConfig } from './utils/types'
+export class Empty<T, R> extends Stage<T, StageConfig<T, R>, R> {
   constructor(name?: string) {
     super(name)
-    this.compiled = true
     this._config.run = (err, context, callback) => callback(err, context)
   }
 
-  toString() {
+  public override toString() {
     return '[pipeline Empty]'
   }
 }

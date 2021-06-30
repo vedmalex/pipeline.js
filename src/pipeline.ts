@@ -1,21 +1,21 @@
+import { CreateError } from './utils/ErrorList'
+import { run_or_execute } from './utils/run_or_execute'
 import { Stage } from './stage'
+import { empty_run } from './utils/empty_run'
 import {
   isIStage,
   IStage,
-  SingleStageFunction,
-  StageConfigInput,
   CallbackFunction,
-  PipelineConfigInput,
   PipelineConfig,
   StageRun,
+  StageConfig,
+  RunPipelineFunction,
 } from './utils/types'
 
 /**
  * it make possible to choose which stage to run according to result of `condition` evaluation
  *  - config as
  		- `Function` --- first Stage for pipeline
- * 		- `Stage` --- first Stage
- * 		- `Array` --- list of stages
  * 		- `Object` --- config for Pipeline
  *			  - `stages` list of stages
  *			  - `name` name of pipeline
@@ -23,58 +23,45 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Pipeline<
+export class Pipeline<T, C extends PipelineConfig<T, R>, R> extends Stage<
   T,
-  R,
-  I extends PipelineConfigInput<T, R> = PipelineConfigInput<T, R>,
-  S extends PipelineConfig<T, R> = PipelineConfig<T, R>,
-> extends Stage<T, R, I, S> {
-  stages!: Array<IStage<any, any>>
+  C,
+  R
+> {
+  stages!: Array<IStage<any, any, any> | RunPipelineFunction<any, any>>
 
-  constructor(
-    config?:
-      | string
-      | PipelineConfigInput<T, R>
-      | SingleStageFunction<T>
-      | Array<IStage<any, any>>
-      | Stage<T, R, I, S>,
-  ) {
-    let stages: Array<IStage<T, R>> = []
-
-    if (Array.isArray(config)) {
-      stages.push(...config)
-      super()
-    } else if (typeof config == 'function') {
-      config
-      stages.push(new Stage<T, R, I, S>(config))
-      super()
-    } else if (typeof config == 'object') {
+  constructor(config?: string | PipelineConfig<T, R>) {
+    let stages: Array<IStage<any, any, any> | RunPipelineFunction<any, any>> =
+      []
+    if (typeof config == 'object') {
       if (config instanceof Stage) {
         stages.push(config)
         super()
       } else {
         if (config.run instanceof Function) {
-          stages.push(new Stage<T, R, I, S>(config.run))
+          stages.push(config.run)
           delete config.run
         }
-
         if (Array.isArray(config.stages)) {
           stages.push(...config.stages)
-          delete config.stages
         }
-
         if (config instanceof Array) {
           stages.push.apply(stages, config)
         }
-        super(config as I)
+        super(config as C)
       }
-    } else {
-      config
+      this.stages = []
+      for (let i = 0; i < stages.length; i++) {
+        this.addStage(stages[i])
+      }
+    } else if (typeof config == 'string') {
       super(config)
-    }
-    this.stages = []
-    for (let i = 0; i < stages.length; i++) {
-      this.addStage(stages[i])
+      this.stages = []
+    } else if (config) {
+      throw CreateError('wrong arguments check documentation')
+    } else {
+      super()
+      this.stages = []
     }
   }
 
@@ -83,16 +70,17 @@ export class Pipeline<
   }
 
   addStage(
-    _stage: StageConfigInput<T, R> | SingleStageFunction<T> | IStage<any, any>,
+    _stage:
+      | StageConfig<T, R>
+      | RunPipelineFunction<any, any>
+      | IStage<any, any, any>,
   ) {
-    let stage: IStage<any, any> | undefined
+    let stage: IStage<any, any, any> | RunPipelineFunction<any, any> | undefined
     if (typeof _stage === 'function') {
-      stage = new Stage<any, any, any, any>(_stage)
+      stage = _stage
     } else {
       if (typeof _stage === 'object') {
-        if (_stage instanceof Stage) {
-          stage = _stage
-        } else if (!isIStage(_stage)) {
+        if (!isIStage(_stage)) {
           stage = new Stage(_stage)
         } else {
           stage = _stage
@@ -120,7 +108,7 @@ export class Pipeline<
       let next = (err: Error | undefined, context: T | R) => {
         i += 1
         if (i < this.stages.length) {
-          this.stages[i].execute(err, context, next)
+          run_or_execute(this.stages[i], err, context, next)
         } else if (i == this.stages.length) {
           done(err, context)
         } else {
@@ -133,13 +121,7 @@ export class Pipeline<
     if (this.stages.length > 0) {
       this.run = run
     } else {
-      this.run = function (
-        err: Error | undefined,
-        context: T | R,
-        done: CallbackFunction<T | R>,
-      ) {
-        done(err, context)
-      }
+      this.run = empty_run
     }
 
     return super.compile(rebuild)

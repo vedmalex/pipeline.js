@@ -52,6 +52,16 @@ describe('context', () => {
     expect(ctx.hasChild(ctx)).toBeFalsy()
   })
 
+  it('toObject', () => {
+    const context = {
+      name: 'alex',
+      address: { city: 'NCH', State: 'RO', country: 'RU' },
+    }
+    const ctx = ContextFactory.ensure(context)
+    const obj = ctx.toObject()
+    expect(obj).toMatchObject(context)
+  })
+
   it('fork', () => {
     const context = {
       name: 'alex',

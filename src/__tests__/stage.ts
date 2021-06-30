@@ -1,5 +1,16 @@
 import 'jest'
+import { empty_run } from 'src/utils/empty_run'
+import { run_or_execute } from 'src/utils/run_or_execute'
 import { Stage } from '../stage'
+import {
+  StageConfig,
+  SingleStageFunction,
+  IStage,
+  RunPipelineFunction,
+  isIStage,
+  StageRun,
+  CallbackFunction,
+} from '../utils/types'
 
 describe('stage', () => {
   it('create named', () => {
@@ -111,5 +122,75 @@ describe('stage', () => {
       }
     })
     expect(s).toMatchSnapshot('config stage')
+  })
+
+  it('use Precompile to run everything', () => {
+    type CTX = {
+      name: string
+    }
+    interface Config extends StageConfig<CTX, CTX> {
+      stages: Array<IStage<any, any> | RunPipelineFunction<any, any>>
+      addStage(
+        this: Config,
+        stage:
+          | StageConfig<CTX, CTX>
+          | SingleStageFunction<CTX>
+          | IStage<any, any>,
+      ): void
+    }
+
+    const pipeline = new Stage<CTX, CTX, Config>({
+      stages: [],
+      precompile(this: Config) {
+        let run: StageRun<CTX, CTX> = (
+          err: Error | undefined,
+          context: CTX,
+          done: CallbackFunction<CTX>,
+        ) => {
+          let i = -1
+          //sequential run;
+          let next = (err: Error | undefined, context: CTX | undefiend) => {
+            i += 1
+            if (i < this.stages.length) {
+              run_or_execute(this.stages[i], err, context, next)
+            } else if (i == this.stages.length) {
+              done(err, context)
+            } else {
+              done(new Error('done call more than once'), context)
+            }
+          }
+          next(err, context)
+        }
+
+        if (this.stages.length > 0) {
+          this.run = run
+        } else {
+          this.run = empty_run
+        }
+      },
+      addStage(
+        _stage:
+          | StageConfig<CTX, CTX>
+          | RunPipelineFunction<any, any>
+          | IStage<any, any>,
+      ) {
+        let stage: IStage<any, any> | RunPipelineFunction<any, any> | undefined
+        if (typeof _stage === 'function') {
+          stage = _stage
+        } else {
+          if (typeof _stage === 'object') {
+            if (!isIStage(_stage)) {
+              stage = new Stage(_stage)
+            } else {
+              stage = _stage
+            }
+          }
+        }
+        if (stage) {
+          this.stages.push(stage)
+          this.run = undefined
+        }
+      },
+    })
   })
 })

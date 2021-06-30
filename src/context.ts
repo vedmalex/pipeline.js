@@ -2,30 +2,35 @@
  * Module dependency
  */
 import { get, set, defaultsDeep } from 'lodash'
-import { clone } from './util'
 
 export const ContextSymbol = Symbol('Context')
+export const ProxySymbol = Symbol('Handler')
 
 /*!
  * List of reserver words for context.
  * Used to check wheater or not property is the Context-class property
  */
 
-const RESERVED = {
-  getParent: false,
-  setParent: false,
-  toString: false,
-  __parent: true,
-  __stack: true,
-  hasChild: false,
-  ensure: false,
-  ensureIsChild: false,
-  addChild: false,
-  toJSON: false,
-  toObject: false,
-  fork: false,
-  overwrite: false,
-  get: false,
+export enum RESERVATIONS {
+  prop,
+  func_this,
+  func_ctx,
+}
+const RESERVED: Record<string, RESERVATIONS> = {
+  getParent: RESERVATIONS.func_ctx,
+  setParent: RESERVATIONS.func_ctx,
+  toString: RESERVATIONS.func_ctx,
+  __parent: RESERVATIONS.prop,
+  __stack: RESERVATIONS.prop,
+  hasChild: RESERVATIONS.func_ctx,
+  ensure: RESERVATIONS.func_ctx,
+  ensureIsChild: RESERVATIONS.func_ctx,
+  addChild: RESERVATIONS.func_ctx,
+  toJSON: RESERVATIONS.func_ctx,
+  toObject: RESERVATIONS.func_ctx,
+  fork: RESERVATIONS.func_this,
+  overwrite: RESERVATIONS.func_ctx,
+  get: RESERVATIONS.func_this,
 }
 
 // добавить время обработки ctx на процессоре
@@ -65,21 +70,29 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
     return obj ? obj[ContextSymbol] : false
   }
   protected ctx: T
+  protected proxy: any
   protected __parent!: Context<T>
   protected __stack?: string[]
 
   private constructor(config: T) {
     this.ctx = config
+
     const res = new Proxy(this, {
-      get(target: ContextFactory<T>, key: string | symbol, _proxy): any {
+      get(target: ContextFactory<T>, key: string | symbol, _proxy: any): any {
         if (key == ContextSymbol) return true
+        if (key == ProxySymbol) return _proxy
 
         if (!RESERVED.hasOwnProperty(key)) {
           return (target.ctx as any)[key]
         } else {
-          if (typeof (target as any)[key] == 'function') {
+          if (RESERVED[key as keyof typeof RESERVED] == RESERVATIONS.func_ctx) {
             return (target as any)[key].bind(target)
-          } else return (target as any)[key]
+          }
+          if (
+            RESERVED[key as keyof typeof RESERVED] == RESERVATIONS.func_this
+          ) {
+            return (target as any)[key]
+          } else return (target as any)[key] // just props
         }
       },
       set(
@@ -93,7 +106,7 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
         } else if (
           typeof key == 'string' &&
           RESERVED.hasOwnProperty(key) &&
-          !RESERVED[key as keyof typeof RESERVED]
+          RESERVED[key as keyof typeof RESERVED] != RESERVATIONS.prop
         ) {
           return false
         } else {
@@ -119,6 +132,9 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
         return Reflect.ownKeys(target.ctx)
       },
     })
+
+    this.proxy = res
+
     return res
   }
 
@@ -172,8 +188,8 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
   protected hasChild<C extends T>(ctx: Context<C>): boolean {
     if (ContextFactory.isContext(ctx) && ctx.__parent) {
       return (
-        ctx.__parent == (this as unknown as Context<C>) ||
-        (this as unknown as Context<C>) == ctx
+        ctx.__parent == (this.proxy as unknown as Context<C>) ||
+        (this.proxy as unknown as Context<C>) == ctx
       )
     } else {
       return false
@@ -201,7 +217,7 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
   protected addChild<C extends T>(ctx: Context<C>) {
     if (!this.hasChild<C>(ctx)) {
       var child = ContextFactory.ensure<C>(ctx)
-      child.setParent(this as unknown as Context<C>)
+      child.setParent(this.proxy as unknown as Context<C>)
     }
   }
 
@@ -211,13 +227,9 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
    * @param {Boolean} [clean]  `true` it need to clean object from referenced Types except Function and raw Object(js hash)
    * @return {Object}
    */
-  toObject<T extends object>(clean?: boolean): T {
+  toObject<T extends object>(): T {
     const obj = {} as T
-    for (var p of Object.getOwnPropertyNames(this)) {
-      if (!RESERVED.hasOwnProperty(p)) {
-        ;(obj as any)[p] = clone((this as any)[p], clean)
-      }
-    }
+    defaultsDeep(obj, this.ctx)
     return obj
   }
 
@@ -228,7 +240,7 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
    */
   toJSON(): string {
     // always cleaning the object
-    return JSON.stringify(this.toObject(true))
+    return JSON.stringify(this.toObject())
   }
 
   /**
