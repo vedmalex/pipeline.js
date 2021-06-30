@@ -105,14 +105,14 @@ export class Pipeline<T, C extends PipelineConfig<T, R>, R> extends Stage<
     ) => {
       let i = -1
       //sequential run;
-      let next = (err: Error | undefined, context: T | R) => {
+      let next = (err: Error | undefined, ctx: T | R) => {
         i += 1
         if (i < this.stages.length) {
-          run_or_execute(this.stages[i], err, context, next)
+          run_or_execute(this.stages[i], err, ctx ?? context, next)
         } else if (i == this.stages.length) {
-          done(err, context)
+          done(err, ctx ?? context)
         } else {
-          done(new Error('done call more than once'), context)
+          done(new Error('done call more than once'), ctx ?? context)
         }
       }
       next(err, context)

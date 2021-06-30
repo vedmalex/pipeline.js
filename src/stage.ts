@@ -275,9 +275,6 @@ export class Stage<T = any, C extends StageConfig<T, R> = any, R = T>
               callback(undefined, context)
             } else if (Array.isArray(result)) {
               callback(CreateError(result))
-            } else {
-              // ensure works
-              callback(undefined, result)
             }
           } else {
             callback(CreateError(this.reportName + ' reports: T is invalid'))
@@ -299,16 +296,8 @@ export class Stage<T = any, C extends StageConfig<T, R> = any, R = T>
           callback(err, context)
         } else {
           if (result) {
-            if ('boolean' === typeof result) {
-              callback(undefined, context)
-            } else if (Array.isArray(result)) {
-              callback(CreateError(result))
-            } else {
-              // ensure works
-              callback(undefined, result)
-            }
-          } else {
-            callback(CreateError(this.reportName + ' reports: T is invalid'))
+            // ensure works
+            callback(undefined, result)
           }
         }
       },

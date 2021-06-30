@@ -103,7 +103,7 @@ export class Parallel<T, C extends ParallelConfig<T, R>, R> extends Stage<
         var next = (index: number) => {
           return (err: Error | undefined, retCtx: any) => {
             if (!err) {
-              children[index] = retCtx
+              children[index] = retCtx ?? children[index]
             } else {
               if (!hasError) {
                 hasError = true
