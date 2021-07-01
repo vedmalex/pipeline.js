@@ -1,9 +1,18 @@
 import { Stage } from './stage'
-import { StageConfig } from './utils/types'
-export class Empty<T, R> extends Stage<T, StageConfig<T, R>, R> {
-  constructor(name?: string) {
-    super(name)
-    this._config.run = (err, context, callback) => callback(err, context)
+import { getEmptyConfig, StageConfig, AllowedStage } from './utils/types'
+export class Empty<
+  T = any,
+  C extends StageConfig<T, R> = any,
+  R = T,
+> extends Stage<T, C, R> {
+  constructor(config: AllowedStage<T, C, R>) {
+    super()
+    const res = getEmptyConfig(config)
+    if (res instanceof Stage) {
+      return res as Stage<T, C, R>
+    } else {
+      this._config = res as C
+    }
   }
 
   public override toString() {

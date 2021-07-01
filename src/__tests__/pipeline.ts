@@ -9,8 +9,8 @@ describe('Pipeline', function () {
     expect(pipe).toBeInstanceOf(Stage)
 
     expect('defaultName' === pipe.name).toBeTruthy()
-    // expect(!pipe.stages).toEqual(false)
-    expect(pipe.stages.length).toEqual(0)
+    // expect(!pipe.config.stages).toEqual(false)
+    expect(pipe.config.stages.length).toEqual(0)
     expect(!pipe.run).toEqual(true)
 
     expect(function () {
@@ -33,8 +33,8 @@ describe('Pipeline', function () {
   it('addStage', function (done) {
     var pipe = new Pipeline()
     pipe.addStage(new Stage())
-    expect(pipe.stages.length).toEqual(1)
-    expect(pipe.stages[0] instanceof Stage).toEqual(true)
+    expect(pipe.config.stages.length).toEqual(1)
+    expect(pipe.config.stages[0] instanceof Stage).toEqual(true)
     done()
   })
 
@@ -71,7 +71,7 @@ describe('Pipeline', function () {
     pipe.addStage(function (err, ctx, done) {
       done()
     })
-    expect(pipe.stages[0] instanceof Function).toBeTruthy()
+    expect(pipe.config.stages[0] instanceof Function).toBeTruthy()
     done()
   })
 
@@ -82,7 +82,7 @@ describe('Pipeline', function () {
         done()
       },
     })
-    expect(pipe.stages[0] instanceof Stage).toBeTruthy()
+    expect(pipe.config.stages[0] instanceof Stage).toBeTruthy()
     done()
   })
 
@@ -98,8 +98,8 @@ describe('Pipeline', function () {
     pipe.addStage(function (err, ctx, done) {
       done()
     })
-    expect(pipe.stages[0] instanceof Function).toBeTruthy()
-    expect(pipe.stages[1] instanceof Function).toBeTruthy()
+    expect(pipe.config.stages[0] instanceof Function).toBeTruthy()
+    expect(pipe.config.stages[1] instanceof Function).toBeTruthy()
 
     done()
   })
@@ -107,7 +107,7 @@ describe('Pipeline', function () {
   it('accept empty addStages', function (done) {
     var pipe = new Pipeline()
     ;(pipe as any).addStage()
-    expect(pipe.stages.length).toEqual(0)
+    expect(pipe.config.stages.length).toEqual(0)
     done()
   })
 
@@ -246,7 +246,7 @@ describe('Pipeline', function () {
   })
 
   it('can do subclassing of Pipeline', function (done) {
-    class newPipe extends Pipeline<any, any> {
+    class newPipe extends Pipeline {
       constructor() {
         super()
         this.addStage(new Stage())
@@ -256,12 +256,12 @@ describe('Pipeline', function () {
     }
 
     var p1 = new newPipe()
-    expect(p1.stages.length).toEqual(3)
+    expect(p1.config.stages.length).toEqual(3)
     var p2 = new newPipe()
     p2.addStage(new Stage())
-    expect(p2.stages.length).toEqual(4)
+    expect(p2.config.stages.length).toEqual(4)
     var p3 = new newPipe()
-    expect(p3.stages.length).toEqual(3)
+    expect(p3.config.stages.length).toEqual(3)
     done()
   })
 

@@ -1,19 +1,14 @@
 import { CreateError } from './utils/ErrorList'
 import {
+  AllowedStage,
   CallbackFunction,
   EnsureFunction,
-  IStage,
-  RunPipelineFunction,
+  getStageConfig,
   StageConfig,
   StageRun,
   ValidateFunction,
 } from './utils/types'
 
-import Ajv from 'ajv'
-
-import ajvFormats from 'ajv-formats'
-import ajvKeywords from 'ajv-keywords'
-import ajvErrors from 'ajv-errors'
 import { execute_ensure } from './utils/execute_ensure'
 import { execute_validate } from './utils/execute_validate'
 import { execute_rescue } from './utils/execute_rescue'
@@ -22,73 +17,21 @@ import { can_fix_error } from './utils/can_fix_error'
 
 // make possibility to context be immutable for debug purposes
 
-export class Stage<T = any, C extends StageConfig<T, R> = any, R = T>
-  implements IStage<T, C, R>
-{
+export class Stage<T = any, C extends StageConfig<T, R> = any, R = T> {
   public get config(): C {
     return this._config
   }
-  protected _config: C
-  constructor(config?: string | C | RunPipelineFunction<T, R>) {
-    this._config = {} as C
-    if (typeof config == 'string') {
-      this._config.name = config
-    } else if (typeof config == 'function') {
-      this._config.run = config
-    } else if (typeof config == 'object') {
-      if (config.name) {
-        this._config.name = config.name
-      }
-      if (config.rescue) {
-        this._config.rescue = config.rescue
-      }
-      if (config.run) {
-        this._config.run = config.run
-      }
-      if (config.validate && config.schema) {
-        throw CreateError('use only one `validate` or `schema`')
-      }
-      if (config.ensure && config.schema) {
-        throw CreateError('use only one `ensure` or `schema`')
-      }
-      if (config.ensure && config.validate) {
-        throw CreateError('use only one `ensure` or `validate`')
-      }
-      if (config.validate) {
-        this._config.validate = config.validate
-      }
-      if (config.ensure) {
-        this._config.ensure = config.ensure
-      }
-      if (config.compile) {
-        this._config.compile = config.compile
-      }
-      if (config.precompile) {
-        this._config.precompile = config.precompile
-      }
-      if (config.schema) {
-        this._config.schema = config.schema
-        const ajv = new Ajv({ allErrors: true })
-        ajvFormats(ajv)
-        ajvErrors(ajv, { singleError: true })
-        ajvKeywords(ajv)
-        const validate = ajv.compile(config.schema)
-        this._config.validate = (ctx: T): boolean => {
-          if (!validate(ctx) && validate.errors) {
-            throw CreateError(ajv.errorsText(validate.errors))
-          } else return true
-        }
-      }
-    }
-
-    if (!this._config.name && this._config.run) {
-      var match = this._config.run.toString().match(/function\s*(\w+)\s*\(/)
-
-      if (match && match[1]) {
-        this._config.name = match[1]
+  protected _config!: C
+  constructor(config?: AllowedStage<T, C, R>) {
+    if (config) {
+      let res = getStageConfig(config)
+      if (res instanceof Stage) {
+        return res
       } else {
-        this._config.name = this._config.run.toString()
+        this._config = res
       }
+    } else {
+      this._config = {} as C
     }
   }
 

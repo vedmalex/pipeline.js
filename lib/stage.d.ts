@@ -1,8 +1,8 @@
-import { CallbackFunction, EnsureFunction, IStage, RunPipelineFunction, StageConfig, StageRun, ValidateFunction } from './utils/types';
-export declare class Stage<T = any, C extends StageConfig<T, R> = any, R = T> implements IStage<T, C, R> {
+import { AllowedStage, CallbackFunction, EnsureFunction, StageConfig, StageRun, ValidateFunction } from './utils/types';
+export declare class Stage<T = any, C extends StageConfig<T, R> = any, R = T> {
     get config(): C;
     protected _config: C;
-    constructor(config?: string | C | RunPipelineFunction<T, R>);
+    constructor(config?: AllowedStage<T, C, R>);
     get reportName(): string;
     get name(): string;
     execute(context: T): Promise<R | T>;

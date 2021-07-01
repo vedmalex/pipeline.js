@@ -1,8 +1,9 @@
 import {
   CallbackFunction,
-  IStage,
   ParallelConfig,
+  AllowedStage,
   StageRun,
+  getParallelConfig,
 } from './utils/types'
 import { Stage } from './stage'
 import { CreateError } from './utils/ErrorList'
@@ -31,33 +32,10 @@ export class Parallel<T, C extends ParallelConfig<T, R>, R> extends Stage<
   C,
   R
 > {
-  constructor(_config?: C | Stage<T, C, R>) {
-    let config: C = {} as C
-    if (_config instanceof Stage) {
-      super()
-      this.config.stage = _config
-    } else if (typeof _config == 'object') {
-      if (config.run && config.stage) {
-        throw CreateError('use or run or stage, not both')
-      }
-      if (_config?.run) {
-        config.stage = new Stage<T, C, R>(_config.run) as IStage<T, C, R>
-        delete _config.run
-      } else if (_config?.stage) {
-        config.stage = _config.stage
-      }
-      if (_config.split) {
-        config.split = _config.split
-        delete _config.split
-      }
-      if (_config.combine) {
-        config.combine = _config.combine
-        delete _config.combine
-      }
-      super(_config)
-      this._config = { ...this._config, ...config }
-    } else {
-      super()
+  constructor(config?: AllowedStage<T, C, R>) {
+    super()
+    if (config) {
+      this._config = getParallelConfig(config)
     }
   }
 

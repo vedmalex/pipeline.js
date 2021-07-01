@@ -1,8 +1,9 @@
+import { Stage } from '../stage'
 import { execute_callback } from './execute_callback'
-import { IStage, CallbackFunction, RunPipelineFunction } from './types'
+import { CallbackFunction, RunPipelineFunction } from './types'
 
 export function run_or_execute<T, C, R>(
-  stage: IStage<T, C, R> | RunPipelineFunction<T, R>,
+  stage: Stage<T, C, R> | RunPipelineFunction<T, R>,
   err: Error | undefined,
   context: T | R,
   _done: CallbackFunction<T | R>,

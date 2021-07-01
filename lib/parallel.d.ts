@@ -1,7 +1,7 @@
-import { ParallelConfig, StageRun } from './utils/types';
+import { ParallelConfig, AllowedStage, StageRun } from './utils/types';
 import { Stage } from './stage';
 export declare class Parallel<T, C extends ParallelConfig<T, R>, R> extends Stage<T, C, R> {
-    constructor(_config?: C | Stage<T, C, R>);
+    constructor(config?: AllowedStage<T, C, R>);
     split(ctx: T | R): Array<any>;
     combine(ctx: T | R, children: Array<any>): T | R;
     get reportName(): string;

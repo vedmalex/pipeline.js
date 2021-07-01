@@ -1,21 +1,22 @@
-import { CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
+import { getPipelinConfig } from './utils/types'
 import {
-  isIStage,
-  IStage,
   CallbackFunction,
   PipelineConfig,
   StageRun,
   StageConfig,
   RunPipelineFunction,
+  AllowedStage,
 } from './utils/types'
 
 /**
  * it make possible to choose which stage to run according to result of `condition` evaluation
  *  - config as
  		- `Function` --- first Stage for pipeline
+ * 		- `Stage` --- first Stage
+ * 		- `Array` --- list of stages
  * 		- `Object` --- config for Pipeline
  *			  - `stages` list of stages
  *			  - `name` name of pipeline
@@ -28,40 +29,16 @@ export class Pipeline<T, C extends PipelineConfig<T, R>, R> extends Stage<
   C,
   R
 > {
-  stages!: Array<IStage<any, any, any> | RunPipelineFunction<any, any>>
-
-  constructor(config?: string | PipelineConfig<T, R>) {
-    let stages: Array<IStage<any, any, any> | RunPipelineFunction<any, any>> =
-      []
-    if (typeof config == 'object') {
-      if (config instanceof Stage) {
-        stages.push(config)
-        super()
-      } else {
-        if (config.run instanceof Function) {
-          stages.push(config.run)
-          delete config.run
-        }
-        if (Array.isArray(config.stages)) {
-          stages.push(...config.stages)
-        }
-        if (config instanceof Array) {
-          stages.push.apply(stages, config)
-        }
-        super(config as C)
-      }
-      this.stages = []
-      for (let i = 0; i < stages.length; i++) {
-        this.addStage(stages[i])
-      }
-    } else if (typeof config == 'string') {
-      super(config)
-      this.stages = []
-    } else if (config) {
-      throw CreateError('wrong arguments check documentation')
+  constructor(
+    config?:
+      | AllowedStage<T, C, R>
+      | Array<Stage | RunPipelineFunction<any, any>>,
+  ) {
+    super()
+    if (config) {
+      this._config = getPipelinConfig(config)
     } else {
-      super()
-      this.stages = []
+      this._config.stages = []
     }
   }
 
@@ -69,26 +46,21 @@ export class Pipeline<T, C extends PipelineConfig<T, R>, R> extends Stage<
     return `PIPE:${this.config.name ? this.config.name : ''}`
   }
 
-  addStage(
-    _stage:
-      | StageConfig<T, R>
-      | RunPipelineFunction<any, any>
-      | IStage<any, any, any>,
-  ) {
-    let stage: IStage<any, any, any> | RunPipelineFunction<any, any> | undefined
+  addStage(_stage: StageConfig<T, R> | RunPipelineFunction<any, any> | Stage) {
+    let stage: Stage | RunPipelineFunction<any, any> | undefined
     if (typeof _stage === 'function') {
       stage = _stage
     } else {
       if (typeof _stage === 'object') {
-        if (!isIStage(_stage)) {
-          stage = new Stage(_stage)
-        } else {
+        if (_stage instanceof Stage) {
           stage = _stage
+        } else {
+          stage = new Stage(_stage)
         }
       }
     }
     if (stage) {
-      this.stages.push(stage)
+      this.config.stages.push(stage)
       this.run = undefined
     }
   }
@@ -107,9 +79,9 @@ export class Pipeline<T, C extends PipelineConfig<T, R>, R> extends Stage<
       //sequential run;
       let next = (err: Error | undefined, ctx: T | R) => {
         i += 1
-        if (i < this.stages.length) {
-          run_or_execute(this.stages[i], err, ctx ?? context, next)
-        } else if (i == this.stages.length) {
+        if (i < this.config.stages.length) {
+          run_or_execute(this.config.stages[i], err, ctx ?? context, next)
+        } else if (i == this.config.stages.length) {
           done(err, ctx ?? context)
         } else {
           done(new Error('done call more than once'), ctx ?? context)
@@ -118,7 +90,7 @@ export class Pipeline<T, C extends PipelineConfig<T, R>, R> extends Stage<
       next(err, context)
     }
 
-    if (this.stages.length > 0) {
+    if (this.config.stages.length > 0) {
       this.run = run
     } else {
       this.run = empty_run

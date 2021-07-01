@@ -1,11 +1,6 @@
 import { Stage } from '../stage'
-import {
-  IStage,
-  SingleStageFunction,
-  CallbackFunction,
-  StageConfig,
-  StageRun,
-} from './types'
+import { AllowedStage } from './types'
+import { CallbackFunction, StageConfig, StageRun } from './types'
 
 export interface TemplateConfig<T, R> extends StageConfig<T, R> {}
 
@@ -14,9 +9,7 @@ export class Template<T, C extends TemplateConfig<T, R>, R> extends Stage<
   C,
   R
 > {
-  stages!: Array<IStage<any, any, any>>
-
-  constructor(config?: string | C | SingleStageFunction<T>) {
+  constructor(config?: AllowedStage<T, C, R>) {
     super(config)
   }
 

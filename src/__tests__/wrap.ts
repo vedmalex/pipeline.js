@@ -1,0 +1,75 @@
+import 'jest'
+
+import { Wrap } from '../wrap'
+import { DoWhile } from '../dowhile'
+import { Stage } from '../stage'
+import { ContextFactory } from '../context'
+
+describe('Wrap', function () {
+  it('works', function (done) {
+    var st1 = new Stage({
+      run: function (ctx) {
+        ctx.count++
+        ctx.name = 'borrow'
+      },
+    })
+    var wr = new Wrap({
+      stage: st1,
+      prepare: function (ctx) {
+        var retCtx = {
+          name: ctx.FullName,
+          count: ctx.Retry,
+        }
+        return retCtx
+      },
+      finalize: function (ctx, retCtx) {
+        ctx.Retry = retCtx.count
+        return ctx
+      },
+    })
+    var ctx = {
+      FullName: 'NEO',
+      Retry: 1,
+    }
+    wr.execute(ctx, function (err, retCtx) {
+      expect(err).toBeUndefined()
+      expect(retCtx.Retry).toBe(2)
+      expect(retCtx).not.toEqual(ctx)
+      done()
+    })
+  })
+  it('prepare context -> moved to Wrap', function (done) {
+    var stage0 = new Stage(function (ctx) {
+      ctx.iteration++
+    })
+    var stage = new Wrap({
+      prepare: function (ctx) {
+        return {
+          iteration: ctx.iter,
+        }
+      },
+      finalize: function (ctx, retCtx) {
+        ctx.iter = retCtx.iteration
+      },
+      stage: new DoWhile({
+        stage: stage0,
+        split: function (ctx, iter) {
+          return ctx
+        },
+        reachEnd: function (err, ctx, iter) {
+          return err || iter == 10
+        },
+      }),
+    })
+    stage.execute(
+      {
+        iter: 0,
+      },
+      function (err, context) {
+        expect(context.iter).toEqual(10)
+        expect(context.iteration).toBe(10)
+        done()
+      },
+    )
+  })
+})

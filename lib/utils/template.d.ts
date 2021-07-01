@@ -1,10 +1,10 @@
 import { Stage } from '../stage';
-import { IStage, SingleStageFunction, StageConfig, StageRun } from './types';
+import { AllowedStage } from './types';
+import { StageConfig, StageRun } from './types';
 export interface TemplateConfig<T, R> extends StageConfig<T, R> {
 }
 export declare class Template<T, C extends TemplateConfig<T, R>, R> extends Stage<T, C, R> {
-    stages: Array<IStage<any, any, any>>;
-    constructor(config?: string | C | SingleStageFunction<T>);
+    constructor(config?: AllowedStage<T, C, R>);
     get reportName(): string;
     toString(): string;
     compile(rebuild?: boolean): StageRun<T, R>;

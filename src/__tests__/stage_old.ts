@@ -135,7 +135,7 @@ describe('Stage', function () {
         done()
       },
     })
-    expect(v1.name == 'newName1').toBeTruthy()
+    expect(v1.name).toBe('newName1')
     v1.execute({}, function (err, ctx) {
       done()
     })
@@ -143,11 +143,11 @@ describe('Stage', function () {
 
   it('accepts take function name as stage name', function (done) {
     var v0 = new Stage(function newName(err, ctx, done) {})
-    expect(v0.name == 'newName').toBeTruthy()
+    expect(v0.name).toBe('newName')
     var v = new Stage({
       run: function newName(err, ctx, done) {},
     })
-    expect(v.name == 'newName').toBeTruthy()
+    expect(v.name).toBe('newName')
     done()
   })
 
