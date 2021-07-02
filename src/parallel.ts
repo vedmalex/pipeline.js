@@ -98,7 +98,8 @@ export class Parallel<T, C extends ParallelConfig<T, R>, R> extends Stage<
               )
             }
 
-            if (++iter >= len) {
+            iter += 1
+            if (iter >= len) {
               if (!hasError) {
                 let result = this.combine(ctx, children)
                 return done(undefined, result)

@@ -81,10 +81,8 @@ export class Pipeline<T, C extends PipelineConfig<T, R>, R> extends Stage<
         i += 1
         if (i < this.config.stages.length) {
           run_or_execute(this.config.stages[i], err, ctx ?? context, next)
-        } else if (i == this.config.stages.length) {
+        } else if (i >= this.config.stages.length) {
           done(err, ctx ?? context)
-        } else {
-          done(new Error('done call more than once'), ctx ?? context)
         }
       }
       next(err, context)

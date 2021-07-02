@@ -7,6 +7,7 @@ import Ajv from 'ajv'
 import ajvFormats from 'ajv-formats'
 import ajvKeywords from 'ajv-keywords'
 import ajvErrors from 'ajv-errors'
+import { empty_run } from './empty_run'
 
 export type Func0Sync<R> = () => R
 export type Func1Sync<R, P1> = (p1: P1) => R
@@ -235,7 +236,7 @@ export function getStageConfig<T, C extends StageConfig<T, R>, R>(
     return config
   } else if (isRunPipelineFunction<T, R>(config)) {
     result.run = config
-    result.name = getNameFrom(config)
+    result.name = getNameFrom(result)
   } else {
     if (config.name) {
       result.name = config.name
@@ -335,6 +336,9 @@ export function getPipelinConfig<T, C extends PipelineConfig<T, R>, R>(
       if (config.stages) {
         res.stages = config.stages
       }
+    } else if (typeof config == 'function' && res.run) {
+      res.stages = [res.run]
+      delete res.run
     }
     if (!res.stages) res.stages = []
     return res
@@ -359,6 +363,9 @@ export function getParallelConfig<T, C extends ParallelConfig<T, R>, R>(
     if (config.run) {
       res.stage = config.run
     }
+  } else if (typeof config == 'function' && res.run) {
+    res.stage = res.run
+    delete res.run
   }
   return res
 }
@@ -371,11 +378,7 @@ export function getEmptyConfig<T, C extends StageConfig<T, R>, R>(
   if (res instanceof Stage) {
     return res as Stage<T, C, R>
   } else {
-    res.run = (
-      err: Error | undefined,
-      context: T,
-      callback: CallbackFunction<T>,
-    ) => callback(err, context)
+    res.run = empty_run
   }
 
   return res
@@ -407,4 +410,93 @@ export function getWrapConfig<T, C extends WrapConfig<T, R>, R>(
     res.prepare = config.prepare
   }
   return res
+}
+
+export interface TimeoutConfig<T, R> extends StageConfig<T, R> {
+  timeout?: number | Func1Sync<number, T | R>
+  stage?: Stage<T, any, R> | RunPipelineFunction<T, R>
+  overdue?: Stage<T, any, R> | RunPipelineFunction<T, R>
+}
+
+export function getTimeoutConfig<T, C extends TimeoutConfig<T, R>, R>(
+  config: AllowedStage<T, C, R>,
+): C {
+  const res = getStageConfig(config)
+  if (res instanceof Stage) {
+    return { stage: res } as C
+  } else if (typeof config == 'object' && !(config instanceof Stage)) {
+    if (config.run && config.stage) {
+      throw CreateError("don't use run and stage both")
+    }
+    if (config.run) {
+      res.stage = config.run
+    }
+    if (config.stage) {
+      res.stage = config.stage
+    }
+    res.timeout = config.timeout
+    res.overdue = config.overdue
+  } else if (typeof config == 'function' && res.run) {
+    res.stage = res.run
+    delete res.run
+  }
+  return res
+}
+
+export interface IfElseConfig<T, R> extends StageConfig<T, R> {
+  condition?: boolean | ValidateFunction<T | R>
+  success?: Stage<T, any, R> | RunPipelineFunction<T, R>
+  failed?: Stage<T, any, R> | RunPipelineFunction<T, R>
+}
+
+export function getIfElseConfig<T, C extends IfElseConfig<T, R>, R>(
+  config: AllowedStage<T, C, R>,
+): C {
+  const res = getStageConfig(config)
+  if (res instanceof Stage) {
+    return { success: res } as C
+  } else if (typeof config == 'object' && !(config instanceof Stage)) {
+    if (config.run && config.success) {
+      throw CreateError("don't use run and stage both")
+    }
+    if (config.run) {
+      res.success = config.run
+    }
+    if (config.success) {
+      res.success = config.success
+    }
+    if (config.condition) {
+      res.condition = config.condition
+    } else {
+      res.condition = true
+    }
+    if (config.failed) {
+      res.failed = config.failed
+    } else {
+      res.failed = empty_run
+    }
+  } else if (typeof config == 'function' && res.run) {
+    res.success = res.run
+    res.failed = empty_run
+    res.condition = true
+    delete res.run
+  } else {
+    res.success = empty_run
+  }
+  return res
+}
+
+export function run_callback_once<T>(
+  wrapee: CallbackFunction<T>,
+): CallbackFunction<T> {
+  let done_call = 0
+  const done: CallbackFunction<T> = (err?: Error, ctx?: T) => {
+    if (done_call == 0) {
+      done_call += 1
+      wrapee(err, ctx)
+    } else {
+      throw CreateError([err, 'callback called more than once'])
+    }
+  }
+  return done
 }

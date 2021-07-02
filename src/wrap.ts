@@ -45,7 +45,7 @@ export class Wrap<
           (err: Error | undefined, retCtx: any) => {
             if (!err) {
               const result = this.finalize(ctx, retCtx)
-              done(undefined, result)
+              done(undefined, result ?? ctx)
             } else {
               done(err, ctx)
             }

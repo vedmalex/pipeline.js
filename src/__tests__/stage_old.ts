@@ -56,7 +56,7 @@ describe('Stage', function () {
       })
       st.execute({}, function (err, ctx) {
         expect(ctx?.n).toEqual(1)
-        expect(err).not.toBeUndefined()
+        expect(err).toBeUndefined()
         done()
       })
     })
@@ -73,7 +73,7 @@ describe('Stage', function () {
       })
       st.execute({}, function (err, ctx) {
         expect(ctx?.n).toEqual(1)
-        expect(err).not.toBeUndefined()
+        expect(err).toBeUndefined()
         done()
       })
     })

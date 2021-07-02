@@ -38,8 +38,14 @@ export function execute_validate<T>(
             res.then(res => done(undefined, res)).catch(err => done(err))
           } else if (is_thenable(res)) {
             res.then(res => done(undefined, res)).catch(err => done(err))
+          } else if (typeof res == 'boolean') {
+            if (res) {
+              done(undefined, res)
+            } else {
+              done(CreateError(ERROR.invalid_context))
+            }
           } else {
-            done(undefined, res)
+            done(res)
           }
         } catch (err) {
           process_error(err, done)

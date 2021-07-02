@@ -73,4 +73,17 @@ export interface WrapConfig<T, R> extends StageConfig<T, R> {
     finalize: Function;
 }
 export declare function getWrapConfig<T, C extends WrapConfig<T, R>, R>(config: AllowedStage<T, C, R>): C;
+export interface TimeoutConfig<T, R> extends StageConfig<T, R> {
+    timeout?: number | Func1Sync<number, T | R>;
+    stage?: Stage<T, any, R> | RunPipelineFunction<T, R>;
+    overdue?: Stage<T, any, R> | RunPipelineFunction<T, R>;
+}
+export declare function getTimeoutConfig<T, C extends TimeoutConfig<T, R>, R>(config: AllowedStage<T, C, R>): C;
+export interface IfElseConfig<T, R> extends StageConfig<T, R> {
+    condition?: boolean | ValidateFunction<T | R>;
+    success?: Stage<T, any, R> | RunPipelineFunction<T, R>;
+    failed?: Stage<T, any, R> | RunPipelineFunction<T, R>;
+}
+export declare function getIfElseConfig<T, C extends IfElseConfig<T, R>, R>(config: AllowedStage<T, C, R>): C;
+export declare function run_callback_once<T>(wrapee: CallbackFunction<T>): CallbackFunction<T>;
 //# sourceMappingURL=types.d.ts.map

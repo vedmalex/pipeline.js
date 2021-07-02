@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`Pipeline ensure Context Error use 1`] = `[Error: Complex Error]`;
-
-exports[`Pipeline ensure Context Error use 2`] = `[Error: done call more than once]`;
-
-exports[`Pipeline ensure Context Error use 3`] = `[Error: done call more than once]`;
-
-exports[`Pipeline ensure Context Error use 4`] = `[Error: done call more than once]`;

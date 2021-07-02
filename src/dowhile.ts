@@ -82,20 +82,20 @@ export class DoWhile<
       done: CallbackFunction<T | R>,
     ) => {
       let iter: number = -1
-      let next = (err: Error | undefined, retCtx: T | R | undefined) => {
+      let next = (err: Error | undefined) => {
         iter++
-        if (this.reachEnd(err, retCtx ?? context, iter)) {
-          return done(err, retCtx ?? context)
+        if (this.reachEnd(err, context, iter)) {
+          return done(err, context)
         } else {
           run_or_execute(
             this.config.stage,
             err,
-            this.split(retCtx ?? context, iter),
+            this.split(context, iter),
             next,
           )
         }
       }
-      next(err, context)
+      next(err)
     }
 
     this.run = run

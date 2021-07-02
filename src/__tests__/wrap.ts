@@ -3,7 +3,6 @@ import 'jest'
 import { Wrap } from '../wrap'
 import { DoWhile } from '../dowhile'
 import { Stage } from '../stage'
-import { ContextFactory } from '../context'
 
 describe('Wrap', function () {
   it('works', function (done) {
@@ -38,6 +37,7 @@ describe('Wrap', function () {
       done()
     })
   })
+
   it('prepare context -> moved to Wrap', function (done) {
     var stage0 = new Stage(function (ctx) {
       ctx.iteration++

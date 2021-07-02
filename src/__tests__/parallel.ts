@@ -3,6 +3,7 @@ import 'jest'
 import { Parallel } from '../parallel'
 import { Stage } from '../stage'
 import { ContextFactory } from '../context'
+import { Wrap } from '../wrap'
 
 describe('Parallel', function () {
   it('works with default', function (done) {
@@ -194,5 +195,53 @@ describe('Parallel', function () {
       expect(context.result).toEqual(7)
       done()
     })
+  })
+
+  it('prepare context -> moved to Wrap', function (done) {
+    var stage0 = new Stage(function (ctx) {
+      ctx.iteration++
+    })
+    var stage = new Wrap({
+      prepare: function (ctx) {
+        return {
+          iteration: ctx.iter,
+        }
+      },
+      finalize: function (ctx, retCtx) {
+        ctx.iter = retCtx.iteration
+      },
+      stage: new Parallel({
+        stage: stage0,
+        split: function (ctx) {
+          ctx.split = [0, 0, 0, 0, 0]
+          ctx.split = ctx.split.map(function (i) {
+            return {
+              iteration: 0,
+            }
+          })
+          return ctx.split
+        },
+        combine: function (ctx, children) {
+          ctx.iteration = children.reduce(function (p, c, i, a) {
+            return p + c.iteration
+          }, 0)
+          delete ctx.split
+          return ctx
+        },
+      }),
+    })
+
+    stage.execute(
+      {
+        iter: 0,
+      },
+      function (err, context) {
+        // throw Error()
+        expect(err).toBeUndefined()
+        expect(context.iter).toEqual(5)
+        expect(context.iteration).toEqual(5)
+        done()
+      },
+    )
   })
 })
