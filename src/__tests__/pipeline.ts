@@ -38,13 +38,53 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('catch throw errors', function (done) {
+  it('catch throw errors 1', function (done) {
     var pipe = new Pipeline()
     pipe.addStage(function (err, ctx, done) {
       throw new Error('error')
     })
     pipe.execute({}, function (err, ctx) {
       expect('error').toEqual(err?.message)
+      done()
+    })
+  })
+
+  it('catch throw errors 2', function (done) {
+    var pipe = new Pipeline([
+      function (err, ctx, done) {
+        ctx.cnt = 1
+        done(new Error('error'))
+      },
+      function (err, ctx, done) {
+        ctx.cnt += 1
+        done()
+      },
+    ])
+    pipe.execute({}, function (err, ctx) {
+      expect('error').toEqual(err?.message)
+      done()
+    })
+  })
+
+  it('catch throw errors 3', function (done) {
+    var pipe = new Pipeline({
+      rescue: function (err?) {
+        if (err?.message == 'error') return false
+      },
+      stages: [
+        function (err, ctx, done) {
+          ctx.cnt = 1
+          done()
+        },
+        function (err, ctx, done) {
+          ctx.cnt += 1
+          done(new Error('error'))
+        },
+      ],
+    })
+    pipe.execute({}, function (err, ctx) {
+      expect(err).toBeUndefined()
+      expect(ctx.cnt).toEqual(2)
       done()
     })
   })

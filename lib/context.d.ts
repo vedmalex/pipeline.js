@@ -5,32 +5,32 @@ export declare enum RESERVATIONS {
     func_this = 1,
     func_ctx = 2
 }
-export declare type Context<T extends object> = IContextProxy<T> & T;
+export declare type ContextType<T extends object> = IContextProxy<T> & T;
 export interface IContextProxy<T extends object> {
-    getParent(): Context<T>;
-    setParent(parent: Context<T>): void;
+    getParent(): ContextType<T>;
+    setParent(parent: ContextType<T>): void;
     toJSON(): string;
     toObject(clean?: boolean): T;
     toString(): string;
-    fork<C extends T>(config: Partial<Context<C>>): Context<C>;
+    fork<C extends T>(config: Partial<ContextType<C>>): ContextType<C>;
     get(path: string): any;
     [key: string]: any;
 }
-export declare class ContextFactory<T extends object> implements IContextProxy<T> {
-    static ensure<T extends object>(_config?: Partial<T>): Context<T>;
+export declare class Context<T extends object> implements IContextProxy<T> {
+    static ensure<T extends object>(_config?: Partial<T>): ContextType<T>;
     static isContext<T extends object>(obj?: any): obj is IContextProxy<T>;
     protected ctx: T;
     protected proxy: any;
-    protected __parent: Context<T>;
+    protected __parent: ContextType<T>;
     protected __stack?: string[];
-    private constructor();
-    fork<C extends T>(config: Partial<Context<C>>): Context<C>;
+    constructor(config: T);
+    fork<C extends T>(config: Partial<ContextType<C>>): ContextType<C>;
     get(path: string): any;
-    getParent(): Context<T>;
-    setParent(parent: Context<T>): void;
-    protected hasChild<C extends T>(ctx: Context<C>): boolean;
-    protected ensureIsChild<C extends T>(ctx: Context<C>): Context<C>;
-    protected addChild<C extends T>(ctx: Context<C>): void;
+    getParent(): ContextType<T>;
+    setParent(parent: ContextType<T>): void;
+    protected hasChild<C extends T>(ctx: ContextType<C>): boolean;
+    protected ensureIsChild<C extends T>(ctx: ContextType<C>): ContextType<C>;
+    protected addChild<C extends T>(ctx: ContextType<C>): void;
     toObject<T extends object>(): T;
     toJSON(): string;
     toString(): string;

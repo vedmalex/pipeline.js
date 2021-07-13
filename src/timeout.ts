@@ -3,11 +3,11 @@ import { AllowedStage, getTimeoutConfig } from './utils/types'
 import { CallbackFunction, StageRun, TimeoutConfig } from './utils/types'
 import { run_or_execute } from './utils/run_or_execute'
 
-export class Timeout<T, C extends TimeoutConfig<T, R>, R> extends Stage<
-  T,
-  C,
-  R
-> {
+export class Timeout<
+  T = any,
+  C extends TimeoutConfig<T, R> = any,
+  R = T,
+> extends Stage<T, C, R> {
   constructor(config?: AllowedStage<T, C, R>) {
     super()
     if (config) {

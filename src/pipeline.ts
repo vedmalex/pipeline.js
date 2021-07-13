@@ -24,11 +24,11 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Pipeline<T, C extends PipelineConfig<T, R>, R> extends Stage<
-  T,
-  C,
-  R
-> {
+export class Pipeline<
+  T = any,
+  C extends PipelineConfig<T, R> = any,
+  R = T,
+> extends Stage<T, C, R> {
   constructor(
     config?:
       | AllowedStage<T, C, R>
@@ -79,9 +79,9 @@ export class Pipeline<T, C extends PipelineConfig<T, R>, R> extends Stage<
       //sequential run;
       let next = (err: Error | undefined, ctx: T | R) => {
         i += 1
-        if (i < this.config.stages.length) {
+        if (!err && i < this.config.stages.length) {
           run_or_execute(this.config.stages[i], err, ctx ?? context, next)
-        } else if (i >= this.config.stages.length) {
+        } else if (i >= this.config.stages.length || err) {
           done(err, ctx ?? context)
         }
       }

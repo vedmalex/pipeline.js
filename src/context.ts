@@ -39,15 +39,15 @@ const RESERVED: Record<string, RESERVATIONS> = {
 //контекст может быть массивом, не обязательно
 // весь объект инициализировать сделать внутреннее хранилище, для неизменяемости ссылки....
 
-export type Context<T extends object> = IContextProxy<T> & T
+export type ContextType<T extends object> = IContextProxy<T> & T
 
 export interface IContextProxy<T extends object> {
-  getParent(): Context<T>
-  setParent(parent: Context<T>): void
+  getParent(): ContextType<T>
+  setParent(parent: ContextType<T>): void
   toJSON(): string
   toObject(clean?: boolean): T
   toString(): string
-  fork<C extends T>(config: Partial<Context<C>>): Context<C>
+  fork<C extends T>(config: Partial<ContextType<C>>): ContextType<C>
   get(path: string): any
   [key: string]: any
 }
@@ -56,12 +56,12 @@ export interface IContextProxy<T extends object> {
  *  The **Context** itself
  *  @param {Object} config The object that is the source for the **Context**.
  */
-export class ContextFactory<T extends object> implements IContextProxy<T> {
-  public static ensure<T extends object>(_config?: Partial<T>): Context<T> {
-    if (ContextFactory.isContext<T>(_config)) {
-      return _config as unknown as Context<T>
+export class Context<T extends object> implements IContextProxy<T> {
+  public static ensure<T extends object>(_config?: Partial<T>): ContextType<T> {
+    if (Context.isContext<T>(_config)) {
+      return _config as unknown as ContextType<T>
     } else {
-      return new ContextFactory(_config ?? {}) as unknown as Context<T>
+      return new Context(_config ?? {}) as unknown as ContextType<T>
     }
   }
   public static isContext<T extends object>(
@@ -71,14 +71,14 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
   }
   protected ctx: T
   protected proxy: any
-  protected __parent!: Context<T>
+  protected __parent!: ContextType<T>
   protected __stack?: string[]
 
-  private constructor(config: T) {
+  constructor(config: T) {
     this.ctx = config
 
     const res = new Proxy(this, {
-      get(target: ContextFactory<T>, key: string | symbol, _proxy: any): any {
+      get(target: Context<T>, key: string | symbol, _proxy: any): any {
         if (key == ContextSymbol) return true
         if (key == ProxySymbol) return _proxy
 
@@ -96,7 +96,7 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
         }
       },
       set(
-        target: ContextFactory<T>,
+        target: Context<T>,
         key: keyof typeof RESERVED | string | symbol,
         value,
       ): boolean {
@@ -114,21 +114,21 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
           return true
         }
       },
-      deleteProperty(target: ContextFactory<T>, key: string | symbol) {
+      deleteProperty(target: Context<T>, key: string | symbol) {
         if (!RESERVED.hasOwnProperty(key)) {
           return delete target.ctx[key as keyof T]
         } else {
           return false
         }
       },
-      has(target: ContextFactory<T>, key: string | symbol) {
+      has(target: Context<T>, key: string | symbol) {
         if (!RESERVED.hasOwnProperty(key)) {
           return key in target.ctx
         } else {
           return false
         }
       },
-      ownKeys(target: ContextFactory<T>) {
+      ownKeys(target: Context<T>) {
         return Reflect.ownKeys(target.ctx)
       },
     })
@@ -141,11 +141,11 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
   /**
    * Makes fork of current context and add it to current as a child context
    * @api public
-   * @param {Object|ContextFactory} [config] new properties that must exists in new fork
+   * @param {Object|Context} [config] new properties that must exists in new fork
    * @retrun {Context}
    */
-  fork<C extends T>(config: Partial<Context<C>>): Context<C> {
-    var child = ContextFactory.ensure<C>(config)
+  fork<C extends T>(config: Partial<ContextType<C>>): ContextType<C> {
+    var child = Context.ensure<C>(config)
     this.addChild(child)
     defaultsDeep(child, this.toObject())
     return child
@@ -154,13 +154,13 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
   /**
    * Same but different as a fork. it make possible get piece of context as context;
    * @param path String path to context object that need to be a Context instance
-   * @return {ContextFactory} | {Primitive type}
+   * @return {Context} | {Primitive type}
    */
   get(path: string): any {
     var root = get(this, path)
     if (root instanceof Object) {
       var result = root
-      if (!ContextFactory.isContext(result)) {
+      if (!Context.isContext(result)) {
         result = this.ensureIsChild(result)
         set(this, path, result)
       }
@@ -171,12 +171,12 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
   /**
    * Return parent Context
    * @api public
-   * @return {ContextFactory}
+   * @return {Context}
    */
   getParent() {
     return this.__parent
   }
-  setParent(parent: Context<T>) {
+  setParent(parent: ContextType<T>) {
     this.__parent = parent
   }
   /**
@@ -185,11 +185,11 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
    * @api public
    * @return {Boolean}
    */
-  protected hasChild<C extends T>(ctx: Context<C>): boolean {
-    if (ContextFactory.isContext(ctx) && ctx.__parent) {
+  protected hasChild<C extends T>(ctx: ContextType<C>): boolean {
+    if (Context.isContext(ctx) && ctx.__parent) {
       return (
-        ctx.__parent == (this.proxy as unknown as Context<C>) ||
-        (this.proxy as unknown as Context<C>) == ctx
+        ctx.__parent == (this.proxy as unknown as ContextType<C>) ||
+        (this.proxy as unknown as ContextType<C>) == ctx
       )
     } else {
       return false
@@ -199,25 +199,25 @@ export class ContextFactory<T extends object> implements IContextProxy<T> {
   /**
    * Ensures that the context is the child of current context<T>, and returns right context
    * @api public
-   * @param {Object|ContextFactory} ctx
-   * @return {ContextFactory}
+   * @param {Object|Context} ctx
+   * @return {Context}
    */
-  protected ensureIsChild<C extends T>(ctx: Context<C>): Context<C> {
-    var lctx = ContextFactory.ensure<C>(ctx)
+  protected ensureIsChild<C extends T>(ctx: ContextType<C>): ContextType<C> {
+    var lctx = Context.ensure<C>(ctx)
     this.addChild<C>(lctx)
-    return lctx as Context<C>
+    return lctx as ContextType<C>
   }
 
   /**
    * Add child Context to current
    * !Note! All children contexts has parent list of error. This allow to be sure that any fork
    * @api protected
-   * @param {ContextFactory} ctx new child context
+   * @param {Context} ctx new child context
    */
-  protected addChild<C extends T>(ctx: Context<C>) {
+  protected addChild<C extends T>(ctx: ContextType<C>) {
     if (!this.hasChild<C>(ctx)) {
-      var child = ContextFactory.ensure<C>(ctx)
-      child.setParent(this.proxy as unknown as Context<C>)
+      var child = Context.ensure<C>(ctx)
+      child.setParent(this.proxy as unknown as ContextType<C>)
     }
   }
 

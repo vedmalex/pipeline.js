@@ -485,18 +485,3 @@ export function getIfElseConfig<T, C extends IfElseConfig<T, R>, R>(
   }
   return res
 }
-
-export function run_callback_once<T>(
-  wrapee: CallbackFunction<T>,
-): CallbackFunction<T> {
-  let done_call = 0
-  const done: CallbackFunction<T> = (err?: Error, ctx?: T) => {
-    if (done_call == 0) {
-      done_call += 1
-      wrapee(err, ctx)
-    } else {
-      throw CreateError([err, 'callback called more than once'])
-    }
-  }
-  return done
-}

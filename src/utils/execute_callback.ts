@@ -20,6 +20,7 @@ import {
 import { Func2Async, Func3Sync, Func1Async } from './types'
 import { process_error } from './process_error'
 import { ERROR } from './errors'
+import { run_callback_once } from './run_callback_once'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
 
@@ -27,8 +28,9 @@ export function execute_callback<T, R>(
   err: Error | undefined,
   run: RunPipelineFunction<T, R>,
   context: T,
-  done: CallbackFunction<T | R>,
+  _done: CallbackFunction<T | R>,
 ) {
+  const done = run_callback_once(_done)
   switch (run.length) {
     // this is the context of the run function
     case 0:

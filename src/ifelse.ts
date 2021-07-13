@@ -4,7 +4,11 @@ import { CallbackFunction, StageRun } from './utils/types'
 import { run_or_execute } from './utils/run_or_execute'
 import { execute_validate } from './utils/execute_validate'
 
-export class IfElse<T, C extends IfElseConfig<T, R>, R> extends Stage<T, C, R> {
+export class IfElse<
+  T = any,
+  C extends IfElseConfig<T, R> = any,
+  R = T,
+> extends Stage<T, C, R> {
   constructor(config?: AllowedStage<T, C, R>) {
     super()
     if (config) {

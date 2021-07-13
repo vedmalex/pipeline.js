@@ -41,3 +41,11 @@ export class ErrorList extends Error {
     return `ComplexError:\n\t${this.errors.map(e => e.message).join('\n')}`
   }
 }
+
+export class StageError<T extends { name: string }> extends Error {
+  info!: T
+  constructor(err: T) {
+    super(err.name)
+    this.info = err
+  }
+}

@@ -27,11 +27,11 @@ import { empty_run } from './utils/empty_run'
  *
  * @param {Object} config configuration object
  */
-export class Parallel<T, C extends ParallelConfig<T, R>, R> extends Stage<
-  T,
-  C,
-  R
-> {
+export class Parallel<
+  T = any,
+  C extends ParallelConfig<T, R> = any,
+  R = T,
+> extends Stage<T, C, R> {
   constructor(config?: AllowedStage<T, C, R>) {
     super()
     if (config) {

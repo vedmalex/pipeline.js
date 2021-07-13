@@ -8,6 +8,7 @@ import {
 import { Stage } from './stage'
 import { run_or_execute } from './utils/run_or_execute'
 import { empty_run } from './utils/empty_run'
+import { StageError } from './utils/ErrorList'
 
 /**
  * Process staging in Sequential way
@@ -26,11 +27,11 @@ import { empty_run } from './utils/empty_run'
  *
  * @param {Object} config configuration object
  */
-export class Sequential<T, C extends ParallelConfig<T, R>, R> extends Stage<
-  T,
-  C,
-  R
-> {
+export class Sequential<
+  T = any,
+  C extends ParallelConfig<T, R> = any,
+  R = T,
+> extends Stage<T, C, R> {
   constructor(config?: AllowedStage<T, C, R>) {
     super()
     if (config) {
@@ -128,11 +129,4 @@ export type SequentialError = {
   index: number
   err: Error
   ctx: any
-}
-export class StageError<T extends { name: string }> extends Error {
-  info!: T
-  constructor(err: T) {
-    super(err.name)
-    this.info = err
-  }
 }

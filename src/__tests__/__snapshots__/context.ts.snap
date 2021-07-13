@@ -9,3 +9,10 @@ exports[`context ensures object: ensure 2`] = `"{\\"name\\":\\"alex\\"}"`;
 exports[`context fork: Egor 1`] = `"{\\"name\\":\\"Egor\\",\\"address\\":{\\"city\\":\\"NCH\\",\\"State\\":\\"RO\\",\\"country\\":\\"RU\\"}}"`;
 
 exports[`context get: address 1`] = `"{\\"city\\":\\"NCH\\",\\"State\\":\\"RO\\",\\"country\\":\\"RU\\"}"`;
+
+exports[`context ownkeys works 1`] = `
+Array [
+  "name",
+  "address",
+]
+`;

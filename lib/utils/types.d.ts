@@ -85,5 +85,4 @@ export interface IfElseConfig<T, R> extends StageConfig<T, R> {
     failed?: Stage<T, any, R> | RunPipelineFunction<T, R>;
 }
 export declare function getIfElseConfig<T, C extends IfElseConfig<T, R>, R>(config: AllowedStage<T, C, R>): C;
-export declare function run_callback_once<T>(wrapee: CallbackFunction<T>): CallbackFunction<T>;
 //# sourceMappingURL=types.d.ts.map

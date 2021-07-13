@@ -1,6 +1,6 @@
 import { ParallelConfig, AllowedStage, StageRun } from './utils/types';
 import { Stage } from './stage';
-export declare class Sequential<T, C extends ParallelConfig<T, R>, R> extends Stage<T, C, R> {
+export declare class Sequential<T = any, C extends ParallelConfig<T, R> = any, R = T> extends Stage<T, C, R> {
     constructor(config?: AllowedStage<T, C, R>);
     split(ctx: T | R): Array<any>;
     combine(ctx: T | R, children: Array<any>): T | R;
@@ -16,10 +16,4 @@ export declare type SequentialError = {
     err: Error;
     ctx: any;
 };
-export declare class StageError<T extends {
-    name: string;
-}> extends Error {
-    info: T;
-    constructor(err: T);
-}
 //# sourceMappingURL=sequential.d.ts.map

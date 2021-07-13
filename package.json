@@ -1,7 +1,7 @@
 {
   "name": "pipeline.js",
   "description": "Pipeline.js - async workflow framework for node.js and browser",
-  "version": "1.0.0",
+  "version": "2.0.0-beta",
   "author": {
     "name": "Alex Vedmedenko",
     "email": "vedmalex@gmail.com"
@@ -43,10 +43,7 @@
     "prettier": "^2.3.1",
     "ts-jest": "^26.4.4",
     "ts-node": "^10.0.0",
-    "typescript": "^4.3.2"
-  },
-  "directories": {
-    "lib": "./lib"
+    "typescript": "^4.4.0-beta"
   },
   "scripts": {
     "test": "jest --coverage",
@@ -56,7 +53,7 @@
     "watch": "tsc --build tsconfig.json --watch",
     "format": "prettier --write \"src/**/*.ts\""
   },
-  "main": "./index.js",
+  "main": "./lib/index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/vedmalex/pipeline.js.git"

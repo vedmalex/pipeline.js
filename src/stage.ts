@@ -14,7 +14,6 @@ import { execute_validate } from './utils/execute_validate'
 import { execute_rescue } from './utils/execute_rescue'
 import { execute_callback } from './utils/execute_callback'
 import { can_fix_error } from './utils/can_fix_error'
-import { run_callback_once } from './utils/types'
 
 // make possibility to context be immutable for debug purposes
 
@@ -95,7 +94,14 @@ export class Stage<T = any, C extends StageConfig<T, R> = any, R = T> {
         })
       })
     } else {
-      const callback = run_callback_once(__callback)
+      const callback = (err: Error | undefined, _ctx: T | R | undefined) => {
+        if (err) {
+          this.rescue(err, _ctx as T, __callback as CallbackFunction<T | R>)
+        } else {
+          __callback?.(err, _ctx)
+        }
+      }
+
       if (err && this._config.run && !can_fix_error(this._config.run)) {
         this.rescue(err, context, callback)
       } else {
