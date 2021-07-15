@@ -1,1 +1,0 @@
-//# sourceMappingURL=mutiwayswitch.d.ts.map

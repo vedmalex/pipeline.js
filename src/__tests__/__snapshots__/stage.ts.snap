@@ -11,7 +11,7 @@ Stage {
 exports[`stage create with Config: config stage 1`] = `
 Stage {
   "_config": Object {
-    "name": "(err, ctx, done) => {
+    "name": "function (err, ctx, done) {
             if (!err) {
                 ctx.name = 'run the stage';
                 done(undefined, ctx);
@@ -28,7 +28,7 @@ Stage {
 exports[`stage create with Lambda 2: lambda stage 1`] = `
 Stage {
   "_config": Object {
-    "name": "(err, ctx) => {
+    "name": "function (err, ctx) {
             if (!err) {
                 ctx.name = 'run the stage';
                 return Promise.resolve(ctx);
@@ -45,7 +45,7 @@ Stage {
 exports[`stage create with Lambda 3: lambda stage 1`] = `
 Stage {
   "_config": Object {
-    "name": "(err, ctx, done) => {
+    "name": "function (err, ctx, done) {
             if (!err) {
                 ctx.name = 'run the stage';
                 done(undefined, ctx);
