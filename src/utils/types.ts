@@ -201,6 +201,10 @@ export interface ParallelConfig<T, R> extends StageConfig<T, R> {
   combine?: Func2Sync<T | R | void, T | R, Array<any>>
 }
 
+export function isStageRun<T, R>(inp: Function): inp is StageRun<T, R> {
+  return inp?.length == 3
+}
+
 export type StageRun<T, R> = (
   err: Error | undefined,
   context: T,

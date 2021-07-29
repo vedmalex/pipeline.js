@@ -4,6 +4,7 @@ import {
   CallbackFunction,
   EnsureFunction,
   getStageConfig,
+  RunPipelineFunction,
   StageConfig,
   StageRun,
   ValidateFunction,
@@ -14,6 +15,8 @@ import { execute_validate } from './utils/execute_validate'
 import { execute_rescue } from './utils/execute_rescue'
 import { execute_callback } from './utils/execute_callback'
 import { can_fix_error } from './utils/can_fix_error'
+import { execute_custom_run } from './utils/execute_custom_run'
+import { isStageRun } from './utils/types'
 
 // make possibility to context be immutable for debug purposes
 
@@ -85,6 +88,12 @@ export class Stage<T = any, C extends StageConfig<T, R> = any, R = T> {
 
     if (!this.run) {
       this.run = this.compile()
+    } else if (!this.config?.run) {
+      // legacy run
+      if (!isStageRun(this.run)) {
+        var legacy = this.run as RunPipelineFunction<T, R>
+        this.run = execute_custom_run(legacy)
+      }
     }
     if (!__callback) {
       return new Promise((res, rej) => {
@@ -178,7 +187,11 @@ export class Stage<T = any, C extends StageConfig<T, R> = any, R = T> {
     } else if (!this.run || rebuild) {
       res = this.stage
     } else {
-      res = this.run
+      if (isStageRun(this.run)) {
+        res = this.run
+      } else {
+        res = execute_custom_run(this.run as RunPipelineFunction<T, R>)
+      }
     }
     return res
   }

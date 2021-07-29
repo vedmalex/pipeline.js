@@ -58,6 +58,7 @@ export interface ParallelConfig<T, R> extends StageConfig<T, R> {
     split?: Func1Sync<Array<any>, T | R>;
     combine?: Func2Sync<T | R | void, T | R, Array<any>>;
 }
+export declare function isStageRun<T, R>(inp: Function): inp is StageRun<T, R>;
 export declare type StageRun<T, R> = (err: Error | undefined, context: T, callback: CallbackFunction<T | R>) => void;
 export declare type AllowedStage<T = any, C extends StageConfig<T, R> = any, R = T> = string | C | RunPipelineFunction<T, R> | Stage<T, C, R>;
 export declare function isAllowedStage<T = any, C extends StageConfig<T, R> = any, R = T>(inp: any): inp is AllowedStage<T, C, R>;
