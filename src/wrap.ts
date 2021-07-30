@@ -66,10 +66,12 @@ export class Wrap<
     }
   }
   finalize(ctx: T, retCtx: R): T | R {
+    // by default the main context will be used to return;
     if (this.config.finalize) {
       return this.config.finalize(ctx, retCtx)
     } else {
-      return retCtx ?? ctx
+      // so we do nothing here
+      return ctx
     }
   }
 }
