@@ -1,4 +1,5 @@
-export declare function CreateError(err: string | object | undefined | (string | object | undefined)[]): Error | undefined;
+import { Possible } from './types';
+export declare function CreateError(err: string | object | undefined | (string | object | undefined)[]): Possible<Error>;
 export declare class ErrorList extends Error {
     errors: Array<{
         message: string;

@@ -1,9 +1,9 @@
-import { ParallelConfig, AllowedStage, StageRun } from './utils/types';
+import { ParallelConfig, AllowedStage, StageRun, Possible } from './utils/types';
 import { Stage } from './stage';
-export declare class Parallel<T = any, C extends ParallelConfig<T, R> = any, R = T> extends Stage<T, C, R> {
-    constructor(config?: AllowedStage<T, C, R>);
-    split(ctx: T | R): Array<any>;
-    combine(ctx: T | R, children: Array<any>): T | R;
+export declare class Parallel<T, R = T> extends Stage<T, ParallelConfig<T, R>, R> {
+    constructor(config?: AllowedStage<T, ParallelConfig<T, R>, R>);
+    split(ctx: Possible<T>): Array<any>;
+    combine(ctx: Possible<T>, children: Array<any>): Possible<R>;
     get reportName(): string;
     toString(): string;
     get name(): string;
@@ -16,10 +16,4 @@ export declare type ParallelError = {
     err: Error;
     ctx: any;
 };
-export declare class StageError<T extends {
-    name: string;
-}> extends Error {
-    info: T;
-    constructor(err: T);
-}
 //# sourceMappingURL=parallel.d.ts.map

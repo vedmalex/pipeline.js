@@ -6,6 +6,8 @@ exports[`context ensures object: ensure 1`] = `"{\\"name\\":\\"alex\\"}"`;
 
 exports[`context ensures object: ensure 2`] = `"{\\"name\\":\\"alex\\"}"`;
 
+exports[`context fork 2: Egor 1`] = `"{\\"name\\":\\"Egor\\",\\"address\\":{\\"city\\":\\"NCH\\",\\"State\\":\\"RO\\",\\"country\\":\\"RU\\"}}"`;
+
 exports[`context fork: Egor 1`] = `"{\\"name\\":\\"Egor\\",\\"address\\":{\\"city\\":\\"NCH\\",\\"State\\":\\"RO\\",\\"country\\":\\"RU\\"}}"`;
 
 exports[`context get: address 1`] = `"{\\"city\\":\\"NCH\\",\\"State\\":\\"RO\\",\\"country\\":\\"RU\\"}"`;

@@ -5,22 +5,25 @@ import {
   AllowedStage,
   getStageConfig,
   RunPipelineFunction,
+  AnyStage,
+  Possible,
 } from './utils/types'
 import { CallbackFunction, StageConfig, StageRun, Func3 } from './utils/types'
 import { CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
+import { Context } from './context'
 
 export interface RetryOnErrorConfig<T, R> extends StageConfig<T, R> {
-  stage: Stage<T, any, R> | RunPipelineFunction<T, R>
-  retry: number | Func3<boolean, Error | undefined, T | R, number>
-  backup: Function
-  restore: Function
+  stage: AnyStage<T, R> | RunPipelineFunction<T, R>
+  retry: number | Func3<boolean, Possible<Error>, Possible<T>, number>
+  backup?: (ctx: Possible<T>) => Possible<T>
+  restore?: (ctx: Possible<T>, backup: Possible<T>) => Possible<T>
 }
 
 export function getRetryOnErrorConfig<T, C extends RetryOnErrorConfig<T, R>, R>(
   config: AllowedStage<T, C, R>,
 ): C {
-  const res = getStageConfig(config)
+  const res = getStageConfig<T, C, R>(config)
   if (res instanceof Stage) {
     return { stage: res } as C
   } else if (typeof config == 'object' && !(config instanceof Stage)) {
@@ -53,15 +56,17 @@ export function getRetryOnErrorConfig<T, C extends RetryOnErrorConfig<T, R>, R>(
   return res
 }
 
-export class RetryOnError<
-  T = any,
-  C extends RetryOnErrorConfig<T, R> = any,
-  R = T,
-> extends Stage<T, C, R> {
-  constructor(config?: AllowedStage<T, C, R>) {
+export class RetryOnError<T, R = T> extends Stage<
+  T,
+  RetryOnErrorConfig<T, R>,
+  R
+> {
+  constructor(config?: AllowedStage<T, RetryOnErrorConfig<T, R>, R>) {
     super()
     if (config) {
-      this._config = getRetryOnErrorConfig(config)
+      this._config = getRetryOnErrorConfig<T, RetryOnErrorConfig<T, R>, R>(
+        config,
+      )
     }
   }
 
@@ -73,33 +78,43 @@ export class RetryOnError<
     return '[pipeline RetryOnError]'
   }
 
-  backupContext(ctx: T | R): T | R {
+  backupContext(ctx: Possible<T>): Possible<T> {
     if (this.config.backup) {
       return this.config.backup(ctx)
     } else {
-      return cloneDeep(ctx)
+      if (Context.isContext(ctx)) {
+        return ctx.toObject() as Possible<T>
+      } else {
+        return cloneDeep(ctx)
+      }
     }
   }
 
-  restoreContext(ctx: T | R, backup: T | R): T | R {
+  restoreContext(ctx: Possible<T>, backup: Possible<T>): Possible<T> {
     if (this.config.restore) {
       return this.config.restore(ctx, backup)
     } else {
-      return backup
+      if (Context.isContext(ctx)) {
+        for (let key in backup) {
+          ;(ctx as any)[key] = backup[key]
+        }
+      } else {
+        return backup
+      }
     }
   }
 
   override compile(rebuild: boolean = false): StageRun<T, R> {
     let run: StageRun<T, R> = (
-      err: Error | undefined,
-      ctx: T | R,
-      done: CallbackFunction<T | R>,
+      err: Possible<Error>,
+      ctx: Possible<T>,
+      done: CallbackFunction<R>,
     ) => {
       /// ловить ошибки
       // backup context object to overwrite if needed
       let backup = this.backupContext(ctx)
 
-      const reachEnd = (err: Error | undefined, iter: number) => {
+      const reachEnd = (err: Possible<Error>, iter: number) => {
         if (err) {
           if (this.config.retry instanceof Function) {
             return !this.config.retry(err, ctx, iter)
@@ -113,21 +128,21 @@ export class RetryOnError<
       }
       let iter = -1
 
-      let next: CallbackFunction<T | R> = (
-        err: Error | undefined,
-        _ctx: T | R | undefined,
+      let next: CallbackFunction<T> = (
+        err: Possible<Error>,
+        _ctx: Possible<T>,
       ) => {
         iter++
         if (reachEnd(err, iter)) {
-          return done(err, _ctx ?? ctx)
+          return done(err, (_ctx ?? ctx) as unknown as R)
         } else {
           // clean changes of existing before values.
           // may be will need to clear at all and rewrite ? i don't know yet.
           const res = this.restoreContext(_ctx ?? ctx, backup)
-          run_or_execute(this.config.stage, err, res ?? ctx, next)
+          run_or_execute<T, R, T, T>(this.config.stage, err, res ?? ctx, next)
         }
       }
-      run_or_execute(this.config.stage, err, ctx, next)
+      run_or_execute<T, R, T, T>(this.config.stage, err, ctx, next)
     }
 
     this.run = run

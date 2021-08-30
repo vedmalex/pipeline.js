@@ -5,6 +5,7 @@ import {
   is_thenable,
   Thanable,
   ValidateFunction,
+  Possible,
 } from './types'
 import { is_func2, is_func1_async, is_func1 } from './types'
 import { Func1Async } from './types'
@@ -13,14 +14,14 @@ import { process_error } from './process_error'
 
 export function execute_validate<T>(
   validate: ValidateFunction<T>,
-  context: T,
+  context: Possible<T>,
   done: CallbackFunction<boolean>,
 ) {
   switch (validate.length) {
     case 1:
       if (is_func1_async(validate)) {
         try {
-          ;(validate as Func1Async<boolean, T>)(context)
+          ;(validate as Func1Async<boolean, Possible<T>>)(context)
             .then(res => done(undefined, res))
             .catch(err => done(err))
         } catch (err) {
@@ -31,7 +32,7 @@ export function execute_validate<T>(
           const res = (
             validate as Func1Sync<
               boolean | Promise<boolean> | Thanable<boolean>,
-              T
+              Possible<T>
             >
           )(context)
           if (res instanceof Promise) {

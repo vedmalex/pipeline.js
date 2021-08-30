@@ -1,18 +1,14 @@
 import { Stage } from './stage'
 import { AllowedStage, IfElseConfig, getIfElseConfig } from './utils/types'
-import { CallbackFunction, StageRun } from './utils/types'
+import { CallbackFunction, StageRun, Possible } from './utils/types'
 import { run_or_execute } from './utils/run_or_execute'
 import { execute_validate } from './utils/execute_validate'
 
-export class IfElse<
-  T = any,
-  C extends IfElseConfig<T, R> = any,
-  R = T,
-> extends Stage<T, C, R> {
-  constructor(config?: AllowedStage<T, C, R>) {
+export class IfElse<T, R = T> extends Stage<T, IfElseConfig<T, R>, R> {
+  constructor(config?: AllowedStage<T, IfElseConfig<T, R>, R>) {
     super()
     if (config) {
-      this._config = getIfElseConfig(config)
+      this._config = getIfElseConfig<T, IfElseConfig<T, R>, R>(config)
     }
   }
 
@@ -26,15 +22,15 @@ export class IfElse<
 
   override compile(rebuild: boolean = false): StageRun<T, R> {
     let run: StageRun<T, R> = (
-      err: Error | undefined,
-      context: T | R,
-      done: CallbackFunction<T | R>,
+      err: Possible<Error>,
+      context: Possible<T>,
+      done: CallbackFunction<R>,
     ) => {
       if (typeof this.config.condition == 'function') {
-        execute_validate<T | R>(
+        execute_validate<T>(
           this.config.condition,
           context,
-          (err: Error | undefined, condition: boolean | undefined) => {
+          (err: Possible<Error>, condition: Possible<boolean>) => {
             if (condition) {
               if (this.config.success)
                 run_or_execute(this.config.success, err, context, done)
@@ -58,7 +54,7 @@ export class IfElse<
         } else if (this.config.failed) {
           run_or_execute(this.config.failed, err, context, done)
         } else {
-          done(err, context)
+          done(err, context as unknown as R)
         }
       }
     }

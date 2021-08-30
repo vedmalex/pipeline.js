@@ -1,9 +1,10 @@
 import { Stage } from './stage';
+import { AnyStage } from './utils/types';
 import { PipelineConfig, StageRun, StageConfig, RunPipelineFunction, AllowedStage } from './utils/types';
-export declare class Pipeline<T = any, C extends PipelineConfig<T, R> = any, R = T> extends Stage<T, C, R> {
-    constructor(config?: AllowedStage<T, C, R> | Array<Stage | RunPipelineFunction<any, any>>);
+export declare class Pipeline<T, R = T> extends Stage<T, PipelineConfig<T, R>, R> {
+    constructor(config?: AllowedStage<T, PipelineConfig<T, R>, R> | Array<Stage<T, PipelineConfig<T, R>, R> | RunPipelineFunction<T, R>>);
     get reportName(): string;
-    addStage(_stage: StageConfig<T, R> | RunPipelineFunction<any, any> | Stage): void;
+    addStage<IT, IR>(_stage: StageConfig<IT, IR> | RunPipelineFunction<IT, IR> | AnyStage<IT, IR>): void;
     toString(): string;
     compile(rebuild?: boolean): StageRun<T, R>;
 }

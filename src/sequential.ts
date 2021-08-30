@@ -4,6 +4,7 @@ import {
   AllowedStage,
   StageRun,
   getParallelConfig,
+  Possible,
 } from './utils/types'
 import { Stage } from './stage'
 import { run_or_execute } from './utils/run_or_execute'
@@ -27,29 +28,25 @@ import { StageError } from './utils/ErrorList'
  *
  * @param {Object} config configuration object
  */
-export class Sequential<
-  T = any,
-  C extends ParallelConfig<T, R> = any,
-  R = T,
-> extends Stage<T, C, R> {
-  constructor(config?: AllowedStage<T, C, R>) {
+export class Sequential<T, R = T> extends Stage<T, ParallelConfig<T, R>, R> {
+  constructor(config?: AllowedStage<T, ParallelConfig<T, R>, R>) {
     super()
     if (config) {
       this._config = getParallelConfig(config)
     }
   }
 
-  split(ctx: T | R): Array<any> {
+  split(ctx: Possible<T>): Array<any> {
     return this._config.split ? this._config.split(ctx) : [ctx]
   }
 
-  combine(ctx: T | R, children: Array<any>): T | R {
-    let res: T | R
+  combine(ctx: Possible<T>, children: Array<any>): Possible<R> {
+    let res: Possible<R>
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
-      res = c ?? ctx
+      res = c ?? (ctx as Possible<R>)
     } else {
-      res = ctx
+      res = ctx as Possible<R>
     }
     return res
   }
@@ -68,20 +65,20 @@ export class Sequential<
   override compile(rebuild: boolean = false): StageRun<T, R> {
     if (this.config.stage) {
       var run: StageRun<T, R> = (
-        err: Error | undefined,
-        ctx: T | R,
-        done: CallbackFunction<T | R>,
+        err: Possible<Error>,
+        ctx: Possible<T>,
+        done: CallbackFunction<R>,
       ) => {
         var iter = -1
         var children = this.split ? this.split(ctx) : [ctx]
         var len = children ? children.length : 0
 
-        var next = (err: Error | undefined, retCtx: any) => {
+        var next = (err: Possible<Error>, retCtx: any) => {
           if (err) {
             return done(
-              new StageError({
+              new StageError<SequentialError<T, R>>({
                 name: 'Sequential stage Error',
-                stage: this.name,
+                stage: this.config,
                 index: iter,
                 err: err,
                 ctx: children[iter],
@@ -96,9 +93,9 @@ export class Sequential<
           iter += 1
           if (iter >= len) {
             let result = this.combine(ctx, children)
-            return done(undefined, result)
+            return done(undefined, result as unknown as R)
           } else {
-            run_or_execute<T, C, R>(
+            run_or_execute<T, R, R, R>(
               this.config.stage,
               err,
               children[iter],
@@ -108,7 +105,7 @@ export class Sequential<
         }
 
         if (len === 0) {
-          return done(err, ctx)
+          return done(err, ctx as unknown as R)
         } else {
           next(err, ctx)
         }
@@ -123,9 +120,9 @@ export class Sequential<
   }
 }
 
-export type SequentialError = {
+export type SequentialError<T, R> = {
   name: string
-  stage: string
+  stage: ParallelConfig<T, R>
   index: number
   err: Error
   ctx: any

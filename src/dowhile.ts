@@ -8,25 +8,26 @@ import {
   StageRun,
   Func2Sync,
   Func3Sync,
+  AnyStage,
+  Possible,
 } from './utils/types'
 
-export interface DoWhileConfig<T, C, R> extends StageConfig<T, R> {
-  stage: Stage<T, C, R> | SingleStageFunction<T>
-  split?: Func2Sync<T | R, T | R, number>
-  reachEnd?: Func3Sync<boolean, Error | undefined, T | R, number>
+export interface DoWhileConfig<T, R> extends StageConfig<T, R> {
+  stage: AnyStage<any, any> | SingleStageFunction<any, any>
+  split?: Func2Sync<any, Possible<T>, number>
+  reachEnd?: Func3Sync<boolean, Possible<Error>, Possible<T>, number>
 }
 
-export class DoWhile<
-  T = any,
-  C extends DoWhileConfig<T, C, R> = any,
-  R = T,
-> extends Stage<T, C, R> {
-  stages!: Array<Stage<any, any, any>>
-
-  constructor(_config?: C | Stage<T, C, R> | SingleStageFunction<T>) {
-    let config: C = {} as C
+export class DoWhile<T, R = T> extends Stage<T, DoWhileConfig<T, R>, R> {
+  constructor(
+    _config?:
+      | DoWhileConfig<T, R>
+      | Stage<T, DoWhileConfig<T, R>, R>
+      | SingleStageFunction<T, R>,
+  ) {
+    let config: DoWhileConfig<T, R> = {} as DoWhileConfig<T, R>
     if (_config instanceof Stage) {
-      config.stage = _config
+      config.stage = _config as AnyStage<any, any>
     } else {
       if (typeof _config == 'function') {
         config.stage = _config
@@ -63,31 +64,31 @@ export class DoWhile<
     return '[pipeline DoWhile]'
   }
 
-  reachEnd(err: Error | undefined, ctx: T | R, iter: number): boolean {
+  reachEnd(err: Possible<Error>, ctx: Possible<T>, iter: number): boolean {
     if (this.config.reachEnd) {
       return this.config.reachEnd(err, ctx, iter)
     } else return true
   }
 
-  split(ctx: T | R, iter: number): T | R {
+  split(ctx: Possible<T>, iter: number): any {
     if (this.config.split) {
       return this.config.split(ctx, iter)
     } else return ctx
   }
 
-  override compile(rebuild: boolean = false): StageRun<T, R> {
-    let run: StageRun<T, R> = (
-      err: Error | undefined,
-      context: T | R,
-      done: CallbackFunction<T | R>,
+  override compile(rebuild: boolean = false): StageRun<any, any> {
+    let run: StageRun<any, any> = (
+      err: Possible<Error>,
+      context: Possible<T>,
+      done: CallbackFunction<T>,
     ) => {
       let iter: number = -1
-      let next = (err: Error | undefined) => {
+      let next = (err: Possible<Error>) => {
         iter++
         if (this.reachEnd(err, context, iter)) {
           return done(err, context)
         } else {
-          run_or_execute(
+          run_or_execute<T, any, any, any>(
             this.config.stage,
             err,
             this.split(context, iter),

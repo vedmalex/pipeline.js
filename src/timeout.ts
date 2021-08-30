@@ -1,17 +1,18 @@
 import { Stage } from './stage'
 import { AllowedStage, getTimeoutConfig } from './utils/types'
-import { CallbackFunction, StageRun, TimeoutConfig } from './utils/types'
+import {
+  CallbackFunction,
+  StageRun,
+  TimeoutConfig,
+  Possible,
+} from './utils/types'
 import { run_or_execute } from './utils/run_or_execute'
 
-export class Timeout<
-  T = any,
-  C extends TimeoutConfig<T, R> = any,
-  R = T,
-> extends Stage<T, C, R> {
-  constructor(config?: AllowedStage<T, C, R>) {
+export class Timeout<T, R = T> extends Stage<T, TimeoutConfig<T, R>, R> {
+  constructor(config?: AllowedStage<T, TimeoutConfig<T, R>, R>) {
     super()
     if (config) {
-      this._config = getTimeoutConfig(config)
+      this._config = getTimeoutConfig<T, R>(config)
     }
   }
 
@@ -25,15 +26,12 @@ export class Timeout<
 
   override compile(rebuild: boolean = false): StageRun<T, R> {
     let run: StageRun<T, R> = (
-      err: Error | undefined,
-      ctx: T | R,
-      done: CallbackFunction<T | R>,
+      err: Possible<Error>,
+      ctx: Possible<T>,
+      done: CallbackFunction<R>,
     ) => {
       let to: any
-      let localDone = function (
-        err: Error | undefined,
-        retCtx: T | R | undefined,
-      ) {
+      let localDone = function (err: Possible<Error>, retCtx: Possible<R>) {
         if (to) {
           clearTimeout(to)
           to = null
@@ -51,7 +49,12 @@ export class Timeout<
         to = setTimeout(() => {
           if (to) {
             if (this.config.overdue) {
-              run_or_execute(this.config.overdue, err, ctx, localDone)
+              run_or_execute<T, R, T, R>(
+                this.config.overdue,
+                err,
+                ctx,
+                localDone,
+              )
             }
           }
           /* else {

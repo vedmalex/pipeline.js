@@ -1,7 +1,7 @@
 import { run_or_execute } from './utils/run_or_execute'
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
-import { getPipelinConfig } from './utils/types'
+import { AnyStage, getPipelinConfig, Possible } from './utils/types'
 import {
   CallbackFunction,
   PipelineConfig,
@@ -24,15 +24,11 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Pipeline<
-  T = any,
-  C extends PipelineConfig<T, R> = any,
-  R = T,
-> extends Stage<T, C, R> {
+export class Pipeline<T, R = T> extends Stage<T, PipelineConfig<T, R>, R> {
   constructor(
     config?:
-      | AllowedStage<T, C, R>
-      | Array<Stage | RunPipelineFunction<any, any>>,
+      | AllowedStage<T, PipelineConfig<T, R>, R>
+      | Array<Stage<T, PipelineConfig<T, R>, R> | RunPipelineFunction<T, R>>,
   ) {
     super()
     if (config) {
@@ -46,16 +42,26 @@ export class Pipeline<
     return `PIPE:${this.config.name ? this.config.name : ''}`
   }
 
-  addStage(_stage: StageConfig<T, R> | RunPipelineFunction<any, any> | Stage) {
-    let stage: Stage | RunPipelineFunction<any, any> | undefined
+  addStage<IT, IR>(
+    _stage:
+      | StageConfig<IT, IR>
+      | RunPipelineFunction<IT, IR>
+      | AnyStage<IT, IR>,
+  ) {
+    let stage:
+      | AnyStage<unknown, unknown>
+      | RunPipelineFunction<unknown, unknown>
+      | undefined
     if (typeof _stage === 'function') {
-      stage = _stage
+      stage = _stage as RunPipelineFunction<unknown, unknown>
     } else {
       if (typeof _stage === 'object') {
         if (_stage instanceof Stage) {
-          stage = _stage
+          stage = _stage as AnyStage<unknown, unknown>
         } else {
-          stage = new Stage(_stage)
+          stage = new Stage<unknown, StageConfig<unknown, unknown>, unknown>(
+            _stage as StageConfig<unknown, unknown>,
+          )
         }
       }
     }
@@ -71,18 +77,24 @@ export class Pipeline<
 
   override compile(rebuild: boolean = false): StageRun<T, R> {
     let run: StageRun<T, R> = (
-      err: Error | undefined,
-      context: T | R,
-      done: CallbackFunction<T | R>,
+      err: Possible<Error>,
+      context: Possible<T>,
+      done: CallbackFunction<R>,
     ) => {
       let i = -1
       //sequential run;
-      let next = (err: Error | undefined, ctx: T | R) => {
+      let next = (err: Possible<Error>, ctx: unknown) => {
         i += 1
         if (!err && i < this.config.stages.length) {
-          run_or_execute(this.config.stages[i], err, ctx ?? context, next)
+          const st = this.config.stages[i]
+          run_or_execute<unknown, unknown, unknown, unknown>(
+            st,
+            err,
+            ctx ?? context,
+            next,
+          )
         } else if (i >= this.config.stages.length || err) {
-          done(err, ctx ?? context)
+          done(err, (ctx ?? context) as unknown as R)
         }
       }
       next(err, context)

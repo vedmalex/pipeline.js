@@ -8,6 +8,18 @@ import ajvFormats from 'ajv-formats'
 import ajvKeywords from 'ajv-keywords'
 import ajvErrors from 'ajv-errors'
 import { empty_run } from './empty_run'
+import { DoWhile } from '../dowhile'
+import { Empty } from '../empty'
+import { IfElse } from '../ifelse'
+import { MultiWaySwitch } from '../multiwayswitch'
+import { Pipeline } from 'src/pipeline'
+import { Parallel } from 'src/parallel'
+import { RetryOnError } from '../retryonerror'
+import { Sequential } from '../sequential'
+import { Timeout } from '../timeout'
+import { Wrap } from '../wrap'
+
+export type StageObject = Record<string | symbol, any>
 
 export type Func0Sync<R> = () => R
 export type Func1Sync<R, P1> = (p1: P1) => R
@@ -69,7 +81,7 @@ export function is_func3<R, P1, P2, P3>(
   return inp?.length == 3
 }
 
-export function is_func0_async<R>(inp: Function): inp is Func0Async<R> {
+export function is_func0_async<T>(inp: Function): inp is Func0Async<T> {
   return is_async(inp) && is_func0(inp)
 }
 
@@ -98,26 +110,31 @@ export function is_thenable<T>(inp?: any): inp is Thanable<T> {
   return typeof inp == 'object' && inp.hasOwnProperty('then')
 }
 
-export type CallbackFunction<T> = (err?: Error, res?: T) => void
+export type Possible<T> = T | undefined | null
+// export type CallbackFunction<T> = (err: Error|undefined, res: T) => void
+export type CallbackFunction<T> = (
+  err?: Possible<Error>,
+  res?: Possible<T>,
+) => void
 
-export type SingleStageFunction<T> =
-  | Func2Async<T, Error, T>
-  | Func3Sync<void, Error, T, CallbackFunction<T>>
+export type SingleStageFunction<T, R> =
+  | Func2Async<R, Possible<Error>, Possible<T>>
+  | Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<R>>
 
-export function isSingleStageFunction<T>(
+export function isSingleStageFunction<T, R>(
   inp?: any,
-): inp is SingleStageFunction<T> {
+): inp is SingleStageFunction<T, R> {
   return is_func2_async(inp) || is_func3(inp)
 }
 
-export type RunPipelineFunction<T = any, R = T> =
-  | Func0Async<R | T>
-  | Func0Sync<R | T | Promise<R | T> | Thanable<R | T>>
-  | Func1Async<R | T, T>
-  | Func1Sync<R | T | Promise<R | T> | Thanable<R | T>, T>
-  | Func2Async<R | T, Error, T>
-  | Func2Sync<void, T, CallbackFunction<R | T>>
-  | Func3Sync<void, Error, T, CallbackFunction<T | R>>
+export type RunPipelineFunction<T, R> =
+  | Func0Async<R>
+  | Func0Sync<R | Promise<R> | Thanable<R>>
+  | Func1Async<R, Possible<T>>
+  | Func1Sync<R | Promise<R> | Thanable<R>, Possible<T>>
+  | Func2Async<R, Possible<Error>, Possible<T>>
+  | Func2Sync<void, Possible<T>, CallbackFunction<R>>
+  | Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<R>>
 
 export function isRunPipelineFunction<T, R>(
   inp: any,
@@ -133,16 +150,16 @@ export function isRunPipelineFunction<T, R>(
   )
 }
 
-export type Rescue<T, R> =
+export type Rescue<T> =
   // context is applied as this
-  | Func1Async<R | T, Error>
-  | Func1Sync<R | Promise<R> | Thanable<R>, Error>
+  | Func1Async<T, Error>
+  | Func1Sync<T | Promise<T> | Thanable<T>, Error>
   // not applied as this
-  | Func2Async<R | T, Error | undefined, T>
-  | Func2Sync<R | Promise<R> | Thanable<R>, Error, T>
-  | Func3Sync<void, Error, T, CallbackFunction<R | T>>
+  | Func2Async<T, Possible<Error>, Possible<T>>
+  | Func2Sync<T | Promise<T> | Thanable<T>, Error, Possible<T>>
+  | Func3Sync<void, Error, Possible<T>, CallbackFunction<T>>
 
-export function isRescue<T, R>(inp: any): inp is Rescue<T, R> {
+export function isRescue<T>(inp: any): inp is Rescue<T> {
   return (
     is_func1(inp) ||
     is_func1_async(inp) ||
@@ -177,10 +194,10 @@ export type EnsureFunction<T> =
 export function isEnsureFunction<T>(inp: any): inp is EnsureFunction<T> {
   return is_func1(inp) || is_func1_async(inp) || is_func2(inp)
 }
-export interface StageConfig<T = any, R = T> {
+export interface StageConfig<T, R> {
   run?: RunPipelineFunction<T, R>
   name?: string
-  rescue?: Rescue<T, R>
+  rescue?: Rescue<T>
   schema?: JSONSchemaType<T>
   ensure?: EnsureFunction<T>
   validate?: ValidateFunction<T>
@@ -192,13 +209,15 @@ export interface StageConfig<T = any, R = T> {
 }
 
 export interface PipelineConfig<T, R> extends StageConfig<T, R> {
-  stages: Array<Stage | RunPipelineFunction>
+  stages: Array<
+    AnyStage<unknown, unknown> | RunPipelineFunction<unknown, unknown>
+  >
 }
 
 export interface ParallelConfig<T, R> extends StageConfig<T, R> {
-  stage: Stage<T, any, R> | RunPipelineFunction<T, R>
-  split?: Func1Sync<Array<any>, T | R>
-  combine?: Func2Sync<T | R | void, T | R, Array<any>>
+  stage: AnyStage<T, R> | RunPipelineFunction<T, R>
+  split?: Func1Sync<Array<R>, Possible<T>>
+  combine?: Func2Sync<Possible<R> | void, Possible<T>, Array<any>>
 }
 
 export function isStageRun<T, R>(inp: Function): inp is StageRun<T, R> {
@@ -206,22 +225,20 @@ export function isStageRun<T, R>(inp: Function): inp is StageRun<T, R> {
 }
 
 export type StageRun<T, R> = (
-  err: Error | undefined,
-  context: T,
-  callback: CallbackFunction<T | R>,
+  err: Possible<Error>,
+  context: Possible<T>,
+  callback: CallbackFunction<R>,
 ) => void
 
-export type AllowedStage<T = any, C extends StageConfig<T, R> = any, R = T> =
+export type AllowedStage<T, C extends StageConfig<T, R>, R> =
   | string
   | C
   | RunPipelineFunction<T, R>
-  | Stage<T, C, R>
+  | AnyStage<T, R>
 
-export function isAllowedStage<
-  T = any,
-  C extends StageConfig<T, R> = any,
-  R = T,
->(inp: any): inp is AllowedStage<T, C, R> {
+export function isAllowedStage<T, C extends StageConfig<T, R>, R>(
+  inp: any,
+): inp is AllowedStage<T, C, R> {
   return (
     isRunPipelineFunction(inp) ||
     inp instanceof Stage ||
@@ -232,7 +249,7 @@ export function isAllowedStage<
 
 export function getStageConfig<T, C extends StageConfig<T, R>, R>(
   config: AllowedStage<T, C, R>,
-): C | Stage {
+): C | AnyStage<T, R> {
   let result: C = {} as C
   if (typeof config == 'string') {
     result.name = config
@@ -240,12 +257,12 @@ export function getStageConfig<T, C extends StageConfig<T, R>, R>(
     return config
   } else if (isRunPipelineFunction<T, R>(config)) {
     result.run = config
-    result.name = getNameFrom(result)
+    result.name = getNameFrom<T, C, R>(result)
   } else {
     if (config.name) {
       result.name = config.name
     }
-    if (isRescue<T, R>(config.rescue)) {
+    if (isRescue<T>(config.rescue)) {
       result.rescue = config.rescue
     }
     if (isRunPipelineFunction<T, R>(config.run)) {
@@ -273,7 +290,7 @@ export function getStageConfig<T, C extends StageConfig<T, R>, R>(
       result.precompile = config.precompile
     }
     if (config.schema) {
-      result.schema = config.schema
+      result.schema = config.schema as JSONSchemaType<T>
       const ajv = new Ajv({ allErrors: true })
       ajvFormats(ajv)
       ajvErrors(ajv, { singleError: true })
@@ -286,13 +303,15 @@ export function getStageConfig<T, C extends StageConfig<T, R>, R>(
       }
     }
     if (!config.name) {
-      result.name = getNameFrom(config)
+      result.name = getNameFrom<T, C, R>(config)
     }
   }
   return result
 }
 
-export function getNameFrom<C extends StageConfig>(config: C): string {
+export function getNameFrom<T, C extends StageConfig<T, R>, R>(
+  config: C,
+): string {
   let result: string = ''
   if (!config.name && config.run) {
     var match = config.run.toString().match(/function\s*(\w+)\s*\(/)
@@ -307,41 +326,51 @@ export function getNameFrom<C extends StageConfig>(config: C): string {
   return result
 }
 
-export type AllowedPipeline<T, C extends PipelineConfig<T, R>, R> =
-  | AllowedStage<T, C, R>
-  | Array<RunPipelineFunction<T, R> | Stage<T, C, R>>
+export type AllowedPipeline<T, R> =
+  | AllowedStage<T, PipelineConfig<T, R>, R>
+  | Array<RunPipelineFunction<T, R> | AnyStage<T, R>>
 
-export function getPipelinConfig<T, C extends PipelineConfig<T, R>, R>(
-  config: AllowedPipeline<T, C, R>,
-): C {
+export function getPipelinConfig<T, R>(
+  config: AllowedPipeline<T, R>,
+): PipelineConfig<T, R> {
   if (Array.isArray(config)) {
     return {
-      stages: config.map(item => {
-        if (isRunPipelineFunction(item)) {
-          return item
-        } else if (item instanceof Stage) {
-          return item
-        } else {
-          throw CreateError('not suitable type for array in pipelin')
-        }
-      }),
-    } as C
+      stages: config.map(
+        (
+          item,
+        ):
+          | AnyStage<unknown, unknown>
+          | RunPipelineFunction<unknown, unknown> => {
+          if (isRunPipelineFunction(item)) {
+            return item as RunPipelineFunction<unknown, unknown>
+          } else if (item instanceof Stage) {
+            return item as AnyStage<unknown, unknown>
+          } else {
+            throw CreateError('not suitable type for array in pipeline')
+          }
+        },
+      ),
+    }
   } else {
-    const res = getStageConfig(config)
+    const res: PipelineConfig<T, R> | AnyStage<T, R> = getStageConfig<
+      T,
+      PipelineConfig<T, R>,
+      R
+    >(config)
     if (res instanceof Stage) {
-      return { stages: [res] } as C
+      return { stages: [res] } as PipelineConfig<T, R>
     } else if (typeof config == 'object' && !(config instanceof Stage)) {
       if (config.run && config.stages?.length > 0) {
         throw CreateError(" don't use run and stage both ")
       }
       if (config.run) {
-        res.stages = [config.run]
+        res.stages = [config.run as RunPipelineFunction<unknown, unknown>]
       }
       if (config.stages) {
         res.stages = config.stages
       }
     } else if (typeof config == 'function' && res.run) {
-      res.stages = [res.run]
+      res.stages = [res.run as RunPipelineFunction<unknown, unknown>]
       delete res.run
     }
     if (!res.stages) res.stages = []
@@ -349,18 +378,22 @@ export function getPipelinConfig<T, C extends PipelineConfig<T, R>, R>(
   }
 }
 
-export function getParallelConfig<T, C extends ParallelConfig<T, R>, R>(
-  config: AllowedStage<T, C, R>,
-): C {
-  const res = getStageConfig(config)
+export function getParallelConfig<T, R>(
+  config: AllowedStage<T, ParallelConfig<T, R>, R>,
+): ParallelConfig<T, R> {
+  const res = getStageConfig<T, ParallelConfig<T, R>, R>(config)
   if (res instanceof Stage) {
-    return { stage: res } as C
+    return { stage: res } as ParallelConfig<T, R>
   } else if (typeof config == 'object' && !(config instanceof Stage)) {
     if (config.run && config.stage) {
       throw CreateError("don't use run and stage both")
     }
-    res.split = config.split
-    res.combine = config.combine
+    if (config.split) {
+      res.split = config.split
+    }
+    if (config.combine) {
+      res.combine = config.combine
+    }
     if (config.stage) {
       res.stage = config.stage
     }
@@ -374,13 +407,13 @@ export function getParallelConfig<T, C extends ParallelConfig<T, R>, R>(
   return res
 }
 
-export function getEmptyConfig<T, C extends StageConfig<T, R>, R>(
+export function getEmptyConfig<T, R>(
   config: AllowedStage<T, StageConfig<T, R>, R>,
-): Stage<T, C, R> | StageConfig<T, R> {
+): AnyStage<T, R> | StageConfig<T, R> {
   const res = getStageConfig(config)
 
   if (res instanceof Stage) {
-    return res as Stage<T, C, R>
+    return res as unknown as AnyStage<T, R>
   } else {
     res.run = empty_run
   }
@@ -389,15 +422,15 @@ export function getEmptyConfig<T, C extends StageConfig<T, R>, R>(
 }
 
 export interface WrapConfig<T, R> extends StageConfig<T, R> {
-  stage: Stage<T, any, R> | RunPipelineFunction<T, R>
-  prepare: Function
-  finalize: Function
+  stage: AnyStage<unknown, unknown> | RunPipelineFunction<unknown, unknown>
+  prepare: (ctx: Possible<T>) => unknown
+  finalize: (ctx: Possible<T>, retCtx: unknown) => Possible<R>
 }
 
 export function getWrapConfig<T, C extends WrapConfig<T, R>, R>(
   config: AllowedStage<T, C, R>,
 ): C {
-  const res = getStageConfig(config)
+  const res = getStageConfig<T, C, R>(config)
   if (res instanceof Stage) {
     return { stage: res } as C
   } else if (typeof config == 'object' && !(config instanceof Stage)) {
@@ -405,29 +438,34 @@ export function getWrapConfig<T, C extends WrapConfig<T, R>, R>(
       throw CreateError("don't use run and stage both")
     }
     if (config.run) {
-      res.stage = config.run
+      res.stage = config.run as RunPipelineFunction<any, any>
     }
     if (config.stage) {
       res.stage = config.stage
     }
-    res.finalize = config.finalize
+    if (config.finalize) {
+      res.finalize = config.finalize
+    }
+    if (config.prepare) {
+      res.prepare = config.prepare
+    }
     res.prepare = config.prepare
   }
   return res
 }
 
 export interface TimeoutConfig<T, R> extends StageConfig<T, R> {
-  timeout?: number | Func1Sync<number, T | R>
-  stage?: Stage<T, any, R> | RunPipelineFunction<T, R>
-  overdue?: Stage<T, any, R> | RunPipelineFunction<T, R>
+  timeout?: number | Func1Sync<number, Possible<T>>
+  stage?: AnyStage<T, R> | RunPipelineFunction<T, R>
+  overdue?: AnyStage<T, R> | RunPipelineFunction<T, R>
 }
 
-export function getTimeoutConfig<T, C extends TimeoutConfig<T, R>, R>(
-  config: AllowedStage<T, C, R>,
-): C {
-  const res = getStageConfig(config)
+export function getTimeoutConfig<T, R>(
+  config: AllowedStage<T, TimeoutConfig<T, R>, R>,
+): TimeoutConfig<T, R> {
+  const res = getStageConfig<T, TimeoutConfig<T, R>, R>(config)
   if (res instanceof Stage) {
-    return { stage: res } as C
+    return { stage: res } as TimeoutConfig<T, R>
   } else if (typeof config == 'object' && !(config instanceof Stage)) {
     if (config.run && config.stage) {
       throw CreateError("don't use run and stage both")
@@ -448,15 +486,15 @@ export function getTimeoutConfig<T, C extends TimeoutConfig<T, R>, R>(
 }
 
 export interface IfElseConfig<T, R> extends StageConfig<T, R> {
-  condition?: boolean | ValidateFunction<T | R>
-  success?: Stage<T, any, R> | RunPipelineFunction<T, R>
-  failed?: Stage<T, any, R> | RunPipelineFunction<T, R>
+  condition?: boolean | ValidateFunction<T>
+  success?: AnyStage<T, R> | RunPipelineFunction<T, R>
+  failed?: AnyStage<T, R> | RunPipelineFunction<T, R>
 }
 
 export function getIfElseConfig<T, C extends IfElseConfig<T, R>, R>(
   config: AllowedStage<T, C, R>,
 ): C {
-  const res = getStageConfig(config)
+  const res = getStageConfig<T, C, R>(config)
   if (res instanceof Stage) {
     return { success: res } as C
   } else if (typeof config == 'object' && !(config instanceof Stage)) {
@@ -489,3 +527,16 @@ export function getIfElseConfig<T, C extends IfElseConfig<T, R>, R>(
   }
   return res
 }
+
+export type AnyStage<T, R> =
+  | Stage<T, StageConfig<T, R>, R>
+  | DoWhile<T, R>
+  | Empty<T, R>
+  | IfElse<T, R>
+  | MultiWaySwitch<T, R>
+  | Parallel<T, R>
+  | Pipeline<T, R>
+  | RetryOnError<T, R>
+  | Sequential<T, R>
+  | Timeout<T, R>
+  | Wrap<T, R>

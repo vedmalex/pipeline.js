@@ -1,19 +1,19 @@
 import { Stage } from './stage';
-import { AllowedStage, RunPipelineFunction } from './utils/types';
+import { AllowedStage, RunPipelineFunction, AnyStage, Possible } from './utils/types';
 import { StageConfig, StageRun, Func3 } from './utils/types';
 export interface RetryOnErrorConfig<T, R> extends StageConfig<T, R> {
-    stage: Stage<T, any, R> | RunPipelineFunction<T, R>;
-    retry: number | Func3<boolean, Error | undefined, T | R, number>;
-    backup: Function;
-    restore: Function;
+    stage: AnyStage<T, R> | RunPipelineFunction<T, R>;
+    retry: number | Func3<boolean, Possible<Error>, Possible<T>, number>;
+    backup?: (ctx: Possible<T>) => Possible<T>;
+    restore?: (ctx: Possible<T>, backup: Possible<T>) => Possible<T>;
 }
 export declare function getRetryOnErrorConfig<T, C extends RetryOnErrorConfig<T, R>, R>(config: AllowedStage<T, C, R>): C;
-export declare class RetryOnError<T = any, C extends RetryOnErrorConfig<T, R> = any, R = T> extends Stage<T, C, R> {
-    constructor(config?: AllowedStage<T, C, R>);
+export declare class RetryOnError<T, R = T> extends Stage<T, RetryOnErrorConfig<T, R>, R> {
+    constructor(config?: AllowedStage<T, RetryOnErrorConfig<T, R>, R>);
     get reportName(): string;
     toString(): string;
-    backupContext(ctx: T | R): T | R;
-    restoreContext(ctx: T | R, backup: T | R): T | R;
+    backupContext(ctx: Possible<T>): Possible<T>;
+    restoreContext(ctx: Possible<T>, backup: Possible<T>): Possible<T>;
     compile(rebuild?: boolean): StageRun<T, R>;
 }
 //# sourceMappingURL=retryonerror.d.ts.map

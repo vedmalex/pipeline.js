@@ -2,7 +2,7 @@ import 'jest'
 
 import { DoWhile } from '../dowhile'
 import { Stage } from '../stage'
-import { ContextFactory } from '../context'
+import {  Context } from '../context'
 
 describe('DoWhile', function () {
   it('works with default', function (done) {

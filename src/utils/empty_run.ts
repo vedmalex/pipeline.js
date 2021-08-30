@@ -1,9 +1,9 @@
-import { CallbackFunction } from './types'
+import { CallbackFunction, Possible } from './types'
 
-export function empty_run<T>(
-  err: Error | undefined,
-  context: T,
-  done: CallbackFunction<T>,
+export function empty_run<T, R>(
+  err: Possible<Error>,
+  context: Possible<T>,
+  done: CallbackFunction<R>,
 ) {
-  done(err, context)
+  done(err, context as unknown as R)
 }

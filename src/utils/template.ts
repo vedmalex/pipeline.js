@@ -1,10 +1,15 @@
 import { Stage } from '../stage'
-import { AllowedStage, getStageConfig, RunPipelineFunction } from './types'
-import { CallbackFunction, StageConfig, StageRun } from './types'
+import {
+  AllowedStage,
+  AnyStage,
+  getStageConfig,
+  RunPipelineFunction,
+} from './types'
+import { CallbackFunction, StageConfig, StageRun, Possible } from './types'
 import { CreateError } from './ErrorList'
 
 export interface TemplateConfig<T, R> extends StageConfig<T, R> {
-  stage: Stage<T, any, R> | RunPipelineFunction<T, R>
+  stage: AnyStage<T, R> | RunPipelineFunction<T, R>
 }
 
 export function getTemplateConfig<T, C extends TemplateConfig<T, R>, R>(
@@ -38,7 +43,7 @@ export class Template<T, C extends TemplateConfig<T, R>, R> extends Stage<
   constructor(config?: AllowedStage<T, C, R>) {
     super()
     if (config) {
-      this._config = getTemplateConfig(config)
+      this._config = getTemplateConfig<T, C, R>(config)
     }
   }
 
@@ -52,9 +57,9 @@ export class Template<T, C extends TemplateConfig<T, R>, R> extends Stage<
 
   override compile(rebuild: boolean = false): StageRun<T, R> {
     let run: StageRun<T, R> = (
-      err: Error | undefined,
-      context: T | R,
-      done: CallbackFunction<T | R>,
+      err: Possible<Error>,
+      context: Possible<T>,
+      done: CallbackFunction<R>,
     ) => {}
 
     this.run = run

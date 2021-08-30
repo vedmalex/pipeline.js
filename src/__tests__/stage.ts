@@ -157,13 +157,13 @@ describe('stage', () => {
   //     stages: [],
   //     precompile(this: Config) {
   //       let run: StageRun<CTX, CTX> = (
-  //         err: Error | undefined,
+  //         err: Possible<Error>,
   //         context: CTX,
   //         done: CallbackFunction<CTX>,
   //       ) => {
   //         let i = -1
   //         //sequential run;
-  //         let next = (err: Error | undefined, context: CTX | undefiend) => {
+  //         let next = (err: Possible<Error>, context: CTX | undefiend) => {
   //           i += 1
   //           if (i < this.stages.length) {
   //             run_or_execute(this.stages[i], err, context, next)

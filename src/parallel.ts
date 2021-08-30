@@ -4,9 +4,10 @@ import {
   AllowedStage,
   StageRun,
   getParallelConfig,
+  Possible,
 } from './utils/types'
 import { Stage } from './stage'
-import { CreateError } from './utils/ErrorList'
+import { CreateError, StageError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { empty_run } from './utils/empty_run'
 
@@ -27,29 +28,25 @@ import { empty_run } from './utils/empty_run'
  *
  * @param {Object} config configuration object
  */
-export class Parallel<
-  T = any,
-  C extends ParallelConfig<T, R> = any,
-  R = T,
-> extends Stage<T, C, R> {
-  constructor(config?: AllowedStage<T, C, R>) {
+export class Parallel<T, R = T> extends Stage<T, ParallelConfig<T, R>, R> {
+  constructor(config?: AllowedStage<T, ParallelConfig<T, R>, R>) {
     super()
     if (config) {
-      this._config = getParallelConfig(config)
+      this._config = getParallelConfig<T, R>(config)
     }
   }
 
-  split(ctx: T | R): Array<any> {
+  split(ctx: Possible<T>): Array<any> {
     return this._config.split ? this._config.split(ctx) : [ctx]
   }
 
-  combine(ctx: T | R, children: Array<any>): T | R {
-    let res: T | R
+  combine(ctx: Possible<T>, children: Array<any>): Possible<R> {
+    let res: Possible<R>
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
-      res = c ?? ctx
+      res = c ?? (ctx as Possible<R>)
     } else {
-      res = ctx
+      res = ctx as Possible<R>
     }
     return res
   }
@@ -68,9 +65,9 @@ export class Parallel<
   override compile(rebuild: boolean = false): StageRun<T, R> {
     if (this.config.stage) {
       var run: StageRun<T, R> = (
-        err: Error | undefined,
-        ctx: T | R,
-        done: CallbackFunction<T | R>,
+        err: Possible<Error>,
+        ctx: Possible<T>,
+        done: CallbackFunction<R>,
       ) => {
         var iter = 0
         var children = this.split(ctx)
@@ -79,7 +76,7 @@ export class Parallel<
         let hasError = false
 
         var next = (index: number) => {
-          return (err: Error | undefined, retCtx: any) => {
+          return (err: Possible<Error>, retCtx: any) => {
             if (!err) {
               children[index] = retCtx ?? children[index]
             } else {
@@ -104,17 +101,17 @@ export class Parallel<
                 let result = this.combine(ctx, children)
                 return done(undefined, result)
               } else {
-                return done(CreateError(errors), ctx)
+                return done(CreateError(errors), ctx as unknown as R)
               }
             }
           }
         }
 
         if (len === 0) {
-          return done(err, ctx)
+          return done(err, ctx as unknown as R)
         } else {
           for (var i = 0; i < len; i++) {
-            run_or_execute<T, C, R>(
+            run_or_execute<T, R, any, any>(
               this.config.stage,
               err,
               children[i],
@@ -138,11 +135,4 @@ export type ParallelError = {
   index: number
   err: Error
   ctx: any
-}
-export class StageError<T extends { name: string }> extends Error {
-  info!: T
-  constructor(err: T) {
-    super(err.name)
-    this.info = err
-  }
 }

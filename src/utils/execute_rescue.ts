@@ -5,6 +5,7 @@ import {
   is_func3,
   is_func3_async,
   is_thenable,
+  Possible,
   Rescue,
 } from './types'
 import { is_func2, is_func1_async, is_func1 } from './types'
@@ -12,19 +13,19 @@ import { Func3Sync } from './types'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 
-export function execute_rescue<T, R>(
-  rescue: Rescue<T, R>,
+export function execute_rescue<T>(
+  rescue: Rescue<T>,
   err: Error,
-  context: T,
-  done: (err?: Error) => void,
+  context: Possible<T>,
+  done: (err?: Possible<Error>) => void,
 ) {
   switch (rescue.length) {
     case 1:
       if (is_func1_async(rescue)) {
         try {
           rescue(err)
-            .then(_ => done())
-            .catch(done)
+            .then(_ => done(undefined))
+            .catch(err => done(err))
         } catch (err) {
           process_error(err, done)
         }
@@ -32,9 +33,9 @@ export function execute_rescue<T, R>(
         try {
           const res = rescue(err)
           if (res instanceof Promise) {
-            res.then(_ => done()).catch(done)
+            res.then(_ => done()).catch(err => done(err))
           } else if (is_thenable(res)) {
-            res.then(_ => done()).catch(done)
+            res.then(_ => done()).catch(err => done(err))
           } else {
             done()
           }
@@ -50,7 +51,7 @@ export function execute_rescue<T, R>(
         try {
           rescue(err, context)
             .then(_ => done())
-            .catch(done)
+            .catch(err => done(err))
         } catch (err) {
           process_error(err, done)
         }
@@ -58,9 +59,9 @@ export function execute_rescue<T, R>(
         try {
           const res = rescue(err, context)
           if (res instanceof Promise) {
-            res.then(_ => done()).catch(done)
+            res.then(_ => done()).catch(err => done(err))
           } else if (is_thenable(res)) {
-            res.then(_ => done()).catch(done)
+            res.then(_ => done()).catch(err => done(err))
           } else {
             done()
           }
@@ -74,7 +75,7 @@ export function execute_rescue<T, R>(
     case 3:
       if (is_func3(rescue) && !is_func3_async(rescue)) {
         try {
-          ;(rescue as Func3Sync<void, Error, T, CallbackFunction<R | T>>)(
+          ;(rescue as Func3Sync<void, Error, Possible<T>, CallbackFunction<T>>)(
             err,
             context,
             done,

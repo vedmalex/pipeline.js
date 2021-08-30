@@ -26,7 +26,7 @@ describe('Sequential', function () {
     var stage = new Sequential({
       stage: st,
       rescue: function (err, conext) {
-        if (err.errors[0].err.message !== 'error') return err
+        if (err.info.err.message !== 'error') return err
       },
     })
 
@@ -145,7 +145,7 @@ describe('Sequential', function () {
         expect(err).toBeUndefined()
         expect(context).not.toBeUndefined()
         expect(context.iter).toEqual(5)
-        expect(context.iteration).toEqual(5)
+        expect(context.iteration).toBeUndefined()
         done()
       },
     )

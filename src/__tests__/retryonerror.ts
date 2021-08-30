@@ -1,6 +1,5 @@
 import 'jest'
 import { RetryOnError } from '../retryonerror'
-import { Stage } from '../stage'
 
 describe('RetryOnError', function () {
   it('works', function (done) {
@@ -88,21 +87,25 @@ describe('RetryOnError', function () {
 
   it('retry works with rescue', function (done) {
     var iter = 0
+    var count = 0
     var st = new RetryOnError({
       rescue: function (err, ctx) {
-        iter++
+        iter += 1
         if (err.message !== 'error') return err
         ctx.rescue = true
       },
       run: function (ctx) {
+        count += 1
         ctx.works = true
         throw new Error('error')
       },
     })
     st.execute({}, function (err, ctx) {
+      expect(count).toBe(3)
+      expect(iter).toEqual(1)
       expect(err).toBeUndefined()
       expect(ctx.works).toBeTruthy()
-      expect(iter).toEqual(1)
+      expect(ctx.rescue).toBeTruthy()
       done()
     })
   })

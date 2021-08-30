@@ -1,12 +1,12 @@
 import { Stage } from './stage';
+import { Possible } from './utils/types';
 import { StageRun, AllowedStage, WrapConfig } from './utils/types';
-export declare class Wrap<T = any, C extends WrapConfig<T, R> = any, R = T> extends Stage<T, C, R> {
-    stages: Array<Stage<any, any, any>>;
-    constructor(config?: AllowedStage<T, C, R>);
+export declare class Wrap<T, R = T> extends Stage<T, WrapConfig<T, R>, R> {
+    constructor(config?: AllowedStage<T, WrapConfig<T, R>, R>);
     get reportName(): string;
     toString(): string;
     compile(rebuild?: boolean): StageRun<T, R>;
-    prepare(ctx: T): T;
-    finalize(ctx: T, retCtx: R): T | R;
+    prepare(ctx: Possible<T>): unknown;
+    finalize(ctx: Possible<T>, retCtx: unknown): Possible<R>;
 }
 //# sourceMappingURL=wrap.d.ts.map

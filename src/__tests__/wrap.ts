@@ -3,6 +3,7 @@ import 'jest'
 import { Wrap } from '../wrap'
 import { DoWhile } from '../dowhile'
 import { Stage } from '../stage'
+import { Context } from '../context'
 
 describe('Wrap', function () {
   it('works', function (done) {
@@ -33,14 +34,14 @@ describe('Wrap', function () {
     wr.execute(ctx, function (err, retCtx) {
       expect(err).toBeUndefined()
       expect(retCtx.Retry).toBe(2)
-      expect(retCtx).not.toEqual(ctx)
+      expect(retCtx).toEqual(ctx)
       done()
     })
   })
 
   it('prepare context -> moved to Wrap', function (done) {
     var stage0 = new Stage(function (ctx) {
-      ctx.iteration++
+      ctx.iteration += 1
     })
     var stage = new Wrap({
       prepare: function (ctx) {
@@ -67,7 +68,42 @@ describe('Wrap', function () {
       },
       function (err, context) {
         expect(context.iter).toEqual(10)
-        expect(context.iteration).toBe(10)
+        expect(context.iteration).toBeUndefined()
+        done()
+      },
+    )
+  })
+  it('prepare context -> moved to Wrap with fork', function (done) {
+    var stage0 = new Stage(function (ctx) {
+      ctx.iteration += 1
+    })
+    var stage = new Wrap({
+      prepare: function (ctx) {
+        return ctx.fork({
+          iteration: ctx.iter,
+        })
+      },
+      finalize: function (ctx, retCtx) {
+        ctx.iter = retCtx.iteration
+        expect(retCtx.iteration).toBe(10)
+      },
+      stage: new DoWhile({
+        stage: stage0,
+        split: function (ctx, iter) {
+          return ctx
+        },
+        reachEnd: function (err, ctx, iter) {
+          return err || iter == 10
+        },
+      }),
+    })
+    stage.execute(
+      Context.ensure({
+        iter: 0,
+      }),
+      function (err, context) {
+        expect(context.iter).toEqual(10)
+        expect(context.iteration).toBeUndefined()
         done()
       },
     )

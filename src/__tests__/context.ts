@@ -62,6 +62,17 @@ describe('context', () => {
     expect(obj).toMatchObject(context)
   })
 
+  it('toObject 2', () => {
+    const context = {
+      name: 'alex',
+      address: { city: 'NCH', State: 'RO', country: 'RU' },
+    }
+    const ctx = Context.ensure(context)
+    const ctx2 = ctx.get('address')
+    const obj = ctx2.toObject()
+    expect(obj).toMatchObject(context.address)
+  })
+
   it('fork', () => {
     const context = {
       name: 'alex',
@@ -79,6 +90,25 @@ describe('context', () => {
     expect(ctx.hasChild(ctx2)).toBeTruthy()
   })
 
+  it('fork 2', () => {
+    const context = {
+      name: 'alex',
+      address: { city: 'NCH', State: 'RO', country: 'RU' },
+    }
+    const ctx = Context.ensure(context)
+    const ctx2 = ctx.fork({ name: 'Egor' })
+    expect(ctx2.address.State).toBe('RO')
+    expect(ctx2).toMatchSnapshot('Egor')
+    ctx2.address.State = 'RU_RO'
+    expect(ctx.address.State).toBe(ctx.address.State)
+    const parent = ctx2.getParent()
+    expect(parent).not.toBeUndefined()
+    expect(Context.isContext(parent)).toBeTruthy()
+    expect(parent == ctx).toBeTruthy()
+    expect(ctx2.getParent()).toBe(ctx)
+    expect(ctx.hasChild(ctx2)).toBeTruthy()
+  })
+
   it('get', () => {
     const context = {
       name: 'alex',
@@ -90,13 +120,14 @@ describe('context', () => {
     expect(Context.isContext(ctx2)).toBeTruthy()
     expect(Context.isContext(ctx.address)).toBeTruthy()
     expect(ctx2).toMatchSnapshot('address')
-
-    const parent = ctx2.getParent()
+    const parent = ctx2.getRoot()
     expect(parent).not.toBeUndefined()
     expect(Context.isContext(parent)).toBeTruthy()
     expect(parent == ctx).toBeTruthy()
-    expect(ctx.hasChild(ctx2)).toBeTruthy()
+    expect(ctx2.getRoot()).toBe(ctx)
+    expect(ctx.hasSubtree(ctx2)).toBeTruthy()
   })
+
   it('ownkeys works', () => {
     const context = {
       name: 'alex',

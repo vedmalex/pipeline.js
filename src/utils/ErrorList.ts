@@ -1,6 +1,8 @@
+import {Possible} from './types'
+
 export function CreateError(
   err: string | object | undefined | (string | object | undefined)[],
-): Error | undefined {
+): Possible<Error> {
   if (typeof err == 'string') {
     return new Error(err)
   }

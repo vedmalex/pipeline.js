@@ -1,6 +1,6 @@
 import 'jest'
 import { Stage } from '../stage'
-import { ContextFactory } from '../context'
+import { Context } from '../context'
 
 describe('Stage', function () {
   describe('sync', function () {
@@ -154,6 +154,7 @@ describe('Stage', function () {
   it('not allows to use constructor as a function', function (done) {
     try {
       var s = (Stage as any)()
+      done()
     } catch (err) {
       done()
     }
@@ -301,7 +302,7 @@ describe('Stage', function () {
     var stage = new Stage(function (err, context, done) {
       done()
     })
-    var ctx = ContextFactory.ensure({})
+    var ctx = Context.ensure({})
     stage.execute(ctx, function (err, context) {
       expect(ctx).toEqual(context)
       expect(!err).toEqual(true)
@@ -311,7 +312,7 @@ describe('Stage', function () {
 
   it('check run is function', function (done) {
     var stage = new Stage()
-    var ctx = ContextFactory.ensure({})
+    var ctx = Context.ensure({})
     stage.execute(ctx, function (err) {
       // expect(ctx.hasErrors().toEqual( true);
       expect(
@@ -323,7 +324,7 @@ describe('Stage', function () {
 
   it('stage with no run call callback with error', function (done) {
     var stage = new Stage()
-    var ctx = ContextFactory.ensure({})
+    var ctx = Context.ensure({})
     stage.execute(ctx, function (err, context) {
       expect(ctx).toEqual(context)
       expect(
@@ -349,7 +350,7 @@ describe('Stage', function () {
       gotit()
     }
     for (var i = 0; i < 10; i++) {
-      var ctx1 = ContextFactory.ensure({
+      var ctx1 = Context.ensure({
         one: 1,
       })
       st.execute(ctx1, accept)

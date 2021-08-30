@@ -2,7 +2,7 @@ import 'jest'
 import { Stage } from '../stage'
 import { MultiWaySwitch } from '../multiwayswitch'
 import { Pipeline } from '../pipeline'
-import { ContextFactory } from '../context'
+import {  Context } from '../context'
 
 describe('MWS', function () {
   it('works', function (done) {
@@ -100,7 +100,7 @@ describe('MWS', function () {
     })
 
     sw.execute(
-      ContextFactory.ensure({
+      Context.ensure({
         trace: true,
       }),
       function (err, ctx) {
@@ -170,7 +170,7 @@ describe('MWS', function () {
       },
     })
     sw.execute(
-      ContextFactory.ensure({
+      Context.ensure({
         size: 0,
       }),
       function (err, ctx) {
@@ -212,7 +212,7 @@ describe('MWS', function () {
       },
     })
     sw.execute(
-      ContextFactory.ensure({
+      Context.ensure({
         size: 0,
       }),
       function (err, ctx) {
@@ -259,7 +259,7 @@ describe('MWS', function () {
       },
     })
     sw.execute(
-      ContextFactory.ensure({
+      Context.ensure({
         size: 0,
       }),
       function (err, ctx) {
@@ -305,7 +305,7 @@ describe('MWS', function () {
       },
     })
     sw.execute(
-      ContextFactory.ensure({
+      Context.ensure({
         size: 0,
       }),
       function (err, ctx) {
@@ -349,7 +349,7 @@ describe('MWS', function () {
       },
     })
     sw.execute(
-      ContextFactory.ensure({
+      Context.ensure({
         size: 0,
       }),
       function (err, ctx) {
@@ -403,7 +403,7 @@ describe('MWS', function () {
       },
     })
     sw.execute(
-      ContextFactory.ensure({
+      Context.ensure({
         size: 0,
       }),
       function (err, ctx) {
@@ -456,7 +456,7 @@ describe('MWS', function () {
       },
     })
     sw.execute(
-      ContextFactory.ensure({
+      Context.ensure({
         size: 0,
       }),
       function (err, ctx) {
@@ -510,7 +510,7 @@ describe('MWS', function () {
       },
     })
     sw.execute(
-      ContextFactory.ensure({
+      Context.ensure({
         size: 0,
       }),
       function (err, ctx) {

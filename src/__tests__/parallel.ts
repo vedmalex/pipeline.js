@@ -2,7 +2,7 @@ import 'jest'
 
 import { Parallel } from '../parallel'
 import { Stage } from '../stage'
-import { ContextFactory } from '../context'
+import { Context } from '../context'
 import { Wrap } from '../wrap'
 
 describe('Parallel', function () {
@@ -168,7 +168,7 @@ describe('Parallel', function () {
       ctx.liter = 1
       done()
     })
-    var ctx = ContextFactory.ensure({
+    var ctx = Context.ensure({
       some: [1, 2, 3, 4, 5, 6, 7],
     })
     var stage = new Parallel({
@@ -239,7 +239,7 @@ describe('Parallel', function () {
         // throw Error()
         expect(err).toBeUndefined()
         expect(context.iter).toEqual(5)
-        expect(context.iteration).toEqual(5)
+        expect(context.iteration).toBeUndefined()
         done()
       },
     )

@@ -11,4 +11,5 @@ export * from './stage';
 export * from './timeout';
 export * from './wrap';
 export * from './utils/types';
+export * from './utils/ErrorList';
 //# sourceMappingURL=index.d.ts.map
