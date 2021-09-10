@@ -1684,12 +1684,10 @@ commander@~2.9.0:
   dependencies:
     graceful-readlink ">= 1.0.0"
 
-comparator.js@0.0.11:
-  version "0.0.11"
-  resolved "https://registry.yarnpkg.com/comparator.js/-/comparator.js-0.0.11.tgz#6525d2ecadbf9c5cf0906ab0c9d008b6e1346520"
-  integrity sha512-++Z40B9yhD2s1ycA74oG6uMldBPZjAmUQDdBRLvnxFZGdaJdCk4COmK+SMaBQTIAvD1V2XNPaMQI4J7WLC6R3A==
-  dependencies:
-    diff "*"
+comparator.js@1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/comparator.js/-/comparator.js-1.0.3.tgz#047ee52e2a4e7cbfe76910b04892449f3ca2af0b"
+  integrity sha512-eP6BDkDRN03uddDKboWQon7WwKuniGayjoyxxUPHoU+NfNNsUV+SS2u7yETsaM+NelIeq1nziumkcxZ5XegSuQ==
 
 component-emitter@^1.2.1:
   version "1.3.0"
@@ -2018,11 +2016,6 @@ diff-sequences@^26.6.2:
   version "26.6.2"
   resolved "https://registry.yarnpkg.com/diff-sequences/-/diff-sequences-26.6.2.tgz#48ba99157de1923412eed41db6b6d4aa9ca7c0b1"
   integrity sha512-Mv/TDa3nZ9sbc5soK+OoA74BsS3mL37yixCvUAQkiuA4Wz6YtwP/K47n2rv2ovzHZvoiQeA5FTQOschKkEwB0Q==
-
-diff@*:
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/diff/-/diff-5.0.0.tgz#7ed6ad76d859d030787ec35855f5b1daf31d852b"
-  integrity sha512-/VTCrvm5Z0JGty/BWHljh+BAiw3IK+2j87NGMu8Nwc/f48WoDAC395uomO9ZD117ZOBaHmkX1oyLvkVM/aIT3w==
 
 diff@^4.0.1:
   version "4.0.2"
@@ -2692,10 +2685,10 @@ fsevents@^2.1.2:
   resolved "https://registry.yarnpkg.com/fsevents/-/fsevents-2.3.2.tgz#8a526f78b8fdf4623b709e0b975c52c24c02fd1a"
   integrity sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==
 
-fte.js@2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/fte.js/-/fte.js-2.0.0.tgz#0e119e5a98d1fe05117748f56f2fe09944ed58a2"
-  integrity sha512-YS5wxrqU4+0RmrpbGtoaA8onbZbmnC+3sDQnupBsi+FTO39LbhYGXDLVOc1gcGJFmbS/UcEVJcp7tcRNsWuI1A==
+fte.js@2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/fte.js/-/fte.js-2.0.1.tgz#35bf7b7878ef55b2261892fceec22ad33b879633"
+  integrity sha512-rti/SDtfkJWKOIdPDczkTdV3pXq3MfIc2lqeJHsT9YIbgc63bER0fEFjog5j57BR/UbHI2PKkPNnRqD16kxmIA==
   dependencies:
     fs-extra "^10.0.0"
     glob "^7.1.7"
