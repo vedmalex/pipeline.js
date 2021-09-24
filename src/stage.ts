@@ -136,40 +136,57 @@ export class Stage<T, C extends StageConfig<T, R>, R = T> {
       })
     } else {
       const back = __callback
-      const sucess = (ret: Possible<R>) =>
-        back(undefined, ret ?? (context as unknown as R))
-      const fail = (err: Possible<Error>) => back(err, context as unknown as R)
-      const callback = (err: Possible<Error>, _ctx: Possible<R>) => {
-        if (err) {
-          this.rescue(err, _ctx, fail, sucess)
-        } else {
-          back(err, _ctx)
+      process.nextTick(() => {
+        const sucess = (ret: Possible<R>) =>
+          back(undefined, ret ?? (context as unknown as R))
+        const fail = (err: Possible<Error>) =>
+          back(err, context as unknown as R)
+        const callback = (err: Possible<Error>, _ctx: Possible<R>) => {
+          if (err) {
+            this.rescue(err, _ctx, fail, sucess)
+          } else {
+            back(err, _ctx)
+          }
         }
-      }
 
-      if (err && this._config.run && !can_fix_error(this._config.run)) {
-        this.rescue(err, context as unknown as Possible<R>, fail, sucess)
-      } else {
-        if (this.config.ensure) {
-          this.ensure(
-            this.config.ensure,
-            context,
-            (err_: Possible<Error>, ctx: Possible<T>) => {
-              this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
-            },
-          )
-        } else if (this._config.validate) {
-          this.validate(
-            this._config.validate,
-            context,
-            (err_: Possible<Error>, ctx: Possible<T>) => {
-              this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
-            },
-          )
+        if (err && this._config.run && !can_fix_error(this._config.run)) {
+          this.rescue(err, context as unknown as Possible<R>, fail, sucess)
         } else {
-          stageToRun(undefined, context, callback)
+          if (this.config.ensure) {
+            this.ensure(
+              this.config.ensure,
+              context,
+              (err_: Possible<Error>, ctx: Possible<T>) => {
+                this.runStageMethod(
+                  err,
+                  err_,
+                  ctx,
+                  context,
+                  stageToRun,
+                  callback,
+                )
+              },
+            )
+          } else if (this._config.validate) {
+            this.validate(
+              this._config.validate,
+              context,
+              (err_: Possible<Error>, ctx: Possible<T>) => {
+                this.runStageMethod(
+                  err,
+                  err_,
+                  ctx,
+                  context,
+                  stageToRun,
+                  callback,
+                )
+              },
+            )
+          } else {
+            stageToRun(undefined, context, callback)
+          }
         }
-      }
+      })
     }
   }
 
