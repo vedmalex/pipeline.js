@@ -18,6 +18,7 @@ import { execute_callback } from './utils/execute_callback'
 import { can_fix_error } from './utils/can_fix_error'
 import { execute_custom_run } from './utils/execute_custom_run'
 import { isStageRun, Rescue } from './utils/types'
+import { Context } from './context'
 
 // make possibility to context be immutable for debug purposes
 
@@ -126,6 +127,8 @@ export class Stage<T, C extends StageConfig<T, R>, R = T> {
     }
 
     const stageToRun = this.run.bind(this)
+
+    context = Context.ensure(context)
 
     if (!__callback) {
       return new Promise((res, rej) => {
