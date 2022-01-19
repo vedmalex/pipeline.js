@@ -95,7 +95,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         if (key == ProxySymbol) return _proxy
         if (key == 'allContexts') return allContexts
 
-        if (!RESERVED.hasOwnProperty(key)) {
+        if (!(key in RESERVED)) {
           if (key in target.ctx) {
             return (target.ctx as any)[key]
           } else {
@@ -118,12 +118,12 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         key: keyof typeof RESERVED | string | symbol,
         value,
       ): boolean {
-        if (!RESERVED.hasOwnProperty(key)) {
+        if (!(key in RESERVED)) {
           ;(target.ctx as any)[key] = value
           return true
         } else if (
           typeof key == 'string' &&
-          RESERVED.hasOwnProperty(key) &&
+          key in RESERVED &&
           RESERVED[key as keyof typeof RESERVED] != RESERVATIONS.prop
         ) {
           return false
@@ -133,14 +133,14 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         }
       },
       deleteProperty(target: Context<T>, key: string | symbol) {
-        if (!RESERVED.hasOwnProperty(key)) {
+        if (!(key in RESERVED)) {
           return delete target.ctx[key as keyof T]
         } else {
           return false
         }
       },
       has(target: Context<T>, key: string | symbol) {
-        if (!RESERVED.hasOwnProperty(key)) {
+        if (!(key in RESERVED)) {
           if (target.__parent) {
             return key in target.ctx || key in target.__parent
           } else {

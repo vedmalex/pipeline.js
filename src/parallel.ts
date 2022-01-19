@@ -7,7 +7,7 @@ import {
   Possible,
 } from './utils/types'
 import { Stage } from './stage'
-import { CreateError, StageError } from './utils/ErrorList'
+import { CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { empty_run } from './utils/empty_run'
 
@@ -72,7 +72,7 @@ export class Parallel<T, R = T> extends Stage<T, ParallelConfig<T, R>, R> {
         var iter = 0
         var children = this.split(ctx)
         var len = children ? children.length : 0
-        let errors: Array<StageError<ParallelError>>
+        let errors: Array<Error>
         let hasError = false
 
         var next = (index: number) => {
@@ -84,15 +84,14 @@ export class Parallel<T, R = T> extends Stage<T, ParallelConfig<T, R>, R> {
                 hasError = true
                 errors = []
               }
-              errors.push(
-                new StageError({
-                  name: 'Parallel stage Error',
-                  stage: this.name,
-                  index: index,
-                  err: err,
-                  ctx: children[index],
-                }),
-              )
+              const error = CreateError({
+                message: `Parallel stage Error ${err.message}`,
+                stage: this.name,
+                index: index,
+                err: err,
+                ctx: children[index],
+              })
+              if (error) errors.push(error)
             }
 
             iter += 1

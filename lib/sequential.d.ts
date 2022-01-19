@@ -9,11 +9,4 @@ export declare class Sequential<T, R = T> extends Stage<T, ParallelConfig<T, R>,
     get name(): string;
     compile(rebuild?: boolean): StageRun<T, R>;
 }
-export declare type SequentialError<T, R> = {
-    name: string;
-    stage: ParallelConfig<T, R>;
-    index: number;
-    err: Error;
-    ctx: any;
-};
 //# sourceMappingURL=sequential.d.ts.map

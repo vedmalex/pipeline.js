@@ -107,7 +107,7 @@ export type Thanable<T> = {
 }
 
 export function is_thenable<T>(inp?: any): inp is Thanable<T> {
-  return typeof inp == 'object' && inp.hasOwnProperty('then')
+  return typeof inp == 'object' && 'then' in inp
 }
 
 export type Possible<T> = T | undefined | null

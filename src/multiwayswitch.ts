@@ -15,7 +15,7 @@ import {
   StageRun,
   Possible,
 } from './utils/types'
-import { CreateError, ErrorList, StageError } from './utils/ErrorList'
+import { CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 
 export type MultiWaySwitchCase<T, R> =
@@ -42,7 +42,7 @@ export function isMultiWaySwitch<T, R>(
   return (
     typeof inp == 'object' &&
     inp != null &&
-    inp.hasOwnProperty('stage') &&
+    'stage' in inp &&
     isRunPipelineFunction((inp as { stage: any })['stage'])
   )
 }
@@ -206,7 +206,7 @@ export class MultiWaySwitch<T, R = T> extends Stage<
           caseItem.combine = this.config.combine
         }
 
-        if (!caseItem.hasOwnProperty('evaluate')) {
+        if (!('evaluate' in caseItem)) {
           // by default is evaluate
           caseItem.evaluate = true
         }
@@ -238,7 +238,7 @@ export class MultiWaySwitch<T, R = T> extends Stage<
 
       let iter = 0
 
-      let errors: Array<StageError<MWSError>> = []
+      let errors: Array<Error> = []
       let hasError = false
 
       let next = (index: number) => {
@@ -248,22 +248,14 @@ export class MultiWaySwitch<T, R = T> extends Stage<
           let res: Possible<R> = undefined
           if (err) {
             if (!hasError) hasError = true
-            errors.push(
-              new StageError({
-                name: 'MWS Error',
-                stage: this.name,
-                index: index,
-                err: err,
-                ctx: retCtx,
-              }),
-            )
+            errors.push(err)
           } else {
             res = this.combineCase(cur, ctx, retCtx)
           }
 
           if (iter >= actuals.length)
             return done(
-              hasError ? new ErrorList(errors) : undefined,
+              hasError ? CreateError(errors) : undefined,
               res ?? (ctx as unknown as R),
             )
         }
@@ -287,12 +279,4 @@ export class MultiWaySwitch<T, R = T> extends Stage<
 
     return super.compile(rebuild)
   }
-}
-
-export type MWSError = {
-  name: string
-  stage: string
-  index: number
-  err: Error
-  ctx: any
 }

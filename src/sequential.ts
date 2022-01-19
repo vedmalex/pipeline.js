@@ -9,7 +9,6 @@ import {
 import { Stage } from './stage'
 import { run_or_execute } from './utils/run_or_execute'
 import { empty_run } from './utils/empty_run'
-import { StageError } from './utils/ErrorList'
 
 /**
  * Process staging in Sequential way
@@ -75,15 +74,7 @@ export class Sequential<T, R = T> extends Stage<T, ParallelConfig<T, R>, R> {
 
         var next = (err: Possible<Error>, retCtx: any) => {
           if (err) {
-            return done(
-              new StageError<SequentialError<T, R>>({
-                name: 'Sequential stage Error',
-                stage: this.config,
-                index: iter,
-                err: err,
-                ctx: children[iter],
-              }),
-            )
+            return done(err)
           }
 
           if (retCtx) {
@@ -118,12 +109,4 @@ export class Sequential<T, R = T> extends Stage<T, ParallelConfig<T, R>, R> {
 
     return super.compile()
   }
-}
-
-export type SequentialError<T, R> = {
-  name: string
-  stage: ParallelConfig<T, R>
-  index: number
-  err: Error
-  ctx: any
 }

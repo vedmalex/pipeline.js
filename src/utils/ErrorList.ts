@@ -1,53 +1,55 @@
-import {Possible} from './types'
+import { Possible } from './types'
 
-export function CreateError(
-  err: string | object | undefined | (string | object | undefined)[],
-): Possible<Error> {
+export function CreateError<T extends { message: string }>(
+  err: string | T | null | undefined | (string | T | null | undefined)[],
+): Possible<ComplexError> {
   if (typeof err == 'string') {
     return new Error(err)
   }
   if (typeof err == 'object') {
-    if (err instanceof ErrorList || err instanceof Error) {
-      return err
-    }
     if (Array.isArray(err)) {
-      const result = err.filter(e => e).map(e => CreateError(e))
-      return new ErrorList(result)
-    } else if (err.hasOwnProperty('message')) {
-      return err as Error
-    } else {
-      return new Error(JSON.stringify(err))
-    }
-  }
-}
-export class ErrorList extends Error {
-  errors!: Array<{ message: string }>
-  constructor(_list: Array<any> | any) {
-    super('Complex Error')
-    if (Array.isArray(_list)) {
-      const list = _list.filter(e => e)
-      if (list.length > 1) {
-        this.errors = list
-      } else if ((list.length = 1)) {
-        return list[0]
-      } else {
-        // if there is no error return null or undefined
-        return null as any
+      let result: Array<Possible<Error>> = []
+      err
+        .filter(e => e)
+        .forEach(ler => {
+          const res = CreateError(ler)
+          if (res) {
+            if ('isComplex' in res && res.errors) {
+              result.push(...res.errors)
+            } else {
+              result.push(res)
+            }
+          }
+        })
+      if (result.length > 1) {
+        return ErrorList(result)
+      }
+      if (result.length === 1) {
+        return result[0]
       }
     } else {
-      return _list
+      return err as unknown as Error
     }
-  }
-
-  override get message() {
-    return `ComplexError:\n\t${this.errors.map(e => e.message).join('\n')}`
   }
 }
 
-export class StageError<T extends { name: string }> extends Error {
-  info!: T
-  constructor(err: T) {
-    super(err.name)
-    this.info = err
+export type ComplexError = Error & {
+  isComplex?: Boolean
+  errors?: Array<ComplexError>
+}
+
+function ErrorList(_list: Array<any>): ComplexError {
+  let errors
+  const list = _list.filter(e => e)
+  if (list.length > 1) {
+    errors = list
+  } else if ((list.length = 1)) {
+    return list[0]
+  } else {
+    return null as any
   }
+  const error = errors[0]
+  error.errors = errors
+  error.isComplex = true
+  return error
 }

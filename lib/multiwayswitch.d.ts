@@ -34,11 +34,4 @@ export declare class MultiWaySwitch<T, R = T> extends Stage<T, MultWaySwitchConf
     }, ctx: Possible<T>): any;
     compile(rebuild?: boolean): StageRun<T, R>;
 }
-export declare type MWSError = {
-    name: string;
-    stage: string;
-    index: number;
-    err: Error;
-    ctx: any;
-};
 //# sourceMappingURL=multiwayswitch.d.ts.map
