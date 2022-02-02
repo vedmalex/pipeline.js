@@ -1,17 +1,17 @@
 import { cloneDeep } from 'lodash'
 
+import { Context } from './context'
 import { Stage } from './stage'
-import {
-  AllowedStage,
-  getStageConfig,
-  RunPipelineFunction,
-  AnyStage,
-  Possible,
-} from './utils/types'
-import { CallbackFunction, StageConfig, StageRun, Func3 } from './utils/types'
 import { CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
-import { Context } from './context'
+import {
+  AllowedStage,
+  AnyStage,
+  getStageConfig,
+  Possible,
+  RunPipelineFunction,
+} from './utils/types'
+import { CallbackFunction, Func3, StageConfig, StageRun } from './utils/types'
 
 export interface RetryOnErrorConfig<T, R> extends StageConfig<T, R> {
   stage: AnyStage<T, R> | RunPipelineFunction<T, R>
@@ -20,7 +20,11 @@ export interface RetryOnErrorConfig<T, R> extends StageConfig<T, R> {
   restore?: (ctx: Possible<T>, backup: Possible<T>) => Possible<T>
 }
 
-export function getRetryOnErrorConfig<T, C extends RetryOnErrorConfig<T, R>, R>(
+export function getRetryOnErrorConfig<
+  T,
+  C extends RetryOnErrorConfig<T, R>,
+  R,
+> (
   config: AllowedStage<T, C, R>,
 ): C {
   const res = getStageConfig<T, C, R>(config)

@@ -1,18 +1,18 @@
 import { Stage } from '../stage'
+import { CreateError } from './ErrorList'
 import {
   AllowedStage,
   AnyStage,
   getStageConfig,
   RunPipelineFunction,
 } from './types'
-import { CallbackFunction, StageConfig, StageRun, Possible } from './types'
-import { CreateError } from './ErrorList'
+import { CallbackFunction, Possible, StageConfig, StageRun } from './types'
 
 export interface TemplateConfig<T, R> extends StageConfig<T, R> {
   stage: AnyStage<T, R> | RunPipelineFunction<T, R>
 }
 
-export function getTemplateConfig<T, C extends TemplateConfig<T, R>, R>(
+export function getTemplateConfig<T, C extends TemplateConfig<T, R>, R> (
   config: AllowedStage<T, C, R>,
 ): C {
   const res = getStageConfig(config)

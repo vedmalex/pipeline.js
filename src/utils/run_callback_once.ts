@@ -1,7 +1,7 @@
 import { CreateError } from './ErrorList'
 import { CallbackFunction, Possible } from './types'
 
-export function run_callback_once<T>(
+export function run_callback_once<T> (
   wrapee: CallbackFunction<T>,
 ): CallbackFunction<T> {
   let done_call = 0

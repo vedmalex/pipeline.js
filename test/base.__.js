@@ -18,144 +18,147 @@ var schema = require('js-schema')
 var util = require('util')
 var assert = require('assert')
 
-describe('utils', function () {
+describe('utils', function() {
   var res = Util.getClass(false)
   assert.strictEqual(res, false)
 })
 
-describe('Stage', function () {
-  describe('sync', function () {
-    it('works', function (done) {
+describe('Stage', function() {
+  describe('sync', function() {
+    it('works', function(done) {
       var v1 = new Stage({
         run: function newName1(ctx) {
           ctx.name = 'name'
         },
       })
-      v1.execute({}, function (err, ctx) {
+      v1.execute({}, function(err, ctx) {
         assert(ctx.name == 'name')
         done()
       })
     })
 
-    it('catch errors', function (done) {
+    it('catch errors', function(done) {
       var v1 = new Stage({
         run: function newName1(ctx) {
           ctx.name = 'name'
           throw new Error()
         },
       })
-      v1.execute({}, function (err, ctx) {
+      v1.execute({}, function(err, ctx) {
         assert(err)
         done()
       })
     })
   })
 
-  it('throws error if error is not Error instance', function (done) {
-    var st = new Stage(function (ctx, done) {
+  it('throws error if error is not Error instance', function(done) {
+    var st = new Stage(function(ctx, done) {
       done('error')
     })
 
-    st.execute({}, function (err, ctx) {
+    st.execute({}, function(err, ctx) {
       assert(err instanceof Error)
       done()
     })
   })
 
-  describe('rescue', function () {
-    it('sync', function (done) {
+  describe('rescue', function() {
+    it('sync', function(done) {
       var st = new Stage({
-        rescue: function (err, ctx) {
+        rescue: function(err, ctx) {
           assert.strictEqual('some', err.message)
         },
-        run: function (ctx) {
+        run: function(ctx) {
           ctx.n = 1
           throw new Error('some')
         },
       })
-      st.execute({}, function (err, ctx) {
+      st.execute({}, function(err, ctx) {
         assert.strictEqual(ctx.n, 1)
         assert.ifError(err)
         done()
       })
     })
 
-    it('async', function (done) {
+    it('async', function(done) {
       var st = new Stage({
-        rescue: function (err, ctx) {
+        rescue: function(err, ctx) {
           assert.strictEqual('some', err.message)
         },
-        run: function (ctx, done) {
+        run: function(ctx, done) {
           ctx.n = 1
           throw new Error('some')
         },
       })
-      st.execute({}, function (err, ctx) {
+      st.execute({}, function(err, ctx) {
         assert.strictEqual(ctx.n, 1)
         assert.ifError(err)
         done()
       })
     })
 
-    it('async deep', function (done) {
+    it('async deep', function(done) {
       var st = new Stage({
-        rescue: function (err, ctx) {
+        rescue: function(err, ctx) {
           assert.strictEqual('some', err.message)
         },
-        run: function (ctx, done) {
+        run: function(ctx, done) {
           ctx.n = 1
-          setImmediate(function () {
+          setImmediate(function() {
             throw new Error('some')
           })
         },
       })
 
-      st.execute({}, function () {
+      st.execute({}, function() {
         done()
       })
     })
   })
 
-  it('do not handle Error it stage signature is (err, ctx, done)', function (done) {
-    debugger
-    var flag = false
-    var st = new Stage({
-      validate: function (ctx) {
-        return false
-      },
-      run: function (err, ctx, done) {
-        flag = true
+  it(
+    'do not handle Error it stage signature is (err, ctx, done)',
+    function(done) {
+      debugger
+      var flag = false
+      var st = new Stage({
+        validate: function(ctx) {
+          return false
+        },
+        run: function(err, ctx, done) {
+          flag = true
+          assert(err)
+          done(err)
+        },
+      })
+      st.execute({}, function(err, context) {
+        assert(flag)
         assert(err)
-        done(err)
-      },
-    })
-    st.execute({}, function (err, context) {
-      assert(flag)
-      assert(err)
-      done()
-    })
-  })
+        done()
+      })
+    },
+  )
 
-  it('accepts name as config', function (done) {
+  it('accepts name as config', function(done) {
     var name = 'new Name'
     var v = new Stage(name)
     assert(v.name == name)
     done()
   })
 
-  it('can init with 2 or 3 parameters', function (done) {
+  it('can init with 2 or 3 parameters', function(done) {
     var v1 = new Stage({
       run: function newName1(ctx, done) {
         done()
       },
     })
     assert(v1.name == 'newName1')
-    v1.execute({}, function (err, ctx) {
+    v1.execute({}, function(err, ctx) {
       done()
     })
   })
 
-  it('accepts take function name as stage name', function (done) {
+  it('accepts take function name as stage name', function(done) {
     var v0 = new Stage(function newName(err, ctx, done) {})
     assert(v0.name == 'newName')
     var v = new Stage({
@@ -165,7 +168,7 @@ describe('Stage', function () {
     done()
   })
 
-  it('not allows to use constructor as a function', function (done) {
+  it('not allows to use constructor as a function', function(done) {
     try {
       var s = Stage()
     } catch (err) {
@@ -173,13 +176,13 @@ describe('Stage', function () {
     }
   })
 
-  it('runs within stage', function (done) {
-    var s = new Stage(function (ctx, done) {
+  it('runs within stage', function(done) {
+    var s = new Stage(function(ctx, done) {
       assert.strictEqual(this.someCode, 100)
       done()
     })
     s.someCode = 100
-    s.execute({}, function (err, ctx) {
+    s.execute({}, function(err, ctx) {
       assert.ifError(err)
       done()
     })
@@ -197,48 +200,48 @@ describe('Stage', function () {
 		});
 	});*/
 
-  it('emits done', function (done) {
-    var stage = new Stage(function (err, context, done) {
+  it('emits done', function(done) {
+    var stage = new Stage(function(err, context, done) {
       done()
     })
-    stage.execute({}, function () {
+    stage.execute({}, function() {
       assert.strictEqual(!context, false)
       done()
     })
   })
 
-  //	это не нужно, поскольку слишком сложная архитектура будет, все передавать через контекст
+  // 	это не нужно, поскольку слишком сложная архитектура будет, все передавать через контекст
   // it('extra parameters to emit and to callback', function(done){
   // 	// сделать передачу дополнительных параметров в done, по принципу err, p1,p2,p3...
   // });
 
-  it('emits error with context', function (done) {
-    var stage = new Stage(function (err, context, done) {
+  it('emits error with context', function(done) {
+    var stage = new Stage(function(err, context, done) {
       done(new Error())
     })
 
-    stage.execute({}, function (err, ctx) {
+    stage.execute({}, function(err, ctx) {
       assert.strictEqual(!err, false)
       assert.strictEqual(!context, false)
       done()
     })
   })
 
-  it('emits error if it configured to do so', function (done) {
+  it('emits error if it configured to do so', function(done) {
     var stage = new Stage({
-      run: function (err, context, done) {
+      run: function(err, context, done) {
         done(new Error())
       },
     })
 
-    stage.execute({}, function (err, data) {
+    stage.execute({}, function(err, data) {
       assert.strictEqual(!err, false)
       assert.strictEqual(!context, false)
       done()
     })
   })
 
-  it('can be traced with {trace:true}', function (done) {
+  it('can be traced with {trace:true}', function(done) {
     var stage = new Stage(function Some(err, context, done) {
       done()
     })
@@ -246,13 +249,13 @@ describe('Stage', function () {
       {
         trace: true,
       },
-      function (err, data) {
+      function(err, data) {
         done()
       },
     )
   })
 
-  it('can be traced with {trace:true}', function (done) {
+  it('can be traced with {trace:true}', function(done) {
     var stage = new Stage(function Some(err, context, done) {
       done()
     })
@@ -260,18 +263,18 @@ describe('Stage', function () {
       {
         __trace: true,
       },
-      function (err, data) {
+      function(err, data) {
         done()
       },
     )
   })
 
-  it('emits done if it configured to do so', function (done) {
-    var stage = new Stage(function (err, context, done) {
+  it('emits done if it configured to do so', function(done) {
+    var stage = new Stage(function(err, context, done) {
       done()
     })
 
-    stage.execute({}, function (err, data) {
+    stage.execute({}, function(err, data) {
       assert.strictEqual(!context, false)
       done()
     })
@@ -279,27 +282,27 @@ describe('Stage', function () {
 
   it('prepare and finalize context')
 
-  it('ensureContext', function (done) {
+  it('ensureContext', function(done) {
     debugger
-    var stage = new Stage(function (ctx) {
+    var stage = new Stage(function(ctx) {
       ctx.done = 1
     })
     var ensure = 0
-    stage.ensure = function (ctx, callback) {
+    stage.ensure = function(ctx, callback) {
       ensure++
       callback(null, context)
     }
-    stage.execute({}, function (err, ctx) {
+    stage.execute({}, function(err, ctx) {
       assert.strictEqual(ensure, 1, 'ensure must called by default')
       assert.strictEqual(ctx.done, 1, 'ensure must called by default')
       done()
     })
   })
 
-  it('not run ensureContext if there is no run function', function (done) {
+  it('not run ensureContext if there is no run function', function(done) {
     var stage = new Stage()
     var ensure = 0
-    stage.ensure = function (ctx, callback) {
+    stage.ensure = function(ctx, callback) {
       ensure++
       callback(null, context)
     }
@@ -308,24 +311,24 @@ describe('Stage', function () {
     done()
   })
 
-  it('accept callback', function (done) {
-    var stage = new Stage(function (err, context, done) {
+  it('accept callback', function(done) {
+    var stage = new Stage(function(err, context, done) {
       done()
     })
     var ensure = 0
     var ctx = new Context({})
-    stage.execute(ctx, function (err, context) {
+    stage.execute(ctx, function(err, context) {
       assert.strictEqual(ctx, context)
       assert.strictEqual(!err, true)
       done()
     })
   })
 
-  it('check run is function', function (done) {
+  it('check run is function', function(done) {
     var stage = new Stage()
     var ensure = 0
     var ctx = new Context({})
-    stage.execute(ctx, function (err) {
+    stage.execute(ctx, function(err) {
       // assert.strictEqual(ctx.hasErrors(), true);
       assert.strictEqual(
         /Error\: STG\: reports\: run is not a function/.test(err.toString()),
@@ -335,10 +338,10 @@ describe('Stage', function () {
     })
   })
 
-  it('stage with no run call callback with error', function (done) {
+  it('stage with no run call callback with error', function(done) {
     var stage = new Stage()
     var ctx = new Context()
-    stage.execute(ctx, function (err, context) {
+    stage.execute(ctx, function(err, context) {
       assert.strictEqual(ctx, context)
       assert.strictEqual(
         /Error\: STG\: reports\: run is not a function/.test(err.toString()),
@@ -348,18 +351,18 @@ describe('Stage', function () {
     })
   })
 
-  it('allow reenterability', function (done) {
-    var st = new Stage(function (err, context, done) {
+  it('allow reenterability', function(done) {
+    var st = new Stage(function(err, context, done) {
       context.one++
       done()
     })
     var l = 0
 
-    function gotit() {
+    function gotit () {
       if (++l == 10) done()
     }
 
-    function accept(err, data) {
+    function accept (err, data) {
       assert.strictEqual(data.one, 2)
       gotit()
     }
@@ -375,8 +378,8 @@ describe('Stage', function () {
   // });
 })
 
-describe('Context', function () {
-  it('default empty', function (done) {
+describe('Context', function() {
+  it('default empty', function(done) {
     var ctx = new Context()
     assert.strictEqual(ctx.__parent === undefined, true, 'MUST BE EMPTY')
     // assert.strictEqual(ctx.__errors === undefined, true, "MUST BE EMPTY");
@@ -384,7 +387,7 @@ describe('Context', function () {
     done()
   })
 
-  it('overwrite', function (done) {
+  it('overwrite', function(done) {
     var c = new Context({
       some: 1,
       someOther: [1, 2, 3, 4, 5],
@@ -404,7 +407,7 @@ describe('Context', function () {
     done()
   })
 
-  it('get', function (done) {
+  it('get', function(done) {
     var c = new Context({
       embedded: {
         some: 1,
@@ -432,7 +435,7 @@ describe('Context', function () {
   // и на случай с вложенными контекстами тоже, когда через get выбираем часть
   it('toJSON context')
 
-  it('not allows to use constructor as a function', function (done) {
+  it('not allows to use constructor as a function', function(done) {
     try {
       var s = Context()
     } catch (err) {
@@ -440,7 +443,7 @@ describe('Context', function () {
     }
   })
 
-  it('object must presented as links', function (done) {
+  it('object must presented as links', function(done) {
     var config = {
       config: {
         some: 1,
@@ -455,13 +458,13 @@ describe('Context', function () {
     done()
   })
 
-  it('fork getParent', function (done) {
+  it('fork getParent', function(done) {
     var parent = new Context().getParent()
     assert.strictEqual(parent === undefined, true, 'MUST BE strictEqual')
     done()
   })
 
-  it('fork child', function (done) {
+  it('fork child', function(done) {
     var config = {
       config: {
         some: 1,
@@ -476,7 +479,7 @@ describe('Context', function () {
     done()
   })
 
-  it('fork with extra config', function (done) {
+  it('fork with extra config', function(done) {
     var ctx = new Context({
       some: 1,
     })
@@ -488,8 +491,8 @@ describe('Context', function () {
   })
 })
 
-describe('Pipeline', function () {
-  it('defaults', function (done) {
+describe('Pipeline', function() {
+  it('defaults', function(done) {
     var pipe = new Pipeline('defaultName')
     assert(pipe instanceof Stage)
 
@@ -497,16 +500,16 @@ describe('Pipeline', function () {
     assert.strictEqual(!pipe.stages, false, 'default stage')
     assert.strictEqual(pipe.stages.length, 0, 'nothing in stages')
     assert.strictEqual(!pipe.run, true, 'default nothing to run')
-    assert.doesNotThrow(function () {
+    assert.doesNotThrow(function() {
       pipe.compile()
     }, 'must not throw when there is no stage to compile')
-    pipe.execute({}, function (err, data) {
+    pipe.execute({}, function(err, data) {
       assert(err == null)
       done()
     })
   })
 
-  it('not allows to use constructor as a function', function (done) {
+  it('not allows to use constructor as a function', function(done) {
     try {
       var s = Pipeline()
     } catch (err) {
@@ -514,7 +517,7 @@ describe('Pipeline', function () {
     }
   })
 
-  it('addStage', function (done) {
+  it('addStage', function(done) {
     var pipe = new Pipeline()
     pipe.addStage(new Stage())
     assert.strictEqual(pipe.stages.length, 1, 'must adds to default stageList')
@@ -522,56 +525,59 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('catch throw errors', function (done) {
+  it('catch throw errors', function(done) {
     var pipe = new Pipeline()
-    pipe.addStage(function (err, ctx, done) {
+    pipe.addStage(function(err, ctx, done) {
       throw new Error('error')
     })
-    pipe.execute({}, function (err, ctx) {
+    pipe.execute({}, function(err, ctx) {
       assert.strictEqual('error', err.message)
       done()
     })
   })
 
-  it('rescue works', function (done) {
+  it('rescue works', function(done) {
     var pipe = new Pipeline()
     var st = new Stage({
-      run: function (err, ctx, done) {
+      run: function(err, ctx, done) {
         throw new Error('error')
       },
-      rescue: function (err, conext) {
+      rescue: function(err, conext) {
         if (err.message !== 'error') return err
       },
     })
     pipe.addStage(st)
-    pipe.execute({}, function (err, ctx) {
+    pipe.execute({}, function(err, ctx) {
       assert.ifError(err)
       done()
     })
   })
 
-  it('addStage take name of function or function body as stagename ', function (done) {
-    var pipe = new Pipeline()
-    pipe.addStage(function (err, ctx, done) {})
-    pipe.addStage(function f1(err, ctx, done) {
+  it(
+    'addStage take name of function or function body as stagename ',
+    function(done) {
+      var pipe = new Pipeline()
+      pipe.addStage(function(err, ctx, done) {})
+      pipe.addStage(function f1(err, ctx, done) {
+        done()
+      })
+      assert.strictEqual(
+        pipe.stages[0].reportName(),
+        'STG: function (err, ctx, done) {}',
+        'function take function body as stage name',
+      )
+      assert.strictEqual(
+        pipe.stages[1].reportName(),
+        'STG: f1',
+        'function take function name as stage name',
+      )
       done()
-    })
-    assert.strictEqual(
-      pipe.stages[0].reportName(),
-      'STG: function (err, ctx, done) {}',
-      'function take function body as stage name',
-    )
-    assert.strictEqual(
-      pipe.stages[1].reportName(),
-      'STG: f1',
-      'function take function name as stage name',
-    )
-    done()
-  })
+    },
+  )
 
-  it('addStage converts function to Stage Instance', function (done) {
+  it('addStage converts function to Stage Instance', function(done) {
     var pipe = new Pipeline()
-    pipe.addStage(function (err, ctx, done) {
+    pipe.addStage(function(err, ctx, done) {
       done()
     })
     assert.strictEqual(
@@ -582,10 +588,10 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('addStage converts object to Stage Instance', function (done) {
+  it('addStage converts object to Stage Instance', function(done) {
     var pipe = new Pipeline()
     pipe.addStage({
-      run: function (err, ctx, done) {
+      run: function(err, ctx, done) {
         done()
       },
     })
@@ -597,16 +603,16 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('accept array of stages', function (done) {
-    var f1 = function (err, ctx, done) {
+  it('accept array of stages', function(done) {
+    var f1 = function(err, ctx, done) {
       done()
     }
-    var f2 = function (err, ctx, done) {
+    var f2 = function(err, ctx, done) {
       done()
     }
 
     var pipe = new Pipeline([f1, f2])
-    pipe.addStage(function (err, ctx, done) {
+    pipe.addStage(function(err, ctx, done) {
       done()
     })
     assert.strictEqual(
@@ -622,14 +628,14 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('accept empty addStages', function (done) {
+  it('accept empty addStages', function(done) {
     var pipe = new Pipeline()
     pipe.addStage()
     assert.strictEqual(pipe.stages.length, 0, 'any stage found')
     done()
   })
 
-  it('compile', function (done) {
+  it('compile', function(done) {
     var pipe = new Pipeline()
     pipe.addStage(new Stage())
     pipe.compile()
@@ -647,23 +653,23 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('execute must call compile and ensure', function (done) {
+  it('execute must call compile and ensure', function(done) {
     var pipe = new Pipeline()
     var compile = 0
     pipe.addStage(
-      new Stage(function (err, context, done) {
+      new Stage(function(err, context, done) {
         done()
       }),
     )
     pipe._compile = pipe.compile
-    pipe.compile = function () {
+    pipe.compile = function() {
       compile++
       this._compile.apply(this, arguments)
     }
 
     var ensure = 0
     pipe._ensure = pipe.ensure
-    pipe.ensure = function (ctx, callback) {
+    pipe.ensure = function(ctx, callback) {
       ensure++
       this._ensure.apply(this, arguments)
     }
@@ -677,10 +683,10 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('executes pipes in pipes', function (done) {
+  it('executes pipes in pipes', function(done) {
     var pipe = new Pipeline()
     var nestedpipe = new Pipeline()
-    nestedpipe.addStage(function (err, ctx, done) {
+    nestedpipe.addStage(function(err, ctx, done) {
       ctx.item = 1
       done()
     })
@@ -689,7 +695,7 @@ describe('Pipeline', function () {
       {
         item: 0,
       },
-      function (err, ctx) {
+      function(err, ctx) {
         assert.ifError(err)
         assert.strictEqual(1, ctx.item)
         done()
@@ -697,7 +703,7 @@ describe('Pipeline', function () {
     )
   })
 
-  it('context catch all errors', function (done) {
+  it('context catch all errors', function(done) {
     var pipe = new Pipeline()
     var ctx1 = new Context({
       s1: false,
@@ -706,17 +712,17 @@ describe('Pipeline', function () {
     })
     var error = new Error('THE ERROR')
 
-    var s1 = new Stage(function (err, context, done) {
+    var s1 = new Stage(function(err, context, done) {
       assert.strictEqual(context, ctx1, 'context must be passed to s1')
       context.s1 = true
       done()
     })
-    var s2 = new Stage(function (err, context, done) {
+    var s2 = new Stage(function(err, context, done) {
       assert.strictEqual(context, ctx1, 'context must be passed to s2')
       context.s2 = true
       done(error)
     })
-    var s3 = new Stage(function (err, context, done) {
+    var s3 = new Stage(function(err, context, done) {
       assert.strictEqual(true, false, 's3 must not be executed at all')
       context.s3 = true
       done()
@@ -725,7 +731,7 @@ describe('Pipeline', function () {
     pipe.addStage(s1)
     pipe.addStage(s2)
 
-    pipe.execute(ctx1, function (err) {
+    pipe.execute(ctx1, function(err) {
       assert.strictEqual(err, error)
       // assert.strictEqual(ctx1.hasErrors(), true, 'must has errors 1');
       // assert.strictEqual(ctx1.getErrors()[0] == error, true, 'must has error 2');
@@ -736,17 +742,17 @@ describe('Pipeline', function () {
     })
   })
 
-  it('ensure Context Error use', function (done) {
+  it('ensure Context Error use', function(done) {
     var ctx = new Context()
     ctx.SomeValue = 1
     var pipe = new Pipeline()
     var error = new Error('context not ready')
     var stage1 = {
-      run: function (err, context, done) {
+      run: function(err, context, done) {
         context.SomeValue += 1
         done()
       },
-      ensure: function (context, callback) {
+      ensure: function(context, callback) {
         if (context.SomeValue !== 1) callback(error)
         else callback(null, context)
       },
@@ -754,15 +760,15 @@ describe('Pipeline', function () {
     pipe.addStage(new Stage(stage1))
     var stage2 = {
       ensure: function WV(context, callback) {
-        if (context.SomeValue !== 1)
+        if (context.SomeValue !== 1) {
           callback(new Error(this.reportName() + ': Wrong Value'))
-        else callback(null, context)
+        } else callback(null, context)
       },
       run: undefined, // so it will be 0
     }
     var s2 = new Stage(stage2)
     pipe.addStage(s2)
-    pipe.execute(ctx, function (err) {
+    pipe.execute(ctx, function(err) {
       assert.strictEqual(
         /Error: STG: 0 reports: run is not a function/.test(err.toString()),
         true,
@@ -771,8 +777,8 @@ describe('Pipeline', function () {
     })
   })
 
-  it('pipeline accept only ensure', function (done) {
-    var ensure = function () {}
+  it('pipeline accept only ensure', function(done) {
+    var ensure = function() {}
     var p1 = new Pipeline(ensure)
     assert.strictEqual(
       p1.ensure != ensure,
@@ -793,8 +799,8 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('stage accept ensure, validate and run', function (done) {
-    var ensure = function () {}
+  it('stage accept ensure, validate and run', function(done) {
+    var ensure = function() {}
     var p1 = new Stage(ensure)
     assert.strictEqual(
       p1.ensure != ensure,
@@ -818,7 +824,7 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('use schema to override validate', function (done) {
+  it('use schema to override validate', function(done) {
     var type1 = schema({
       some: Object,
       other: String,
@@ -831,7 +837,7 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('use schema to override validate with object', function (done) {
+  it('use schema to override validate with object', function(done) {
     var type1 = {
       some: Object,
       other: String,
@@ -844,14 +850,14 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('valid context proceeed execution', function (done) {
+  it('valid context proceeed execution', function(done) {
     var type1 = schema({
       some: Object,
       other: String,
     })
     var stg = new Stage({
       validate: type1,
-      run: function (err, context, done) {
+      run: function(err, context, done) {
         done()
       },
     })
@@ -859,12 +865,12 @@ describe('Pipeline', function () {
       some: {},
       other: 'other',
     })
-    stg.execute(ctx, function () {
+    stg.execute(ctx, function() {
       done()
     })
   })
 
-  it('invalid context fails execution', function (done) {
+  it('invalid context fails execution', function(done) {
     var type1 = schema({
       some: Object,
       other: Number,
@@ -877,15 +883,15 @@ describe('Pipeline', function () {
       other: 'other',
     })
 
-    stg.execute(ctx, function (err) {
+    stg.execute(ctx, function(err) {
       if (err) {
         done()
       }
     })
   })
 
-  it('can do subclassing of Pipeline', function (done) {
-    function newPipe() {
+  it('can do subclassing of Pipeline', function(done) {
+    function newPipe () {
       Pipeline.call(this)
       this.addStage(new Stage())
       this.addStage(new Stage())
@@ -903,40 +909,40 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('allow reenterability', function (done) {
+  it('allow reenterability', function(done) {
     debugger
     var pipe = new Pipeline()
 
-    pipe.addStage(function (context, done) {
-      process.nextTick(function () {
+    pipe.addStage(function(context, done) {
+      process.nextTick(function() {
         context.one++
         done()
       })
     })
 
-    pipe.addStage(function (context, done) {
-      process.nextTick(function () {
+    pipe.addStage(function(context, done) {
+      process.nextTick(function() {
         context.one += 1
         done()
       })
     })
 
-    pipe.addStage(function (context, done) {
+    pipe.addStage(function(context, done) {
       context.one += 5
       done()
     })
 
     var l = 0
 
-    function gotit() {
+    function gotit () {
       if (++l == 10) done()
     }
     for (var i = 0; i < 10; i++) {
-      ;(function () {
+      (function() {
         var ctx1 = new Context({
           one: 1,
         })
-        pipe.execute(ctx1, function (err, data) {
+        pipe.execute(ctx1, function(err, data) {
           assert.strictEqual(data.one, 8)
           gotit()
         })
@@ -945,52 +951,52 @@ describe('Pipeline', function () {
   })
 })
 
-describe('Sequential', function () {
-  it('works with default', function (done) {
+describe('Sequential', function() {
+  it('works with default', function(done) {
     var stage = new Sequential()
     assert(stage instanceof Stage)
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.ifError(err)
       done()
     })
   })
 
-  it('rescue', function (done) {
+  it('rescue', function(done) {
     var st = new Stage({
-      run: function (err, ctx, done) {
+      run: function(err, ctx, done) {
         throw new Error('error')
       },
-      rescue: function (err, conext) {
+      rescue: function(err, conext) {
         if (err.message !== 'some') return err
       },
     })
 
     var stage = new Sequential({
       stage: st,
-      rescue: function (err, conext) {
+      rescue: function(err, conext) {
         if (err.errors[0].err.message !== 'error') return err
       },
     })
 
-    stage.execute({}, function (err, ctx) {
+    stage.execute({}, function(err, ctx) {
       assert.ifError(err)
       done()
     })
   })
 
-  it('works with config as Stage', function (done) {
+  it('works with config as Stage', function(done) {
     var stage = new Sequential(
-      new Stage(function (err, ctx, done) {
+      new Stage(function(err, ctx, done) {
         done()
       }),
     )
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       // assert.strictEqual(context instanceof Context, true);
       done()
     })
   })
 
-  it('not allows to use constructor as a function', function (done) {
+  it('not allows to use constructor as a function', function(done) {
     try {
       var s = Sequential()
     } catch (err) {
@@ -998,79 +1004,79 @@ describe('Sequential', function () {
     }
   })
 
-  it('run stage', function (done) {
-    var stage0 = new Stage(function (ctx) {
+  it('run stage', function(done) {
+    var stage0 = new Stage(function(ctx) {
       ctx.iter++
     })
     var stage = new Sequential({
       stage: stage0,
-      split: function (ctx) {
+      split: function(ctx) {
         ctx.split = [0, 0, 0, 0, 0]
-        ctx.split = ctx.split.map(function (i) {
+        ctx.split = ctx.split.map(function(i) {
           return {
             iter: 0,
           }
         })
         return ctx.split
       },
-      combine: function (ctx, children) {
-        ctx.iter = children.reduce(function (p, c, i, a) {
+      combine: function(ctx, children) {
+        ctx.iter = children.reduce(function(p, c, i, a) {
           return p + c.iter
         }, 0)
         delete ctx.split
         return ctx
       },
     })
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.strictEqual(context.iter, 5)
       done()
     })
   })
 
-  it('empty split not run combine', function (done) {
-    var stage0 = new Stage(function (ctx) {})
+  it('empty split not run combine', function(done) {
+    var stage0 = new Stage(function(ctx) {})
     var stage = new Sequential({
       stage: stage0,
-      split: function (ctx) {
+      split: function(ctx) {
         return []
       },
-      combine: function (ctx, children) {
+      combine: function(ctx, children) {
         ctx.combine = true
         return ctx
       },
     })
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.strictEqual(!context.combine, true)
       done()
     })
   })
 
-  it('prepare context -> moved to Wrap', function (done) {
-    var stage0 = new Stage(function (ctx) {
+  it('prepare context -> moved to Wrap', function(done) {
+    var stage0 = new Stage(function(ctx) {
       ctx.iteration++
     })
     var stage = new Wrap({
-      prepare: function (ctx) {
+      prepare: function(ctx) {
         return {
           iteration: ctx.iter,
         }
       },
-      finalize: function (ctx, retCtx) {
+      finalize: function(ctx, retCtx) {
         ctx.iter = retCtx.iteration
       },
       stage: new Sequential({
         stage: stage0,
-        split: function (ctx) {
+        split: function(ctx) {
           ctx.split = [0, 0, 0, 0, 0]
-          ctx.split = ctx.split.map(function (i) {
+          ctx.split = ctx.split.map(function(i) {
             return {
               iteration: 0,
             }
           })
           return ctx.split
         },
-        combine: function (ctx, children) {
-          ctx.iteration = children.reduce(function (p, c, i, a) {
+        combine: function(ctx, children) {
+          ctx.iteration = children.reduce(function(p, c, i, a) {
             return p + c.iteration
           }, 0)
           delete ctx.split
@@ -1083,7 +1089,7 @@ describe('Sequential', function () {
       {
         iter: 0,
       },
-      function (err, context) {
+      function(err, context) {
         assert.ifError(err)
         assert.strictEqual(context.iter, 5)
         assert.ifError(context.iteration)
@@ -1093,26 +1099,26 @@ describe('Sequential', function () {
   })
 })
 
-describe('Parallel', function () {
-  it('works with default', function (done) {
+describe('Parallel', function() {
+  it('works with default', function(done) {
     var stage = new Parallel()
     assert(stage instanceof Stage)
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.ifError(err)
       // assert.strictEqual(context instanceof Context, true);
       done()
     })
   })
 
-  it('accept config', function (done) {
+  it('accept config', function(done) {
     var st = new Stage()
     var pp = new Parallel(st)
     assert(st === pp.stage)
     done()
   })
 
-  it('accept config', function (done) {
-    var st = function (err, ctx, done) {}
+  it('accept config', function(done) {
+    var st = function(err, ctx, done) {}
     var pp = new Parallel({
       stage: st,
     })
@@ -1120,15 +1126,15 @@ describe('Parallel', function () {
     done()
   })
 
-  it('not used without construction', function (done) {
-    assert.throws(function () {
+  it('not used without construction', function(done) {
+    assert.throws(function() {
       Parallel()
     })
     done()
   })
 
-  it('run stage', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+  it('run stage', function(done) {
+    var stage0 = new Stage(function(err, ctx, done) {
       ctx.iter++
       done()
     })
@@ -1139,40 +1145,40 @@ describe('Parallel', function () {
       {
         iter: 1,
       },
-      function (err, context) {
+      function(err, context) {
         assert.strictEqual(context.iter, 2)
         done()
       },
     )
   })
 
-  it('empty split not run combine', function (done) {
-    var stage0 = new Stage(function (ctx) {})
+  it('empty split not run combine', function(done) {
+    var stage0 = new Stage(function(ctx) {})
     var stage = new Parallel({
       stage: stage0,
-      split: function (ctx) {
+      split: function(ctx) {
         return []
       },
-      combine: function (ctx, children) {
+      combine: function(ctx, children) {
         ctx.combine = true
         return ctx
       },
     })
 
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.strictEqual(!context.combine, true)
       done()
     })
   })
 
-  it('run with empty result of split', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+  it('run with empty result of split', function(done) {
+    var stage0 = new Stage(function(err, ctx, done) {
       ctx.iter++
       done()
     })
     var stage = new Parallel({
       stage: stage0,
-      split: function () {
+      split: function() {
         return null
       },
     })
@@ -1180,15 +1186,15 @@ describe('Parallel', function () {
       {
         iter: 1,
       },
-      function (err, context) {
+      function(err, context) {
         assert.strictEqual(context.iter, 1)
         done()
       },
     )
   })
 
-  it('complex example 1', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+  it('complex example 1', function(done) {
+    var stage0 = new Stage(function(err, ctx, done) {
       ctx.liter = 1
       done()
     })
@@ -1198,7 +1204,7 @@ describe('Parallel', function () {
     var len = ctx.some.length
     var stage = new Parallel({
       stage: stage0,
-      split: function (ctx, iter) {
+      split: function(ctx, iter) {
         var res = []
         var len = ctx.some.length
         for (var i = 0; i < len; i++) {
@@ -1208,7 +1214,7 @@ describe('Parallel', function () {
         }
         return res
       },
-      combine: function (ctx, childs) {
+      combine: function(ctx, childs) {
         var len = childs.length
         ctx.result = 0
         for (var i = 0; i < len; i++) {
@@ -1216,14 +1222,14 @@ describe('Parallel', function () {
         }
       },
     })
-    stage.execute(ctx, function (err, context) {
+    stage.execute(ctx, function(err, context) {
       assert.strictEqual(context.result, 7)
       done()
     })
   })
 
-  it('complex example 1 - Error Handling', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+  it('complex example 1 - Error Handling', function(done) {
+    var stage0 = new Stage(function(err, ctx, done) {
       ctx.liter = 1
       if (ctx.some == 4) done(new Error('4'))
       else if (ctx.some == 5) done(new Error('5'))
@@ -1235,7 +1241,7 @@ describe('Parallel', function () {
     var len = ctx.some.length
     var stage = new Parallel({
       stage: stage0,
-      split: function (ctx, iter) {
+      split: function(ctx, iter) {
         var res = []
         var len = ctx.some.length
         for (var i = 0; i < len; i++) {
@@ -1245,7 +1251,7 @@ describe('Parallel', function () {
         }
         return res
       },
-      combine: function (ctx, childs) {
+      combine: function(ctx, childs) {
         var len = childs.length
         ctx.result = 0
         for (var i = 0; i < len; i++) {
@@ -1253,7 +1259,7 @@ describe('Parallel', function () {
         }
       },
     })
-    stage.execute(ctx, function (err, context) {
+    stage.execute(ctx, function(err, context) {
       assert.strictEqual(err instanceof Error, true)
       assert.strictEqual(err.errors.length, 2)
       assert.strictEqual(!context.result, true)
@@ -1261,8 +1267,8 @@ describe('Parallel', function () {
     })
   })
 
-  it('complex example 2', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+  it('complex example 2', function(done) {
+    var stage0 = new Stage(function(err, ctx, done) {
       ctx.liter = 1
       done()
     })
@@ -1272,7 +1278,7 @@ describe('Parallel', function () {
     var len = ctx.some.length
     var stage = new Parallel({
       stage: stage0,
-      split: function (ctx, iter) {
+      split: function(ctx, iter) {
         var res = []
         var len = ctx.some.length
         for (var i = 0; i < len; i++) {
@@ -1280,7 +1286,7 @@ describe('Parallel', function () {
         }
         return res
       },
-      combine: function (ctx, children) {
+      combine: function(ctx, children) {
         var childs = children
         var len = childs.length
         ctx.result = 0
@@ -1290,23 +1296,23 @@ describe('Parallel', function () {
       },
     })
 
-    stage.execute(ctx, function (err, context) {
+    stage.execute(ctx, function(err, context) {
       assert.strictEqual(context.result, 7)
       done()
     })
   })
 })
 
-describe('if->else', function () {
-  it('simple works', function (done) {
+describe('if->else', function() {
+  it('simple works', function(done) {
     var stage = new IfElse()
     assert(stage instanceof Stage)
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       // assert.strictEqual(context instanceof Context, true);
       done()
     })
   })
-  it('not allows to use constructor as a function', function (done) {
+  it('not allows to use constructor as a function', function(done) {
     try {
       var s = IfElse()
     } catch (err) {
@@ -1314,101 +1320,101 @@ describe('if->else', function () {
     }
   })
 
-  it('simple works sucess', function (done) {
-    var s0 = new Stage(function (err, ctx, done) {
+  it('simple works sucess', function(done) {
+    var s0 = new Stage(function(err, ctx, done) {
       ctx.done = true
       done()
     })
     var stage = new IfElse({
-      condition: function (ctx) {
+      condition: function(ctx) {
         return true
       },
       success: s0,
       failed: new Stage(),
     })
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.strictEqual(context.done, true)
       done()
     })
   })
 
-  it('simple works sucess as function', function (done) {
-    var s0 = function (err, ctx, done) {
+  it('simple works sucess as function', function(done) {
+    var s0 = function(err, ctx, done) {
       ctx.done = true
       done()
     }
     var stage = new IfElse({
-      condition: function (ctx) {
+      condition: function(ctx) {
         return true
       },
       success: s0,
       failed: new Stage(),
     })
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.strictEqual(context.done, true)
       done()
     })
   })
 
-  it('simple works failed', function (done) {
-    var s0 = new Stage(function (err, ctx, done) {
+  it('simple works failed', function(done) {
+    var s0 = new Stage(function(err, ctx, done) {
       ctx.done = true
       done()
     })
 
     var stage = new IfElse({
-      condition: function (ctx) {
+      condition: function(ctx) {
         return false
       },
       failed: s0,
       success: new Stage(),
     })
 
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.strictEqual(context.done, true)
       done()
     })
   })
 
-  it('simple works failed', function (done) {
-    var s0 = function (err, ctx, done) {
+  it('simple works failed', function(done) {
+    var s0 = function(err, ctx, done) {
       ctx.done = true
       done()
     }
 
     var stage = new IfElse({
-      condition: function (ctx) {
+      condition: function(ctx) {
         return false
       },
       failed: s0,
       success: new Stage(),
     })
 
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.strictEqual(context.done, true)
       done()
     })
   })
 })
 
-describe('Wrap', function () {
-  it('works', function (done) {
+describe('Wrap', function() {
+  it('works', function(done) {
     var st1 = new Stage({
-      run: function (ctx) {
+      run: function(ctx) {
         ctx.count++
         ctx.name = 'borrow'
       },
     })
     var wr = new Wrap({
       stage: st1,
-      prepare: function (ctx) {
+      prepare: function(ctx) {
         var retCtx = {
           name: ctx.FullName,
           count: ctx.Retry,
         }
         return retCtx
       },
-      finalize: function (ctx, retCtx) {
+      finalize: function(ctx, retCtx) {
         ctx.Retry = retCtx.count
         return ctx
       },
@@ -1417,7 +1423,7 @@ describe('Wrap', function () {
       FullName: 'NEO',
       Retry: 1,
     })
-    wr.execute(ctx, function (err, retCtx) {
+    wr.execute(ctx, function(err, retCtx) {
       assert(!err)
       assert(ctx.Retry === 2)
       assert(ctx === retCtx)
@@ -1426,63 +1432,63 @@ describe('Wrap', function () {
   })
 })
 
-describe('Timeout', function () {
-  it('not used without construction', function (done) {
-    assert.throws(function () {
+describe('Timeout', function() {
+  it('not used without construction', function(done) {
+    assert.throws(function() {
       Timeout(123)
     })
     done()
   })
 
-  it('not can be used  without confg', function (done) {
-    assert.doesNotThrow(function () {
+  it('not can be used  without confg', function(done) {
+    assert.doesNotThrow(function() {
       var t = new Timeout()
     })
     assert(new Timeout() instanceof Stage)
     done()
   })
 
-  it('works', function (done) {
-    var to = new Timeout(function (err, ctx, done) {
+  it('works', function(done) {
+    var to = new Timeout(function(err, ctx, done) {
       done()
     })
-    to.execute({}, function (err, ctx) {
+    to.execute({}, function(err, ctx) {
       done()
     })
   })
 
-  it('accept stage instances', function (done) {
-    var stg = new Stage(function (err, ctx, done) {
+  it('accept stage instances', function(done) {
+    var stg = new Stage(function(err, ctx, done) {
       done()
     })
     var to = new Timeout(stg)
-    to.execute({}, function (err, ctx) {
+    to.execute({}, function(err, ctx) {
       done()
     })
   })
 
-  it('accepts use default overdue', function (done) {
+  it('accepts use default overdue', function(done) {
     var to = new Timeout({
       timeout: 100,
-      stage: new Stage(function (err, ctx, done) {
-        setTimeout(function () {
+      stage: new Stage(function(err, ctx, done) {
+        setTimeout(function() {
           done()
         }, 10000)
       }),
     })
-    to.execute({}, function (err, ctx) {
+    to.execute({}, function(err, ctx) {
       assert.ok(err)
       done()
     })
   })
 
-  it('timeout can be a function!', function (done) {
+  it('timeout can be a function!', function(done) {
     var to = new Timeout({
-      timeout: function (ctx) {
+      timeout: function(ctx) {
         return ctx.to
       },
-      stage: new Stage(function (err, ctx, done) {
-        setTimeout(function () {
+      stage: new Stage(function(err, ctx, done) {
+        setTimeout(function() {
           done()
         }, 10000)
       }),
@@ -1491,65 +1497,65 @@ describe('Timeout', function () {
       {
         to: 1000,
       },
-      function (err, ctx) {
+      function(err, ctx) {
         assert.ok(err)
         done()
       },
     )
   })
 
-  it('accepts Stages in config', function (done) {
+  it('accepts Stages in config', function(done) {
     var to = new Timeout({
-      stage: new Stage(function (err, ctx, done) {
+      stage: new Stage(function(err, ctx, done) {
         done()
       }),
-      overdue: new Stage(function (err, ctx, done) {
+      overdue: new Stage(function(err, ctx, done) {
         done()
       }),
     })
-    to.execute({}, function (err, ctx) {
+    to.execute({}, function(err, ctx) {
       done()
     })
   })
 
-  it('overdue called', function (done) {
+  it('overdue called', function(done) {
     var to = new Timeout({
       timeout: 100,
-      stage: function (err, ctx, done) {
-        setTimeout(function () {
+      stage: function(err, ctx, done) {
+        setTimeout(function() {
           done()
         }, 10000)
       },
-      overdue: function (err, ctx, done) {
+      overdue: function(err, ctx, done) {
         ctx.overdue = true
         done()
       },
     })
-    to.execute({}, function (err, ctx) {
+    to.execute({}, function(err, ctx) {
       assert.strictEqual(ctx.overdue, true)
       done()
     })
   })
 })
 
-describe('RetryOnError', function () {
-  it('works', function (done) {
+describe('RetryOnError', function() {
+  it('works', function(done) {
     var st = new RetryOnError({
-      run: function (ctx) {
+      run: function(ctx) {
         ctx.works = true
       },
     })
-    st.execute({}, function (err, ctx) {
+    st.execute({}, function(err, ctx) {
       assert.ifError(err)
       assert(ctx.works)
       done()
     })
   })
 
-  it('retry works once by default', function (done) {
+  it('retry works once by default', function(done) {
     var iter = 0
     var st = new RetryOnError({
-      run: function (ctx) {
+      run: function(ctx) {
         ctx.works = true
         if (iter == 0) {
           iter++
@@ -1557,7 +1563,7 @@ describe('RetryOnError', function () {
         }
       },
     })
-    st.execute({}, function (err, ctx) {
+    st.execute({}, function(err, ctx) {
       assert.ifError(err)
       assert(ctx.works)
       assert.strictEqual(iter, 1)
@@ -1565,23 +1571,23 @@ describe('RetryOnError', function () {
     })
   })
 
-  it('retry use custom restore and backup', function (done) {
+  it('retry use custom restore and backup', function(done) {
     var iter = -1
     var st = new RetryOnError({
-      run: function (ctx) {
+      run: function(ctx) {
         ctx.works = true
         if (iter++ < 3) {
           throw new Error('error')
         }
       },
       retry: 4,
-      backup: function (ctx) {
+      backup: function(ctx) {
         ctx.backup++
         return {
           works: ctx.works,
         }
       },
-      restore: function (ctx, backup) {
+      restore: function(ctx, backup) {
         ctx.restore++
         ctx.works = backup.works
       },
@@ -1592,7 +1598,7 @@ describe('RetryOnError', function () {
         backup: 0,
         restore: 0,
       },
-      function (err, ctx) {
+      function(err, ctx) {
         assert.ifError(err)
         assert(ctx.works)
         assert.strictEqual(iter, 4)
@@ -1603,17 +1609,17 @@ describe('RetryOnError', function () {
     )
   })
 
-  it('retry works with rescue', function (done) {
+  it('retry works with rescue', function(done) {
     var st = new RetryOnError({
-      rescue: function (err, ctx) {
+      rescue: function(err, ctx) {
         if (err.message !== 'error') return err
         ctx.rescue = true
       },
-      run: function (ctx) {
+      run: function(ctx) {
         throw new Error('error')
       },
     })
-    st.execute({}, function (err, ctx) {
+    st.execute({}, function(err, ctx) {
       assert.ifError(err)
       assert.ifError(ctx.works)
       assert(ctx.rescue)
@@ -1621,13 +1627,13 @@ describe('RetryOnError', function () {
     })
   })
 
-  it('retry works as function', function (done) {
+  it('retry works as function', function(done) {
     var iter = 0
     var st = new RetryOnError({
-      retry: function (err, ctx, iter) {
+      retry: function(err, ctx, iter) {
         return err.message === 'error'
       },
-      run: function (ctx) {
+      run: function(ctx) {
         if (iter == 0) {
           iter++
           throw new Error('error')
@@ -1635,7 +1641,7 @@ describe('RetryOnError', function () {
         ctx.works = true
       },
     })
-    st.execute({}, function (err, ctx) {
+    st.execute({}, function(err, ctx) {
       assert.ifError(err)
       assert(ctx.works)
       assert.strictEqual(iter, 1)
@@ -1643,11 +1649,11 @@ describe('RetryOnError', function () {
     })
   })
 
-  it('retry works as number', function (done) {
+  it('retry works as number', function(done) {
     var iter = 0
     var st = new RetryOnError({
       retry: 1,
-      run: function (ctx) {
+      run: function(ctx) {
         if (iter == 0) {
           iter++
           throw new Error('error')
@@ -1655,7 +1661,7 @@ describe('RetryOnError', function () {
         ctx.works = true
       },
     })
-    st.execute({}, function (err, ctx) {
+    st.execute({}, function(err, ctx) {
       assert.ifError(err)
       assert(ctx.works)
       assert.strictEqual(iter, 1)
@@ -1664,16 +1670,16 @@ describe('RetryOnError', function () {
   })
 })
 
-describe('MWS', function () {
-  it('works', function (done) {
+describe('MWS', function() {
+  it('works', function(done) {
     var sw = new MultiWaySwitch()
     assert(sw instanceof Stage)
-    sw.execute({}, function (err, ctx) {
+    sw.execute({}, function(err, ctx) {
       done()
     })
   })
 
-  it('not allows to use constructor as a function', function (done) {
+  it('not allows to use constructor as a function', function(done) {
     try {
       var s = MultiWaySwitch()
     } catch (err) {
@@ -1681,27 +1687,27 @@ describe('MWS', function () {
     }
   })
 
-  it('must enter in each pipe works in parallel', function (done) {
+  it('must enter in each pipe works in parallel', function(done) {
     var cnt = 0
     var pipe0 = new Pipeline([
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.p00 = true
         cnt++
         done()
       },
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.p01 = true
         cnt++
         done()
       },
     ])
     var pipe1 = new Pipeline([
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.p10 = true
         cnt++
         done()
       },
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.p11 = true
         cnt++
         done()
@@ -1709,12 +1715,12 @@ describe('MWS', function () {
     ])
     var pipe2 = new Pipeline({
       stages: [
-        function (err, ctx, done) {
+        function(err, ctx, done) {
           ctx.p20 = true
           cnt++
           done()
         },
-        function (err, ctx, done) {
+        function(err, ctx, done) {
           ctx.p21 = true
           cnt++
           done()
@@ -1723,36 +1729,36 @@ describe('MWS', function () {
     })
 
     var sw = new MultiWaySwitch([pipe0, pipe1, pipe2])
-    sw.execute({}, function (err, ctx) {
+    sw.execute({}, function(err, ctx) {
       assert.strictEqual(6, cnt)
       done()
     })
   })
 
-  it('use trace', function (done) {
+  it('use trace', function(done) {
     var sw = new MultiWaySwitch({
       cases: [
         {
-          stage: function (err, ctx, done) {
+          stage: function(err, ctx, done) {
             done()
           },
-          evaluate: function () {
+          evaluate: function() {
             return true
           },
-          split: function (ctx) {
+          split: function(ctx) {
             return ctx.fork()
           },
         },
         {
           stage: {
-            run: function (err, ctx, done) {
+            run: function(err, ctx, done) {
               done()
             },
           },
-          evaluate: function () {
+          evaluate: function() {
             return true
           },
-          split: function (ctx) {
+          split: function(ctx) {
             return ctx.fork()
           },
         },
@@ -1763,58 +1769,58 @@ describe('MWS', function () {
       {
         trace: true,
       },
-      function (err, ctx) {
+      function(err, ctx) {
         done()
       },
     )
   })
 
-  it('use defaults condition as object', function (done) {
+  it('use defaults condition as object', function(done) {
     var sw = new MultiWaySwitch({
       cases: [
         {
-          stage: function (err, ctx, done) {
+          stage: function(err, ctx, done) {
             done()
           },
-          evaluate: function () {
+          evaluate: function() {
             return true
           },
         },
         {
           stage: {
-            run: function (err, ctx, done) {
+            run: function(err, ctx, done) {
               done()
             },
           },
-          evaluate: function () {
+          evaluate: function() {
             return true
           },
         },
       ],
     })
 
-    sw.execute({}, function (err, ctx) {
+    sw.execute({}, function(err, ctx) {
       done()
     })
   })
 
-  it('must enter in each pipe works in parallel', function (done) {
+  it('must enter in each pipe works in parallel', function(done) {
     var pipe0 = new Pipeline([
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt = 1
         done()
       },
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt += 1
         done()
       },
     ])
     var pipe1 = new Pipeline([
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt = 1
         done()
       },
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt += 1
         done()
       },
@@ -1822,10 +1828,10 @@ describe('MWS', function () {
 
     var sw = new MultiWaySwitch({
       cases: [pipe0, pipe1],
-      split: function (ctx) {
+      split: function(ctx) {
         return ctx.fork()
       },
-      combine: function (ctx, retCtx) {
+      combine: function(ctx, retCtx) {
         ctx.size += retCtx.cnt
       },
     })
@@ -1833,30 +1839,30 @@ describe('MWS', function () {
       new Context({
         size: 0,
       }),
-      function (err, ctx) {
+      function(err, ctx) {
         assert.strictEqual(ctx.size, 4)
         done()
       },
     )
   })
 
-  it('exception errors for', function (done) {
+  it('exception errors for', function(done) {
     var pipe0 = new Pipeline([
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt = 1
         done()
       },
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt += 1
         done(new Error())
       },
     ])
     var pipe1 = new Pipeline([
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt = 1
         done()
       },
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt += 1
         done()
       },
@@ -1864,10 +1870,10 @@ describe('MWS', function () {
 
     var sw = new MultiWaySwitch({
       cases: [pipe0, pipe1],
-      split: function (ctx) {
+      split: function(ctx) {
         return ctx.fork()
       },
-      combine: function (ctx, retCtx) {
+      combine: function(ctx, retCtx) {
         ctx.size += retCtx.cnt
       },
     })
@@ -1875,7 +1881,7 @@ describe('MWS', function () {
       new Context({
         size: 0,
       }),
-      function (err, ctx) {
+      function(err, ctx) {
         assert.strictEqual(ctx.size, 2)
         debugger
         assert.strictEqual(err instanceof Error, true)
@@ -1884,23 +1890,23 @@ describe('MWS', function () {
     )
   })
 
-  it('exception errors for 2', function (done) {
+  it('exception errors for 2', function(done) {
     var pipe0 = new Pipeline([
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt = 1
         done()
       },
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt += 1
         done()
       },
     ])
     var pipe1 = new Pipeline([
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt = 1
         done(new Error())
       },
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt += 1
         done()
       },
@@ -1908,13 +1914,13 @@ describe('MWS', function () {
 
     var sw = new MultiWaySwitch({
       cases: [pipe0, pipe1],
-      split: function (ctx) {
+      split: function(ctx) {
         return ctx.fork()
       },
-      combine: function (ctx, retCtx) {
+      combine: function(ctx, retCtx) {
         ctx.size += retCtx.cnt
       },
-      rescue: function (err, ctx) {
+      rescue: function(err, ctx) {
         return err
       },
     })
@@ -1922,7 +1928,7 @@ describe('MWS', function () {
       new Context({
         size: 0,
       }),
-      function (err, ctx) {
+      function(err, ctx) {
         assert.strictEqual(ctx.size, 2)
         assert.strictEqual(err instanceof Error, true)
         done()
@@ -1930,25 +1936,25 @@ describe('MWS', function () {
     )
   })
 
-  it('rescue work as expected 1 ', function (done) {
+  it('rescue work as expected 1 ', function(done) {
     var pipe0 = new Pipeline([
-      function (ctx) {
+      function(ctx) {
         ctx.cnt = 1
       },
-      function (ctx) {
+      function(ctx) {
         ctx.cnt += 1
       },
     ])
 
     var pipe1 = new Pipeline({
-      rescue: function (err, ctx) {
+      rescue: function(err, ctx) {
         return
       },
       stages: [
-        function (ctx) {
+        function(ctx) {
           ctx.cnt = 1
         },
-        function (ctx, done) {
+        function(ctx, done) {
           ctx.cnt += 1
           done('error')
         },
@@ -1957,10 +1963,10 @@ describe('MWS', function () {
 
     var sw = new MultiWaySwitch({
       cases: [pipe0, pipe1],
-      split: function (ctx) {
+      split: function(ctx) {
         return ctx.fork()
       },
-      combine: function (ctx, retCtx) {
+      combine: function(ctx, retCtx) {
         ctx.size += retCtx.cnt
       },
     })
@@ -1968,7 +1974,7 @@ describe('MWS', function () {
       new Context({
         size: 0,
       }),
-      function (err, ctx) {
+      function(err, ctx) {
         assert.strictEqual(ctx.size, 4)
         assert.ifError(err)
         done()
@@ -1976,21 +1982,21 @@ describe('MWS', function () {
     )
   })
 
-  it('rescue work as expected 2', function (done) {
+  it('rescue work as expected 2', function(done) {
     var pipe0 = new Pipeline([
-      function (ctx) {
+      function(ctx) {
         ctx.cnt = 1
       },
-      function (ctx) {
+      function(ctx) {
         ctx.cnt += 1
       },
     ])
     // THIS STAGE WILL BE FAILED
     var pipe1 = new Pipeline([
-      function (ctx) {
+      function(ctx) {
         ctx.cnt = 1
       },
-      function (ctx, done) {
+      function(ctx, done) {
         ctx.cnt += 1
         done(new Error('error'))
       },
@@ -1998,13 +2004,13 @@ describe('MWS', function () {
 
     var sw = new MultiWaySwitch({
       cases: [pipe0, pipe1],
-      split: function (ctx) {
+      split: function(ctx) {
         return ctx.fork()
       },
-      combine: function (ctx, retCtx) {
+      combine: function(ctx, retCtx) {
         ctx.size += retCtx.cnt
       },
-      rescue: function (err, ctx) {
+      rescue: function(err, ctx) {
         return
       },
     })
@@ -2012,7 +2018,7 @@ describe('MWS', function () {
       new Context({
         size: 0,
       }),
-      function (err, ctx) {
+      function(err, ctx) {
         assert.strictEqual(ctx.size, 2)
         assert.ifError(err)
         done()
@@ -2020,27 +2026,84 @@ describe('MWS', function () {
     )
   })
 
-  it('not evaluate if missing evaluate property only if they are strongly evaluate = false', function (done) {
+  it(
+    'not evaluate if missing evaluate property only if they are strongly evaluate = false',
+    function(done) {
+      var pipe0 = new Pipeline([
+        function(err, ctx, done) {
+          ctx.cnt = 1
+          done()
+        },
+        function(err, ctx, done) {
+          ctx.cnt += 1
+          done()
+        },
+      ])
+      var pipe1 = new Pipeline({
+        rescue: function() {
+          return false
+        },
+        stages: [
+          function(err, ctx, done) {
+            ctx.cnt = 1
+            done()
+          },
+          function(err, ctx, done) {
+            ctx.cnt += 1
+            done(new Error('error'))
+          },
+        ],
+      })
+
+      var sw = new MultiWaySwitch({
+        cases: [
+          pipe0,
+          {
+            stage: pipe1,
+            evaluate: false,
+          },
+        ],
+        split: function(ctx) {
+          return ctx.fork()
+        },
+        combine: function(ctx, retCtx) {
+          ctx.size += retCtx.cnt
+        },
+      })
+      sw.execute(
+        new Context({
+          size: 0,
+        }),
+        function(err, ctx) {
+          assert.strictEqual(ctx.size, 2)
+          assert.ifError(err)
+          done()
+        },
+      )
+    },
+  )
+
+  it('evaluate if missing evaluate property', function(done) {
     var pipe0 = new Pipeline([
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt = 1
         done()
       },
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt += 1
         done()
       },
     ])
     var pipe1 = new Pipeline({
-      rescue: function () {
+      rescue: function() {
         return false
       },
       stages: [
-        function (err, ctx, done) {
+        function(err, ctx, done) {
           ctx.cnt = 1
           done()
         },
-        function (err, ctx, done) {
+        function(err, ctx, done) {
           ctx.cnt += 1
           done(new Error('error'))
         },
@@ -2052,13 +2115,12 @@ describe('MWS', function () {
         pipe0,
         {
           stage: pipe1,
-          evaluate: false,
         },
       ],
-      split: function (ctx) {
+      split: function(ctx) {
         return ctx.fork()
       },
-      combine: function (ctx, retCtx) {
+      combine: function(ctx, retCtx) {
         ctx.size += retCtx.cnt
       },
     })
@@ -2066,60 +2128,7 @@ describe('MWS', function () {
       new Context({
         size: 0,
       }),
-      function (err, ctx) {
-        assert.strictEqual(ctx.size, 2)
-        assert.ifError(err)
-        done()
-      },
-    )
-  })
-
-  it('evaluate if missing evaluate property', function (done) {
-    var pipe0 = new Pipeline([
-      function (err, ctx, done) {
-        ctx.cnt = 1
-        done()
-      },
-      function (err, ctx, done) {
-        ctx.cnt += 1
-        done()
-      },
-    ])
-    var pipe1 = new Pipeline({
-      rescue: function () {
-        return false
-      },
-      stages: [
-        function (err, ctx, done) {
-          ctx.cnt = 1
-          done()
-        },
-        function (err, ctx, done) {
-          ctx.cnt += 1
-          done(new Error('error'))
-        },
-      ],
-    })
-
-    var sw = new MultiWaySwitch({
-      cases: [
-        pipe0,
-        {
-          stage: pipe1,
-        },
-      ],
-      split: function (ctx) {
-        return ctx.fork()
-      },
-      combine: function (ctx, retCtx) {
-        ctx.size += retCtx.cnt
-      },
-    })
-    sw.execute(
-      new Context({
-        size: 0,
-      }),
-      function (err, ctx) {
+      function(err, ctx) {
         assert.strictEqual(ctx.size, 4)
         assert.ifError(err)
         done()
@@ -2127,27 +2136,27 @@ describe('MWS', function () {
     )
   })
 
-  it('individual exception handler work', function (done) {
+  it('individual exception handler work', function(done) {
     var pipe0 = new Pipeline([
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt = 1
         done()
       },
-      function (err, ctx, done) {
+      function(err, ctx, done) {
         ctx.cnt += 1
         done()
       },
     ])
     var pipe1 = new Pipeline({
-      rescue: function () {
+      rescue: function() {
         return false
       },
       stages: [
-        function (err, ctx, done) {
+        function(err, ctx, done) {
           ctx.cnt = 1
           done()
         },
-        function (err, ctx, done) {
+        function(err, ctx, done) {
           ctx.cnt += 1
           done(new Error())
         },
@@ -2162,10 +2171,10 @@ describe('MWS', function () {
           evaluate: true,
         },
       ],
-      split: function (ctx) {
+      split: function(ctx) {
         return ctx.fork()
       },
-      combine: function (ctx, retCtx) {
+      combine: function(ctx, retCtx) {
         ctx.size += retCtx.cnt
       },
     })
@@ -2173,7 +2182,7 @@ describe('MWS', function () {
       new Context({
         size: 0,
       }),
-      function (err, ctx) {
+      function(err, ctx) {
         assert.strictEqual(ctx.size, 4)
         assert.ifError(err)
         done()
@@ -2181,73 +2190,73 @@ describe('MWS', function () {
     )
   })
 
-  it('empty split run combine', function (done) {
-    var stage0 = new Stage(function (ctx) {})
+  it('empty split run combine', function(done) {
+    var stage0 = new Stage(function(ctx) {})
     var stage = new MultiWaySwitch({
       cases: [stage0],
-      split: function (ctx) {
+      split: function(ctx) {
         return []
       },
-      combine: function (ctx, children) {
+      combine: function(ctx, children) {
         ctx.combine = true
         return ctx
       },
     })
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.strictEqual(context.combine, true)
       done()
     })
   })
 
-  it('not throw any expections if there is no actions to do', function (done) {
+  it('not throw any expections if there is no actions to do', function(done) {
     var sw = new MultiWaySwitch({
       cases: [
         {
           evaluate: false,
-          stage: new Stage(function (err, ctx, done) {
+          stage: new Stage(function(err, ctx, done) {
             done()
           }),
         },
         {
           evaluate: false,
-          stage: new Stage(function (err, ctx, done) {
+          stage: new Stage(function(err, ctx, done) {
             done()
           }),
         },
       ],
     })
-    sw.execute({}, function (err, ctx) {
+    sw.execute({}, function(err, ctx) {
       assert.ifError(err)
       done()
     })
   })
 
-  it('can use function to define stage', function (done) {
+  it('can use function to define stage', function(done) {
     var sw = new MultiWaySwitch({
       cases: [
         {
           evaluate: false,
-          stage: new Stage(function (err, ctx, done) {
+          stage: new Stage(function(err, ctx, done) {
             done()
           }),
         },
         {
           evaluate: true,
-          stage: function (err, ctx, done) {
+          stage: function(err, ctx, done) {
             done()
           },
         },
       ],
     })
-    sw.execute({}, function (err, ctx) {
+    sw.execute({}, function(err, ctx) {
       assert.ifError(err)
       done()
     })
   })
 })
 
-describe('inheritence', function () {
-  it('override property', function (done) {
+describe('inheritence', function() {
+  it('override property', function(done) {
     var ctx = {
       db: {
         connection: 'localhost',
@@ -2275,8 +2284,8 @@ describe('inheritence', function () {
   })
 })
 
-describe('Utils', function () {
-  it('getClass works', function (done) {
+describe('Utils', function() {
+  it('getClass works', function(done) {
     var v = new Stage()
     var p = new Pipeline()
     var c = new Context()
@@ -2287,36 +2296,36 @@ describe('Utils', function () {
   })
 })
 
-describe('Complex', function () {
-  describe('throwing exceptoins', function () {
-    it('pipelie + stages', function (done) {
+describe('Complex', function() {
+  describe('throwing exceptoins', function() {
+    it('pipelie + stages', function(done) {
       var pipe = new Pipeline()
       pipe.addStage(
         new Stage({
-          run: function (ctx) {
+          run: function(ctx) {
             ctx.step1 = true
           },
         }),
       )
       pipe.addStage(
         new Pipeline({
-          rescue: function (err, ctx) {
+          rescue: function(err, ctx) {
             if (err.message !== 'error') return err
             ctx.rescue1 = true
           },
           stages: [
             new Stage({
-              run: function () {
+              run: function() {
                 this.step2 = true
               },
             }),
             new Stage({
-              run: function (ctx) {
+              run: function(ctx) {
                 throw new Error('error')
               },
             }),
             new Stage({
-              run: function (ctx) {
+              run: function(ctx) {
                 ctx.step3 = true
               },
             }),
@@ -2325,7 +2334,7 @@ describe('Complex', function () {
       )
       pipe.addStage(
         new Stage({
-          run: function (ctx) {
+          run: function(ctx) {
             ctx.step4 = true
           },
         }),
@@ -2335,16 +2344,16 @@ describe('Complex', function () {
         new IfElse({
           failed: new Stage({
             name: 'failure',
-            rescue: function (err, ctx) {
+            rescue: function(err, ctx) {
               if (err.message !== 'error') return err
               ctx.rescue2 = true
             },
-            run: function () {
+            run: function() {
               throw new Error('error')
             },
           }),
-          success: new Stage(function () {}),
-          condition: function () {
+          success: new Stage(function() {}),
+          condition: function() {
             return false
           },
         }),
@@ -2352,17 +2361,17 @@ describe('Complex', function () {
 
       pipe.addStage(
         new IfElse({
-          rescue: function (err, ctx) {
+          rescue: function(err, ctx) {
             if (err.message !== 'error') return err
             ctx.rescue3 = true
           },
           failed: new Stage({
-            run: function () {
+            run: function() {
               throw new Error('error')
             },
           }),
-          success: new Stage(function () {}),
-          condition: function () {
+          success: new Stage(function() {}),
+          condition: function() {
             return false
           },
         }),
@@ -2370,19 +2379,19 @@ describe('Complex', function () {
 
       pipe.addStage(
         new Wrap({
-          rescue: function (err, ctx) {
+          rescue: function(err, ctx) {
             if (err.message !== 'error') return err
             ctx.rescue4 = true
           },
           stage: new Stage({
-            run: function (ctx) {
+            run: function(ctx) {
               throw new Error('error')
             },
           }),
         }),
       )
 
-      pipe.execute({}, function (err, ctx) {
+      pipe.execute({}, function(err, ctx) {
         assert.ifError(err)
         assert(ctx.step1)
         assert(ctx.step2)
@@ -2398,73 +2407,73 @@ describe('Complex', function () {
   })
 })
 
-describe('DoWhile', function () {
-  it('works with default', function (done) {
+describe('DoWhile', function() {
+  it('works with default', function(done) {
     var stage = new DoWhile()
     assert(stage instanceof Stage)
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       assert.ifError(err)
       // assert.strictEqual(context instanceof Context, true);
       done()
     })
   })
 
-  it('rescue', function (done) {
+  it('rescue', function(done) {
     var pipe = new Pipeline()
     var st = new Stage({
-      run: function (err, ctx, done) {
+      run: function(err, ctx, done) {
         throw new Error('error')
       },
-      rescue: function (err, conext) {
+      rescue: function(err, conext) {
         if (err.message !== 'error') return err
       },
     })
     pipe.addStage(st)
-    pipe.execute({}, function (err, ctx) {
+    pipe.execute({}, function(err, ctx) {
       assert.ifError(err)
       done()
     })
   })
 
-  it('works with config as Stage', function (done) {
+  it('works with config as Stage', function(done) {
     var stage = new DoWhile(
-      new Stage(function (err, ctx, done) {
+      new Stage(function(err, ctx, done) {
         done()
       }),
     )
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       // assert.strictEqual(context instanceof Context, true);
       done()
     })
   })
 
-  it('works with config as Stage', function (done) {
+  it('works with config as Stage', function(done) {
     var stage = new DoWhile({
-      stage: function (err, ctx, done) {
+      stage: function(err, ctx, done) {
         done()
       },
     })
-    stage.execute({}, function (err, context) {
+    stage.execute({}, function(err, context) {
       // assert.strictEqual(context instanceof Context, true);
       done()
     })
   })
 
-  it('not allows to use constructor as a function', function (done) {
+  it('not allows to use constructor as a function', function(done) {
     try {
       var s = DoWhile()
     } catch (err) {
       done()
     }
   })
-  it('run stage', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+  it('run stage', function(done) {
+    var stage0 = new Stage(function(err, ctx, done) {
       ctx.iter++
       done()
     })
     var stage = new DoWhile({
       stage: stage0,
-      reachEnd: function (err, ctx, iter) {
+      reachEnd: function(err, ctx, iter) {
         return err || iter == 10
       },
     })
@@ -2472,32 +2481,32 @@ describe('DoWhile', function () {
       {
         iter: -1,
       },
-      function (err, context) {
+      function(err, context) {
         assert.strictEqual(context.iter, 9)
         done()
       },
     )
   })
 
-  it('prepare context -> moved to Wrap', function (done) {
-    var stage0 = new Stage(function (ctx) {
+  it('prepare context -> moved to Wrap', function(done) {
+    var stage0 = new Stage(function(ctx) {
       ctx.iteration++
     })
     var stage = new Wrap({
-      prepare: function (ctx) {
+      prepare: function(ctx) {
         return {
           iteration: ctx.iter,
         }
       },
-      finalize: function (ctx, retCtx) {
+      finalize: function(ctx, retCtx) {
         ctx.iter = retCtx.iteration
       },
       stage: new DoWhile({
         stage: stage0,
-        split: function (ctx, iter) {
+        split: function(ctx, iter) {
           return ctx
         },
-        reachEnd: function (err, ctx, iter) {
+        reachEnd: function(err, ctx, iter) {
           return err || iter == 10
         },
       }),
@@ -2507,7 +2516,7 @@ describe('DoWhile', function () {
       {
         iter: 0,
       },
-      function (err, context) {
+      function(err, context) {
         assert.strictEqual(context.iter, 10)
         assert.ifError(context.iteration)
         done()
@@ -2515,9 +2524,9 @@ describe('DoWhile', function () {
     )
   })
 
-  it('complex example 1', function (done) {
+  it('complex example 1', function(done) {
     var stage0 = new Stage({
-      run: function (ctx) {
+      run: function(ctx) {
         result++
       },
     })
@@ -2528,20 +2537,20 @@ describe('DoWhile', function () {
     var result = 0
     var stage = new DoWhile({
       stage: stage0,
-      reachEnd: function (err, ctx, iter) {
+      reachEnd: function(err, ctx, iter) {
         return err || iter == len
       },
     })
 
-    stage.execute(ctx, function (err, context) {
+    stage.execute(ctx, function(err, context) {
       assert.strictEqual(result, 7)
       done()
     })
   })
 
-  it('complex example 1 error handling', function (done) {
+  it('complex example 1 error handling', function(done) {
     var stage0 = new Stage({
-      run: function (ctx, done) {
+      run: function(ctx, done) {
         ctx.liter = 1
         if (ctx.iter === 4) done(new Error())
         else done()
@@ -2553,29 +2562,29 @@ describe('DoWhile', function () {
     var len = ctx.some.length
     var stage = new DoWhile({
       stage: stage0,
-      split: function (ctx, iter) {
+      split: function(ctx, iter) {
         return {
           iter: ctx.some[iter],
         }
       },
-      reachEnd: function (err, ctx, iter) {
+      reachEnd: function(err, ctx, iter) {
         return err || iter == len
       },
     })
 
-    stage.execute(ctx, function (err, context) {
+    stage.execute(ctx, function(err, context) {
       assert.strictEqual(!context.result, true)
       done()
     })
   })
 
-  it('cheks context as well', function (done) {
+  it('cheks context as well', function(done) {
     var stage0 = new Stage({
-      validate: function (ctx) {
+      validate: function(ctx) {
         if (ctx.iter > 5) return new Error('error')
         return true
       },
-      run: function (ctx, done) {
+      run: function(ctx, done) {
         ctx.liter = 1
         done()
       },
@@ -2586,26 +2595,26 @@ describe('DoWhile', function () {
     var len = ctx.some.length
     var stage = new DoWhile({
       stage: stage0,
-      split: function (ctx, iter) {
+      split: function(ctx, iter) {
         return {
           iter: ctx.some[iter],
         }
       },
-      reachEnd: function (err, ctx, iter) {
+      reachEnd: function(err, ctx, iter) {
         return err || iter == len
       },
     })
-    stage.execute(ctx, function (err, context) {
+    stage.execute(ctx, function(err, context) {
       assert.strictEqual(err.message, 'error')
       done()
     })
   })
 })
 
-describe('Empty', function () {
-  it('Works', function (done) {
+describe('Empty', function() {
+  it('Works', function(done) {
     var stg = new Empty()
-    stg.execute({}, function (err, ctx) {
+    stg.execute({}, function(err, ctx) {
       assert(!err)
       done()
     })

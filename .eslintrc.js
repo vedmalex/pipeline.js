@@ -23,4 +23,4 @@ module.exports = {
     'no-return-await': 'warn',
     'require-await': 'warn',
   },
-};
+}

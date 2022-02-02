@@ -1,5 +1,5 @@
 import { Stage } from './stage';
-import { SingleStageFunction, StageConfig, StageRun, Func2Sync, Func3Sync, AnyStage, Possible } from './utils/types';
+import { AnyStage, Func2Sync, Func3Sync, Possible, SingleStageFunction, StageConfig, StageRun } from './utils/types';
 export interface DoWhileConfig<T, R> extends StageConfig<T, R> {
     stage: AnyStage<any, any> | SingleStageFunction<any, any>;
     split?: Func2Sync<any, Possible<T>, number>;

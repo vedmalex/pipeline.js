@@ -1,9 +1,9 @@
 import { Stage } from './stage'
 import {
-  getEmptyConfig,
-  StageConfig,
   AllowedStage,
   AnyStage,
+  getEmptyConfig,
+  StageConfig,
 } from './utils/types'
 export class Empty<T, R = T> extends Stage<T, StageConfig<T, R>, R> {
   constructor(config: AllowedStage<T, StageConfig<T, R>, R>) {

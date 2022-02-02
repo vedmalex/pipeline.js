@@ -1,10 +1,10 @@
 import { Stage } from './stage'
-import { getWrapConfig, Possible } from './utils/types'
 import { run_or_execute } from './utils/run_or_execute'
+import { getWrapConfig, Possible } from './utils/types'
 import {
+  AllowedStage,
   CallbackFunction,
   StageRun,
-  AllowedStage,
   WrapConfig,
 } from './utils/types'
 

@@ -1,6 +1,6 @@
 import { Stage } from './stage';
-import { AllowedStage, Func1, Func1Sync, Func2Sync, RunPipelineFunction, AnyStage } from './utils/types';
-import { StageConfig, StageRun, Possible } from './utils/types';
+import { AllowedStage, AnyStage, Func1, Func1Sync, Func2Sync, RunPipelineFunction } from './utils/types';
+import { Possible, StageConfig, StageRun } from './utils/types';
 export declare type MultiWaySwitchCase<T, R> = MultiWaySwitchStatic<T, R> | MultiWaySwitchDynamic<T, R>;
 export interface MultiWaySwitchStatic<T, R> {
     stage: AnyStage<T, R> | RunPipelineFunction<T, R>;

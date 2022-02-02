@@ -1,1 +1,1 @@
-global.pipelinejs = require('./index');
+global.pipelinejs = require('./index')

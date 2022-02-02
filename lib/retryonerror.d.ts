@@ -1,6 +1,6 @@
 import { Stage } from './stage';
-import { AllowedStage, RunPipelineFunction, AnyStage, Possible } from './utils/types';
-import { StageConfig, StageRun, Func3 } from './utils/types';
+import { AllowedStage, AnyStage, Possible, RunPipelineFunction } from './utils/types';
+import { Func3, StageConfig, StageRun } from './utils/types';
 export interface RetryOnErrorConfig<T, R> extends StageConfig<T, R> {
     stage: AnyStage<T, R> | RunPipelineFunction<T, R>;
     retry: number | Func3<boolean, Possible<Error>, Possible<T>, number>;

@@ -2,14 +2,14 @@ import { Stage } from './stage'
 import { CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
-  SingleStageFunction,
+  AnyStage,
   CallbackFunction,
-  StageConfig,
-  StageRun,
   Func2Sync,
   Func3Sync,
-  AnyStage,
   Possible,
+  SingleStageFunction,
+  StageConfig,
+  StageRun,
 } from './utils/types'
 
 export interface DoWhileConfig<T, R> extends StageConfig<T, R> {

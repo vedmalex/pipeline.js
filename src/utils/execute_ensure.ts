@@ -1,4 +1,6 @@
 import { CreateError } from './ErrorList'
+import { ERROR } from './errors'
+import { process_error } from './process_error'
 import {
   CallbackFunction,
   EnsureFunction,
@@ -6,12 +8,10 @@ import {
   is_thenable,
   Thanable,
 } from './types'
-import { is_func2, is_func1_async, is_func1 } from './types'
+import { is_func1, is_func1_async, is_func2 } from './types'
 import { Func1Async } from './types'
-import { ERROR } from './errors'
-import { process_error } from './process_error'
 
-export function execute_ensure<T>(
+export function execute_ensure<T> (
   ensure: EnsureFunction<T>,
   context: T,
   done: CallbackFunction<T>,
@@ -21,8 +21,8 @@ export function execute_ensure<T>(
       if (is_func1_async(ensure)) {
         try {
           ;(ensure as Func1Async<T, T>)(context)
-            .then(res => done(undefined, res))
-            .catch(err => done(err))
+            .then((res) => done(undefined, res))
+            .catch((err) => done(err))
         } catch (err) {
           process_error(err, done)
         }
@@ -32,9 +32,9 @@ export function execute_ensure<T>(
             context,
           )
           if (res instanceof Promise) {
-            res.then(res => done(undefined, res)).catch(err => done(err))
+            res.then((res) => done(undefined, res)).catch((err) => done(err))
           } else if (is_thenable(res)) {
-            res.then(res => done(undefined, res)).catch(err => done(err))
+            res.then((res) => done(undefined, res)).catch((err) => done(err))
           } else {
             done(undefined, res)
           }

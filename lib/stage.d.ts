@@ -1,4 +1,4 @@
-import { AllowedStage, CallbackFunction, EnsureFunction, StageConfig, StageRun, ValidateFunction, Possible } from './utils/types';
+import { AllowedStage, CallbackFunction, EnsureFunction, Possible, StageConfig, StageRun, ValidateFunction } from './utils/types';
 export declare class Stage<T, C extends StageConfig<T, R>, R = T> {
     get config(): C;
     protected _config: C;

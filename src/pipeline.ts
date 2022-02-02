@@ -1,14 +1,14 @@
-import { run_or_execute } from './utils/run_or_execute'
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
+import { run_or_execute } from './utils/run_or_execute'
 import { AnyStage, getPipelinConfig, Possible } from './utils/types'
 import {
+  AllowedStage,
   CallbackFunction,
   PipelineConfig,
-  StageRun,
-  StageConfig,
   RunPipelineFunction,
-  AllowedStage,
+  StageConfig,
+  StageRun,
 } from './utils/types'
 
 /**
@@ -82,7 +82,7 @@ export class Pipeline<T, R = T> extends Stage<T, PipelineConfig<T, R>, R> {
       done: CallbackFunction<R>,
     ) => {
       let i = -1
-      //sequential run;
+      // sequential run;
       let next = (err: Possible<Error>, ctx: unknown) => {
         i += 1
         if (!err && i < this.config.stages.length) {

@@ -1,22 +1,22 @@
 import { Stage } from './stage'
+import { CreateError } from './utils/ErrorList'
+import { run_or_execute } from './utils/run_or_execute'
 import {
   AllowedStage,
+  AnyStage,
   Func1,
   Func1Sync,
   Func2Sync,
   getStageConfig,
   isRunPipelineFunction,
   RunPipelineFunction,
-  AnyStage,
 } from './utils/types'
 import {
   CallbackFunction,
+  Possible,
   StageConfig,
   StageRun,
-  Possible,
 } from './utils/types'
-import { CreateError } from './utils/ErrorList'
-import { run_or_execute } from './utils/run_or_execute'
 
 export type MultiWaySwitchCase<T, R> =
   | MultiWaySwitchStatic<T, R>
@@ -36,14 +36,14 @@ export interface MultiWaySwitchDynamic<T, R> {
   combine?: Func2Sync<Possible<R>, Possible<T>, any>
 }
 
-export function isMultiWaySwitch<T, R>(
+export function isMultiWaySwitch<T, R> (
   inp: unknown,
 ): inp is MultiWaySwitchCase<T, R> {
   return (
-    typeof inp == 'object' &&
-    inp != null &&
-    'stage' in inp &&
-    isRunPipelineFunction((inp as { stage: any })['stage'])
+    typeof inp == 'object'
+    && inp != null
+    && 'stage' in inp
+    && isRunPipelineFunction((inp as { stage: any })['stage'])
   )
 }
 
@@ -57,12 +57,12 @@ export type AllowedMWS<T, C, R> =
   | AllowedStage<T, C, R>
   | Array<Stage<T, C, R> | RunPipelineFunction<T, R> | MultiWaySwitchCase<T, R>>
 
-export function getMultWaySwitchConfig<T, R>(
+export function getMultWaySwitchConfig<T, R> (
   config: AllowedMWS<T, Partial<MultWaySwitchConfig<T, R>>, R>,
 ): MultWaySwitchConfig<T, R> {
   if (Array.isArray(config)) {
     return {
-      cases: config.map(item => {
+      cases: config.map((item) => {
         let res: MultiWaySwitchCase<T, R>
         if (isRunPipelineFunction(item)) {
           res = { stage: item, evaluate: true }
@@ -193,8 +193,8 @@ export class MultiWaySwitch<T, R = T> extends Stage<
           caseItem.stage = caseItem.stage
         }
         if (
-          !(caseItem.stage instanceof Stage) &&
-          typeof caseItem.stage == 'object'
+          !(caseItem.stage instanceof Stage)
+          && typeof caseItem.stage == 'object'
         ) {
           caseItem.stage = new Stage(caseItem.stage)
         }
@@ -214,8 +214,8 @@ export class MultiWaySwitch<T, R = T> extends Stage<
           caseItem.evaluate
           dynamics.push(caseItem as MultiWaySwitchDynamic<T, R>)
         } else if (
-          typeof caseItem.evaluate === 'boolean' &&
-          caseItem.evaluate
+          typeof caseItem.evaluate === 'boolean'
+          && caseItem.evaluate
         ) {
           statics.push(caseItem as MultiWaySwitchStatic<T, R>)
         }
@@ -253,11 +253,12 @@ export class MultiWaySwitch<T, R = T> extends Stage<
             res = this.combineCase(cur, ctx, retCtx)
           }
 
-          if (iter >= actuals.length)
+          if (iter >= actuals.length) {
             return done(
               hasError ? CreateError(errors) : undefined,
               res ?? (ctx as unknown as R),
             )
+          }
         }
       }
       let stg

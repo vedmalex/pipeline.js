@@ -1,15 +1,15 @@
-import {
-  CallbackFunction,
-  ParallelConfig,
-  AllowedStage,
-  StageRun,
-  getParallelConfig,
-  Possible,
-} from './utils/types'
 import { Stage } from './stage'
+import { empty_run } from './utils/empty_run'
 import { CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
-import { empty_run } from './utils/empty_run'
+import {
+  AllowedStage,
+  CallbackFunction,
+  getParallelConfig,
+  ParallelConfig,
+  Possible,
+  StageRun,
+} from './utils/types'
 
 /**
  * Process staging in parallel way
@@ -18,7 +18,7 @@ import { empty_run } from './utils/empty_run'
  * - `stage`
  * 		evaluating stage
  * - `split`
- *		function that split existing stage into smalls parts, it needed
+ * 		function that split existing stage into smalls parts, it needed
  * - `combine`
  * 		if any result combining is need, this can be used to combine splited parts and update context
  *

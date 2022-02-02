@@ -1,13 +1,13 @@
 import 'jest'
+import { Stage } from '../stage'
 import { empty_run } from '../utils/empty_run'
 import { run_or_execute } from '../utils/run_or_execute'
-import { Stage } from '../stage'
 import {
-  StageConfig,
-  SingleStageFunction,
-  RunPipelineFunction,
-  StageRun,
   CallbackFunction,
+  RunPipelineFunction,
+  SingleStageFunction,
+  StageConfig,
+  StageRun,
 } from '../utils/types'
 
 describe('stage', () => {
@@ -16,11 +16,11 @@ describe('stage', () => {
     expect(() =>
       st.execute({}, (err, context) => {
         throw new Error('error')
-      }),
+      })
     ).toThrow()
   })
 
-  it('empty run', done => {
+  it('empty run', (done) => {
     new Stage().execute({}, (err, res) => {
       expect(err).not.toBeUndefined()
       expect(res).toMatchObject({})

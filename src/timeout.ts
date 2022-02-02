@@ -1,12 +1,12 @@
 import { Stage } from './stage'
+import { run_or_execute } from './utils/run_or_execute'
 import { AllowedStage, getTimeoutConfig } from './utils/types'
 import {
   CallbackFunction,
+  Possible,
   StageRun,
   TimeoutConfig,
-  Possible,
 } from './utils/types'
-import { run_or_execute } from './utils/run_or_execute'
 
 export class Timeout<T, R = T> extends Stage<T, TimeoutConfig<T, R>, R> {
   constructor(config?: AllowedStage<T, TimeoutConfig<T, R>, R>) {
@@ -31,7 +31,7 @@ export class Timeout<T, R = T> extends Stage<T, TimeoutConfig<T, R>, R> {
       done: CallbackFunction<R>,
     ) => {
       let to: any
-      let localDone = function (err: Possible<Error>, retCtx: Possible<R>) {
+      let localDone = function(err: Possible<Error>, retCtx: Possible<R>) {
         if (to) {
           clearTimeout(to)
           to = null

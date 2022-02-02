@@ -1,6 +1,6 @@
 import { Possible } from './types'
 
-export function CreateError<T extends { message: string }>(
+export function CreateError<T extends { message: string }> (
   err: string | T | null | undefined | (string | T | null | undefined)[],
 ): Possible<ComplexError> {
   if (typeof err == 'string') {
@@ -10,8 +10,8 @@ export function CreateError<T extends { message: string }>(
     if (Array.isArray(err)) {
       let result: Array<Possible<Error>> = []
       err
-        .filter(e => e)
-        .forEach(ler => {
+        .filter((e) => e)
+        .forEach((ler) => {
           const res = CreateError(ler)
           if (res) {
             if ('isComplex' in res && res.errors) {
@@ -31,6 +31,7 @@ export function CreateError<T extends { message: string }>(
       return err as unknown as Error
     }
   }
+  new Error('unknown error, see console for details')
 }
 
 export type ComplexError = Error & {
@@ -38,9 +39,9 @@ export type ComplexError = Error & {
   errors?: Array<ComplexError>
 }
 
-function ErrorList(_list: Array<any>): ComplexError {
+function ErrorList (_list: Array<any>): ComplexError {
   let errors
-  const list = _list.filter(e => e)
+  const list = _list.filter((e) => e)
   if (list.length > 1) {
     errors = list
   } else if ((list.length = 1)) {

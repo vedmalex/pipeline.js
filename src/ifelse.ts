@@ -1,8 +1,8 @@
 import { Stage } from './stage'
-import { AllowedStage, IfElseConfig, getIfElseConfig } from './utils/types'
-import { CallbackFunction, StageRun, Possible } from './utils/types'
-import { run_or_execute } from './utils/run_or_execute'
 import { execute_validate } from './utils/execute_validate'
+import { run_or_execute } from './utils/run_or_execute'
+import { AllowedStage, getIfElseConfig, IfElseConfig } from './utils/types'
+import { CallbackFunction, Possible, StageRun } from './utils/types'
 
 export class IfElse<T, R = T> extends Stage<T, IfElseConfig<T, R>, R> {
   constructor(config?: AllowedStage<T, IfElseConfig<T, R>, R>) {
@@ -32,21 +32,25 @@ export class IfElse<T, R = T> extends Stage<T, IfElseConfig<T, R>, R> {
           context,
           (err: Possible<Error>, condition: Possible<boolean>) => {
             if (condition) {
-              if (this.config.success)
+              if (this.config.success) {
                 run_or_execute(this.config.success, err, context, done)
+              }
             } else {
-              if (this.config.failed)
+              if (this.config.failed) {
                 run_or_execute(this.config.failed, err, context, done)
+              }
             }
           },
         )
       } else if (typeof this.config.condition == 'boolean') {
         if (this.config.condition) {
-          if (this.config.success)
+          if (this.config.success) {
             run_or_execute(this.config.success, err, context, done)
+          }
         } else {
-          if (this.config.failed)
+          if (this.config.failed) {
             run_or_execute(this.config.failed, err, context, done)
+          }
         }
       } else {
         if (this.config.success) {

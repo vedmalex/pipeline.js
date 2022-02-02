@@ -2,11 +2,11 @@ import { execute_callback } from './execute_callback'
 import {
   AnyStage,
   CallbackFunction,
-  RunPipelineFunction,
   Possible,
+  RunPipelineFunction,
 } from './types'
 
-export function run_or_execute<T, R, RC, RRET>(
+export function run_or_execute<T, R, RC, RRET> (
   stage: AnyStage<T, R> | RunPipelineFunction<T, R>,
   err: Possible<Error>,
   context: Possible<RC>,

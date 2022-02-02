@@ -1,4 +1,7 @@
 import { CreateError } from './ErrorList'
+import { ERROR } from './errors'
+import { process_error } from './process_error'
+import { run_callback_once } from './run_callback_once'
 import {
   CallbackFunction,
   Func1Sync,
@@ -7,26 +10,23 @@ import {
   is_func3,
   is_func3_async,
   is_thenable,
+  Possible,
   RunPipelineFunction,
   StageRun,
   Thanable,
-  Possible,
 } from './types'
 import {
   is_func0,
-  is_func2,
   is_func0_async,
-  is_func1_async,
   is_func1,
+  is_func1_async,
+  is_func2,
 } from './types'
-import { Func2Async, Func3Sync, Func1Async } from './types'
-import { process_error } from './process_error'
-import { ERROR } from './errors'
-import { run_callback_once } from './run_callback_once'
+import { Func1Async, Func2Async, Func3Sync } from './types'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
 
-export function execute_custom_run<T, R>(
+export function execute_custom_run<T, R> (
   run: RunPipelineFunction<T, R>,
 ): StageRun<T, R> {
   return (
@@ -41,7 +41,7 @@ export function execute_custom_run<T, R>(
         if (is_func0_async<R>(run)) {
           try {
             const res = run.call(context)
-            res.then(r => done(undefined, r)).catch(err => done(err))
+            res.then((r) => done(undefined, r)).catch((err) => done(err))
           } catch (err) {
             process_error(err, done)
           }
@@ -49,9 +49,9 @@ export function execute_custom_run<T, R>(
           try {
             const res = run.apply(context)
             if (res instanceof Promise) {
-              res.then(r => done(undefined, r)).catch(err => done(err))
+              res.then((r) => done(undefined, r)).catch((err) => done(err))
             } else if (is_thenable<R>(res)) {
-              res.then(r => done(undefined, r)).catch(err => done(err))
+              res.then((r) => done(undefined, r)).catch((err) => done(err))
             } else {
               done(undefined, res)
             }
@@ -64,8 +64,8 @@ export function execute_custom_run<T, R>(
         if (is_func1_async(run)) {
           try {
             ;(run as Func1Async<R, Possible<T>>)(context)
-              .then(ctx => done(undefined, ctx))
-              .catch(err => done(err))
+              .then((ctx) => done(undefined, ctx))
+              .catch((err) => done(err))
           } catch (err) {
             process_error(err, done)
           }
@@ -75,9 +75,9 @@ export function execute_custom_run<T, R>(
               run as Func1Sync<R | Promise<R> | Thanable<R>, Possible<T>>
             )(context)
             if (res instanceof Promise) {
-              res.then(r => done(undefined, r)).catch(err => done(err))
+              res.then((r) => done(undefined, r)).catch((err) => done(err))
             } else if (is_thenable<R>(res)) {
-              res.then(r => done(undefined, r)).catch(err => done(err))
+              res.then((r) => done(undefined, r)).catch((err) => done(err))
             } else {
               done(undefined, res)
             }
@@ -92,8 +92,8 @@ export function execute_custom_run<T, R>(
         if (is_func2_async(run)) {
           try {
             ;(run as Func2Async<R, Possible<Error>, Possible<T>>)(err, context)
-              .then(ctx => done(undefined, ctx))
-              .catch(err => done(err))
+              .then((ctx) => done(undefined, ctx))
+              .catch((err) => done(err))
           } catch (err) {
             process_error(err, done)
           }

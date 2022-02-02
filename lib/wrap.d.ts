@@ -1,6 +1,6 @@
 import { Stage } from './stage';
 import { Possible } from './utils/types';
-import { StageRun, AllowedStage, WrapConfig } from './utils/types';
+import { AllowedStage, StageRun, WrapConfig } from './utils/types';
 export declare class Wrap<T, R = T> extends Stage<T, WrapConfig<T, R>, R> {
     constructor(config?: AllowedStage<T, WrapConfig<T, R>, R>);
     get reportName(): string;

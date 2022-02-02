@@ -4,21 +4,21 @@ import {
   CallbackFunction,
   EnsureFunction,
   getStageConfig,
+  Possible,
   RunPipelineFunction,
   StageConfig,
   StageRun,
   ValidateFunction,
-  Possible,
 } from './utils/types'
 
-import { execute_ensure } from './utils/execute_ensure'
-import { execute_validate } from './utils/execute_validate'
-import { execute_rescue } from './utils/execute_rescue'
-import { execute_callback } from './utils/execute_callback'
-import { can_fix_error } from './utils/can_fix_error'
-import { execute_custom_run } from './utils/execute_custom_run'
-import { isStageRun, Rescue } from './utils/types'
 import { Context } from './context'
+import { can_fix_error } from './utils/can_fix_error'
+import { execute_callback } from './utils/execute_callback'
+import { execute_custom_run } from './utils/execute_custom_run'
+import { execute_ensure } from './utils/execute_ensure'
+import { execute_rescue } from './utils/execute_rescue'
+import { execute_validate } from './utils/execute_validate'
+import { isStageRun, Rescue } from './utils/types'
 
 // make possibility to context be immutable for debug purposes
 
@@ -97,7 +97,7 @@ export class Stage<T, C extends StageConfig<T, R>, R = T> {
 
     if (arguments.length == 1) {
       context = _err as T
-      //promise
+      // promise
     } else if (arguments.length == 2) {
       if (typeof _context == 'function') {
         // callback
@@ -105,7 +105,7 @@ export class Stage<T, C extends StageConfig<T, R>, R = T> {
         err = undefined
         __callback = _context as CallbackFunction<R>
       } else {
-        //promise
+        // promise
         err = _err as Error
         context = _context as T
       }
