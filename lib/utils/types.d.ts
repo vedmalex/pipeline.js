@@ -1,11 +1,11 @@
 import { JSONSchemaType } from 'ajv';
 import { Stage } from '../stage';
-import { Parallel } from 'src/parallel';
-import { Pipeline } from 'src/pipeline';
 import { DoWhile } from '../dowhile';
 import { Empty } from '../empty';
 import { IfElse } from '../ifelse';
 import { MultiWaySwitch } from '../multiwayswitch';
+import { Parallel } from '../parallel';
+import { Pipeline } from '../pipeline';
 import { RetryOnError } from '../retryonerror';
 import { Sequential } from '../sequential';
 import { Timeout } from '../timeout';
