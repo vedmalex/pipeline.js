@@ -1,7 +1,7 @@
 {
   "name": "pipeline.js",
   "description": "Pipeline.js - async workflow framework for node.js and browser",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "author": {
     "name": "Alex Vedmedenko",
     "email": "vedmalex@gmail.com"
@@ -17,7 +17,7 @@
     "ajv-formats": "^2.1.0",
     "ajv-keywords": "^5.0.0",
     "colors": "1.4.0",
-    "comparator.js": "1.2.0",
+    "comparator.js": "^1.2.2",
     "debug": "4.3.1",
     "fte.js": "^2.1.0",
     "js-schema": "1.0.1",
