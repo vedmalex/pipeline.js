@@ -1,17 +1,17 @@
 import { Possible } from './types'
 
-export function CreateError<T extends { message: string }> (
+export function CreateError<T extends { message: string }>(
   err: string | T | null | undefined | (string | T | null | undefined)[],
 ): Possible<ComplexError> {
   if (typeof err == 'string') {
-    return new Error(err)
+    return new ComplexError({ message: err })
   }
   if (typeof err == 'object') {
     if (Array.isArray(err)) {
       let result: Array<Possible<Error>> = []
       err
-        .filter((e) => e)
-        .forEach((ler) => {
+        .filter(e => e)
+        .forEach(ler => {
           const res = CreateError(ler)
           if (res) {
             if ('isComplex' in res && res.errors) {
@@ -22,26 +22,46 @@ export function CreateError<T extends { message: string }> (
           }
         })
       if (result.length > 1) {
-        return ErrorList(result)
+        return ErrorList(result as any)
       }
       if (result.length === 1) {
-        return result[0]
+        return result[0] as any
       }
+    } else if (err) {
+      return new ComplexError(err)
     } else {
-      return err as unknown as Error
+      return err as unknown as ComplexError
     }
   }
   new Error('unknown error, see console for details')
 }
 
-export type ComplexError = Error & {
-  isComplex?: Boolean
-  errors?: Array<ComplexError>
+// export type ComplexError = Error & {
+//   isComplex?: Boolean
+//   errors?: Array<ComplexError>
+// }
+
+export class ComplexError<
+  T extends { [key: string]: any } = any,
+> extends Error {
+  payload: T
+  isComplex: boolean;
+  [key: string]: any
+  constructor(payload: T) {
+    super()
+    this.payload = payload
+    this.isComplex = true
+    Object.keys(payload).forEach(f => {
+      this[f] = payload[f]
+    })
+  }
 }
 
-function ErrorList (_list: Array<any>): ComplexError {
-  let errors
-  const list = _list.filter((e) => e)
+function ErrorList<T extends { [key: string]: any }>(
+  _list: Array<ComplexError<T>>,
+): ComplexError<T> | null {
+  let errors: Array<ComplexError>
+  const list = _list.filter(e => e)
   if (list.length > 1) {
     errors = list
   } else if ((list.length = 1)) {
@@ -49,8 +69,5 @@ function ErrorList (_list: Array<any>): ComplexError {
   } else {
     return null as any
   }
-  const error = errors[0]
-  error.errors = errors
-  error.isComplex = true
-  return error
+  return new ComplexError<any>({ errors })
 }

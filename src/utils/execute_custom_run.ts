@@ -26,14 +26,15 @@ import { Func1Async, Func2Async, Func3Sync } from './types'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
 
-export function execute_custom_run<T, R> (
+export function execute_custom_run<T, R>(
   run: RunPipelineFunction<T, R>,
 ): StageRun<T, R> {
-  return (
+  return function (
+    this: any,
     err: Possible<Error>,
     context: Possible<T>,
     _done: CallbackFunction<R>,
-  ) => {
+  ) {
     const done = run_callback_once(_done)
     switch (run.length) {
       // this is the context of the run function
@@ -41,7 +42,7 @@ export function execute_custom_run<T, R> (
         if (is_func0_async<R>(run)) {
           try {
             const res = run.call(context)
-            res.then((r) => done(undefined, r)).catch((err) => done(err))
+            res.then(r => done(undefined, r)).catch(err => done(err))
           } catch (err) {
             process_error(err, done)
           }
@@ -49,9 +50,9 @@ export function execute_custom_run<T, R> (
           try {
             const res = run.apply(context)
             if (res instanceof Promise) {
-              res.then((r) => done(undefined, r)).catch((err) => done(err))
+              res.then(r => done(undefined, r)).catch(err => done(err))
             } else if (is_thenable<R>(res)) {
-              res.then((r) => done(undefined, r)).catch((err) => done(err))
+              res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
               done(undefined, res)
             }
@@ -64,8 +65,8 @@ export function execute_custom_run<T, R> (
         if (is_func1_async(run)) {
           try {
             ;(run as Func1Async<R, Possible<T>>)(context)
-              .then((ctx) => done(undefined, ctx))
-              .catch((err) => done(err))
+              .then(ctx => done(undefined, ctx))
+              .catch(err => done(err))
           } catch (err) {
             process_error(err, done)
           }
@@ -73,11 +74,11 @@ export function execute_custom_run<T, R> (
           try {
             const res = (
               run as Func1Sync<R | Promise<R> | Thanable<R>, Possible<T>>
-            )(context)
+            ).call(this, context)
             if (res instanceof Promise) {
-              res.then((r) => done(undefined, r)).catch((err) => done(err))
+              res.then(r => done(undefined, r)).catch(err => done(err))
             } else if (is_thenable<R>(res)) {
-              res.then((r) => done(undefined, r)).catch((err) => done(err))
+              res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
               done(undefined, res)
             }
@@ -91,15 +92,17 @@ export function execute_custom_run<T, R> (
       case 2:
         if (is_func2_async(run)) {
           try {
-            ;(run as Func2Async<R, Possible<Error>, Possible<T>>)(err, context)
-              .then((ctx) => done(undefined, ctx))
-              .catch((err) => done(err))
+            ;(run as Func2Async<R, Possible<Error>, Possible<T>>)
+              .call(this, err, context)
+              .then(ctx => done(undefined, ctx))
+              .catch(err => done(err))
           } catch (err) {
             process_error(err, done)
           }
         } else if (is_func2(run)) {
           try {
-            ;(run as Func2Sync<void, Possible<T>, CallbackFunction<R>>)(
+            ;(run as Func2Sync<void, Possible<T>, CallbackFunction<R>>).call(
+              this,
               context,
               done,
             )
@@ -113,11 +116,9 @@ export function execute_custom_run<T, R> (
       case 3:
         if (is_func3(run) && !is_func3_async(run)) {
           try {
-            ;(run as Func3Sync<void, Error, Possible<T>, CallbackFunction<R>>)(
-              err as Error,
-              context,
-              done,
-            )
+            ;(
+              run as Func3Sync<void, Error, Possible<T>, CallbackFunction<R>>
+            ).call(this, err as Error, context, done)
           } catch (err) {
             process_error(err, done)
           }
