@@ -68,7 +68,7 @@ export class Sequential<T, R = T> extends Stage<T, ParallelConfig<T, R>, R> {
         ctx: Possible<T>,
         done: CallbackFunction<R>,
       ) => {
-        var iter = -1
+        var iter = 0
         var children = this.split ? this.split(ctx) : [ctx]
         var len = children ? children.length : 0
 
