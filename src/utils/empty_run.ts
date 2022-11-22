@@ -1,6 +1,6 @@
-import { CallbackFunction, Possible } from './types'
+import { CallbackFunction, Possible, StageObject } from './types'
 
-export function empty_run<T, R> (
+export function empty_run<T extends StageObject, R>(
   err: Possible<Error>,
   context: Possible<T>,
   done: CallbackFunction<R>,

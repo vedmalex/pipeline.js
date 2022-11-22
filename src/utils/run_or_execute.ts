@@ -4,9 +4,10 @@ import {
   CallbackFunction,
   Possible,
   RunPipelineFunction,
+  StageObject,
 } from './types'
 
-export function run_or_execute<T, R, RC, RRET> (
+export function run_or_execute<T extends StageObject, R, RC, RRET>(
   stage: AnyStage<T, R> | RunPipelineFunction<T, R>,
   err: Possible<Error>,
   context: Possible<RC>,

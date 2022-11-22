@@ -1,6 +1,6 @@
 import { Stage } from './stage'
 import { run_or_execute } from './utils/run_or_execute'
-import { getWrapConfig, Possible } from './utils/types'
+import { getWrapConfig, Possible, StageObject } from './utils/types'
 import {
   AllowedStage,
   CallbackFunction,
@@ -8,7 +8,11 @@ import {
   WrapConfig,
 } from './utils/types'
 
-export class Wrap<T, R = T> extends Stage<T, WrapConfig<T, R>, R> {
+export class Wrap<T extends StageObject, R = T> extends Stage<
+  T,
+  WrapConfig<T, R>,
+  R
+> {
   constructor(config?: AllowedStage<T, WrapConfig<T, R>, R>) {
     super()
     if (config) {
@@ -32,7 +36,7 @@ export class Wrap<T, R = T> extends Stage<T, WrapConfig<T, R>, R> {
     ) => {
       const ctx = this.prepare(context)
       if (this.config.stage) {
-        run_or_execute<unknown, unknown, unknown, unknown>(
+        run_or_execute<object, unknown, unknown, unknown>(
           this.config.stage,
           err,
           ctx,

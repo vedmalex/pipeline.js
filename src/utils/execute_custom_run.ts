@@ -12,6 +12,7 @@ import {
   is_thenable,
   Possible,
   RunPipelineFunction,
+  StageObject,
   StageRun,
   Thanable,
 } from './types'
@@ -26,7 +27,7 @@ import { Func1Async, Func2Async, Func3Sync } from './types'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
 
-export function execute_custom_run<T, R>(
+export function execute_custom_run<T extends StageObject, R>(
   run: RunPipelineFunction<T, R>,
 ): StageRun<T, R> {
   return function (

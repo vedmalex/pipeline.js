@@ -1,10 +1,19 @@
 import { Stage } from './stage'
 import { execute_validate } from './utils/execute_validate'
 import { run_or_execute } from './utils/run_or_execute'
-import { AllowedStage, getIfElseConfig, IfElseConfig } from './utils/types'
+import {
+  AllowedStage,
+  getIfElseConfig,
+  IfElseConfig,
+  StageObject,
+} from './utils/types'
 import { CallbackFunction, Possible, StageRun } from './utils/types'
 
-export class IfElse<T, R = T> extends Stage<T, IfElseConfig<T, R>, R> {
+export class IfElse<T extends StageObject, R = T> extends Stage<
+  T,
+  IfElseConfig<T, R>,
+  R
+> {
   constructor(config?: AllowedStage<T, IfElseConfig<T, R>, R>) {
     super()
     if (config) {

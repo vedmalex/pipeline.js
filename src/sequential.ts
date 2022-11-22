@@ -7,6 +7,7 @@ import {
   getParallelConfig,
   ParallelConfig,
   Possible,
+  StageObject,
   StageRun,
 } from './utils/types'
 
@@ -27,7 +28,11 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Sequential<T, R = T> extends Stage<T, ParallelConfig<T, R>, R> {
+export class Sequential<T extends StageObject, R = T> extends Stage<
+  T,
+  ParallelConfig<T, R>,
+  R
+> {
   constructor(config?: AllowedStage<T, ParallelConfig<T, R>, R>) {
     super()
     if (config) {

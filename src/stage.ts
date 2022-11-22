@@ -7,6 +7,7 @@ import {
   Possible,
   RunPipelineFunction,
   StageConfig,
+  StageObject,
   StageRun,
   ValidateFunction,
 } from './utils/types'
@@ -22,7 +23,7 @@ import { isStageRun, Rescue } from './utils/types'
 
 // make possibility to context be immutable for debug purposes
 
-export class Stage<T, C extends StageConfig<T, R>, R = T> {
+export class Stage<T extends StageObject, C extends StageConfig<T, R>, R = T> {
   public get config(): C {
     return this._config
   }
@@ -57,7 +58,7 @@ export class Stage<T, C extends StageConfig<T, R>, R = T> {
     callback: CallbackFunction<R>,
   ) {
     if (err || err_) {
-      if (this.config.run && !can_fix_error(this.config.run)) {
+      if (this.config.run && !can_fix_error({ run: this.config.run })) {
         this.rescue<T>(
           CreateError([err, err_]),
           ctx ?? context,
@@ -152,7 +153,11 @@ export class Stage<T, C extends StageConfig<T, R>, R = T> {
           }
         }
 
-        if (err && this._config.run && !can_fix_error(this._config.run)) {
+        if (
+          err &&
+          this._config.run &&
+          !can_fix_error({ run: this._config.run })
+        ) {
           this.rescue(err, context as unknown as Possible<R>, fail, sucess)
         } else {
           if (this.config.ensure) {

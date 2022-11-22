@@ -1,7 +1,12 @@
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
 import { run_or_execute } from './utils/run_or_execute'
-import { AnyStage, getPipelinConfig, Possible } from './utils/types'
+import {
+  AnyStage,
+  getPipelinConfig,
+  Possible,
+  StageObject,
+} from './utils/types'
 import {
   AllowedStage,
   CallbackFunction,
@@ -24,7 +29,11 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Pipeline<T, R = T> extends Stage<T, PipelineConfig<T, R>, R> {
+export class Pipeline<T extends StageObject, R = T> extends Stage<
+  T,
+  PipelineConfig<T, R>,
+  R
+> {
   constructor(
     config?:
       | AllowedStage<T, PipelineConfig<T, R>, R>
@@ -42,25 +51,25 @@ export class Pipeline<T, R = T> extends Stage<T, PipelineConfig<T, R>, R> {
     return `PIPE:${this.config.name ? this.config.name : ''}`
   }
 
-  addStage<IT, IR>(
+  addStage<IT extends StageObject, IR>(
     _stage:
       | StageConfig<IT, IR>
       | RunPipelineFunction<IT, IR>
       | AnyStage<IT, IR>,
   ) {
     let stage:
-      | AnyStage<unknown, unknown>
-      | RunPipelineFunction<unknown, unknown>
+      | AnyStage<object, unknown>
+      | RunPipelineFunction<object, unknown>
       | undefined
     if (typeof _stage === 'function') {
-      stage = _stage as RunPipelineFunction<unknown, unknown>
+      stage = _stage as RunPipelineFunction<object, unknown>
     } else {
       if (typeof _stage === 'object') {
         if (_stage instanceof Stage) {
-          stage = _stage as AnyStage<unknown, unknown>
+          stage = _stage as AnyStage<object, unknown>
         } else {
-          stage = new Stage<unknown, StageConfig<unknown, unknown>, unknown>(
-            _stage as StageConfig<unknown, unknown>,
+          stage = new Stage<object, StageConfig<object, unknown>, unknown>(
+            _stage,
           )
         }
       }
@@ -87,7 +96,7 @@ export class Pipeline<T, R = T> extends Stage<T, PipelineConfig<T, R>, R> {
         i += 1
         if (!err && i < this.config.stages.length) {
           const st = this.config.stages[i]
-          run_or_execute<unknown, unknown, unknown, unknown>(
+          run_or_execute<object, unknown, unknown, unknown>(
             st,
             err,
             ctx ?? context,

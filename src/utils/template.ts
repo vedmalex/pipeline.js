@@ -5,16 +5,20 @@ import {
   AnyStage,
   getStageConfig,
   RunPipelineFunction,
+  StageObject,
 } from './types'
 import { CallbackFunction, Possible, StageConfig, StageRun } from './types'
 
-export interface TemplateConfig<T, R> extends StageConfig<T, R> {
+export interface TemplateConfig<T extends StageObject, R>
+  extends StageConfig<T, R> {
   stage: AnyStage<T, R> | RunPipelineFunction<T, R>
 }
 
-export function getTemplateConfig<T, C extends TemplateConfig<T, R>, R> (
-  config: AllowedStage<T, C, R>,
-): C {
+export function getTemplateConfig<
+  T extends StageObject,
+  C extends TemplateConfig<T, R>,
+  R,
+>(config: AllowedStage<T, C, R>): C {
   const res = getStageConfig(config)
   if (res instanceof Stage) {
     return { stage: res } as C
@@ -35,11 +39,11 @@ export function getTemplateConfig<T, C extends TemplateConfig<T, R>, R> (
   return res
 }
 
-export class Template<T, C extends TemplateConfig<T, R>, R> extends Stage<
-  T,
-  C,
-  R
-> {
+export class Template<
+  T extends StageObject,
+  C extends TemplateConfig<T, R>,
+  R,
+> extends Stage<T, C, R> {
   constructor(config?: AllowedStage<T, C, R>) {
     super()
     if (config) {

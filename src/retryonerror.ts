@@ -10,10 +10,12 @@ import {
   getStageConfig,
   Possible,
   RunPipelineFunction,
+  StageObject,
 } from './utils/types'
 import { CallbackFunction, Func3, StageConfig, StageRun } from './utils/types'
 
-export interface RetryOnErrorConfig<T, R> extends StageConfig<T, R> {
+export interface RetryOnErrorConfig<T extends StageObject, R>
+  extends StageConfig<T, R> {
   stage: AnyStage<T, R> | RunPipelineFunction<T, R>
   retry: number | Func3<boolean, Possible<Error>, Possible<T>, number>
   backup?: (ctx: Possible<T>) => Possible<T>
@@ -21,12 +23,10 @@ export interface RetryOnErrorConfig<T, R> extends StageConfig<T, R> {
 }
 
 export function getRetryOnErrorConfig<
-  T,
+  T extends StageObject,
   C extends RetryOnErrorConfig<T, R>,
   R,
-> (
-  config: AllowedStage<T, C, R>,
-): C {
+>(config: AllowedStage<T, C, R>): C {
   const res = getStageConfig<T, C, R>(config)
   if (res instanceof Stage) {
     return { stage: res } as C
@@ -60,7 +60,7 @@ export function getRetryOnErrorConfig<
   return res
 }
 
-export class RetryOnError<T, R = T> extends Stage<
+export class RetryOnError<T extends StageObject, R = T> extends Stage<
   T,
   RetryOnErrorConfig<T, R>,
   R

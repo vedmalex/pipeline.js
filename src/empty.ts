@@ -4,8 +4,13 @@ import {
   AnyStage,
   getEmptyConfig,
   StageConfig,
+  StageObject,
 } from './utils/types'
-export class Empty<T, R = T> extends Stage<T, StageConfig<T, R>, R> {
+export class Empty<T extends StageObject, R = T> extends Stage<
+  T,
+  StageConfig<T, R>,
+  R
+> {
   constructor(config: AllowedStage<T, StageConfig<T, R>, R>) {
     super()
     const res = getEmptyConfig(config)
