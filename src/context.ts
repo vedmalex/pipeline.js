@@ -74,9 +74,13 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
     }
   }
   public static isContext<T extends StageObject>(
-    obj?: any,
+    obj?: unknown,
   ): obj is IContextProxy<T> {
-    return obj ? obj[ContextSymbol] : false
+    if (typeof obj == 'object') {
+      return obj ? obj.hasOwnProperty(ContextSymbol) : false
+    } else {
+      return false
+    }
   }
   protected ctx: T
   protected proxy: any
@@ -122,9 +126,9 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
           ;(target.ctx as any)[key] = value
           return true
         } else if (
-          typeof key == 'string'
-          && key in RESERVED
-          && RESERVED[key as keyof typeof RESERVED] != RESERVATIONS.prop
+          typeof key == 'string' &&
+          key in RESERVED &&
+          RESERVED[key as keyof typeof RESERVED] != RESERVATIONS.prop
         ) {
           return false
         } else {
@@ -140,6 +144,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         }
       },
       has(target: Context<T>, key: string | symbol) {
+        if (key === ContextSymbol) return true
         if (!(key in RESERVED)) {
           if (target.__parent) {
             return key in target.ctx || key in target.__parent
@@ -238,8 +243,8 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
   hasChild<C>(ctx: ContextType<C>): boolean {
     if (Context.isContext(ctx) && ctx.__parent) {
       return (
-        ctx.__parent == (this.proxy as unknown as ContextType<C>)
-        || (this.proxy as unknown as ContextType<C>) == ctx
+        ctx.__parent == (this.proxy as unknown as ContextType<C>) ||
+        (this.proxy as unknown as ContextType<C>) == ctx
       )
     } else {
       return false
@@ -248,8 +253,8 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
   hasSubtree<C>(ctx: ContextType<C>): boolean {
     if (Context.isContext(ctx) && ctx.__root) {
       return (
-        ctx.__root == (this.proxy as unknown as ContextType<C>)
-        || (this.proxy as unknown as ContextType<C>) == ctx
+        ctx.__root == (this.proxy as unknown as ContextType<C>) ||
+        (this.proxy as unknown as ContextType<C>) == ctx
       )
     } else {
       return false
