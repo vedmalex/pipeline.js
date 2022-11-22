@@ -194,7 +194,7 @@ export type EnsureFunction<T> =
 export function isEnsureFunction<T>(inp: any): inp is EnsureFunction<T> {
   return is_func1(inp) || is_func1_async(inp) || is_func2(inp)
 }
-export interface StageConfig<T extends StageObject, R> {
+export interface StageConfig<T extends StageObject, R extends StageObject> {
   run?: RunPipelineFunction<T, R>
   name?: string
   rescue?: Rescue<T>
@@ -208,14 +208,12 @@ export interface StageConfig<T extends StageObject, R> {
   precompile?<C extends StageConfig<T, R>>(this: C): void
 }
 
-export interface PipelineConfig<T extends StageObject, R>
+export interface PipelineConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T, R> {
-  stages: Array<
-    AnyStage<object, unknown> | RunPipelineFunction<object, unknown>
-  >
+  stages: Array<AnyStage<object, object> | RunPipelineFunction<object, object>>
 }
 
-export interface ParallelConfig<T extends StageObject, R>
+export interface ParallelConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T, R> {
   stage: AnyStage<T, R> | RunPipelineFunction<T, R>
   split?: Func1Sync<Array<R>, Possible<T>>
@@ -237,13 +235,13 @@ export type StageRun<T extends StageObject, R> = (
 export type AllowedStage<
   T extends StageObject,
   C extends StageConfig<T, R>,
-  R,
+  R extends StageObject,
 > = string | C | RunPipelineFunction<T, R> | AnyStage<T, R>
 
 export function isAllowedStage<
   T extends StageObject,
   C extends StageConfig<T, R>,
-  R,
+  R extends StageObject,
 >(inp: any): inp is AllowedStage<T, C, R> {
   return (
     isRunPipelineFunction(inp) ||
@@ -256,7 +254,7 @@ export function isAllowedStage<
 export function getStageConfig<
   T extends StageObject,
   C extends StageConfig<T, R>,
-  R,
+  R extends StageObject,
 >(config: AllowedStage<T, C, R>): C | AnyStage<T, R> {
   let result: C = {} as C
   if (typeof config == 'string') {
@@ -320,7 +318,7 @@ export function getStageConfig<
 export function getNameFrom<
   T extends StageObject,
   C extends StageConfig<T, R>,
-  R,
+  R extends StageObject,
 >(config: C): string {
   let result: string = ''
   if (!config.name && config.run) {
@@ -336,11 +334,11 @@ export function getNameFrom<
   return result
 }
 
-export type AllowedPipeline<T extends StageObject, R> =
+export type AllowedPipeline<T extends StageObject, R extends StageObject> =
   | AllowedStage<T, PipelineConfig<T, R>, R>
   | Array<RunPipelineFunction<T, R> | AnyStage<T, R>>
 
-export function getPipelinConfig<T extends StageObject, R>(
+export function getPipelinConfig<T extends StageObject, R extends StageObject>(
   config: AllowedPipeline<T, R>,
 ): PipelineConfig<T, R> {
   if (Array.isArray(config)) {
@@ -348,11 +346,11 @@ export function getPipelinConfig<T extends StageObject, R>(
       stages: config.map(
         (
           item,
-        ): AnyStage<object, unknown> | RunPipelineFunction<object, unknown> => {
+        ): AnyStage<object, object> | RunPipelineFunction<object, object> => {
           if (isRunPipelineFunction(item)) {
-            return item as RunPipelineFunction<object, unknown>
+            return item as RunPipelineFunction<object, object>
           } else if (item instanceof Stage) {
-            return item as AnyStage<object, unknown>
+            return item as AnyStage<object, object>
           } else {
             throw CreateError('not suitable type for array in pipeline')
           }
@@ -372,13 +370,13 @@ export function getPipelinConfig<T extends StageObject, R>(
         throw CreateError(" don't use run and stage both ")
       }
       if (config.run) {
-        res.stages = [config.run as RunPipelineFunction<object, unknown>]
+        res.stages = [config.run as RunPipelineFunction<object, object>]
       }
       if (config.stages) {
         res.stages = config.stages
       }
     } else if (typeof config == 'function' && res.run) {
-      res.stages = [res.run as RunPipelineFunction<object, unknown>]
+      res.stages = [res.run as RunPipelineFunction<object, object>]
       delete res.run
     }
     if (!res.stages) res.stages = []
@@ -386,7 +384,7 @@ export function getPipelinConfig<T extends StageObject, R>(
   }
 }
 
-export function getParallelConfig<T extends StageObject, R>(
+export function getParallelConfig<T extends StageObject, R extends StageObject>(
   config: AllowedStage<T, ParallelConfig<T, R>, R>,
 ): ParallelConfig<T, R> {
   const res = getStageConfig<T, ParallelConfig<T, R>, R>(config)
@@ -415,13 +413,13 @@ export function getParallelConfig<T extends StageObject, R>(
   return res
 }
 
-export function getEmptyConfig<T extends StageObject, R>(
+export function getEmptyConfig<T extends StageObject, R extends StageObject>(
   config: AllowedStage<T, StageConfig<T, R>, R>,
 ): AnyStage<T, R> | StageConfig<T, R> {
   const res = getStageConfig(config)
 
   if (res instanceof Stage) {
-    return res as unknown as AnyStage<T, R>
+    return res as object as AnyStage<T, R>
   } else {
     res.run = empty_run
   }
@@ -429,17 +427,17 @@ export function getEmptyConfig<T extends StageObject, R>(
   return res
 }
 
-export interface WrapConfig<T extends StageObject, R>
+export interface WrapConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T, R> {
-  stage: AnyStage<object, unknown> | RunPipelineFunction<object, unknown>
-  prepare: (ctx: Possible<T>) => unknown
-  finalize: (ctx: Possible<T>, retCtx: unknown) => Possible<R>
+  stage: AnyStage<object, object> | RunPipelineFunction<object, object>
+  prepare: (ctx: Possible<T>) => object
+  finalize: (ctx: Possible<T>, retCtx: object) => Possible<R>
 }
 
 export function getWrapConfig<
   T extends StageObject,
   C extends WrapConfig<T, R>,
-  R,
+  R extends StageObject,
 >(config: AllowedStage<T, C, R>): C {
   const res = getStageConfig<T, C, R>(config)
   if (res instanceof Stage) {
@@ -465,14 +463,14 @@ export function getWrapConfig<
   return res
 }
 
-export interface TimeoutConfig<T extends StageObject, R>
+export interface TimeoutConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T, R> {
   timeout?: number | Func1Sync<number, Possible<T>>
   stage?: AnyStage<T, R> | RunPipelineFunction<T, R>
   overdue?: AnyStage<T, R> | RunPipelineFunction<T, R>
 }
 
-export function getTimeoutConfig<T extends StageObject, R>(
+export function getTimeoutConfig<T extends StageObject, R extends StageObject>(
   config: AllowedStage<T, TimeoutConfig<T, R>, R>,
 ): TimeoutConfig<T, R> {
   const res = getStageConfig<T, TimeoutConfig<T, R>, R>(config)
@@ -497,7 +495,7 @@ export function getTimeoutConfig<T extends StageObject, R>(
   return res
 }
 
-export interface IfElseConfig<T extends StageObject, R>
+export interface IfElseConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T, R> {
   condition?: boolean | ValidateFunction<T>
   success?: AnyStage<T, R> | RunPipelineFunction<T, R>
@@ -507,7 +505,7 @@ export interface IfElseConfig<T extends StageObject, R>
 export function getIfElseConfig<
   T extends StageObject,
   C extends IfElseConfig<T, R>,
-  R,
+  R extends StageObject,
 >(config: AllowedStage<T, C, R>): C {
   const res = getStageConfig<T, C, R>(config)
   if (res instanceof Stage) {
@@ -543,7 +541,7 @@ export function getIfElseConfig<
   return res
 }
 
-export type AnyStage<T extends StageObject, R> =
+export type AnyStage<T extends StageObject, R extends StageObject> =
   | Stage<T, StageConfig<T, R>, R>
   | DoWhile<T, R>
   | Empty<T, R>

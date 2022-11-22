@@ -6,7 +6,7 @@ export declare enum RESERVATIONS {
     func_this = 1,
     func_ctx = 2
 }
-export declare type ContextType<T> = IContextProxy<T> & T;
+export type ContextType<T> = IContextProxy<T> & T;
 export interface IContextProxy<T> {
     getParent(): ContextType<T>;
     getRoot(): ContextType<T>;
@@ -15,13 +15,13 @@ export interface IContextProxy<T> {
     toJSON(): string;
     toObject(clean?: boolean): T;
     toString(): string;
-    fork<C>(config: C): ContextType<T & C>;
+    fork<C extends StageObject>(config: C): ContextType<T & C>;
     get(path: string): any;
     [key: string]: any;
 }
 export declare class Context<T extends StageObject> implements IContextProxy<T> {
-    static ensure<T>(_config?: Partial<T>): ContextType<T>;
-    static isContext<T extends StageObject>(obj?: any): obj is IContextProxy<T>;
+    static ensure<T extends StageObject>(_config?: Partial<T>): ContextType<T>;
+    static isContext<T extends StageObject>(obj?: unknown): obj is IContextProxy<T>;
     protected ctx: T;
     protected proxy: any;
     protected __parent: ContextType<T>;
@@ -29,7 +29,7 @@ export declare class Context<T extends StageObject> implements IContextProxy<T> 
     protected __stack?: string[];
     protected id: number;
     constructor(config: T);
-    fork<C>(ctx: C): ContextType<T & C>;
+    fork<C extends StageObject>(ctx: C): ContextType<T & C>;
     addChild<C>(child: ContextType<C>): ContextType<C>;
     get(path: string): any;
     addSubtree<C>(lctx: ContextType<C>): ContextType<C>;

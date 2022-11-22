@@ -28,11 +28,10 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Sequential<T extends StageObject, R = T> extends Stage<
-  T,
-  ParallelConfig<T, R>,
-  R
-> {
+export class Sequential<
+  T extends StageObject,
+  R extends StageObject = T,
+> extends Stage<T, ParallelConfig<T, R>, R> {
   constructor(config?: AllowedStage<T, ParallelConfig<T, R>, R>) {
     super()
     if (config) {

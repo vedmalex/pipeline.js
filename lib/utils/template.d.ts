@@ -1,11 +1,11 @@
 import { Stage } from '../stage';
-import { AllowedStage, AnyStage, RunPipelineFunction } from './types';
+import { AllowedStage, AnyStage, RunPipelineFunction, StageObject } from './types';
 import { StageConfig, StageRun } from './types';
-export interface TemplateConfig<T, R> extends StageConfig<T, R> {
+export interface TemplateConfig<T extends StageObject, R extends StageObject> extends StageConfig<T, R> {
     stage: AnyStage<T, R> | RunPipelineFunction<T, R>;
 }
-export declare function getTemplateConfig<T, C extends TemplateConfig<T, R>, R>(config: AllowedStage<T, C, R>): C;
-export declare class Template<T, C extends TemplateConfig<T, R>, R> extends Stage<T, C, R> {
+export declare function getTemplateConfig<T extends StageObject, C extends TemplateConfig<T, R>, R extends StageObject>(config: AllowedStage<T, C, R>): C;
+export declare class Template<T extends StageObject, C extends TemplateConfig<T, R>, R extends StageObject> extends Stage<T, C, R> {
     constructor(config?: AllowedStage<T, C, R>);
     get reportName(): string;
     toString(): string;

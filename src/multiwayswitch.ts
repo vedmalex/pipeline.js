@@ -19,26 +19,32 @@ import {
   StageRun,
 } from './utils/types'
 
-export type MultiWaySwitchCase<T extends StageObject, R> =
+export type MultiWaySwitchCase<T extends StageObject, R extends StageObject> =
   | MultiWaySwitchStatic<T, R>
   | MultiWaySwitchDynamic<T, R>
 
-export interface MultiWaySwitchStatic<T extends StageObject, R> {
+export interface MultiWaySwitchStatic<
+  T extends StageObject,
+  R extends StageObject,
+> {
   stage: AnyStage<T, R> | RunPipelineFunction<T, R>
   evaluate?: boolean
   split?: Func1Sync<any, Possible<T>>
   combine?: Func2Sync<Possible<R>, Possible<T>, any>
 }
 
-export interface MultiWaySwitchDynamic<T extends StageObject, R> {
+export interface MultiWaySwitchDynamic<
+  T extends StageObject,
+  R extends StageObject,
+> {
   stage: AnyStage<T, R> | RunPipelineFunction<T, R>
   evaluate: Func1<boolean, T>
   split?: Func1Sync<any, Possible<T>>
   combine?: Func2Sync<Possible<R>, Possible<T>, any>
 }
 
-export function isMultiWaySwitch<T extends StageObject, R>(
-  inp: unknown,
+export function isMultiWaySwitch<T extends StageObject, R extends StageObject>(
+  inp: object,
 ): inp is MultiWaySwitchCase<T, R> {
   return (
     typeof inp == 'object' &&
@@ -48,18 +54,27 @@ export function isMultiWaySwitch<T extends StageObject, R>(
   )
 }
 
-export interface MultWaySwitchConfig<T extends StageObject, R>
-  extends StageConfig<T, R> {
+export interface MultWaySwitchConfig<
+  T extends StageObject,
+  R extends StageObject,
+> extends StageConfig<T, R> {
   cases: Array<MultiWaySwitchCase<T, R>>
   split?: Func1Sync<any, Possible<T>>
   combine?: Func2Sync<Possible<R>, Possible<T>, any>
 }
 
-export type AllowedMWS<T extends StageObject, C extends StageConfig<T, R>, R> =
+export type AllowedMWS<
+  T extends StageObject,
+  C extends StageConfig<T, R>,
+  R extends StageObject,
+> =
   | AllowedStage<T, C, R>
   | Array<Stage<T, C, R> | RunPipelineFunction<T, R> | MultiWaySwitchCase<T, R>>
 
-export function getMultWaySwitchConfig<T extends StageObject, R>(
+export function getMultWaySwitchConfig<
+  T extends StageObject,
+  R extends StageObject,
+>(
   config: AllowedMWS<T, Partial<MultWaySwitchConfig<T, R>>, R>,
 ): MultWaySwitchConfig<T, R> {
   if (Array.isArray(config)) {
@@ -107,11 +122,10 @@ export function getMultWaySwitchConfig<T extends StageObject, R>(
   }
 }
 
-export class MultiWaySwitch<T extends StageObject, R = T> extends Stage<
-  T,
-  MultWaySwitchConfig<T, R>,
-  R
-> {
+export class MultiWaySwitch<
+  T extends StageObject,
+  R extends StageObject = T,
+> extends Stage<T, MultWaySwitchConfig<T, R>, R> {
   constructor(config?: AllowedStage<T, MultWaySwitchConfig<T, R>, R>) {
     super()
     if (config) {

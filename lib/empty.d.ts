@@ -1,6 +1,6 @@
 import { Stage } from './stage';
-import { AllowedStage, StageConfig } from './utils/types';
-export declare class Empty<T, R = T> extends Stage<T, StageConfig<T, R>, R> {
+import { AllowedStage, StageConfig, StageObject } from './utils/types';
+export declare class Empty<T extends StageObject, R extends StageObject = T> extends Stage<T, StageConfig<T, R>, R> {
     constructor(config: AllowedStage<T, StageConfig<T, R>, R>);
     toString(): string;
 }

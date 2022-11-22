@@ -9,7 +9,7 @@ import {
 } from './types'
 import { CallbackFunction, Possible, StageConfig, StageRun } from './types'
 
-export interface TemplateConfig<T extends StageObject, R>
+export interface TemplateConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T, R> {
   stage: AnyStage<T, R> | RunPipelineFunction<T, R>
 }
@@ -17,7 +17,7 @@ export interface TemplateConfig<T extends StageObject, R>
 export function getTemplateConfig<
   T extends StageObject,
   C extends TemplateConfig<T, R>,
-  R,
+  R extends StageObject,
 >(config: AllowedStage<T, C, R>): C {
   const res = getStageConfig(config)
   if (res instanceof Stage) {
@@ -42,7 +42,7 @@ export function getTemplateConfig<
 export class Template<
   T extends StageObject,
   C extends TemplateConfig<T, R>,
-  R,
+  R extends StageObject,
 > extends Stage<T, C, R> {
   constructor(config?: AllowedStage<T, C, R>) {
     super()

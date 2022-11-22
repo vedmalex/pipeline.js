@@ -8,11 +8,10 @@ import {
   WrapConfig,
 } from './utils/types'
 
-export class Wrap<T extends StageObject, R = T> extends Stage<
-  T,
-  WrapConfig<T, R>,
-  R
-> {
+export class Wrap<
+  T extends StageObject,
+  R extends StageObject = T,
+> extends Stage<T, WrapConfig<T, R>, R> {
   constructor(config?: AllowedStage<T, WrapConfig<T, R>, R>) {
     super()
     if (config) {
@@ -36,7 +35,7 @@ export class Wrap<T extends StageObject, R = T> extends Stage<
     ) => {
       const ctx = this.prepare(context)
       if (this.config.stage) {
-        run_or_execute<object, unknown, unknown, unknown>(
+        run_or_execute<object, object, object, object>(
           this.config.stage,
           err,
           ctx,
@@ -56,14 +55,14 @@ export class Wrap<T extends StageObject, R = T> extends Stage<
 
     return super.compile(rebuild)
   }
-  prepare(ctx: Possible<T>): unknown {
+  prepare(ctx: Possible<T>): object {
     if (this.config.prepare) {
       return this.config.prepare(ctx) ?? ctx
     } else {
       return ctx as unknown as R
     }
   }
-  finalize(ctx: Possible<T>, retCtx: unknown): Possible<R> {
+  finalize(ctx: Possible<T>, retCtx: object): Possible<R> {
     // by default the main context will be used to return;
     if (this.config.finalize) {
       return this.config.finalize(ctx, retCtx)

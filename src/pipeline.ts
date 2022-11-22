@@ -29,11 +29,10 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Pipeline<T extends StageObject, R = T> extends Stage<
-  T,
-  PipelineConfig<T, R>,
-  R
-> {
+export class Pipeline<
+  T extends StageObject,
+  R extends StageObject = T,
+> extends Stage<T, PipelineConfig<T, R>, R> {
   constructor(
     config?:
       | AllowedStage<T, PipelineConfig<T, R>, R>
@@ -51,31 +50,26 @@ export class Pipeline<T extends StageObject, R = T> extends Stage<
     return `PIPE:${this.config.name ? this.config.name : ''}`
   }
 
-  addStage<IT extends StageObject, IR>(
+  addStage<IT extends StageObject, IR extends StageObject>(
     _stage:
       | StageConfig<IT, IR>
       | RunPipelineFunction<IT, IR>
       | AnyStage<IT, IR>,
   ) {
-    let stage:
-      | AnyStage<object, unknown>
-      | RunPipelineFunction<object, unknown>
-      | undefined
+    let stage: AnyStage<IT, IR> | RunPipelineFunction<IT, IR> | undefined
     if (typeof _stage === 'function') {
-      stage = _stage as RunPipelineFunction<object, unknown>
+      stage = _stage as RunPipelineFunction<IT, IR>
     } else {
       if (typeof _stage === 'object') {
         if (_stage instanceof Stage) {
-          stage = _stage as AnyStage<object, unknown>
+          stage = _stage as AnyStage<IT, IR>
         } else {
-          stage = new Stage<object, StageConfig<object, unknown>, unknown>(
-            _stage,
-          )
+          stage = new Stage<IT, StageConfig<IT, IR>, IR>(_stage)
         }
       }
     }
     if (stage) {
-      this.config.stages.push(stage)
+      this.config.stages.push(stage as any)
       this.run = undefined
     }
   }
@@ -96,7 +90,7 @@ export class Pipeline<T extends StageObject, R = T> extends Stage<
         i += 1
         if (!err && i < this.config.stages.length) {
           const st = this.config.stages[i]
-          run_or_execute<object, unknown, unknown, unknown>(
+          run_or_execute<object, object, object, object>(
             st,
             err,
             ctx ?? context,

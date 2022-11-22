@@ -12,7 +12,7 @@ import {
   ValidateFunction,
 } from './utils/types'
 
-import { Context } from './context'
+import { Context, ContextType } from './context'
 import { can_fix_error } from './utils/can_fix_error'
 import { execute_callback } from './utils/execute_callback'
 import { execute_custom_run } from './utils/execute_custom_run'
@@ -23,7 +23,11 @@ import { isStageRun, Rescue } from './utils/types'
 
 // make possibility to context be immutable for debug purposes
 
-export class Stage<T extends StageObject, C extends StageConfig<T, R>, R = T> {
+export class Stage<
+  T extends StageObject,
+  C extends StageConfig<T, R>,
+  R extends StageObject = T,
+> {
   public get config(): C {
     return this._config
   }
@@ -79,8 +83,11 @@ export class Stage<T extends StageObject, C extends StageConfig<T, R>, R = T> {
 
   // может быть вызван как Promise
   // сделать все дубликаты и проверки методов для работы с промисами
-  public execute(context: Possible<T>): Promise<Possible<R>>
-  public execute(context: Possible<T>, callback: CallbackFunction<R>): void
+  public execute(context: Possible<T | ContextType<T>>): Promise<Possible<R>>
+  public execute(
+    context: Possible<T | ContextType<T>>,
+    callback: CallbackFunction<R>,
+  ): void
   public execute(
     err: Possible<Error>,
     context: Possible<T>,
@@ -93,27 +100,27 @@ export class Stage<T extends StageObject, C extends StageConfig<T, R>, R = T> {
   ): void | Promise<Possible<R>> {
     // discover arguments
     let err: Possible<Error>,
-      context: T,
+      not_ensured_context: T | ContextType<T>,
       __callback: Possible<CallbackFunction<R>>
 
     if (arguments.length == 1) {
-      context = _err as T
+      not_ensured_context = _err as T | ContextType<T>
       // promise
     } else if (arguments.length == 2) {
       if (typeof _context == 'function') {
         // callback
-        context = _err as T
+        not_ensured_context = _err as T | ContextType<T>
         err = undefined
         __callback = _context as CallbackFunction<R>
       } else {
         // promise
         err = _err as Error
-        context = _context as T
+        not_ensured_context = _context as T | ContextType<T>
       }
     } else {
       // callback
       err = _err as Error
-      context = _context as T
+      not_ensured_context = _context as T | ContextType<T>
       __callback = _callback as CallbackFunction<R>
     }
 
@@ -129,7 +136,7 @@ export class Stage<T extends StageObject, C extends StageConfig<T, R>, R = T> {
 
     const stageToRun = this.run.bind(this)
 
-    context = Context.ensure(context)
+    let context = Context.ensure<T>(not_ensured_context)
 
     if (!__callback) {
       return new Promise((res, rej) => {

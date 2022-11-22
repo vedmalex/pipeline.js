@@ -1,13 +1,14 @@
-import { AllowedStage, CallbackFunction, EnsureFunction, Possible, StageConfig, StageRun, ValidateFunction } from './utils/types';
-export declare class Stage<T, C extends StageConfig<T, R>, R = T> {
+import { AllowedStage, CallbackFunction, EnsureFunction, Possible, StageConfig, StageObject, StageRun, ValidateFunction } from './utils/types';
+import { ContextType } from './context';
+export declare class Stage<T extends StageObject, C extends StageConfig<T, R>, R extends StageObject = T> {
     get config(): C;
     protected _config: C;
     constructor(config?: AllowedStage<T, C, R>);
     get reportName(): string;
     get name(): string;
     protected runStageMethod(err_: Possible<Error>, err: Possible<Error>, ctx: Possible<T>, context: T, stageToRun: StageRun<T, R>, callback: CallbackFunction<R>): void;
-    execute(context: Possible<T>): Promise<Possible<R>>;
-    execute(context: Possible<T>, callback: CallbackFunction<R>): void;
+    execute(context: Possible<T | ContextType<T>>): Promise<Possible<R>>;
+    execute(context: Possible<T | ContextType<T>>, callback: CallbackFunction<R>): void;
     execute(err: Possible<Error>, context: Possible<T>, callback: CallbackFunction<R>): void;
     protected stage(err: Possible<Error>, context: Possible<T>, callback: CallbackFunction<R>): void;
     compile(rebuild?: boolean): StageRun<T, R>;
@@ -17,7 +18,7 @@ export declare class Stage<T, C extends StageConfig<T, R>, R = T> {
     protected validate(validate: ValidateFunction<T>, context: T, callback: CallbackFunction<T>): void;
     protected ensure(ensure: EnsureFunction<T>, context: T, callback: CallbackFunction<T>): void;
 }
-export declare type EnsureParams<T> = {
+export type EnsureParams<T> = {
     context: T;
     callback: CallbackFunction<T> | undefined;
     err: Possible<Error>;

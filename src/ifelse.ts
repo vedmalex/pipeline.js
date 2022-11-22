@@ -9,11 +9,10 @@ import {
 } from './utils/types'
 import { CallbackFunction, Possible, StageRun } from './utils/types'
 
-export class IfElse<T extends StageObject, R = T> extends Stage<
-  T,
-  IfElseConfig<T, R>,
-  R
-> {
+export class IfElse<
+  T extends StageObject,
+  R extends StageObject = T,
+> extends Stage<T, IfElseConfig<T, R>, R> {
   constructor(config?: AllowedStage<T, IfElseConfig<T, R>, R>) {
     super()
     if (config) {

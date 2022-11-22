@@ -8,11 +8,10 @@ import {
   TimeoutConfig,
 } from './utils/types'
 
-export class Timeout<T extends StageObject, R = T> extends Stage<
-  T,
-  TimeoutConfig<T, R>,
-  R
-> {
+export class Timeout<
+  T extends StageObject,
+  R extends StageObject = T,
+> extends Stage<T, TimeoutConfig<T, R>, R> {
   constructor(config?: AllowedStage<T, TimeoutConfig<T, R>, R>) {
     super()
     if (config) {
