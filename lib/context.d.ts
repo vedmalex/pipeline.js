@@ -17,11 +17,11 @@ export interface IContextProxy<T> {
     toString(): string;
     fork<C extends StageObject>(config: C): ContextType<T & C>;
     get(path: string): any;
-    [key: string]: any;
+    [key: string | symbol | number]: any;
 }
 export declare class Context<T extends StageObject> implements IContextProxy<T> {
     static ensure<T extends StageObject>(_config?: Partial<T>): ContextType<T>;
-    static isContext<T extends StageObject>(obj?: unknown): obj is IContextProxy<T>;
+    static isContext<T extends StageObject>(obj?: any): obj is IContextProxy<T>;
     protected ctx: T;
     protected proxy: any;
     protected __parent: ContextType<T>;

@@ -56,7 +56,7 @@ export interface IContextProxy<T> {
   toString(): string
   fork<C extends StageObject>(config: C): ContextType<T & C>
   get(path: string): any
-  [key: string]: any
+  [key: string | symbol | number]: any
 }
 
 var count = 0
@@ -75,15 +75,13 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
       return new Context(_config ?? {}) as unknown as ContextType<T>
     }
   }
+
   public static isContext<T extends StageObject>(
-    obj?: unknown,
+    obj?: any,
   ): obj is IContextProxy<T> {
-    if (typeof obj == 'object') {
-      return obj ? obj.hasOwnProperty(ContextSymbol) : false
-    } else {
-      return false
-    }
+    return obj ? obj[ContextSymbol] : false
   }
+
   protected ctx: T
   protected proxy: any
   protected __parent!: ContextType<T>
@@ -146,7 +144,6 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         }
       },
       has(target: Context<T>, key: string | symbol) {
-        if (key === ContextSymbol) return true
         if (!(key in RESERVED)) {
           if (target.__parent) {
             return key in target.ctx || key in target.__parent
