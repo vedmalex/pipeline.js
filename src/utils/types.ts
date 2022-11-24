@@ -20,28 +20,21 @@ import { Wrap } from '../wrap'
 import { empty_run } from './empty_run'
 
 export type StageObject = Record<string | symbol | number, any>
-
-export type CallbackAsync0<R> = (r: CallbackFunction<R>) => void
-export type CallbackAsync2<R, P1> = (p1: P1, r: CallbackFunction<R>) => void
-export type CallbackAsync3<R, P1> = (
-  p1: Possible<Error>,
-  p2: P1,
-  r: CallbackFunction<R>,
-) => void
-
-export type CallbackAsync<R, P1> =
-  | CallbackAsync0<R> //1
-  | CallbackAsync2<R, P1> //2
-  | CallbackAsync3<R, P1> //3
-
-export function is_funcCallback0_async<R>(
-  inp: Function,
-): inp is CallbackAsync0<R> {
-  return !is_async(inp) && is_func1(inp)
+export interface CallbackFunction<T> {
+  (): void
+  (err: Possible<Error>): void
+  (err: Possible<Error>, res: T): void
 }
 
-export function is_async_function(inp?: Function) {
-  return inp?.constructor?.name == 'AsyncFunction'
+export function isCallback<T>(inp?: unknown): inp is CallbackFunction<T> {
+  if (typeof inp === 'function' && !is_async_function(inp)) {
+    return inp.length <= 2
+  } else return false
+}
+
+export function is_async_function(inp?: unknown) {
+  if (typeof inp == 'function') return inp?.constructor?.name == 'AsyncFunction'
+  else return false
 }
 
 export function is_func1Callbacl<R, P1>(
@@ -141,11 +134,6 @@ export function is_thenable<T>(inp?: any): inp is Thanable<T> {
 
 export type Possible<T> = T | undefined | null
 
-export type CallbackFunction<T> = (
-  err?: Possible<Error>,
-  res?: Possible<T>,
-) => void
-
 export type SingleStageFunction<T extends StageObject> =
   | Func2Async<T, Possible<Error>, Possible<T>>
   | Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<T>>
@@ -200,14 +188,15 @@ export function isRescue<T>(inp: any): inp is Rescue<T> {
   )
 }
 
-// validate and ensure
-export type ValidateFunction<T> =
+export interface ValidateFunction<T> {
   // will throw error
-  | Func1Sync<boolean | Promise<boolean> | Thanable<boolean>, T>
+  (value: T): boolean
   // will reject with error
-  | Func1Async<boolean, T>
+  (value: T): Promise<boolean>
+  (value: T): Thanable<boolean>
   // will return error in callback
-  | Func2Sync<void, T, CallbackFunction<boolean>>
+  (value: T, callback: CallbackFunction<boolean>): void
+}
 
 export function isValidateFunction<T>(inp: any): inp is ValidateFunction<T> {
   return is_func1(inp) || is_func1_async(inp) || is_func2(inp)
@@ -257,7 +246,7 @@ export function isStageRun<T extends StageObject>(
 
 export type StageRun<T extends StageObject> = (
   err: Possible<Error>,
-  context: Possible<T>,
+  context: T,
   callback: CallbackFunction<T>,
 ) => void
 
@@ -327,11 +316,11 @@ export function getStageConfig<T extends StageObject, C extends StageConfig<T>>(
       ajvErrors(ajv, { singleError: true })
       ajvKeywords(ajv)
       const validate = ajv.compile(result.schema)
-      result.validate = (ctx: T): boolean => {
+      result.validate = ((ctx: T): boolean => {
         if (!validate(ctx) && validate.errors) {
           throw CreateError(ajv.errorsText(validate.errors))
         } else return true
-      }
+      }) as ValidateFunction<T>
     }
     if (!config.name) {
       result.name = getNameFrom<T, C>(config)
@@ -439,7 +428,7 @@ export function getEmptyConfig<T extends StageObject>(
   if (res instanceof Stage) {
     return res
   } else {
-    res.run = empty_run
+    res.run = empty_run as RunPipelineFunction<T>
   }
 
   return res
@@ -540,15 +529,15 @@ export function getIfElseConfig<
     if (config.failed) {
       res.failed = config.failed
     } else {
-      res.failed = empty_run
+      res.failed = empty_run as RunPipelineFunction<T>
     }
   } else if (typeof config == 'function' && res.run) {
     res.success = res.run
-    res.failed = empty_run
+    res.failed = empty_run as RunPipelineFunction<T>
     res.condition = true
     delete res.run
   } else {
-    res.success = empty_run
+    res.success = empty_run as RunPipelineFunction<T>
   }
   return res
 }

@@ -39,12 +39,12 @@ export class Sequential<T extends StageObject> extends Stage<
     }
   }
 
-  split(ctx: Possible<T>): Array<any> {
+  split(ctx: T): Array<any> {
     return this._config.split ? this._config.split(ctx) : [ctx]
   }
 
-  combine(ctx: Possible<T>, children: Array<any>): Possible<T> {
-    let res: Possible<T>
+  combine(ctx: T, children: Array<any>): T {
+    let res: T
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
       res = c ?? ctx
@@ -67,16 +67,12 @@ export class Sequential<T extends StageObject> extends Stage<
 
   override compile(rebuild: boolean = false): StageRun<T> {
     if (this.config.stage) {
-      var run = (
-        err: Possible<Error>,
-        ctx: Possible<T>,
-        done: CallbackFunction<T>,
-      ) => {
+      var run = (err: Possible<Error>, ctx: T, done: CallbackFunction<T>) => {
         var iter = -1
         var children = this.split ? this.split(ctx) : [ctx]
         var len = children ? children.length : 0
 
-        var next = (err: Possible<Error>, retCtx?: any) => {
+        var next = (err: Possible<Error>, retCtx?: Possible<T>) => {
           if (err) {
             return done(err)
           }
@@ -90,7 +86,12 @@ export class Sequential<T extends StageObject> extends Stage<
             let result = this.combine(ctx, children)
             return done(undefined, result)
           } else {
-            run_or_execute(this.config.stage, err, children[iter], next)
+            run_or_execute(
+              this.config.stage,
+              err,
+              children[iter],
+              next as CallbackFunction<T>,
+            )
           }
         }
 

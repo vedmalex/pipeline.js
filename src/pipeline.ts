@@ -78,16 +78,21 @@ export class Pipeline<T extends StageObject> extends Stage<
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
       err: Possible<Error>,
-      context: Possible<T>,
+      context: T,
       done: CallbackFunction<T>,
     ) => {
       let i = -1
       // sequential run;
-      let next = (err: Possible<Error>, ctx: Possible<T>) => {
+      let next = (err: Possible<Error>, ctx: T) => {
         i += 1
         if (!err && i < this.config.stages.length) {
           const st = this.config.stages[i]
-          run_or_execute<T>(st, err, ctx ?? context, next)
+          run_or_execute<T>(
+            st,
+            err,
+            ctx ?? context,
+            next as CallbackFunction<T>,
+          )
         } else if (i >= this.config.stages.length || err) {
           done(err, ctx ?? context)
         }

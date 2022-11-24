@@ -11,12 +11,13 @@ import { Sequential } from '../sequential';
 import { Timeout } from '../timeout';
 import { Wrap } from '../wrap';
 export type StageObject = Record<string | symbol | number, any>;
-export type CallbackAsync0<R> = (r: CallbackFunction<R>) => void;
-export type CallbackAsync2<R, P1> = (p1: P1, r: CallbackFunction<R>) => void;
-export type CallbackAsync3<R, P1> = (p1: Possible<Error>, p2: P1, r: CallbackFunction<R>) => void;
-export type CallbackAsync<R, P1> = CallbackAsync0<R> | CallbackAsync2<R, P1> | CallbackAsync3<R, P1>;
-export declare function is_funcCallback0_async<R>(inp: Function): inp is CallbackAsync0<R>;
-export declare function is_async_function(inp?: Function): boolean;
+export interface CallbackFunction<T> {
+    (): void;
+    (err: Possible<Error>): void;
+    (err: Possible<Error>, res: T): void;
+}
+export declare function isCallback<T>(inp?: unknown): inp is CallbackFunction<T>;
+export declare function is_async_function(inp?: unknown): boolean;
 export declare function is_func1Callbacl<R, P1>(inp?: Function): inp is Func1Sync<R, P1>;
 export type Func0Sync<R> = () => R;
 export type Func1Sync<R, P1> = (p1: P1) => R;
@@ -48,14 +49,18 @@ export type Thanable<T> = {
 };
 export declare function is_thenable<T>(inp?: any): inp is Thanable<T>;
 export type Possible<T> = T | undefined | null;
-export type CallbackFunction<T> = (err?: Possible<Error>, res?: Possible<T>) => void;
 export type SingleStageFunction<T extends StageObject> = Func2Async<T, Possible<Error>, Possible<T>> | Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<T>>;
 export declare function isSingleStageFunction<T extends StageObject>(inp?: any): inp is SingleStageFunction<T>;
 export type RunPipelineFunction<T extends StageObject> = Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<T>> | Func2Sync<void, Possible<T>, CallbackFunction<T>> | Func2Async<T, Possible<Error>, Possible<T>> | Func0Sync<T | Promise<T> | Thanable<T>> | Func1Async<T, Possible<T>> | Func1Sync<T | Promise<T> | Thanable<T>, Possible<T>> | Func1Sync<void, CallbackFunction<T>> | Func1Sync<void, Possible<T>> | Func0Async<T>;
 export declare function isRunPipelineFunction<T extends StageObject>(inp: any): inp is RunPipelineFunction<T>;
 export type Rescue<T> = Func1Async<T, Error> | Func1Sync<T | Promise<T> | Thanable<T>, Error> | Func2Async<T, Possible<Error>, Possible<T>> | Func2Sync<T | Promise<T> | Thanable<T>, Error, Possible<T>> | Func3Sync<void, Error, Possible<T>, CallbackFunction<T>>;
 export declare function isRescue<T>(inp: any): inp is Rescue<T>;
-export type ValidateFunction<T> = Func1Sync<boolean | Promise<boolean> | Thanable<boolean>, T> | Func1Async<boolean, T> | Func2Sync<void, T, CallbackFunction<boolean>>;
+export interface ValidateFunction<T> {
+    (value: T): boolean;
+    (value: T): Promise<boolean>;
+    (value: T): Thanable<boolean>;
+    (value: T, callback: CallbackFunction<boolean>): void;
+}
 export declare function isValidateFunction<T>(inp: any): inp is ValidateFunction<T>;
 export type EnsureFunction<T> = Func1Sync<T | Promise<T> | Thanable<T>, T> | Func1Async<T, T> | Func2Sync<void, T, CallbackFunction<T>>;
 export declare function isEnsureFunction<T>(inp: any): inp is EnsureFunction<T>;
@@ -78,7 +83,7 @@ export interface ParallelConfig<T extends StageObject> extends StageConfig<T> {
     combine?: Func2Sync<Possible<T> | void, Possible<T>, Array<any>>;
 }
 export declare function isStageRun<T extends StageObject>(inp: Function): inp is StageRun<T>;
-export type StageRun<T extends StageObject> = (err: Possible<Error>, context: Possible<T>, callback: CallbackFunction<T>) => void;
+export type StageRun<T extends StageObject> = (err: Possible<Error>, context: T, callback: CallbackFunction<T>) => void;
 export type AllowedStage<T extends StageObject, C extends StageConfig<T>> = string | C | RunPipelineFunction<T> | AnyStage<T>;
 export declare function isAllowedStage<T extends StageObject, C extends StageConfig<T>>(inp: any): inp is AllowedStage<T, C>;
 export declare function getStageConfig<T extends StageObject, C extends StageConfig<T>>(config: AllowedStage<T, C>): C | AnyStage<T>;

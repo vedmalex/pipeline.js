@@ -34,7 +34,7 @@ describe('DoWhile', function () {
 
   it('works with config as Stage', function (done) {
     var stage = new DoWhile(
-      new Stage(function (done) {
+      new Stage(function (err, ctx, done) {
         done()
       }),
     )
@@ -59,20 +59,22 @@ describe('DoWhile', function () {
 
   it('not allows to use constructor as a function', function (done) {
     try {
-      var s = DoWhile()
+      var s = eval('DoWhile()')
     } catch (err) {
       done()
     }
   })
   it('run stage', function (done) {
     var stage0 = new Stage(function (err, ctx, done) {
-      ctx.iter++
+      if (ctx) {
+        ctx.iter++
+      }
       done()
     })
-    var stage = new DoWhile<object>({
+    var stage = new DoWhile({
       stage: stage0,
       reachEnd: function (err, ctx, iter) {
-        return err || iter == 10
+        return !!err || iter == 10
       },
     })
     stage.execute(
@@ -80,7 +82,9 @@ describe('DoWhile', function () {
         iter: -1,
       },
       function (err, context) {
-        expect(context.iter).toEqual(9)
+        if (context) {
+          expect(context.iter).toEqual(9)
+        } else throw new Error('nonsense')
         done()
       },
     )
@@ -100,7 +104,7 @@ describe('DoWhile', function () {
     var stage = new DoWhile({
       stage: stage0,
       reachEnd: function (err, ctx, iter) {
-        return err || iter == len
+        return !!err || iter == len
       },
     })
 
@@ -126,11 +130,11 @@ describe('DoWhile', function () {
       stage: stage0,
       split: function (ctx, iter) {
         return {
-          iter: ctx.some[iter],
+          iter: ctx?.some[iter],
         }
       },
       reachEnd: function (err, ctx, iter) {
-        return err || iter == len
+        return !!err || iter == len
       },
     })
 
@@ -159,11 +163,11 @@ describe('DoWhile', function () {
       stage: stage0,
       split: function (ctx, iter) {
         return {
-          iter: ctx.some[iter],
+          iter: ctx?.some[iter],
         }
       },
       reachEnd: function (err, ctx, iter) {
-        return err || iter == len
+        return !!err || iter == len
       },
     })
     stage.execute(ctx, function (err, context) {

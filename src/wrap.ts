@@ -1,7 +1,9 @@
 import { Stage } from './stage'
 import { run_or_execute } from './utils/run_or_execute'
-import { getWrapConfig, Possible, StageObject } from './utils/types'
 import {
+  getWrapConfig,
+  Possible,
+  StageObject,
   AllowedStage,
   CallbackFunction,
   StageRun,
@@ -27,24 +29,22 @@ export class Wrap<T extends StageObject> extends Stage<T, WrapConfig<T>> {
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
       err: Possible<Error>,
-      context: Possible<T>,
+      context: T,
       done: CallbackFunction<T>,
     ) => {
       const ctx = this.prepare(context)
       if (this.config.stage) {
-        run_or_execute(
-          this.config.stage,
-          err,
-          ctx,
-          (err: Possible<Error>, retCtx: Possible<T>) => {
-            if (!err) {
-              const result = this.finalize(context, retCtx ?? ctx)
-              done(undefined, result ?? context)
-            } else {
-              done(err, context)
-            }
-          },
-        )
+        run_or_execute(this.config.stage, err, ctx, ((
+          err: Possible<Error>,
+          retCtx: T,
+        ) => {
+          if (!err) {
+            const result = this.finalize(context, retCtx ?? ctx)
+            done(undefined, result ?? context)
+          } else {
+            done(err, context)
+          }
+        }) as CallbackFunction<T>)
       }
     }
 
@@ -52,13 +52,11 @@ export class Wrap<T extends StageObject> extends Stage<T, WrapConfig<T>> {
 
     return super.compile(rebuild)
   }
-  prepare(ctx: Possible<T>): Possible<T> {
-    if (ctx) {
-      if (this.config.prepare) {
-        return this.config.prepare(ctx) ?? ctx
-      } else {
-        return ctx
-      }
+  prepare(ctx: T): T {
+    if (this.config.prepare) {
+      return this.config.prepare(ctx) ?? ctx
+    } else {
+      return ctx
     }
   }
   finalize(ctx: Possible<T>, retCtx: Possible<T>): Possible<T> {

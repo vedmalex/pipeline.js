@@ -14,16 +14,19 @@ import {
 } from './utils/types'
 
 export interface DoWhileConfig<T extends StageObject> extends StageConfig<T> {
-  stage: AnyStage<any> | SingleStageFunction<any>
-  split?: Func2Sync<any, Possible<T>, number>
+  stage: AnyStage<T> | SingleStageFunction<T>
+  split?: Func2Sync<T, Possible<T>, number>
   reachEnd?: Func3Sync<boolean, Possible<Error>, Possible<T>, number>
 }
 
 export class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
   constructor()
+  constructor(stage: Stage<T, StageConfig<T>>)
+  constructor(config: DoWhileConfig<T>)
+  constructor(stageFn: SingleStageFunction<T>)
   constructor(
     _config?:
-      | Stage<T, DoWhileConfig<T>>
+      | Stage<T, StageConfig<T>>
       | DoWhileConfig<T>
       | SingleStageFunction<T>,
   ) {
@@ -81,7 +84,7 @@ export class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
   override compile(rebuild: boolean = false): StageRun<any> {
     let run: StageRun<any> = (
       err: Possible<Error>,
-      context: Possible<T>,
+      context: T,
       done: CallbackFunction<T>,
     ) => {
       let iter: number = -1
@@ -94,7 +97,7 @@ export class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
             this.config.stage,
             err,
             this.split(context, iter),
-            next,
+            next as CallbackFunction<T>,
           )
         }
       }

@@ -225,7 +225,7 @@ export class MultiWaySwitch<T extends StageObject> extends Stage<
 
     let run: StageRun<T> = (
       err: Possible<Error>,
-      ctx: Possible<T>,
+      ctx: T,
       done: CallbackFunction<T>,
     ) => {
       let actuals: Array<MultiWaySwitchCase<T>> = []
@@ -265,7 +265,7 @@ export class MultiWaySwitch<T extends StageObject> extends Stage<
         stg = actuals[i]
         lctx = this.splitCase(stg, ctx)
 
-        run_or_execute<T>(stg.stage, err, lctx, next(i))
+        run_or_execute<T>(stg.stage, err, lctx, next(i) as CallbackFunction<T>)
         // не хватает явной передачи контекста
       }
 

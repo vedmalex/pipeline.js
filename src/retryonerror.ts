@@ -107,7 +107,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
       err: Possible<Error>,
-      ctx: Possible<T>,
+      ctx: T,
       done: CallbackFunction<T>,
     ) => {
       /// ловить ошибки
@@ -128,10 +128,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
       }
       let iter = -1
 
-      let next: CallbackFunction<T> = (
-        err: Possible<Error>,
-        _ctx: Possible<T>,
-      ) => {
+      let next = (err: Possible<Error>, _ctx: T) => {
         iter++
         if (reachEnd(err, iter)) {
           return done(err, _ctx ?? ctx)
@@ -139,10 +136,15 @@ export class RetryOnError<T extends StageObject> extends Stage<
           // clean changes of existing before values.
           // may be will need to clear at all and rewrite ? i don't know yet.
           const res = this.restoreContext(_ctx ?? ctx, backup)
-          run_or_execute(this.config.stage, err, res ?? ctx, next)
+          run_or_execute(
+            this.config.stage,
+            err,
+            res ?? ctx,
+            next as CallbackFunction<T>,
+          )
         }
       }
-      run_or_execute(this.config.stage, err, ctx, next)
+      run_or_execute(this.config.stage, err, ctx, next as CallbackFunction<T>)
     }
 
     this.run = run

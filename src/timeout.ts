@@ -27,17 +27,17 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
       err: Possible<Error>,
-      ctx: Possible<T>,
+      ctx: T,
       done: CallbackFunction<T>,
     ) => {
       let to: any
-      let localDone = function (err: Possible<Error>, retCtx: Possible<T>) {
+      let localDone = ((err: Possible<Error>, retCtx: T) => {
         if (to) {
           clearTimeout(to)
           to = null
           return done(err, retCtx)
         }
-      }
+      }) as CallbackFunction<T>
       let waitFor
 
       if (this.config.timeout instanceof Function) {

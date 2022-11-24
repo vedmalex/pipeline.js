@@ -1,11 +1,11 @@
 import { CreateError } from './ErrorList'
 import { CallbackFunction, Possible } from './types'
 
-export function run_callback_once<T> (
+export function run_callback_once<T>(
   wrapee: CallbackFunction<T>,
 ): CallbackFunction<T> {
   let done_call = 0
-  var c = (err: Possible<Error>, ctx: Possible<T>) => {
+  const c = function (err: Possible<Error>, ctx: T) {
     if (done_call == 0) {
       done_call += 1
       wrapee(err, ctx)
@@ -14,6 +14,6 @@ export function run_callback_once<T> (
     } else {
       throw CreateError([err, 'callback called more than once'])
     }
-  }
+  } as CallbackFunction<T>
   return c
 }

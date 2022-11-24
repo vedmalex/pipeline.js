@@ -44,13 +44,13 @@ export class Parallel<T extends StageObject> extends Stage<
     return this._config.split ? this._config.split(ctx) : [ctx]
   }
 
-  combine(ctx: Possible<T>, children: Array<any>): Possible<T> {
-    let res: Possible<T>
+  combine(ctx: T, children: Array<any>): T {
+    let res: T
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
-      res = c ?? (ctx as Possible<T>)
+      res = c ?? ctx
     } else {
-      res = ctx as Possible<T>
+      res = ctx
     }
     return res
   }
@@ -70,7 +70,7 @@ export class Parallel<T extends StageObject> extends Stage<
     if (this.config.stage) {
       var run: StageRun<T> = (
         err: Possible<Error>,
-        ctx: Possible<T>,
+        ctx: T,
         done: CallbackFunction<T>,
       ) => {
         var iter = 0
@@ -114,7 +114,12 @@ export class Parallel<T extends StageObject> extends Stage<
           return done(err, ctx)
         } else {
           for (var i = 0; i < len; i++) {
-            run_or_execute<T>(this.config.stage, err, children[i], next(i))
+            run_or_execute<T>(
+              this.config.stage,
+              err,
+              children[i],
+              next(i) as CallbackFunction<T>,
+            )
           }
         }
       }

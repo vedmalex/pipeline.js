@@ -10,23 +10,14 @@ import {
 export function run_or_execute<T extends StageObject>(
   stage: AnyStage<T> | RunPipelineFunction<T>,
   err: Possible<Error>,
-  context: Possible<T>,
+  context: T,
   _done: CallbackFunction<T>,
 ): void {
-  const done: CallbackFunction<T> = (
-    err: Possible<Error>,
-    ctx: Possible<T>,
-  ) => {
+  const done = ((err: Possible<Error>, ctx: T) => {
     _done(err, ctx ?? context)
-  }
+  }) as CallbackFunction<T>
   if (typeof stage == 'object') {
-    ;(
-      stage.execute as (
-        err: Possible<Error>,
-        context: Possible<T>,
-        done: CallbackFunction<T>,
-      ) => void
-    )(err, context, done)
+    stage.execute(err, context, done)
   } else {
     execute_callback<T>(err, stage, context as unknown as T, done)
   }

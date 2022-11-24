@@ -3,7 +3,7 @@ import { AllowedStage, ParallelConfig, Possible, StageObject, StageRun } from '.
 export declare class Parallel<T extends StageObject> extends Stage<T, ParallelConfig<T>> {
     constructor(config?: AllowedStage<T, ParallelConfig<T>>);
     split(ctx: Possible<T>): Array<any>;
-    combine(ctx: Possible<T>, children: Array<any>): Possible<T>;
+    combine(ctx: T, children: Array<any>): T;
     get reportName(): string;
     toString(): string;
     get name(): string;

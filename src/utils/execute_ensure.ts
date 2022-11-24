@@ -11,7 +11,7 @@ import {
 import { is_func1, is_func1_async, is_func2 } from './types'
 import { Func1Async } from './types'
 
-export function execute_ensure<T> (
+export function execute_ensure<T>(
   ensure: EnsureFunction<T>,
   context: T,
   done: CallbackFunction<T>,
@@ -21,8 +21,8 @@ export function execute_ensure<T> (
       if (is_func1_async(ensure)) {
         try {
           ;(ensure as Func1Async<T, T>)(context)
-            .then((res) => done(undefined, res))
-            .catch((err) => done(err))
+            .then(res => done(undefined, res))
+            .catch(err => done(err))
         } catch (err) {
           process_error(err, done)
         }
@@ -32,9 +32,9 @@ export function execute_ensure<T> (
             context,
           )
           if (res instanceof Promise) {
-            res.then((res) => done(undefined, res)).catch((err) => done(err))
+            res.then(res => done(undefined, res)).catch(err => done(err))
           } else if (is_thenable(res)) {
-            res.then((res) => done(undefined, res)).catch((err) => done(err))
+            res.then(res => done(undefined, res)).catch(err => done(err))
           } else {
             done(undefined, res)
           }
@@ -48,7 +48,7 @@ export function execute_ensure<T> (
     case 2:
       if (is_func2(ensure)) {
         try {
-          ensure(context, (err?: Error, ctx?: T) => {
+          ensure(context, (err: Error, ctx: T) => {
             done(err, ctx)
           })
         } catch (err) {

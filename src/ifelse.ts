@@ -28,25 +28,24 @@ export class IfElse<T extends StageObject> extends Stage<T, IfElseConfig<T>> {
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
       err: Possible<Error>,
-      context: Possible<T>,
+      context: T,
       done: CallbackFunction<T>,
     ) => {
       if (typeof this.config.condition == 'function') {
-        execute_validate<T>(
-          this.config.condition,
-          context,
-          (err: Possible<Error>, condition: Possible<boolean>) => {
-            if (condition) {
-              if (this.config.success) {
-                run_or_execute(this.config.success, err, context, done)
-              }
-            } else {
-              if (this.config.failed) {
-                run_or_execute(this.config.failed, err, context, done)
-              }
+        execute_validate<T>(this.config.condition, context, ((
+          err: Possible<Error>,
+          condition: Possible<boolean>,
+        ) => {
+          if (condition) {
+            if (this.config.success) {
+              run_or_execute(this.config.success, err, context, done)
             }
-          },
-        )
+          } else {
+            if (this.config.failed) {
+              run_or_execute(this.config.failed, err, context, done)
+            }
+          }
+        }) as CallbackFunction<boolean>)
       } else if (typeof this.config.condition == 'boolean') {
         if (this.config.condition) {
           if (this.config.success) {

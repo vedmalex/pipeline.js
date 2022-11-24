@@ -1,12 +1,15 @@
 import { Stage } from './stage';
 import { AnyStage, Func2Sync, Func3Sync, Possible, SingleStageFunction, StageConfig, StageObject, StageRun } from './utils/types';
 export interface DoWhileConfig<T extends StageObject> extends StageConfig<T> {
-    stage: AnyStage<any> | SingleStageFunction<any>;
-    split?: Func2Sync<any, Possible<T>, number>;
+    stage: AnyStage<T> | SingleStageFunction<T>;
+    split?: Func2Sync<T, Possible<T>, number>;
     reachEnd?: Func3Sync<boolean, Possible<Error>, Possible<T>, number>;
 }
 export declare class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
     constructor();
+    constructor(stage: Stage<T, StageConfig<T>>);
+    constructor(config: DoWhileConfig<T>);
+    constructor(stageFn: SingleStageFunction<T>);
     get reportName(): string;
     toString(): string;
     reachEnd(err: Possible<Error>, ctx: Possible<T>, iter: number): boolean;

@@ -19,7 +19,7 @@ import { execute_custom_run } from './utils/execute_custom_run'
 import { execute_ensure } from './utils/execute_ensure'
 import { execute_rescue } from './utils/execute_rescue'
 import { execute_validate } from './utils/execute_validate'
-import { isStageRun, Rescue } from './utils/types'
+import { isStageRun, Rescue, AnyStage } from './utils/types'
 
 // make possibility to context be immutable for debug purposes
 
@@ -28,6 +28,11 @@ export class Stage<T extends StageObject, C extends StageConfig<T>> {
     return this._config
   }
   protected _config!: C
+  constructor()
+  constructor(name: string)
+  constructor(config: C)
+  constructor(runFn: RunPipelineFunction<T>)
+  constructor(stage: AnyStage<T>)
   constructor(config?: AllowedStage<T, C>) {
     if (config) {
       let res = getStageConfig(config)
@@ -63,7 +68,7 @@ export class Stage<T extends StageObject, C extends StageConfig<T>> {
           CreateError([err, err_]),
           ctx ?? context,
           callback,
-          (rescuedContext: Possible<T>) => {
+          (rescuedContext: T) => {
             // ошибка обработана все хорошо, продолжаем
             stageToRun(undefined, rescuedContext, callback)
           },
@@ -86,7 +91,7 @@ export class Stage<T extends StageObject, C extends StageConfig<T>> {
   ): void
   public execute(
     err: Possible<Error>,
-    context: Possible<T>,
+    context: T,
     callback: CallbackFunction<T>,
   ): void
   public execute(
@@ -136,23 +141,23 @@ export class Stage<T extends StageObject, C extends StageConfig<T>> {
 
     if (!__callback) {
       return new Promise((res, rej) => {
-        this.execute(err, context, (err: Possible<Error>, ctx: Possible<T>) => {
+        this.execute(err, context, ((err: Possible<Error>, ctx: T) => {
           if (err) rej(err)
           else res(ctx)
-        })
+        }) as CallbackFunction<T>)
       })
     } else {
       const back = __callback
       process.nextTick(() => {
         const sucess = (ret: Possible<T>) => back(undefined, ret ?? context)
         const fail = (err: Possible<Error>) => back(err, context)
-        const callback = (err: Possible<Error>, _ctx: Possible<T>) => {
+        const callback = ((err: Possible<Error>, _ctx: T) => {
           if (err) {
             this.rescue(err, _ctx, fail, sucess)
           } else {
             back(err, _ctx)
           }
-        }
+        }) as CallbackFunction<T>
 
         if (
           err &&
@@ -162,35 +167,19 @@ export class Stage<T extends StageObject, C extends StageConfig<T>> {
           this.rescue(err, context as unknown as Possible<T>, fail, sucess)
         } else {
           if (this.config.ensure) {
-            this.ensure(
-              this.config.ensure,
-              context,
-              (err_: Possible<Error>, ctx: Possible<T>) => {
-                this.runStageMethod(
-                  err,
-                  err_,
-                  ctx,
-                  context,
-                  stageToRun,
-                  callback,
-                )
-              },
-            )
+            this.ensure(this.config.ensure, context, ((
+              err_: Possible<Error>,
+              ctx: T,
+            ) => {
+              this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
+            }) as CallbackFunction<T>)
           } else if (this._config.validate) {
-            this.validate(
-              this._config.validate,
-              context,
-              (err_: Possible<Error>, ctx: Possible<T>) => {
-                this.runStageMethod(
-                  err,
-                  err_,
-                  ctx,
-                  context,
-                  stageToRun,
-                  callback,
-                )
-              },
-            )
+            this.validate(this._config.validate, context, ((
+              err_: Possible<Error>,
+              ctx: T,
+            ) => {
+              this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
+            }) as CallbackFunction<T>)
           } else {
             stageToRun(undefined, context, callback)
           }
@@ -201,7 +190,7 @@ export class Stage<T extends StageObject, C extends StageConfig<T>> {
 
   protected stage(
     err: Possible<Error>,
-    context: Possible<T>,
+    context: T,
     callback: CallbackFunction<T>,
   ) {
     const back = callback
@@ -209,18 +198,16 @@ export class Stage<T extends StageObject, C extends StageConfig<T>> {
     const fail = (err: Possible<Error>) => back(err, context)
     if (this._config.run) {
       if (context) {
-        execute_callback(
-          err,
-          this._config.run,
-          context,
-          (err: Possible<Error>, ctx: Possible<T>) => {
-            if (err) {
-              this.rescue(err, ctx ?? context, fail, sucess)
-            } else {
-              callback(undefined, ctx ?? context)
-            }
-          },
-        )
+        execute_callback(err, this._config.run, context, ((
+          err: Possible<Error>,
+          ctx: T,
+        ) => {
+          if (err) {
+            this.rescue(err, ctx ?? context, fail, sucess)
+          } else {
+            callback(undefined, ctx ?? context)
+          }
+        }) as CallbackFunction<T>)
       } else {
         // возвращаем управление
         callback(null, context)
@@ -261,9 +248,9 @@ export class Stage<T extends StageObject, C extends StageConfig<T>> {
   // в конце важен и контекст ошибки? или не важен
   protected rescue<E>(
     _err: Possible<Error | string>,
-    context: Possible<E>,
+    context: E,
     fail: (err: Possible<Error>) => void,
-    success: (ctx: Possible<E>) => void,
+    success: (ctx: E) => void,
   ) {
     let err: Possible<Error>
 
@@ -311,38 +298,36 @@ export class Stage<T extends StageObject, C extends StageConfig<T>> {
     context: T,
     callback: CallbackFunction<T>,
   ) {
-    execute_validate(
-      validate,
-      context,
-      (err: Possible<Error>, result: Possible<boolean>) => {
-        if (err) {
-          callback(err, context)
-        } else {
-          if (result) {
-            if ('boolean' === typeof result) {
-              callback(undefined, context)
-            } else if (Array.isArray(result)) {
-              callback(CreateError(result))
-            }
-          } else {
-            callback(CreateError(this.reportName + ' reports: T is invalid'))
+    execute_validate(validate, context, ((
+      err: Possible<Error>,
+      result: boolean,
+    ) => {
+      if (err) {
+        callback(err, context)
+      } else {
+        if (result) {
+          if ('boolean' === typeof result) {
+            callback(undefined, context)
+          } else if (Array.isArray(result)) {
+            callback(CreateError(result))
           }
+        } else {
+          callback(CreateError(this.reportName + ' reports: T is invalid'))
         }
-      },
-    )
+      }
+    }) as CallbackFunction<boolean>)
   }
   protected ensure(
     ensure: EnsureFunction<T>,
     context: T,
     callback: CallbackFunction<T>,
   ) {
-    execute_ensure(
-      ensure,
-      context,
-      (err: Possible<Error>, result: Possible<T>) => {
-        callback(err, result ?? context)
-      },
-    )
+    execute_ensure(ensure, context, ((
+      err: Possible<Error>,
+      result: Possible<T>,
+    ) => {
+      callback(err, result ?? context)
+    }) as CallbackFunction<T>)
   }
 }
 

@@ -12,7 +12,7 @@ import {
 import { is_func1, is_func1_async, is_func2 } from './types'
 import { Func1Async } from './types'
 
-export function execute_validate<T> (
+export function execute_validate<T>(
   validate: ValidateFunction<T>,
   context: Possible<T>,
   done: CallbackFunction<boolean>,
@@ -22,8 +22,8 @@ export function execute_validate<T> (
       if (is_func1_async(validate)) {
         try {
           ;(validate as Func1Async<boolean, Possible<T>>)(context)
-            .then((res) => done(undefined, res))
-            .catch((err) => done(err))
+            .then(res => done(undefined, res))
+            .catch(err => done(err))
         } catch (err) {
           process_error(err, done)
         }
@@ -36,9 +36,9 @@ export function execute_validate<T> (
             >
           )(context)
           if (res instanceof Promise) {
-            res.then((res) => done(undefined, res)).catch((err) => done(err))
+            res.then(res => done(undefined, res)).catch(err => done(err))
           } else if (is_thenable(res)) {
-            res.then((res) => done(undefined, res)).catch((err) => done(err))
+            res.then(res => done(undefined, res)).catch(err => done(err))
           } else if (typeof res == 'boolean') {
             if (res) {
               done(undefined, res)
@@ -58,7 +58,7 @@ export function execute_validate<T> (
     case 2:
       if (is_func2(validate)) {
         try {
-          validate(context, (err?: Error, res?: boolean) => {
+          validate(context, (err: Error, res: boolean) => {
             done(err, res)
           })
         } catch (err) {
