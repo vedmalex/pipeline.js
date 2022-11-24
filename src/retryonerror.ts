@@ -14,11 +14,9 @@ import {
 } from './utils/types'
 import { CallbackFunction, Func3, StageConfig, StageRun } from './utils/types'
 
-export interface RetryOnErrorConfig<
-  T extends StageObject,
-  R extends StageObject,
-> extends StageConfig<T, R> {
-  stage: AnyStage<T, R> | RunPipelineFunction<T, R>
+export interface RetryOnErrorConfig<T extends StageObject>
+  extends StageConfig<T> {
+  stage: AnyStage<T> | RunPipelineFunction<T>
   retry: number | Func3<boolean, Possible<Error>, Possible<T>, number>
   backup?: (ctx: Possible<T>) => Possible<T>
   restore?: (ctx: Possible<T>, backup: Possible<T>) => Possible<T>
@@ -26,10 +24,9 @@ export interface RetryOnErrorConfig<
 
 export function getRetryOnErrorConfig<
   T extends StageObject,
-  C extends RetryOnErrorConfig<T, R>,
-  R extends StageObject,
->(config: AllowedStage<T, C, R>): C {
-  const res = getStageConfig<T, C, R>(config)
+  C extends RetryOnErrorConfig<T>,
+>(config: AllowedStage<T, C>): C {
+  const res = getStageConfig<T, C>(config)
   if (res instanceof Stage) {
     return { stage: res } as C
   } else if (typeof config == 'object' && !(config instanceof Stage)) {
@@ -62,16 +59,14 @@ export function getRetryOnErrorConfig<
   return res
 }
 
-export class RetryOnError<
-  T extends StageObject,
-  R extends StageObject = T,
-> extends Stage<T, RetryOnErrorConfig<T, R>, R> {
-  constructor(config?: AllowedStage<T, RetryOnErrorConfig<T, R>, R>) {
+export class RetryOnError<T extends StageObject> extends Stage<
+  T,
+  RetryOnErrorConfig<T>
+> {
+  constructor(config?: AllowedStage<T, RetryOnErrorConfig<T>>) {
     super()
     if (config) {
-      this._config = getRetryOnErrorConfig<T, RetryOnErrorConfig<T, R>, R>(
-        config,
-      )
+      this._config = getRetryOnErrorConfig<T, RetryOnErrorConfig<T>>(config)
     }
   }
 
@@ -109,11 +104,11 @@ export class RetryOnError<
     }
   }
 
-  override compile(rebuild: boolean = false): StageRun<T, R> {
-    let run: StageRun<T, R> = (
+  override compile(rebuild: boolean = false): StageRun<T> {
+    let run: StageRun<T> = (
       err: Possible<Error>,
       ctx: Possible<T>,
-      done: CallbackFunction<R>,
+      done: CallbackFunction<T>,
     ) => {
       /// ловить ошибки
       // backup context object to overwrite if needed
@@ -139,15 +134,15 @@ export class RetryOnError<
       ) => {
         iter++
         if (reachEnd(err, iter)) {
-          return done(err, (_ctx ?? ctx) as unknown as R)
+          return done(err, _ctx ?? ctx)
         } else {
           // clean changes of existing before values.
           // may be will need to clear at all and rewrite ? i don't know yet.
           const res = this.restoreContext(_ctx ?? ctx, backup)
-          run_or_execute<T, R, T, T>(this.config.stage, err, res ?? ctx, next)
+          run_or_execute(this.config.stage, err, res ?? ctx, next)
         }
       }
-      run_or_execute<T, R, T, T>(this.config.stage, err, ctx, next)
+      run_or_execute(this.config.stage, err, ctx, next)
     }
 
     this.run = run

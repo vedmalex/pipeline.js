@@ -28,11 +28,11 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Sequential<
-  T extends StageObject,
-  R extends StageObject = T,
-> extends Stage<T, ParallelConfig<T, R>, R> {
-  constructor(config?: AllowedStage<T, ParallelConfig<T, R>, R>) {
+export class Sequential<T extends StageObject> extends Stage<
+  T,
+  ParallelConfig<T>
+> {
+  constructor(config?: AllowedStage<T, ParallelConfig<T>>) {
     super()
     if (config) {
       this._config = getParallelConfig(config)
@@ -43,13 +43,13 @@ export class Sequential<
     return this._config.split ? this._config.split(ctx) : [ctx]
   }
 
-  combine(ctx: Possible<T>, children: Array<any>): Possible<R> {
-    let res: Possible<R>
+  combine(ctx: Possible<T>, children: Array<any>): Possible<T> {
+    let res: Possible<T>
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
-      res = c ?? (ctx as Possible<R>)
+      res = c ?? ctx
     } else {
-      res = ctx as Possible<R>
+      res = ctx
     }
     return res
   }
@@ -65,12 +65,12 @@ export class Sequential<
     return this._config.name ?? this._config.stage?.name ?? ''
   }
 
-  override compile(rebuild: boolean = false): StageRun<T, R> {
+  override compile(rebuild: boolean = false): StageRun<T> {
     if (this.config.stage) {
-      var run: StageRun<T, R> = (
+      var run = (
         err: Possible<Error>,
         ctx: Possible<T>,
-        done: CallbackFunction<R>,
+        done: CallbackFunction<T>,
       ) => {
         var iter = -1
         var children = this.split ? this.split(ctx) : [ctx]
@@ -88,19 +88,14 @@ export class Sequential<
           iter += 1
           if (iter >= len) {
             let result = this.combine(ctx, children)
-            return done(undefined, result as unknown as R)
+            return done(undefined, result)
           } else {
-            run_or_execute<T, R, R, R>(
-              this.config.stage,
-              err,
-              children[iter],
-              next,
-            )
+            run_or_execute(this.config.stage, err, children[iter], next)
           }
         }
 
         if (len === 0) {
-          return done(err, ctx as unknown as R)
+          return done(err, ctx)
         } else {
           next(err)
         }

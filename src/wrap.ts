@@ -8,14 +8,11 @@ import {
   WrapConfig,
 } from './utils/types'
 
-export class Wrap<
-  T extends StageObject,
-  R extends StageObject = T,
-> extends Stage<T, WrapConfig<T, R>, R> {
-  constructor(config?: AllowedStage<T, WrapConfig<T, R>, R>) {
+export class Wrap<T extends StageObject> extends Stage<T, WrapConfig<T>> {
+  constructor(config?: AllowedStage<T, WrapConfig<T>>) {
     super()
     if (config) {
-      this._config = getWrapConfig<T, WrapConfig<T, R>, R>(config)
+      this._config = getWrapConfig<T, WrapConfig<T>>(config)
     }
   }
 
@@ -27,24 +24,24 @@ export class Wrap<
     return '[pipeline Wrap]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<T, R> {
-    let run: StageRun<T, R> = (
+  override compile(rebuild: boolean = false): StageRun<T> {
+    let run: StageRun<T> = (
       err: Possible<Error>,
       context: Possible<T>,
-      done: CallbackFunction<R>,
+      done: CallbackFunction<T>,
     ) => {
       const ctx = this.prepare(context)
       if (this.config.stage) {
-        run_or_execute<object, object, object, object>(
+        run_or_execute(
           this.config.stage,
           err,
           ctx,
-          (err: Possible<Error>, retCtx: unknown) => {
+          (err: Possible<Error>, retCtx: Possible<T>) => {
             if (!err) {
               const result = this.finalize(context, retCtx ?? ctx)
-              done(undefined, result ?? (context as unknown as R))
+              done(undefined, result ?? context)
             } else {
-              done(err, context as unknown as R)
+              done(err, context)
             }
           },
         )
@@ -55,20 +52,22 @@ export class Wrap<
 
     return super.compile(rebuild)
   }
-  prepare(ctx: Possible<T>): object {
-    if (this.config.prepare) {
-      return this.config.prepare(ctx) ?? ctx
-    } else {
-      return ctx as unknown as R
+  prepare(ctx: Possible<T>): Possible<T> {
+    if (ctx) {
+      if (this.config.prepare) {
+        return this.config.prepare(ctx) ?? ctx
+      } else {
+        return ctx
+      }
     }
   }
-  finalize(ctx: Possible<T>, retCtx: object): Possible<R> {
+  finalize(ctx: Possible<T>, retCtx: Possible<T>): Possible<T> {
     // by default the main context will be used to return;
     if (this.config.finalize) {
       return this.config.finalize(ctx, retCtx)
     } else {
       // so we do nothing here
-      return ctx as unknown as R
+      return ctx
     }
   }
 }

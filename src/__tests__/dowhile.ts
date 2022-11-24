@@ -34,7 +34,7 @@ describe('DoWhile', function () {
 
   it('works with config as Stage', function (done) {
     var stage = new DoWhile(
-      new Stage(function (err, ctx, done) {
+      new Stage(function (done) {
         done()
       }),
     )

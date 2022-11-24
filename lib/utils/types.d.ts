@@ -10,7 +10,14 @@ import { RetryOnError } from '../retryonerror';
 import { Sequential } from '../sequential';
 import { Timeout } from '../timeout';
 import { Wrap } from '../wrap';
-export type StageObject = Record<string | symbol, any>;
+export type StageObject = Record<string | symbol | number, any>;
+export type CallbackAsync0<R> = (r: CallbackFunction<R>) => void;
+export type CallbackAsync2<R, P1> = (p1: P1, r: CallbackFunction<R>) => void;
+export type CallbackAsync3<R, P1> = (p1: Possible<Error>, p2: P1, r: CallbackFunction<R>) => void;
+export type CallbackAsync<R, P1> = CallbackAsync0<R> | CallbackAsync2<R, P1> | CallbackAsync3<R, P1>;
+export declare function is_funcCallback0_async<R>(inp: Function): inp is CallbackAsync0<R>;
+export declare function is_async_function(inp?: Function): boolean;
+export declare function is_func1Callbacl<R, P1>(inp?: Function): inp is Func1Sync<R, P1>;
 export type Func0Sync<R> = () => R;
 export type Func1Sync<R, P1> = (p1: P1) => R;
 export type Func2Sync<R, P1, P2> = (p1: P1, p2: P2) => R;
@@ -42,61 +49,61 @@ export type Thanable<T> = {
 export declare function is_thenable<T>(inp?: any): inp is Thanable<T>;
 export type Possible<T> = T | undefined | null;
 export type CallbackFunction<T> = (err?: Possible<Error>, res?: Possible<T>) => void;
-export type SingleStageFunction<T extends StageObject, R> = Func2Async<R, Possible<Error>, Possible<T>> | Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<R>>;
-export declare function isSingleStageFunction<T extends StageObject, R>(inp?: any): inp is SingleStageFunction<T, R>;
-export type RunPipelineFunction<T extends StageObject, R> = Func0Async<R> | Func0Sync<R | Promise<R> | Thanable<R>> | Func1Async<R, Possible<T>> | Func1Sync<R | Promise<R> | Thanable<R>, Possible<T>> | Func2Async<R, Possible<Error>, Possible<T>> | Func2Sync<void, Possible<T>, CallbackFunction<R>> | Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<R>>;
-export declare function isRunPipelineFunction<T extends StageObject, R>(inp: any): inp is RunPipelineFunction<T, R>;
+export type SingleStageFunction<T extends StageObject> = Func2Async<T, Possible<Error>, Possible<T>> | Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<T>>;
+export declare function isSingleStageFunction<T extends StageObject>(inp?: any): inp is SingleStageFunction<T>;
+export type RunPipelineFunction<T extends StageObject> = Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<T>> | Func2Sync<void, Possible<T>, CallbackFunction<T>> | Func2Async<T, Possible<Error>, Possible<T>> | Func0Sync<T | Promise<T> | Thanable<T>> | Func1Async<T, Possible<T>> | Func1Sync<T | Promise<T> | Thanable<T>, Possible<T>> | Func1Sync<void, CallbackFunction<T>> | Func1Sync<void, Possible<T>> | Func0Async<T>;
+export declare function isRunPipelineFunction<T extends StageObject>(inp: any): inp is RunPipelineFunction<T>;
 export type Rescue<T> = Func1Async<T, Error> | Func1Sync<T | Promise<T> | Thanable<T>, Error> | Func2Async<T, Possible<Error>, Possible<T>> | Func2Sync<T | Promise<T> | Thanable<T>, Error, Possible<T>> | Func3Sync<void, Error, Possible<T>, CallbackFunction<T>>;
 export declare function isRescue<T>(inp: any): inp is Rescue<T>;
 export type ValidateFunction<T> = Func1Sync<boolean | Promise<boolean> | Thanable<boolean>, T> | Func1Async<boolean, T> | Func2Sync<void, T, CallbackFunction<boolean>>;
 export declare function isValidateFunction<T>(inp: any): inp is ValidateFunction<T>;
 export type EnsureFunction<T> = Func1Sync<T | Promise<T> | Thanable<T>, T> | Func1Async<T, T> | Func2Sync<void, T, CallbackFunction<T>>;
 export declare function isEnsureFunction<T>(inp: any): inp is EnsureFunction<T>;
-export interface StageConfig<T extends StageObject, R extends StageObject> {
-    run?: RunPipelineFunction<T, R>;
+export interface StageConfig<T extends StageObject> {
+    run?: RunPipelineFunction<T>;
     name?: string;
     rescue?: Rescue<T>;
     schema?: JSONSchemaType<T>;
     ensure?: EnsureFunction<T>;
     validate?: ValidateFunction<T>;
-    compile?<C extends StageConfig<T, R>>(this: Stage<T, C, R>, rebuild: boolean): StageRun<T, R>;
-    precompile?<C extends StageConfig<T, R>>(this: C): void;
+    compile?<C extends StageConfig<T>>(this: Stage<T, C>, rebuild: boolean): StageRun<T>;
+    precompile?<C extends StageConfig<T>>(this: C): void;
 }
-export interface PipelineConfig<T extends StageObject, R extends StageObject> extends StageConfig<T, R> {
-    stages: Array<AnyStage<object, object> | RunPipelineFunction<object, object>>;
+export interface PipelineConfig<T extends StageObject> extends StageConfig<T> {
+    stages: Array<AnyStage<T> | RunPipelineFunction<T>>;
 }
-export interface ParallelConfig<T extends StageObject, R extends StageObject> extends StageConfig<T, R> {
-    stage: AnyStage<T, R> | RunPipelineFunction<T, R>;
-    split?: Func1Sync<Array<R>, Possible<T>>;
-    combine?: Func2Sync<Possible<R> | void, Possible<T>, Array<any>>;
+export interface ParallelConfig<T extends StageObject> extends StageConfig<T> {
+    stage: AnyStage<T> | RunPipelineFunction<T>;
+    split?: Func1Sync<Array<T>, Possible<T>>;
+    combine?: Func2Sync<Possible<T> | void, Possible<T>, Array<any>>;
 }
-export declare function isStageRun<T extends StageObject, R>(inp: Function): inp is StageRun<T, R>;
-export type StageRun<T extends StageObject, R> = (err: Possible<Error>, context: Possible<T>, callback: CallbackFunction<R>) => void;
-export type AllowedStage<T extends StageObject, C extends StageConfig<T, R>, R extends StageObject> = string | C | RunPipelineFunction<T, R> | AnyStage<T, R>;
-export declare function isAllowedStage<T extends StageObject, C extends StageConfig<T, R>, R extends StageObject>(inp: any): inp is AllowedStage<T, C, R>;
-export declare function getStageConfig<T extends StageObject, C extends StageConfig<T, R>, R extends StageObject>(config: AllowedStage<T, C, R>): C | AnyStage<T, R>;
-export declare function getNameFrom<T extends StageObject, C extends StageConfig<T, R>, R extends StageObject>(config: C): string;
-export type AllowedPipeline<T extends StageObject, R extends StageObject> = AllowedStage<T, PipelineConfig<T, R>, R> | Array<RunPipelineFunction<T, R> | AnyStage<T, R>>;
-export declare function getPipelinConfig<T extends StageObject, R extends StageObject>(config: AllowedPipeline<T, R>): PipelineConfig<T, R>;
-export declare function getParallelConfig<T extends StageObject, R extends StageObject>(config: AllowedStage<T, ParallelConfig<T, R>, R>): ParallelConfig<T, R>;
-export declare function getEmptyConfig<T extends StageObject, R extends StageObject>(config: AllowedStage<T, StageConfig<T, R>, R>): AnyStage<T, R> | StageConfig<T, R>;
-export interface WrapConfig<T extends StageObject, R extends StageObject> extends StageConfig<T, R> {
-    stage: AnyStage<object, object> | RunPipelineFunction<object, object>;
-    prepare: (ctx: Possible<T>) => object;
-    finalize: (ctx: Possible<T>, retCtx: object) => Possible<R>;
+export declare function isStageRun<T extends StageObject>(inp: Function): inp is StageRun<T>;
+export type StageRun<T extends StageObject> = (err: Possible<Error>, context: Possible<T>, callback: CallbackFunction<T>) => void;
+export type AllowedStage<T extends StageObject, C extends StageConfig<T>> = string | C | RunPipelineFunction<T> | AnyStage<T>;
+export declare function isAllowedStage<T extends StageObject, C extends StageConfig<T>>(inp: any): inp is AllowedStage<T, C>;
+export declare function getStageConfig<T extends StageObject, C extends StageConfig<T>>(config: AllowedStage<T, C>): C | AnyStage<T>;
+export declare function getNameFrom<T extends StageObject, C extends StageConfig<T>>(config: C): string;
+export type AllowedPipeline<T extends StageObject> = AllowedStage<T, PipelineConfig<T>> | Array<RunPipelineFunction<T> | AnyStage<T>>;
+export declare function getPipelinConfig<T extends StageObject>(config: AllowedPipeline<T>): PipelineConfig<T>;
+export declare function getParallelConfig<T extends StageObject>(config: AllowedStage<T, ParallelConfig<T>>): ParallelConfig<T>;
+export declare function getEmptyConfig<T extends StageObject>(config: AllowedStage<T, StageConfig<T>>): AnyStage<T> | StageConfig<T>;
+export interface WrapConfig<T extends StageObject> extends StageConfig<T> {
+    stage: AnyStage<T> | RunPipelineFunction<T>;
+    prepare: (ctx: Possible<T>) => Possible<T>;
+    finalize: (ctx: Possible<T>, retCtx: Possible<T>) => Possible<T>;
 }
-export declare function getWrapConfig<T extends StageObject, C extends WrapConfig<T, R>, R extends StageObject>(config: AllowedStage<T, C, R>): C;
-export interface TimeoutConfig<T extends StageObject, R extends StageObject> extends StageConfig<T, R> {
+export declare function getWrapConfig<T extends StageObject, C extends WrapConfig<T>>(config: AllowedStage<T, C>): C;
+export interface TimeoutConfig<T extends StageObject> extends StageConfig<T> {
     timeout?: number | Func1Sync<number, Possible<T>>;
-    stage?: AnyStage<T, R> | RunPipelineFunction<T, R>;
-    overdue?: AnyStage<T, R> | RunPipelineFunction<T, R>;
+    stage?: AnyStage<T> | RunPipelineFunction<T>;
+    overdue?: AnyStage<T> | RunPipelineFunction<T>;
 }
-export declare function getTimeoutConfig<T extends StageObject, R extends StageObject>(config: AllowedStage<T, TimeoutConfig<T, R>, R>): TimeoutConfig<T, R>;
-export interface IfElseConfig<T extends StageObject, R extends StageObject> extends StageConfig<T, R> {
+export declare function getTimeoutConfig<T extends StageObject>(config: AllowedStage<T, TimeoutConfig<T>>): TimeoutConfig<T>;
+export interface IfElseConfig<T extends StageObject> extends StageConfig<T> {
     condition?: boolean | ValidateFunction<T>;
-    success?: AnyStage<T, R> | RunPipelineFunction<T, R>;
-    failed?: AnyStage<T, R> | RunPipelineFunction<T, R>;
+    success?: AnyStage<T> | RunPipelineFunction<T>;
+    failed?: AnyStage<T> | RunPipelineFunction<T>;
 }
-export declare function getIfElseConfig<T extends StageObject, C extends IfElseConfig<T, R>, R extends StageObject>(config: AllowedStage<T, C, R>): C;
-export type AnyStage<T extends StageObject, R extends StageObject> = Stage<T, StageConfig<T, R>, R> | DoWhile<T, R> | Empty<T, R> | IfElse<T, R> | MultiWaySwitch<T, R> | Parallel<T, R> | Pipeline<T, R> | RetryOnError<T, R> | Sequential<T, R> | Timeout<T, R> | Wrap<T, R>;
+export declare function getIfElseConfig<T extends StageObject, C extends IfElseConfig<T>>(config: AllowedStage<T, C>): C;
+export type AnyStage<T extends StageObject> = Stage<T, StageConfig<T>> | DoWhile<T> | Empty<T> | IfElse<T> | MultiWaySwitch<T> | Parallel<T> | Pipeline<T> | RetryOnError<T> | Sequential<T> | Timeout<T> | Wrap<T>;
 //# sourceMappingURL=types.d.ts.map

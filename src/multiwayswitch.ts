@@ -19,33 +19,27 @@ import {
   StageRun,
 } from './utils/types'
 
-export type MultiWaySwitchCase<T extends StageObject, R extends StageObject> =
-  | MultiWaySwitchStatic<T, R>
-  | MultiWaySwitchDynamic<T, R>
+export type MultiWaySwitchCase<T extends StageObject> =
+  | MultiWaySwitchStatic<T>
+  | MultiWaySwitchDynamic<T>
 
-export interface MultiWaySwitchStatic<
-  T extends StageObject,
-  R extends StageObject,
-> {
-  stage: AnyStage<T, R> | RunPipelineFunction<T, R>
+export interface MultiWaySwitchStatic<T extends StageObject> {
+  stage: AnyStage<T> | RunPipelineFunction<T>
   evaluate?: boolean
   split?: Func1Sync<any, Possible<T>>
-  combine?: Func2Sync<Possible<R>, Possible<T>, any>
+  combine?: Func2Sync<Possible<T>, Possible<T>, any>
 }
 
-export interface MultiWaySwitchDynamic<
-  T extends StageObject,
-  R extends StageObject,
-> {
-  stage: AnyStage<T, R> | RunPipelineFunction<T, R>
+export interface MultiWaySwitchDynamic<T extends StageObject> {
+  stage: AnyStage<T> | RunPipelineFunction<T>
   evaluate: Func1<boolean, T>
   split?: Func1Sync<any, Possible<T>>
-  combine?: Func2Sync<Possible<R>, Possible<T>, any>
+  combine?: Func2Sync<Possible<T>, Possible<T>, any>
 }
 
-export function isMultiWaySwitch<T extends StageObject, R extends StageObject>(
+export function isMultiWaySwitch<T extends StageObject>(
   inp: object,
-): inp is MultiWaySwitchCase<T, R> {
+): inp is MultiWaySwitchCase<T> {
   return (
     typeof inp == 'object' &&
     inp != null &&
@@ -54,38 +48,29 @@ export function isMultiWaySwitch<T extends StageObject, R extends StageObject>(
   )
 }
 
-export interface MultWaySwitchConfig<
-  T extends StageObject,
-  R extends StageObject,
-> extends StageConfig<T, R> {
-  cases: Array<MultiWaySwitchCase<T, R>>
+export interface MultWaySwitchConfig<T extends StageObject>
+  extends StageConfig<T> {
+  cases: Array<MultiWaySwitchCase<T>>
   split?: Func1Sync<any, Possible<T>>
-  combine?: Func2Sync<Possible<R>, Possible<T>, any>
+  combine?: Func2Sync<Possible<T>, Possible<T>, any>
 }
 
-export type AllowedMWS<
-  T extends StageObject,
-  C extends StageConfig<T, R>,
-  R extends StageObject,
-> =
-  | AllowedStage<T, C, R>
-  | Array<Stage<T, C, R> | RunPipelineFunction<T, R> | MultiWaySwitchCase<T, R>>
+export type AllowedMWS<T extends StageObject, C extends StageConfig<T>> =
+  | AllowedStage<T, C>
+  | Array<Stage<T, C> | RunPipelineFunction<T> | MultiWaySwitchCase<T>>
 
-export function getMultWaySwitchConfig<
-  T extends StageObject,
-  R extends StageObject,
->(
-  config: AllowedMWS<T, Partial<MultWaySwitchConfig<T, R>>, R>,
-): MultWaySwitchConfig<T, R> {
+export function getMultWaySwitchConfig<T extends StageObject>(
+  config: AllowedMWS<T, Partial<MultWaySwitchConfig<T>>>,
+): MultWaySwitchConfig<T> {
   if (Array.isArray(config)) {
     return {
       cases: config.map(item => {
-        let res: MultiWaySwitchCase<T, R>
+        let res: MultiWaySwitchCase<T>
         if (isRunPipelineFunction(item)) {
           res = { stage: item, evaluate: true }
         } else if (item instanceof Stage) {
           res = { stage: item, evaluate: true }
-        } else if (isMultiWaySwitch<T, R>(item)) {
+        } else if (isMultiWaySwitch<T>(item)) {
           res = item
         } else {
           throw CreateError('not suitable type for array in pipelin')
@@ -118,18 +103,18 @@ export function getMultWaySwitchConfig<
       delete res.run
     }
     if (typeof res.cases == 'undefined') res.cases = []
-    return res as MultWaySwitchConfig<T, R>
+    return res as MultWaySwitchConfig<T>
   }
 }
 
-export class MultiWaySwitch<
-  T extends StageObject,
-  R extends StageObject = T,
-> extends Stage<T, MultWaySwitchConfig<T, R>, R> {
-  constructor(config?: AllowedStage<T, MultWaySwitchConfig<T, R>, R>) {
+export class MultiWaySwitch<T extends StageObject> extends Stage<
+  T,
+  MultWaySwitchConfig<T>
+> {
+  constructor(config?: AllowedStage<T, MultWaySwitchConfig<T>>) {
     super()
     if (config) {
-      this._config = getMultWaySwitchConfig<T, R>(config)
+      this._config = getMultWaySwitchConfig<T>(config)
     }
   }
 
@@ -141,19 +126,19 @@ export class MultiWaySwitch<
     return '[pipeline MultWaySwitch]'
   }
 
-  combine(ctx: Possible<T>, retCtx: any): Possible<R> {
+  combine(ctx: Possible<T>, retCtx: any): Possible<T> {
     if (this.config.combine) {
       return this.config.combine(ctx, retCtx)
     } else {
-      return ctx as Possible<R>
+      return ctx as Possible<T>
     }
   }
 
   combineCase(
-    item: MultiWaySwitchCase<T, R>,
+    item: MultiWaySwitchCase<T>,
     ctx: Possible<T>,
     retCtx: any,
-  ): Possible<R> {
+  ): Possible<T> {
     if (item.combine) {
       return item.combine(ctx, retCtx)
     } else {
@@ -180,21 +165,21 @@ export class MultiWaySwitch<
     }
   }
 
-  override compile(rebuild: boolean = false): StageRun<T, R> {
+  override compile(rebuild: boolean = false): StageRun<T> {
     let i
-    let statics: Array<MultiWaySwitchStatic<T, R>> = []
-    let dynamics: Array<MultiWaySwitchDynamic<T, R>> = []
+    let statics: Array<MultiWaySwitchStatic<T>> = []
+    let dynamics: Array<MultiWaySwitchDynamic<T>> = []
 
     // Apply to each stage own environment: evaluate, split, combine
     for (i = 0; i < this.config?.cases?.length; i++) {
-      let caseItem: MultiWaySwitchCase<T, R>
+      let caseItem: MultiWaySwitchCase<T>
       caseItem = this.config.cases[i]
 
       if (caseItem instanceof Function) {
         caseItem = {
           stage: new Stage(caseItem),
           evaluate: true,
-        } as MultiWaySwitchStatic<T, R>
+        } as MultiWaySwitchStatic<T>
       }
 
       if (caseItem instanceof Stage) {
@@ -228,22 +213,22 @@ export class MultiWaySwitch<
         }
         if (typeof caseItem.evaluate === 'function') {
           caseItem.evaluate
-          dynamics.push(caseItem as MultiWaySwitchDynamic<T, R>)
+          dynamics.push(caseItem as MultiWaySwitchDynamic<T>)
         } else if (
           typeof caseItem.evaluate === 'boolean' &&
           caseItem.evaluate
         ) {
-          statics.push(caseItem as MultiWaySwitchStatic<T, R>)
+          statics.push(caseItem as MultiWaySwitchStatic<T>)
         }
       }
     }
 
-    let run: StageRun<T, R> = (
+    let run: StageRun<T> = (
       err: Possible<Error>,
       ctx: Possible<T>,
-      done: CallbackFunction<R>,
+      done: CallbackFunction<T>,
     ) => {
-      let actuals: Array<MultiWaySwitchCase<T, R>> = []
+      let actuals: Array<MultiWaySwitchCase<T>> = []
       actuals.push.apply(actuals, statics)
 
       for (let i = 0; i < dynamics.length; i++) {
@@ -261,7 +246,7 @@ export class MultiWaySwitch<
         return (err: Possible<Error>, retCtx: Possible<T>) => {
           iter++
           let cur = actuals[index]
-          let res: Possible<R> = undefined
+          let res: Possible<T> = undefined
           if (err) {
             if (!hasError) hasError = true
             errors.push(err)
@@ -270,10 +255,7 @@ export class MultiWaySwitch<
           }
 
           if (iter >= actuals.length) {
-            return done(
-              hasError ? CreateError(errors) : undefined,
-              res ?? (ctx as unknown as R),
-            )
+            return done(hasError ? CreateError(errors) : undefined, res ?? ctx)
           }
         }
       }
@@ -283,7 +265,7 @@ export class MultiWaySwitch<
         stg = actuals[i]
         lctx = this.splitCase(stg, ctx)
 
-        run_or_execute<T, R, any, any>(stg.stage, err, lctx, next(i))
+        run_or_execute<T>(stg.stage, err, lctx, next(i))
         // не хватает явной передачи контекста
       }
 

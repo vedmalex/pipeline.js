@@ -13,26 +13,23 @@ import {
   StageRun,
 } from './utils/types'
 
-export interface DoWhileConfig<T extends StageObject, R extends StageObject>
-  extends StageConfig<T, R> {
-  stage: AnyStage<any, any> | SingleStageFunction<any, any>
+export interface DoWhileConfig<T extends StageObject> extends StageConfig<T> {
+  stage: AnyStage<any> | SingleStageFunction<any>
   split?: Func2Sync<any, Possible<T>, number>
   reachEnd?: Func3Sync<boolean, Possible<Error>, Possible<T>, number>
 }
 
-export class DoWhile<
-  T extends StageObject,
-  R extends StageObject = T,
-> extends Stage<T, DoWhileConfig<T, R>, R> {
+export class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
+  constructor()
   constructor(
     _config?:
-      | DoWhileConfig<T, R>
-      | Stage<T, DoWhileConfig<T, R>, R>
-      | SingleStageFunction<T, R>,
+      | Stage<T, DoWhileConfig<T>>
+      | DoWhileConfig<T>
+      | SingleStageFunction<T>,
   ) {
-    let config: DoWhileConfig<T, R> = {} as DoWhileConfig<T, R>
+    let config: DoWhileConfig<T> = {} as DoWhileConfig<T>
     if (_config instanceof Stage) {
-      config.stage = _config as AnyStage<any, any>
+      config.stage = _config as AnyStage<any>
     } else {
       if (typeof _config == 'function') {
         config.stage = _config
@@ -81,8 +78,8 @@ export class DoWhile<
     } else return ctx
   }
 
-  override compile(rebuild: boolean = false): StageRun<any, any> {
-    let run: StageRun<any, any> = (
+  override compile(rebuild: boolean = false): StageRun<any> {
+    let run: StageRun<any> = (
       err: Possible<Error>,
       context: Possible<T>,
       done: CallbackFunction<T>,
@@ -93,7 +90,7 @@ export class DoWhile<
         if (this.reachEnd(err, context, iter)) {
           return done(err, context)
         } else {
-          run_or_execute<T, any, any, any>(
+          run_or_execute<T>(
             this.config.stage,
             err,
             this.split(context, iter),

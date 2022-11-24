@@ -7,32 +7,27 @@ import {
   StageObject,
 } from './types'
 
-export function run_or_execute<
-  T extends StageObject,
-  R extends StageObject,
-  RC,
-  RRET,
->(
-  stage: AnyStage<T, R> | RunPipelineFunction<T, R>,
+export function run_or_execute<T extends StageObject>(
+  stage: AnyStage<T> | RunPipelineFunction<T>,
   err: Possible<Error>,
-  context: Possible<RC>,
-  _done: CallbackFunction<RRET>,
+  context: Possible<T>,
+  _done: CallbackFunction<T>,
 ): void {
-  const done: CallbackFunction<R> = (
+  const done: CallbackFunction<T> = (
     err: Possible<Error>,
-    ctx: Possible<R>,
+    ctx: Possible<T>,
   ) => {
-    _done(err, (ctx ?? context) as unknown as RRET)
+    _done(err, ctx ?? context)
   }
   if (typeof stage == 'object') {
     ;(
       stage.execute as (
         err: Possible<Error>,
-        context: Possible<RC>,
-        done: CallbackFunction<R>,
+        context: Possible<T>,
+        done: CallbackFunction<T>,
       ) => void
     )(err, context, done)
   } else {
-    execute_callback<T, R>(err, stage, context as unknown as T, done)
+    execute_callback<T>(err, stage, context as unknown as T, done)
   }
 }

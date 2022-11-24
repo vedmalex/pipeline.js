@@ -8,14 +8,11 @@ import {
   TimeoutConfig,
 } from './utils/types'
 
-export class Timeout<
-  T extends StageObject,
-  R extends StageObject = T,
-> extends Stage<T, TimeoutConfig<T, R>, R> {
-  constructor(config?: AllowedStage<T, TimeoutConfig<T, R>, R>) {
+export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
+  constructor(config?: AllowedStage<T, TimeoutConfig<T>>) {
     super()
     if (config) {
-      this._config = getTimeoutConfig<T, R>(config)
+      this._config = getTimeoutConfig<T>(config)
     }
   }
 
@@ -27,14 +24,14 @@ export class Timeout<
     return '[pipeline Timeout]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<T, R> {
-    let run: StageRun<T, R> = (
+  override compile(rebuild: boolean = false): StageRun<T> {
+    let run: StageRun<T> = (
       err: Possible<Error>,
       ctx: Possible<T>,
-      done: CallbackFunction<R>,
+      done: CallbackFunction<T>,
     ) => {
       let to: any
-      let localDone = function (err: Possible<Error>, retCtx: Possible<R>) {
+      let localDone = function (err: Possible<Error>, retCtx: Possible<T>) {
         if (to) {
           clearTimeout(to)
           to = null
@@ -52,12 +49,7 @@ export class Timeout<
         to = setTimeout(() => {
           if (to) {
             if (this.config.overdue) {
-              run_or_execute<T, R, T, R>(
-                this.config.overdue,
-                err,
-                ctx,
-                localDone,
-              )
+              run_or_execute(this.config.overdue, err, ctx, localDone)
             }
           }
           /* else {

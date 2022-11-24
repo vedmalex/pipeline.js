@@ -9,14 +9,11 @@ import {
 } from './utils/types'
 import { CallbackFunction, Possible, StageRun } from './utils/types'
 
-export class IfElse<
-  T extends StageObject,
-  R extends StageObject = T,
-> extends Stage<T, IfElseConfig<T, R>, R> {
-  constructor(config?: AllowedStage<T, IfElseConfig<T, R>, R>) {
+export class IfElse<T extends StageObject> extends Stage<T, IfElseConfig<T>> {
+  constructor(config?: AllowedStage<T, IfElseConfig<T>>) {
     super()
     if (config) {
-      this._config = getIfElseConfig<T, IfElseConfig<T, R>, R>(config)
+      this._config = getIfElseConfig<T, IfElseConfig<T>>(config)
     }
   }
 
@@ -28,11 +25,11 @@ export class IfElse<
     return '[pipeline IfElse]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<T, R> {
-    let run: StageRun<T, R> = (
+  override compile(rebuild: boolean = false): StageRun<T> {
+    let run: StageRun<T> = (
       err: Possible<Error>,
       context: Possible<T>,
-      done: CallbackFunction<R>,
+      done: CallbackFunction<T>,
     ) => {
       if (typeof this.config.condition == 'function') {
         execute_validate<T>(
@@ -66,7 +63,7 @@ export class IfElse<
         } else if (this.config.failed) {
           run_or_execute(this.config.failed, err, context, done)
         } else {
-          done(err, context as unknown as R)
+          done(err, context)
         }
       }
     }

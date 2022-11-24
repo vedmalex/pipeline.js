@@ -23,20 +23,16 @@ import { isStageRun, Rescue } from './utils/types'
 
 // make possibility to context be immutable for debug purposes
 
-export class Stage<
-  T extends StageObject,
-  C extends StageConfig<T, R>,
-  R extends StageObject = T,
-> {
+export class Stage<T extends StageObject, C extends StageConfig<T>> {
   public get config(): C {
     return this._config
   }
   protected _config!: C
-  constructor(config?: AllowedStage<T, C, R>) {
+  constructor(config?: AllowedStage<T, C>) {
     if (config) {
       let res = getStageConfig(config)
       if (res instanceof Stage) {
-        return res as Stage<T, C, R>
+        return res as Stage<T, C>
       } else {
         this._config = res as C
       }
@@ -58,8 +54,8 @@ export class Stage<
     err: Possible<Error>,
     ctx: Possible<T>,
     context: T,
-    stageToRun: StageRun<T, R>,
-    callback: CallbackFunction<R>,
+    stageToRun: StageRun<T>,
+    callback: CallbackFunction<T>,
   ) {
     if (err || err_) {
       if (this.config.run && !can_fix_error({ run: this.config.run })) {
@@ -83,25 +79,25 @@ export class Stage<
 
   // может быть вызван как Promise
   // сделать все дубликаты и проверки методов для работы с промисами
-  public execute(context: Possible<T | ContextType<T>>): Promise<Possible<R>>
+  public execute(context: Possible<T | ContextType<T>>): Promise<Possible<T>>
   public execute(
     context: Possible<T | ContextType<T>>,
-    callback: CallbackFunction<R>,
+    callback: CallbackFunction<T>,
   ): void
   public execute(
     err: Possible<Error>,
     context: Possible<T>,
-    callback: CallbackFunction<R>,
+    callback: CallbackFunction<T>,
   ): void
   public execute(
     _err?: Possible<Error | T>,
-    _context?: Possible<T> | CallbackFunction<R>,
-    _callback?: Possible<CallbackFunction<R>>,
-  ): void | Promise<Possible<R>> {
+    _context?: Possible<T> | CallbackFunction<T>,
+    _callback?: Possible<CallbackFunction<T>>,
+  ): void | Promise<Possible<T>> {
     // discover arguments
     let err: Possible<Error>,
       not_ensured_context: T | ContextType<T>,
-      __callback: Possible<CallbackFunction<R>>
+      __callback: Possible<CallbackFunction<T>>
 
     if (arguments.length == 1) {
       not_ensured_context = _err as T | ContextType<T>
@@ -111,7 +107,7 @@ export class Stage<
         // callback
         not_ensured_context = _err as T | ContextType<T>
         err = undefined
-        __callback = _context as CallbackFunction<R>
+        __callback = _context as CallbackFunction<T>
       } else {
         // promise
         err = _err as Error
@@ -121,7 +117,7 @@ export class Stage<
       // callback
       err = _err as Error
       not_ensured_context = _context as T | ContextType<T>
-      __callback = _callback as CallbackFunction<R>
+      __callback = _callback as CallbackFunction<T>
     }
 
     if (!this.run) {
@@ -129,7 +125,7 @@ export class Stage<
     } else if (!this.config?.run) {
       // legacy run
       if (!isStageRun(this.run)) {
-        var legacy = this.run as RunPipelineFunction<T, R>
+        var legacy = this.run as RunPipelineFunction<T>
         this.run = execute_custom_run(legacy)
       }
     }
@@ -140,7 +136,7 @@ export class Stage<
 
     if (!__callback) {
       return new Promise((res, rej) => {
-        this.execute(err, context, (err: Possible<Error>, ctx: Possible<R>) => {
+        this.execute(err, context, (err: Possible<Error>, ctx: Possible<T>) => {
           if (err) rej(err)
           else res(ctx)
         })
@@ -148,11 +144,9 @@ export class Stage<
     } else {
       const back = __callback
       process.nextTick(() => {
-        const sucess = (ret: Possible<R>) =>
-          back(undefined, ret ?? (context as unknown as R))
-        const fail = (err: Possible<Error>) =>
-          back(err, context as unknown as R)
-        const callback = (err: Possible<Error>, _ctx: Possible<R>) => {
+        const sucess = (ret: Possible<T>) => back(undefined, ret ?? context)
+        const fail = (err: Possible<Error>) => back(err, context)
+        const callback = (err: Possible<Error>, _ctx: Possible<T>) => {
           if (err) {
             this.rescue(err, _ctx, fail, sucess)
           } else {
@@ -165,7 +159,7 @@ export class Stage<
           this._config.run &&
           !can_fix_error({ run: this._config.run })
         ) {
-          this.rescue(err, context as unknown as Possible<R>, fail, sucess)
+          this.rescue(err, context as unknown as Possible<T>, fail, sucess)
         } else {
           if (this.config.ensure) {
             this.ensure(
@@ -208,46 +202,40 @@ export class Stage<
   protected stage(
     err: Possible<Error>,
     context: Possible<T>,
-    callback: CallbackFunction<R>,
+    callback: CallbackFunction<T>,
   ) {
     const back = callback
-    const sucess = (ret: Possible<R>) =>
-      back(undefined, ret ?? (context as unknown as R))
-    const fail = (err: Possible<Error>) => back(err, context as unknown as R)
+    const sucess = (ret: Possible<T>) => back(undefined, ret ?? context)
+    const fail = (err: Possible<Error>) => back(err, context)
     if (this._config.run) {
       if (context) {
         execute_callback(
           err,
           this._config.run,
           context,
-          (err: Possible<Error>, ctx: Possible<R>) => {
+          (err: Possible<Error>, ctx: Possible<T>) => {
             if (err) {
-              this.rescue<R>(
-                err,
-                ctx ?? (context as unknown as R),
-                fail,
-                sucess,
-              )
+              this.rescue(err, ctx ?? context, fail, sucess)
             } else {
-              callback(undefined, ctx ?? (context as unknown as R))
+              callback(undefined, ctx ?? context)
             }
           },
         )
       } else {
         // возвращаем управление
-        callback(null, context as unknown as R)
+        callback(null, context)
       }
     } else {
       const retErr: Array<any> = [
         this.reportName + ' reports: run is not a function',
       ]
       if (err) retErr.push(err)
-      this.rescue(CreateError(retErr), context as unknown as R, fail, sucess)
+      this.rescue(CreateError(retErr), context, fail, sucess)
     }
   }
 
-  public compile(rebuild: boolean = false): StageRun<T, R> {
-    let res: StageRun<T, R>
+  public compile(rebuild: boolean = false): StageRun<T> {
+    let res: StageRun<T>
     if (this.config.precompile) {
       this.config.precompile()
     }
@@ -256,16 +244,16 @@ export class Stage<
     } else if (!this.run || rebuild) {
       res = this.stage
     } else {
-      if (isStageRun<T, R>(this.run)) {
+      if (isStageRun<T>(this.run)) {
         res = this.run
       } else {
-        res = execute_custom_run(this.run as RunPipelineFunction<T, R>)
+        res = execute_custom_run(this.run as RunPipelineFunction<T>)
       }
     }
     return res
   }
   // to be overridden by compile
-  protected run?: StageRun<T, R>
+  protected run?: StageRun<T>
 
   // объединение ошибок сделать
   // посмотреть что нужно сделать чтобы вызвать ошибку правильно!!!

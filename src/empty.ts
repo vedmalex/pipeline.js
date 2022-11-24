@@ -6,17 +6,14 @@ import {
   StageConfig,
   StageObject,
 } from './utils/types'
-export class Empty<
-  T extends StageObject,
-  R extends StageObject = T,
-> extends Stage<T, StageConfig<T, R>, R> {
-  constructor(config: AllowedStage<T, StageConfig<T, R>, R>) {
+export class Empty<T extends StageObject> extends Stage<T, StageConfig<T>> {
+  constructor(config: AllowedStage<T, StageConfig<T>>) {
     super()
     const res = getEmptyConfig(config)
     if (res instanceof Stage) {
-      return res as unknown as AnyStage<T, R>
+      return res as unknown as AnyStage<T>
     } else {
-      this._config = res as StageConfig<T, R>
+      this._config = res as StageConfig<T>
     }
   }
 

@@ -6,10 +6,10 @@ import {
   StageObject,
 } from './types'
 
-export function can_fix_error<T extends StageObject, R>({
+export function can_fix_error<T extends StageObject>({
   run,
 }: {
-  run: RunPipelineFunction<T, R>
+  run: RunPipelineFunction<T>
 }) {
   return is_func2_async(run) || (is_func3(run) && !is_func3_async(run))
 }

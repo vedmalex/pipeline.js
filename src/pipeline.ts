@@ -29,14 +29,14 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Pipeline<
-  T extends StageObject,
-  R extends StageObject = T,
-> extends Stage<T, PipelineConfig<T, R>, R> {
+export class Pipeline<T extends StageObject> extends Stage<
+  T,
+  PipelineConfig<T>
+> {
   constructor(
     config?:
-      | AllowedStage<T, PipelineConfig<T, R>, R>
-      | Array<Stage<T, PipelineConfig<T, R>, R> | RunPipelineFunction<T, R>>,
+      | AllowedStage<T, PipelineConfig<T>>
+      | Array<Stage<T, PipelineConfig<T>> | RunPipelineFunction<T>>,
   ) {
     super()
     if (config) {
@@ -50,21 +50,18 @@ export class Pipeline<
     return `PIPE:${this.config.name ? this.config.name : ''}`
   }
 
-  addStage<IT extends StageObject, IR extends StageObject>(
-    _stage:
-      | StageConfig<IT, IR>
-      | RunPipelineFunction<IT, IR>
-      | AnyStage<IT, IR>,
+  addStage<IT extends StageObject>(
+    _stage: StageConfig<IT> | RunPipelineFunction<IT> | AnyStage<IT>,
   ) {
-    let stage: AnyStage<IT, IR> | RunPipelineFunction<IT, IR> | undefined
+    let stage: AnyStage<IT> | RunPipelineFunction<IT> | undefined
     if (typeof _stage === 'function') {
-      stage = _stage as RunPipelineFunction<IT, IR>
+      stage = _stage
     } else {
       if (typeof _stage === 'object') {
         if (_stage instanceof Stage) {
-          stage = _stage as AnyStage<IT, IR>
+          stage = _stage
         } else {
-          stage = new Stage<IT, StageConfig<IT, IR>, IR>(_stage)
+          stage = new Stage(_stage)
         }
       }
     }
@@ -78,26 +75,21 @@ export class Pipeline<
     return '[pipeline Pipeline]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<T, R> {
-    let run: StageRun<T, R> = (
+  override compile(rebuild: boolean = false): StageRun<T> {
+    let run: StageRun<T> = (
       err: Possible<Error>,
       context: Possible<T>,
-      done: CallbackFunction<R>,
+      done: CallbackFunction<T>,
     ) => {
       let i = -1
       // sequential run;
-      let next = (err: Possible<Error>, ctx: unknown) => {
+      let next = (err: Possible<Error>, ctx: Possible<T>) => {
         i += 1
         if (!err && i < this.config.stages.length) {
           const st = this.config.stages[i]
-          run_or_execute<object, object, object, object>(
-            st,
-            err,
-            ctx ?? context,
-            next,
-          )
+          run_or_execute<T>(st, err, ctx ?? context, next)
         } else if (i >= this.config.stages.length || err) {
-          done(err, (ctx ?? context) as unknown as R)
+          done(err, ctx ?? context)
         }
       }
       next(err, context)

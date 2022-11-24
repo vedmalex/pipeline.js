@@ -29,14 +29,14 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Parallel<
-  T extends StageObject,
-  R extends StageObject = T,
-> extends Stage<T, ParallelConfig<T, R>, R> {
-  constructor(config?: AllowedStage<T, ParallelConfig<T, R>, R>) {
+export class Parallel<T extends StageObject> extends Stage<
+  T,
+  ParallelConfig<T>
+> {
+  constructor(config?: AllowedStage<T, ParallelConfig<T>>) {
     super()
     if (config) {
-      this._config = getParallelConfig<T, R>(config)
+      this._config = getParallelConfig<T>(config)
     }
   }
 
@@ -44,13 +44,13 @@ export class Parallel<
     return this._config.split ? this._config.split(ctx) : [ctx]
   }
 
-  combine(ctx: Possible<T>, children: Array<any>): Possible<R> {
-    let res: Possible<R>
+  combine(ctx: Possible<T>, children: Array<any>): Possible<T> {
+    let res: Possible<T>
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
-      res = c ?? (ctx as Possible<R>)
+      res = c ?? (ctx as Possible<T>)
     } else {
-      res = ctx as Possible<R>
+      res = ctx as Possible<T>
     }
     return res
   }
@@ -66,12 +66,12 @@ export class Parallel<
     return this._config.name ?? this._config.stage?.name ?? ''
   }
 
-  override compile(rebuild: boolean = false): StageRun<T, R> {
+  override compile(rebuild: boolean = false): StageRun<T> {
     if (this.config.stage) {
-      var run: StageRun<T, R> = (
+      var run: StageRun<T> = (
         err: Possible<Error>,
         ctx: Possible<T>,
-        done: CallbackFunction<R>,
+        done: CallbackFunction<T>,
       ) => {
         var iter = 0
         var children = this.split(ctx)
@@ -104,22 +104,17 @@ export class Parallel<
                 let result = this.combine(ctx, children)
                 return done(undefined, result)
               } else {
-                return done(CreateError(errors), ctx as unknown as R)
+                return done(CreateError(errors), ctx)
               }
             }
           }
         }
 
         if (len === 0) {
-          return done(err, ctx as unknown as R)
+          return done(err, ctx)
         } else {
           for (var i = 0; i < len; i++) {
-            run_or_execute<T, R, any, any>(
-              this.config.stage,
-              err,
-              children[i],
-              next(i),
-            )
+            run_or_execute<T>(this.config.stage, err, children[i], next(i))
           }
         }
       }
