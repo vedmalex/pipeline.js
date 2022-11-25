@@ -1,3 +1,4 @@
+import { JSONSchemaType } from 'ajv'
 import 'jest'
 import { Stage } from '../stage'
 import { empty_run } from '../utils/empty_run'
@@ -11,16 +12,16 @@ import {
 } from '../utils/types'
 
 describe('stage', () => {
-  it('throw error', () => {
+  it('throw error', done => {
     let st = new Stage()
-    expect(() =>
-      st.execute({}, (err, context) => {
-        throw new Error('error')
-      })
-    ).toThrow()
+    expect.assertions(1)
+    st.execute({}, (err, context) => {
+      expect(err).not.toBeUndefined()
+      done()
+    })
   })
 
-  it('empty run', (done) => {
+  it('empty run', done => {
     new Stage().execute({}, (err, res) => {
       expect(err).not.toBeUndefined()
       expect(res).toMatchObject({})
@@ -77,7 +78,7 @@ describe('stage', () => {
       () =>
         new Stage({
           run: () => {},
-          schema: {},
+          schema: {} as JSONSchemaType<{}>,
         }),
     ).not.toThrow()
   })
@@ -96,7 +97,7 @@ describe('stage', () => {
       },
     })
 
-    st.execute({ fullname: 1 }, (err, res) => {
+    st.execute({ fullname: 1 } as unknown as { name: string }, (err, res) => {
       expect(err).not.toBeUndefined()
       expect(err).toMatchSnapshot()
     })
@@ -157,13 +158,13 @@ describe('stage', () => {
   //     stages: [],
   //     precompile(this: Config) {
   //       let run: StageRun<CTX, CTX> = (
-  //         err: Possible<Error>,
+  //         err: Possible<ComplexError>,
   //         context: CTX,
   //         done: CallbackFunction<CTX>,
   //       ) => {
   //         let i = -1
   //         //sequential run;
-  //         let next = (err: Possible<Error>, context: CTX | undefiend) => {
+  //         let next = (err: Possible<ComplexError>, context: CTX | undefiend) => {
   //           i += 1
   //           if (i < this.stages.length) {
   //             run_or_execute(this.stages[i], err, context, next)

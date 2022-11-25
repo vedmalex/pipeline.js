@@ -1,5 +1,5 @@
 import { Stage } from '../stage'
-import { CreateError } from './ErrorList'
+import { ComplexError, CreateError } from './ErrorList'
 import {
   AllowedStage,
   AnyStage,
@@ -58,7 +58,7 @@ export class Template<
 
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
-      err: Possible<Error>,
+      err: Possible<ComplexError>,
       context: Possible<T>,
       done: CallbackFunction<T>,
     ) => {}

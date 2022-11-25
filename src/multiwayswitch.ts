@@ -1,5 +1,5 @@
 import { Stage } from './stage'
-import { CreateError } from './utils/ErrorList'
+import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
   AllowedStage,
@@ -224,7 +224,7 @@ export class MultiWaySwitch<T extends StageObject> extends Stage<
     }
 
     let run: StageRun<T> = (
-      err: Possible<Error>,
+      err: Possible<ComplexError>,
       ctx: T,
       done: CallbackFunction<T>,
     ) => {
@@ -243,7 +243,7 @@ export class MultiWaySwitch<T extends StageObject> extends Stage<
       let hasError = false
 
       let next = (index: number) => {
-        return (err: Possible<Error>, retCtx: Possible<T>) => {
+        return (err: Possible<ComplexError>, retCtx: Possible<T>) => {
           iter++
           let cur = actuals[index]
           let res: Possible<T> = undefined

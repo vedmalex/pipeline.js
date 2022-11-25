@@ -1,3 +1,4 @@
+import { ComplexError } from './ErrorList'
 import { execute_callback } from './execute_callback'
 import {
   AnyStage,
@@ -9,11 +10,11 @@ import {
 
 export function run_or_execute<T extends StageObject>(
   stage: AnyStage<T> | RunPipelineFunction<T>,
-  err: Possible<Error>,
+  err: Possible<ComplexError>,
   context: T,
   _done: CallbackFunction<T>,
 ): void {
-  const done = ((err: Possible<Error>, ctx: T) => {
+  const done = ((err: Possible<ComplexError>, ctx: T) => {
     _done(err, ctx ?? context)
   }) as CallbackFunction<T>
   if (typeof stage == 'object') {

@@ -2,7 +2,7 @@ import { cloneDeep } from 'lodash'
 
 import { Context } from './context'
 import { Stage } from './stage'
-import { CreateError } from './utils/ErrorList'
+import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
   AllowedStage,
@@ -17,7 +17,7 @@ import { CallbackFunction, Func3, StageConfig, StageRun } from './utils/types'
 export interface RetryOnErrorConfig<T extends StageObject>
   extends StageConfig<T> {
   stage: AnyStage<T> | RunPipelineFunction<T>
-  retry: number | Func3<boolean, Possible<Error>, Possible<T>, number>
+  retry: number | Func3<boolean, Possible<ComplexError>, Possible<T>, number>
   backup?: (ctx: Possible<T>) => Possible<T>
   restore?: (ctx: Possible<T>, backup: Possible<T>) => Possible<T>
 }
@@ -106,7 +106,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
 
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
-      err: Possible<Error>,
+      err: Possible<ComplexError>,
       ctx: T,
       done: CallbackFunction<T>,
     ) => {
@@ -114,7 +114,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
       // backup context object to overwrite if needed
       let backup = this.backupContext(ctx)
 
-      const reachEnd = (err: Possible<Error>, iter: number) => {
+      const reachEnd = (err: Possible<ComplexError>, iter: number) => {
         if (err) {
           if (this.config.retry instanceof Function) {
             return !this.config.retry(err, ctx, iter)
@@ -128,7 +128,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
       }
       let iter = -1
 
-      let next = (err: Possible<Error>, _ctx: T) => {
+      let next = (err: Possible<ComplexError>, _ctx: T) => {
         iter++
         if (reachEnd(err, iter)) {
           return done(err, _ctx ?? ctx)

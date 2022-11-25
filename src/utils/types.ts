@@ -1,6 +1,6 @@
 import { JSONSchemaType } from 'ajv'
 import { Stage } from '../stage'
-import { CreateError } from './ErrorList'
+import { CreateError, ComplexError } from './ErrorList'
 
 import Ajv from 'ajv'
 
@@ -20,11 +20,16 @@ import { Wrap } from '../wrap'
 import { empty_run } from './empty_run'
 
 export type StageObject = Record<string | symbol | number, any>
-export interface CallbackFunction<T> {
-  (): void
-  (err: Possible<Error>): void
-  (err: Possible<Error>, res: T): void
-}
+
+export type CallbackFunction<T> =
+  | (() => void)
+  | ((err?: Possible<ComplexError>) => void)
+  | ((err?: Possible<ComplexError>, res?: T) => void)
+
+export type CallbackExternalFunction<T> =
+  | (() => void)
+  | ((err?: Possible<Error>) => void)
+  | ((err?: Possible<Error>, res?: T) => void)
 
 export function isCallback<T>(inp?: unknown): inp is CallbackFunction<T> {
   if (typeof inp === 'function' && !is_async_function(inp)) {
@@ -42,6 +47,8 @@ export function is_func1Callbacl<R, P1>(
 ): inp is Func1Sync<R, P1> {
   return inp?.length == 1
 }
+
+// /все типы должны быть правильно override cделаны
 
 export type Func0Sync<R> = () => R
 export type Func1Sync<R, P1> = (p1: P1) => R
@@ -135,8 +142,8 @@ export function is_thenable<T>(inp?: any): inp is Thanable<T> {
 export type Possible<T> = T | undefined | null
 
 export type SingleStageFunction<T extends StageObject> =
-  | Func2Async<T, Possible<Error>, Possible<T>>
-  | Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<T>>
+  | Func2Async<T, Possible<ComplexError>, Possible<T>>
+  | Func3Sync<void, Possible<ComplexError>, Possible<T>, CallbackFunction<T>>
 
 export function isSingleStageFunction<T extends StageObject>(
   inp?: any,
@@ -145,14 +152,14 @@ export function isSingleStageFunction<T extends StageObject>(
 }
 
 export type RunPipelineFunction<T extends StageObject> =
-  | Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<T>>
-  | Func2Sync<void, Possible<T>, CallbackFunction<T>>
-  | Func2Async<T, Possible<Error>, Possible<T>>
+  | Func3Sync<void, Possible<ComplexError>, T, CallbackFunction<T>>
+  | Func2Sync<void, T, CallbackFunction<T>>
+  | Func2Async<T, Possible<ComplexError>, T>
   | Func0Sync<T | Promise<T> | Thanable<T>>
-  | Func1Async<T, Possible<T>>
-  | Func1Sync<T | Promise<T> | Thanable<T>, Possible<T>>
+  | Func1Async<T, T>
+  | Func1Sync<T | Promise<T> | Thanable<T>, T>
   | Func1Sync<void, CallbackFunction<T>>
-  | Func1Sync<void, Possible<T>>
+  | Func1Sync<void, T>
   | Func0Async<T>
 
 export function isRunPipelineFunction<T extends StageObject>(
@@ -174,7 +181,7 @@ export type Rescue<T> =
   | Func1Async<T, Error>
   | Func1Sync<T | Promise<T> | Thanable<T>, Error>
   // not applied as this
-  | Func2Async<T, Possible<Error>, Possible<T>>
+  | Func2Async<T, Possible<ComplexError>, Possible<T>>
   | Func2Sync<T | Promise<T> | Thanable<T>, Error, Possible<T>>
   | Func3Sync<void, Error, Possible<T>, CallbackFunction<T>>
 
@@ -188,15 +195,15 @@ export function isRescue<T>(inp: any): inp is Rescue<T> {
   )
 }
 
-export interface ValidateFunction<T> {
+export type ValidateFunction<T> =
   // will throw error
-  (value: T): boolean
+  | (() => boolean)
+  | ((value: T) => boolean)
   // will reject with error
-  (value: T): Promise<boolean>
-  (value: T): Thanable<boolean>
+  | ((value: T) => Promise<boolean>)
+  | ((value: T) => Thanable<boolean>)
   // will return error in callback
-  (value: T, callback: CallbackFunction<boolean>): void
-}
+  | ((value: T, callback: CallbackExternalFunction<boolean>) => void)
 
 export function isValidateFunction<T>(inp: any): inp is ValidateFunction<T> {
   return is_func1(inp) || is_func1_async(inp) || is_func2(inp)
@@ -245,7 +252,7 @@ export function isStageRun<T extends StageObject>(
 }
 
 export type StageRun<T extends StageObject> = (
-  err: Possible<Error>,
+  err: Possible<ComplexError>,
   context: T,
   callback: CallbackFunction<T>,
 ) => void

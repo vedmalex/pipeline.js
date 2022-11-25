@@ -1,4 +1,4 @@
-import { CreateError } from './ErrorList'
+import { ComplexError, CreateError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import { run_callback_once } from './run_callback_once'
@@ -32,7 +32,7 @@ export function execute_custom_run<T extends StageObject>(
 ): StageRun<T> {
   return function (
     this: any,
-    err: Possible<Error>,
+    err: Possible<ComplexError>,
     context: Possible<T>,
     _done: CallbackFunction<T>,
   ) {
@@ -93,7 +93,7 @@ export function execute_custom_run<T extends StageObject>(
       case 2:
         if (is_func2_async(run)) {
           try {
-            ;(run as Func2Async<T, Possible<Error>, Possible<T>>)
+            ;(run as Func2Async<T, Possible<ComplexError>, Possible<T>>)
               .call(this, err, context)
               .then(ctx => done(undefined, ctx))
               .catch(err => done(err))

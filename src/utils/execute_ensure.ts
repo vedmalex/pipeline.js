@@ -1,4 +1,4 @@
-import { CreateError } from './ErrorList'
+import { CreateError, ComplexError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import {
@@ -48,7 +48,7 @@ export function execute_ensure<T>(
     case 2:
       if (is_func2(ensure)) {
         try {
-          ensure(context, (err: Error, ctx: T) => {
+          ensure(context, (err: ComplexError, ctx: T) => {
             done(err, ctx)
           })
         } catch (err) {

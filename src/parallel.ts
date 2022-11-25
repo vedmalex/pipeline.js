@@ -1,6 +1,6 @@
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
-import { CreateError } from './utils/ErrorList'
+import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
   AllowedStage,
@@ -69,7 +69,7 @@ export class Parallel<T extends StageObject> extends Stage<
   override compile(rebuild: boolean = false): StageRun<T> {
     if (this.config.stage) {
       var run: StageRun<T> = (
-        err: Possible<Error>,
+        err: Possible<ComplexError>,
         ctx: T,
         done: CallbackFunction<T>,
       ) => {
@@ -80,7 +80,7 @@ export class Parallel<T extends StageObject> extends Stage<
         let hasError = false
 
         var next = (index: number) => {
-          return (err: Possible<Error>, retCtx: any) => {
+          return (err: Possible<ComplexError>, retCtx: any) => {
             if (!err) {
               children[index] = retCtx ?? children[index]
             } else {

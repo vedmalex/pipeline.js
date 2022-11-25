@@ -2,7 +2,7 @@
 
 exports[`stage create named: names stage 1`] = `
 Stage {
-  "_config": Object {
+  "_config": {
     "name": "name",
   },
 }
@@ -10,7 +10,7 @@ Stage {
 
 exports[`stage create with Config: config stage 1`] = `
 Stage {
-  "_config": Object {
+  "_config": {
     "name": "function (err, ctx, done) {
             if (!err) {
                 ctx.name = 'run the stage';
@@ -27,7 +27,7 @@ Stage {
 
 exports[`stage create with Lambda 2: lambda stage 1`] = `
 Stage {
-  "_config": Object {
+  "_config": {
     "name": "function (err, ctx) {
             if (!err) {
                 ctx.name = 'run the stage';
@@ -44,7 +44,7 @@ Stage {
 
 exports[`stage create with Lambda 3: lambda stage 1`] = `
 Stage {
-  "_config": Object {
+  "_config": {
     "name": "function (err, ctx, done) {
             if (!err) {
                 ctx.name = 'run the stage';
@@ -61,7 +61,7 @@ Stage {
 
 exports[`stage create with function: function stage 1`] = `
 Stage {
-  "_config": Object {
+  "_config": {
     "name": "RunStage",
     "run": [Function],
   },
@@ -70,11 +70,9 @@ Stage {
 
 exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
 Stage {
-  "_config": Object {
+  "_config": {
     "name": "stage",
     "run": [Function],
   },
 }
 `;
-
-exports[`stage validate using schema 1`] = `[Error: data should be an object with a name property]`;

@@ -8,7 +8,7 @@ export function CreateError<T extends { message: string }>(
   }
   if (typeof err == 'object') {
     if (Array.isArray(err)) {
-      let result: Array<Possible<Error>> = []
+      let result: Array<Possible<ComplexError>> = []
       err
         .filter(e => e)
         .forEach(ler => {

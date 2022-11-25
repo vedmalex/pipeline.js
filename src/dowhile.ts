@@ -1,5 +1,5 @@
 import { Stage } from './stage'
-import { CreateError } from './utils/ErrorList'
+import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
   AnyStage,
@@ -16,7 +16,7 @@ import {
 export interface DoWhileConfig<T extends StageObject> extends StageConfig<T> {
   stage: AnyStage<T> | SingleStageFunction<T>
   split?: Func2Sync<T, Possible<T>, number>
-  reachEnd?: Func3Sync<boolean, Possible<Error>, Possible<T>, number>
+  reachEnd?: Func3Sync<boolean, Possible<ComplexError>, Possible<T>, number>
 }
 
 export class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
@@ -32,7 +32,7 @@ export class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
   ) {
     let config: DoWhileConfig<T> = {} as DoWhileConfig<T>
     if (_config instanceof Stage) {
-      config.stage = _config as AnyStage<any>
+      config.stage = _config
     } else {
       if (typeof _config == 'function') {
         config.stage = _config
@@ -69,7 +69,11 @@ export class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
     return '[pipeline DoWhile]'
   }
 
-  reachEnd(err: Possible<Error>, ctx: Possible<T>, iter: number): boolean {
+  reachEnd(
+    err: Possible<ComplexError>,
+    ctx: Possible<T>,
+    iter: number,
+  ): boolean {
     if (this.config.reachEnd) {
       return this.config.reachEnd(err, ctx, iter)
     } else return true
@@ -83,12 +87,12 @@ export class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
 
   override compile(rebuild: boolean = false): StageRun<any> {
     let run: StageRun<any> = (
-      err: Possible<Error>,
+      err: Possible<ComplexError>,
       context: T,
       done: CallbackFunction<T>,
     ) => {
       let iter: number = -1
-      let next = (err: Possible<Error>) => {
+      let next = (err: Possible<ComplexError>) => {
         iter++
         if (this.reachEnd(err, context, iter)) {
           return done(err, context)

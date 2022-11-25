@@ -3,12 +3,13 @@ import 'jest'
 import { Context } from '../context'
 import { DoWhile } from '../dowhile'
 import { Stage } from '../stage'
+import { AnyStage } from '../../lib/utils/types'
 
 describe('DoWhile', function () {
   it('works with default', function (done) {
     var stage = new DoWhile()
     expect(stage).toBeInstanceOf(Stage)
-    stage.execute({}, function (err, context) {
+    stage.execute({}, (err, context) => {
       expect(err).toBeUndefined()
       // assert.strictEqual(context instanceof Context, true);
       done()
@@ -145,10 +146,10 @@ describe('DoWhile', function () {
   })
 
   it('cheks context as well', function (done) {
-    var stage0 = new Stage({
-      validate: function (ctx) {
-        if (ctx.iter > 5) return new Error('error')
-        return true
+    type Context = { some: Array<number>; iter?: number }
+    var stage0 = new Stage<Context>({
+      validate: function () {
+        return false
       },
       run: function (ctx, done) {
         ctx.liter = 1
@@ -159,9 +160,9 @@ describe('DoWhile', function () {
       some: [1, 2, 3, 4, 5, 6, 7],
     }
     var len = ctx.some.length
-    var stage = new DoWhile({
+    var stage = new DoWhile<Context>({
       stage: stage0,
-      split: function (ctx, iter) {
+      split: function (ctx: Context, iter) {
         return {
           iter: ctx?.some[iter],
         }

@@ -4,7 +4,7 @@ import { Timeout } from '../timeout'
 
 describe('Timeout', function () {
   it('not used without construction', function (done) {
-    expect(() => Timeout(123)).toThrow()
+    expect(() => eval('Timeout()')).toThrow()
     done()
   })
 
@@ -100,7 +100,8 @@ describe('Timeout', function () {
       },
     })
     to.execute({}, function (err, ctx) {
-      expect(ctx.overdue).toBeTruthy()
+      if (ctx) expect(ctx.overdue).toBeTruthy()
+      else throw new Error('context is not defined')
       done()
     })
   })

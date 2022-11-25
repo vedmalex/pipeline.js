@@ -1,9 +1,10 @@
 import { Stage } from './stage';
+import { ComplexError } from './utils/ErrorList';
 import { AllowedStage, AnyStage, Possible, RunPipelineFunction, StageObject } from './utils/types';
 import { Func3, StageConfig, StageRun } from './utils/types';
 export interface RetryOnErrorConfig<T extends StageObject> extends StageConfig<T> {
     stage: AnyStage<T> | RunPipelineFunction<T>;
-    retry: number | Func3<boolean, Possible<Error>, Possible<T>, number>;
+    retry: number | Func3<boolean, Possible<ComplexError>, Possible<T>, number>;
     backup?: (ctx: Possible<T>) => Possible<T>;
     restore?: (ctx: Possible<T>, backup: Possible<T>) => Possible<T>;
 }

@@ -26,7 +26,7 @@ describe('if->else', function () {
       done()
     })
     var stage = new IfElse({
-      condition: function (ctx) {
+      condition: ctx => {
         return true
       },
       success: s0,

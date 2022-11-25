@@ -1,5 +1,6 @@
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
+import { ComplexError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
   AllowedStage,
@@ -67,12 +68,16 @@ export class Sequential<T extends StageObject> extends Stage<
 
   override compile(rebuild: boolean = false): StageRun<T> {
     if (this.config.stage) {
-      var run = (err: Possible<Error>, ctx: T, done: CallbackFunction<T>) => {
+      var run = (
+        err: Possible<ComplexError>,
+        ctx: T,
+        done: CallbackFunction<T>,
+      ) => {
         var iter = -1
         var children = this.split ? this.split(ctx) : [ctx]
         var len = children ? children.length : 0
 
-        var next = (err: Possible<Error>, retCtx?: Possible<T>) => {
+        var next = (err: Possible<ComplexError>, retCtx?: Possible<T>) => {
           if (err) {
             return done(err)
           }

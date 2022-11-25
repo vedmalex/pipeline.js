@@ -1,4 +1,4 @@
-import { CreateError } from './ErrorList'
+import { ComplexError, CreateError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import { run_callback_once } from './run_callback_once'
@@ -26,7 +26,7 @@ import { Func1Async, Func2Async, Func3Sync, Possible } from './types'
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
 
 export function execute_callback<T extends StageObject>(
-  err: Possible<Error>,
+  err: Possible<ComplexError>,
   run: RunPipelineFunction<T>,
   context: T,
   _done: CallbackFunction<T>,
@@ -98,7 +98,7 @@ export function execute_callback<T extends StageObject>(
     case 2:
       if (is_func2_async(run)) {
         try {
-          ;(run as Func2Async<T, Possible<Error>, T>)(err, context)
+          ;(run as Func2Async<T, Possible<ComplexError>, T>)(err, context)
             .then(ctx => done(undefined, ctx))
             .catch(err => done(err))
         } catch (err) {

@@ -1,5 +1,6 @@
 import { JSONSchemaType } from 'ajv';
 import { Stage } from '../stage';
+import { ComplexError } from './ErrorList';
 import { DoWhile } from '../dowhile';
 import { Empty } from '../empty';
 import { IfElse } from '../ifelse';
@@ -11,11 +12,8 @@ import { Sequential } from '../sequential';
 import { Timeout } from '../timeout';
 import { Wrap } from '../wrap';
 export type StageObject = Record<string | symbol | number, any>;
-export interface CallbackFunction<T> {
-    (): void;
-    (err: Possible<Error>): void;
-    (err: Possible<Error>, res: T): void;
-}
+export type CallbackFunction<T> = (() => void) | ((err?: Possible<ComplexError>) => void) | ((err?: Possible<ComplexError>, res?: T) => void);
+export type CallbackExternalFunction<T> = (() => void) | ((err?: Possible<Error>) => void) | ((err?: Possible<Error>, res?: T) => void);
 export declare function isCallback<T>(inp?: unknown): inp is CallbackFunction<T>;
 export declare function is_async_function(inp?: unknown): boolean;
 export declare function is_func1Callbacl<R, P1>(inp?: Function): inp is Func1Sync<R, P1>;
@@ -49,18 +47,13 @@ export type Thanable<T> = {
 };
 export declare function is_thenable<T>(inp?: any): inp is Thanable<T>;
 export type Possible<T> = T | undefined | null;
-export type SingleStageFunction<T extends StageObject> = Func2Async<T, Possible<Error>, Possible<T>> | Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<T>>;
+export type SingleStageFunction<T extends StageObject> = Func2Async<T, Possible<ComplexError>, Possible<T>> | Func3Sync<void, Possible<ComplexError>, Possible<T>, CallbackFunction<T>>;
 export declare function isSingleStageFunction<T extends StageObject>(inp?: any): inp is SingleStageFunction<T>;
-export type RunPipelineFunction<T extends StageObject> = Func3Sync<void, Possible<Error>, Possible<T>, CallbackFunction<T>> | Func2Sync<void, Possible<T>, CallbackFunction<T>> | Func2Async<T, Possible<Error>, Possible<T>> | Func0Sync<T | Promise<T> | Thanable<T>> | Func1Async<T, Possible<T>> | Func1Sync<T | Promise<T> | Thanable<T>, Possible<T>> | Func1Sync<void, CallbackFunction<T>> | Func1Sync<void, Possible<T>> | Func0Async<T>;
+export type RunPipelineFunction<T extends StageObject> = Func3Sync<void, Possible<ComplexError>, T, CallbackFunction<T>> | Func2Sync<void, T, CallbackFunction<T>> | Func2Async<T, Possible<ComplexError>, T> | Func0Sync<T | Promise<T> | Thanable<T>> | Func1Async<T, T> | Func1Sync<T | Promise<T> | Thanable<T>, T> | Func1Sync<void, CallbackFunction<T>> | Func1Sync<void, T> | Func0Async<T>;
 export declare function isRunPipelineFunction<T extends StageObject>(inp: any): inp is RunPipelineFunction<T>;
-export type Rescue<T> = Func1Async<T, Error> | Func1Sync<T | Promise<T> | Thanable<T>, Error> | Func2Async<T, Possible<Error>, Possible<T>> | Func2Sync<T | Promise<T> | Thanable<T>, Error, Possible<T>> | Func3Sync<void, Error, Possible<T>, CallbackFunction<T>>;
+export type Rescue<T> = Func1Async<T, Error> | Func1Sync<T | Promise<T> | Thanable<T>, Error> | Func2Async<T, Possible<ComplexError>, Possible<T>> | Func2Sync<T | Promise<T> | Thanable<T>, Error, Possible<T>> | Func3Sync<void, Error, Possible<T>, CallbackFunction<T>>;
 export declare function isRescue<T>(inp: any): inp is Rescue<T>;
-export interface ValidateFunction<T> {
-    (value: T): boolean;
-    (value: T): Promise<boolean>;
-    (value: T): Thanable<boolean>;
-    (value: T, callback: CallbackFunction<boolean>): void;
-}
+export type ValidateFunction<T> = (() => boolean) | ((value: T) => boolean) | ((value: T) => Promise<boolean>) | ((value: T) => Thanable<boolean>) | ((value: T, callback: CallbackExternalFunction<boolean>) => void);
 export declare function isValidateFunction<T>(inp: any): inp is ValidateFunction<T>;
 export type EnsureFunction<T> = Func1Sync<T | Promise<T> | Thanable<T>, T> | Func1Async<T, T> | Func2Sync<void, T, CallbackFunction<T>>;
 export declare function isEnsureFunction<T>(inp: any): inp is EnsureFunction<T>;
@@ -83,7 +76,7 @@ export interface ParallelConfig<T extends StageObject> extends StageConfig<T> {
     combine?: Func2Sync<Possible<T> | void, Possible<T>, Array<any>>;
 }
 export declare function isStageRun<T extends StageObject>(inp: Function): inp is StageRun<T>;
-export type StageRun<T extends StageObject> = (err: Possible<Error>, context: T, callback: CallbackFunction<T>) => void;
+export type StageRun<T extends StageObject> = (err: Possible<ComplexError>, context: T, callback: CallbackFunction<T>) => void;
 export type AllowedStage<T extends StageObject, C extends StageConfig<T>> = string | C | RunPipelineFunction<T> | AnyStage<T>;
 export declare function isAllowedStage<T extends StageObject, C extends StageConfig<T>>(inp: any): inp is AllowedStage<T, C>;
 export declare function getStageConfig<T extends StageObject, C extends StageConfig<T>>(config: AllowedStage<T, C>): C | AnyStage<T>;

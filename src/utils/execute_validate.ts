@@ -58,8 +58,9 @@ export function execute_validate<T>(
     case 2:
       if (is_func2(validate)) {
         try {
-          validate(context, (err: Error, res: boolean) => {
-            done(err, res)
+          validate(context, (err: Possible<Error>, res: boolean) => {
+            if (err) done(CreateError(err), res)
+            else done(err, res)
           })
         } catch (err) {
           process_error(err, done)

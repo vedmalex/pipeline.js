@@ -1,4 +1,5 @@
 import { Stage } from './stage'
+import { ComplexError } from './utils/ErrorList'
 import { execute_validate } from './utils/execute_validate'
 import { run_or_execute } from './utils/run_or_execute'
 import {
@@ -27,13 +28,13 @@ export class IfElse<T extends StageObject> extends Stage<T, IfElseConfig<T>> {
 
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
-      err: Possible<Error>,
+      err: Possible<ComplexError>,
       context: T,
       done: CallbackFunction<T>,
     ) => {
       if (typeof this.config.condition == 'function') {
         execute_validate<T>(this.config.condition, context, ((
-          err: Possible<Error>,
+          err: Possible<ComplexError>,
           condition: Possible<boolean>,
         ) => {
           if (condition) {
