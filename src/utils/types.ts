@@ -1,5 +1,5 @@
 import { JSONSchemaType } from 'ajv'
-import { Stage } from '../stage'
+import { Stage, isStage } from '../stage'
 import { CreateError, ComplexError } from './ErrorList'
 
 import Ajv from 'ajv'
@@ -18,13 +18,14 @@ import { Sequential } from '../sequential'
 import { Timeout } from '../timeout'
 import { Wrap } from '../wrap'
 import { empty_run } from './empty_run'
+import { ContextType } from 'src/context'
 
 export type StageObject = Record<string | symbol | number, any>
 
 export type CallbackFunction<T> =
   | (() => void)
   | ((err?: Possible<ComplexError>) => void)
-  | ((err?: Possible<ComplexError>, res?: T) => void)
+  | ((err?: Possible<ComplexError>, res?: ContextType<T>) => void)
 
 export type CallbackExternalFunction<T> =
   | (() => void)
@@ -32,6 +33,14 @@ export type CallbackExternalFunction<T> =
   | ((err?: Possible<Error>, res?: T) => void)
 
 export function isCallback<T>(inp?: unknown): inp is CallbackFunction<T> {
+  if (typeof inp === 'function' && !is_async_function(inp)) {
+    return inp.length <= 2
+  } else return false
+}
+
+export function isExternalCallback<T>(
+  inp?: unknown,
+): inp is CallbackExternalFunction<T> {
   if (typeof inp === 'function' && !is_async_function(inp)) {
     return inp.length <= 2
   } else return false
@@ -110,7 +119,9 @@ export function is_func3<R, P1, P2, P3>(
   return inp?.length == 3
 }
 
-export function is_func0_async<T>(inp: Function): inp is Func0Async<T> {
+export function is_func0_async<T>(
+  inp: Function,
+): inp is Func0Async<ContextType<T>> {
   return is_async(inp) && is_func0(inp)
 }
 
@@ -143,7 +154,12 @@ export type Possible<T> = T | undefined | null
 
 export type SingleStageFunction<T extends StageObject> =
   | Func2Async<T, Possible<ComplexError>, Possible<T>>
-  | Func3Sync<void, Possible<ComplexError>, Possible<T>, CallbackFunction<T>>
+  | Func3Sync<
+      void,
+      Possible<ComplexError>,
+      Possible<T>,
+      CallbackExternalFunction<T>
+    >
 
 export function isSingleStageFunction<T extends StageObject>(
   inp?: any,
@@ -152,15 +168,25 @@ export function isSingleStageFunction<T extends StageObject>(
 }
 
 export type RunPipelineFunction<T extends StageObject> =
-  | Func3Sync<void, Possible<ComplexError>, T, CallbackFunction<T>>
-  | Func2Sync<void, T, CallbackFunction<T>>
-  | Func2Async<T, Possible<ComplexError>, T>
-  | Func0Sync<T | Promise<T> | Thanable<T>>
-  | Func1Async<T, T>
-  | Func1Sync<T | Promise<T> | Thanable<T>, T>
-  | Func1Sync<void, CallbackFunction<T>>
-  | Func1Sync<void, T>
-  | Func0Async<T>
+  | Func3Sync<
+      void,
+      Possible<ComplexError>,
+      ContextType<T>,
+      CallbackExternalFunction<T>
+    >
+  | Func2Sync<void, ContextType<T>, CallbackExternalFunction<T>>
+  | Func2Async<ContextType<T>, Possible<ComplexError>, ContextType<T>>
+  | Func0Sync<
+      ContextType<T> | Promise<ContextType<T>> | Thanable<ContextType<T>>
+    >
+  | Func1Async<ContextType<T>, ContextType<T>>
+  | Func1Sync<
+      ContextType<T> | Promise<ContextType<T>> | Thanable<ContextType<T>>,
+      ContextType<T>
+    >
+  | Func1Sync<void, CallbackExternalFunction<T>>
+  | Func1Sync<void, ContextType<T>>
+  | Func0Async<ContextType<T>>
 
 export function isRunPipelineFunction<T extends StageObject>(
   inp: any,
@@ -198,12 +224,15 @@ export function isRescue<T>(inp: any): inp is Rescue<T> {
 export type ValidateFunction<T> =
   // will throw error
   | (() => boolean)
-  | ((value: T) => boolean)
+  | ((value: ContextType<T>) => boolean)
   // will reject with error
-  | ((value: T) => Promise<boolean>)
-  | ((value: T) => Thanable<boolean>)
+  | ((value: ContextType<T>) => Promise<boolean>)
+  | ((value: ContextType<T>) => Thanable<boolean>)
   // will return error in callback
-  | ((value: T, callback: CallbackExternalFunction<boolean>) => void)
+  | ((
+      value: ContextType<T>,
+      callback: CallbackExternalFunction<boolean>,
+    ) => void)
 
 export function isValidateFunction<T>(inp: any): inp is ValidateFunction<T> {
   return is_func1(inp) || is_func1_async(inp) || is_func2(inp)
@@ -236,13 +265,18 @@ export interface StageConfig<T extends StageObject> {
 }
 
 export interface PipelineConfig<T extends StageObject> extends StageConfig<T> {
-  stages: Array<AnyStage<T> | RunPipelineFunction<T>>
+  stages: Array<AnyStage<T, T> | RunPipelineFunction<T>>
 }
 
-export interface ParallelConfig<T extends StageObject> extends StageConfig<T> {
-  stage: AnyStage<T> | RunPipelineFunction<T>
-  split?: Func1Sync<Array<T>, Possible<T>>
-  combine?: Func2Sync<Possible<T> | void, Possible<T>, Array<any>>
+export interface ParallelConfig<T extends StageObject, R extends StageObject>
+  extends StageConfig<T> {
+  stage: AnyStage<R> | RunPipelineFunction<R>
+  split?: Func1Sync<Array<ContextType<R>>, ContextType<T>>
+  combine?: Func2Sync<
+    ContextType<T> | void,
+    ContextType<T>,
+    Array<ContextType<R>>
+  >
 }
 
 export function isStageRun<T extends StageObject>(
@@ -253,34 +287,44 @@ export function isStageRun<T extends StageObject>(
 
 export type StageRun<T extends StageObject> = (
   err: Possible<ComplexError>,
-  context: T,
+  context: ContextType<T>,
   callback: CallbackFunction<T>,
 ) => void
 
-export type AllowedStage<T extends StageObject, C extends StageConfig<T>> =
-  | string
-  | C
-  | RunPipelineFunction<T>
-  | AnyStage<T>
+export type InternalStageRun<T extends StageObject> = (
+  err: Possible<ComplexError>,
+  context: ContextType<T>,
+  callback: CallbackFunction<T>,
+) => void
 
-export function isAllowedStage<T extends StageObject, C extends StageConfig<T>>(
-  inp: any,
-): inp is AllowedStage<T, C> {
+export type AllowedStage<
+  T extends StageObject,
+  R extends StageObject,
+  C extends StageConfig<T>,
+> = string | C | RunPipelineFunction<T> | AnyStage<T>
+
+export function isAllowedStage<
+  T extends StageObject,
+  R extends StageObject,
+  C extends StageConfig<T>,
+>(inp: any): inp is AllowedStage<T, R, C> {
   return (
     isRunPipelineFunction(inp) ||
-    inp instanceof Stage ||
+    isAnyStage(inp) ||
     typeof inp == 'object' ||
     typeof inp == 'string'
   )
 }
 
-export function getStageConfig<T extends StageObject, C extends StageConfig<T>>(
-  config: AllowedStage<T, C>,
-): C | AnyStage<T> {
+export function getStageConfig<
+  T extends StageObject,
+  R extends StageObject,
+  C extends StageConfig<T>,
+>(config: AllowedStage<T, R, C>): C | AnyStage<T, R> {
   let result: C = {} as C
   if (typeof config == 'string') {
     result.name = config
-  } else if (config instanceof Stage) {
+  } else if (isAnyStage<T, R>(config)) {
     return config
   } else if (isRunPipelineFunction<T>(config)) {
     result.run = config
@@ -353,19 +397,19 @@ export function getNameFrom<T extends StageObject, C extends StageConfig<T>>(
   return result
 }
 
-export type AllowedPipeline<T extends StageObject> =
-  | AllowedStage<T, PipelineConfig<T>>
+export type AllowedPipeline<T extends StageObject, R extends StageObject> =
+  | AllowedStage<T, R, PipelineConfig<T>>
   | Array<RunPipelineFunction<T> | AnyStage<T>>
 
-export function getPipelinConfig<T extends StageObject>(
-  config: AllowedPipeline<T>,
+export function getPipelinConfig<T extends StageObject, R extends StageObject>(
+  config: AllowedPipeline<T, R>,
 ): PipelineConfig<T> {
   if (Array.isArray(config)) {
     return {
       stages: config.map((item): AnyStage<T> | RunPipelineFunction<T> => {
         if (isRunPipelineFunction(item)) {
           return item as RunPipelineFunction<T>
-        } else if (item instanceof Stage) {
+        } else if (isAnyStage<T, R>(item)) {
           return item as AnyStage<T>
         } else {
           throw CreateError('not suitable type for array in pipeline')
@@ -373,13 +417,14 @@ export function getPipelinConfig<T extends StageObject>(
       }),
     }
   } else {
-    const res: PipelineConfig<T> | AnyStage<T> = getStageConfig<
+    const res: PipelineConfig<T> | AnyStage<T, R> = getStageConfig<
       T,
+      R,
       PipelineConfig<T>
     >(config)
-    if (res instanceof Stage) {
+    if (isAnyStage<T, R>(res)) {
       return { stages: [res] } as PipelineConfig<T>
-    } else if (typeof config == 'object' && !(config instanceof Stage)) {
+    } else if (typeof config == 'object' && !isAnyStage<T, R>(config)) {
       if (config.run && config.stages?.length > 0) {
         throw CreateError(" don't use run and stage both ")
       }
@@ -398,41 +443,43 @@ export function getPipelinConfig<T extends StageObject>(
   }
 }
 
-export function getParallelConfig<T extends StageObject>(
-  config: AllowedStage<T, ParallelConfig<T>>,
-): ParallelConfig<T> {
-  const res = getStageConfig<T, ParallelConfig<T>>(config)
-  if (res instanceof Stage) {
-    return { stage: res } as ParallelConfig<T>
-  } else if (typeof config == 'object' && !(config instanceof Stage)) {
+export function getParallelConfig<T extends StageObject, R extends StageObject>(
+  config: AllowedStage<T, R, ParallelConfig<T, R>>,
+): ParallelConfig<T, R> {
+  const res = getStageConfig<R, R, ParallelConfig<T, R>>(config)
+  if (isAnyStage<T, R>(res) || isRunPipelineFunction<R>(res)) {
+    return { stage: res } as ParallelConfig<T, R>
+  } else if (typeof config == 'object' && !isAnyStage<T, R>(config)) {
+    const r = res as ParallelConfig<T, R>
     if (config.run && config.stage) {
       throw CreateError("don't use run and stage both")
     }
     if (config.split) {
-      res.split = config.split
+      r.split = config.split
     }
     if (config.combine) {
-      res.combine = config.combine
+      r.combine = config.combine
     }
     if (config.stage) {
-      res.stage = config.stage
+      r.stage = config.stage
     }
     if (config.run) {
-      res.stage = config.run
+      r.stage = config.run
     }
-  } else if (typeof config == 'function' && res.run) {
-    res.stage = res.run
-    delete res.run
+  } else if (typeof config == 'function' && (res as StageConfig<T>).run) {
+    ;(res as ParallelConfig<T, R>).stage = (res as StageConfig<T>)
+      .run as RunPipelineFunction<T>
+    delete (res as StageConfig<T>).run
   }
-  return res
+  return res as ParallelConfig<T, R>
 }
 
-export function getEmptyConfig<T extends StageObject>(
-  config: AllowedStage<T, StageConfig<T>>,
+export function getEmptyConfig<T extends StageObject, R extends StageObject>(
+  config: AllowedStage<T, R, StageConfig<T>>,
 ): AnyStage<T> | StageConfig<T> {
   const res = getStageConfig(config)
 
-  if (res instanceof Stage) {
+  if (isAnyStage<T, R>(res)) {
     return res
   } else {
     res.run = empty_run as RunPipelineFunction<T>
@@ -441,19 +488,22 @@ export function getEmptyConfig<T extends StageObject>(
   return res
 }
 
-export interface WrapConfig<T extends StageObject> extends StageConfig<T> {
+export interface WrapConfig<T extends StageObject, R extends StageObject>
+  extends StageConfig<T> {
   stage: AnyStage<T> | RunPipelineFunction<T>
-  prepare: (ctx: Possible<T>) => Possible<T>
-  finalize: (ctx: Possible<T>, retCtx: Possible<T>) => Possible<T>
+  prepare(ctx: ContextType<T>): ContextType<R>
+  finalize(ctx: ContextType<T>, retCtx: ContextType<R>): ContextType<T>
 }
 
-export function getWrapConfig<T extends StageObject, C extends WrapConfig<T>>(
-  config: AllowedStage<T, C>,
-): C {
-  const res = getStageConfig<T, C>(config)
-  if (res instanceof Stage) {
+export function getWrapConfig<
+  T extends StageObject,
+  R extends StageObject,
+  C extends WrapConfig<T, R>,
+>(config: AllowedStage<T, R, C>): C {
+  const res = getStageConfig<T, R, C>(config)
+  if (isAnyStage<T, R>(res)) {
     return { stage: res } as C
-  } else if (typeof config == 'object' && !(config instanceof Stage)) {
+  } else if (typeof config == 'object' && !isAnyStage<T, R>(config)) {
     if (config.run && config.stage) {
       throw CreateError("don't use run and stage both")
     }
@@ -481,12 +531,12 @@ export interface TimeoutConfig<T extends StageObject> extends StageConfig<T> {
 }
 
 export function getTimeoutConfig<T extends StageObject>(
-  config: AllowedStage<T, TimeoutConfig<T>>,
+  config: AllowedStage<T, T, TimeoutConfig<T>>,
 ): TimeoutConfig<T> {
-  const res = getStageConfig<T, TimeoutConfig<T>>(config)
-  if (res instanceof Stage) {
+  const res = getStageConfig<T, T, TimeoutConfig<T>>(config)
+  if (isAnyStage<T, T>(res)) {
     return { stage: res } as TimeoutConfig<T>
-  } else if (typeof config == 'object' && !(config instanceof Stage)) {
+  } else if (typeof config == 'object' && !isAnyStage<T, T>(config)) {
     if (config.run && config.stage) {
       throw CreateError("don't use run and stage both")
     }
@@ -514,11 +564,11 @@ export interface IfElseConfig<T extends StageObject> extends StageConfig<T> {
 export function getIfElseConfig<
   T extends StageObject,
   C extends IfElseConfig<T>,
->(config: AllowedStage<T, C>): C {
-  const res = getStageConfig<T, C>(config)
-  if (res instanceof Stage) {
+>(config: AllowedStage<T, T, C>): C {
+  const res = getStageConfig<T, T, C>(config)
+  if (isAnyStage<T, C>(res)) {
     return { success: res } as C
-  } else if (typeof config == 'object' && !(config instanceof Stage)) {
+  } else if (typeof config == 'object' && !isAnyStage<T, C>(config)) {
     if (config.run && config.success) {
       throw CreateError("don't use run and stage both")
     }
@@ -549,15 +599,21 @@ export function getIfElseConfig<
   return res
 }
 
-export type AnyStage<T extends StageObject> =
+export type AnyStage<T extends StageObject, R extends StageObject = T> =
   | Stage<T, StageConfig<T>>
-  | DoWhile<T>
+  | DoWhile<T, R>
   | Empty<T>
   | IfElse<T>
-  | MultiWaySwitch<T>
-  | Parallel<T>
+  | MultiWaySwitch<T, R>
+  | Parallel<T, R>
   | Pipeline<T>
   | RetryOnError<T>
-  | Sequential<T>
+  | Sequential<T, R>
   | Timeout<T>
-  | Wrap<T>
+  | Wrap<T, R>
+
+export function isAnyStage<T extends StageObject, R extends StageObject = T>(
+  obj: any,
+): obj is AnyStage<T, R> {
+  return isStage(obj)
+}

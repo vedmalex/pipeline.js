@@ -1,8 +1,8 @@
+import { IContextProxy } from '../context'
 import { ComplexError, CreateError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import {
-  CallbackFunction,
   is_func2_async,
   is_func3,
   is_func3_async,
@@ -11,12 +11,11 @@ import {
   Rescue,
 } from './types'
 import { is_func1, is_func1_async, is_func2 } from './types'
-import { Func3Sync } from './types'
 
 export function execute_rescue<T>(
   rescue: Rescue<T>,
   err: Error,
-  context: Possible<T>,
+  context: IContextProxy<T>,
   done: (err?: Possible<ComplexError>) => void,
 ) {
   switch (rescue.length) {
@@ -75,11 +74,7 @@ export function execute_rescue<T>(
     case 3:
       if (is_func3(rescue) && !is_func3_async(rescue)) {
         try {
-          ;(rescue as Func3Sync<void, Error, Possible<T>, CallbackFunction<T>>)(
-            err,
-            context,
-            done,
-          )
+          rescue(err, context, done)
         } catch (err) {
           process_error(err, done)
         }

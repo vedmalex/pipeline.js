@@ -2,6 +2,7 @@ import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
 import { ComplexError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
+import { ContextType } from './context'
 import {
   AllowedStage,
   CallbackFunction,
@@ -29,23 +30,26 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Sequential<T extends StageObject> extends Stage<
-  T,
-  ParallelConfig<T>
-> {
-  constructor(config?: AllowedStage<T, ParallelConfig<T>>) {
+export class Sequential<
+  T extends StageObject,
+  R extends StageObject,
+> extends Stage<T, ParallelConfig<T, R>> {
+  constructor(config?: AllowedStage<T, R, ParallelConfig<T, R>>) {
     super()
     if (config) {
       this._config = getParallelConfig(config)
     }
   }
 
-  split(ctx: T): Array<any> {
+  split(ctx: ContextType<T>): Array<ContextType<R>> {
     return this._config.split ? this._config.split(ctx) : [ctx]
   }
 
-  combine(ctx: T, children: Array<any>): T {
-    let res: T
+  combine(
+    ctx: ContextType<T>,
+    children: Array<ContextType<R>>,
+  ): ContextType<T> {
+    let res: ContextType<T>
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
       res = c ?? ctx
@@ -70,14 +74,16 @@ export class Sequential<T extends StageObject> extends Stage<
     if (this.config.stage) {
       var run = (
         err: Possible<ComplexError>,
-        ctx: T,
+        ctx: ContextType<T>,
         done: CallbackFunction<T>,
       ) => {
         var iter = -1
-        var children = this.split ? this.split(ctx) : [ctx]
+        var children = this.split
+          ? this.split(ctx)
+          : [ctx as unknown as ContextType<R>]
         var len = children ? children.length : 0
 
-        var next = (err: Possible<ComplexError>, retCtx?: Possible<T>) => {
+        var next = (err: Possible<ComplexError>, retCtx?: ContextType<R>) => {
           if (err) {
             return done(err)
           }

@@ -1,6 +1,4 @@
-import { cloneDeep } from 'lodash'
-
-import { Context } from './context'
+import { Context, ContextType } from './context'
 import { Stage } from './stage'
 import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
@@ -12,24 +10,30 @@ import {
   RunPipelineFunction,
   StageObject,
 } from './utils/types'
-import { CallbackFunction, Func3, StageConfig, StageRun } from './utils/types'
+import {
+  CallbackFunction,
+  Func3,
+  StageConfig,
+  StageRun,
+  isAnyStage,
+} from './utils/types'
 
 export interface RetryOnErrorConfig<T extends StageObject>
   extends StageConfig<T> {
   stage: AnyStage<T> | RunPipelineFunction<T>
-  retry: number | Func3<boolean, Possible<ComplexError>, Possible<T>, number>
-  backup?: (ctx: Possible<T>) => Possible<T>
-  restore?: (ctx: Possible<T>, backup: Possible<T>) => Possible<T>
+  retry: number | Func3<boolean, Possible<ComplexError>, ContextType<T>, number>
+  backup?: (ctx: ContextType<T>) => ContextType<T>
+  restore?: (ctx: ContextType<T>, backup: ContextType<T>) => ContextType<T>
 }
 
 export function getRetryOnErrorConfig<
   T extends StageObject,
   C extends RetryOnErrorConfig<T>,
->(config: AllowedStage<T, C>): C {
-  const res = getStageConfig<T, C>(config)
-  if (res instanceof Stage) {
+>(config: AllowedStage<T, T, C>): C {
+  const res = getStageConfig<T, T, C>(config)
+  if (isAnyStage<T, C>(res)) {
     return { stage: res } as C
-  } else if (typeof config == 'object' && !(config instanceof Stage)) {
+  } else if (typeof config == 'object' && !isAnyStage<T, C>(config)) {
     if (config.run && config.stage) {
       throw CreateError("don't use run and stage both")
     }
@@ -63,7 +67,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
   T,
   RetryOnErrorConfig<T>
 > {
-  constructor(config?: AllowedStage<T, RetryOnErrorConfig<T>>) {
+  constructor(config?: AllowedStage<T, T, RetryOnErrorConfig<T>>) {
     super()
     if (config) {
       this._config = getRetryOnErrorConfig<T, RetryOnErrorConfig<T>>(config)
@@ -78,19 +82,19 @@ export class RetryOnError<T extends StageObject> extends Stage<
     return '[pipeline RetryOnError]'
   }
 
-  backupContext(ctx: Possible<T>): Possible<T> {
+  backupContext(ctx: ContextType<T>): ContextType<T> {
     if (this.config.backup) {
       return this.config.backup(ctx)
     } else {
       if (Context.isContext(ctx)) {
-        return ctx.toObject() as Possible<T>
+        return ctx.fork({})
       } else {
-        return cloneDeep(ctx)
+        return ctx
       }
     }
   }
 
-  restoreContext(ctx: Possible<T>, backup: Possible<T>): Possible<T> {
+  restoreContext(ctx: ContextType<T>, backup: ContextType<T>): ContextType<T> {
     if (this.config.restore) {
       return this.config.restore(ctx, backup)
     } else {
@@ -98,6 +102,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
         for (let key in backup) {
           ;(ctx as any)[key] = backup[key]
         }
+        return ctx
       } else {
         return backup
       }
@@ -107,7 +112,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
       err: Possible<ComplexError>,
-      ctx: T,
+      ctx: ContextType<T>,
       done: CallbackFunction<T>,
     ) => {
       /// ловить ошибки
@@ -128,7 +133,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
       }
       let iter = -1
 
-      let next = (err: Possible<ComplexError>, _ctx: T) => {
+      let next = (err: Possible<ComplexError>, _ctx: ContextType<T>) => {
         iter++
         if (reachEnd(err, iter)) {
           return done(err, _ctx ?? ctx)

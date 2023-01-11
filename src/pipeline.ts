@@ -2,6 +2,8 @@ import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
 import { ComplexError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
+import { ContextType } from './context'
+import { isAnyStage } from './utils/types'
 import {
   AnyStage,
   getPipelinConfig,
@@ -36,7 +38,7 @@ export class Pipeline<T extends StageObject> extends Stage<
 > {
   constructor(
     config?:
-      | AllowedStage<T, PipelineConfig<T>>
+      | AllowedStage<T, T, PipelineConfig<T>>
       | Array<Stage<T, PipelineConfig<T>> | RunPipelineFunction<T>>,
   ) {
     super()
@@ -59,7 +61,7 @@ export class Pipeline<T extends StageObject> extends Stage<
       stage = _stage
     } else {
       if (typeof _stage === 'object') {
-        if (_stage instanceof Stage) {
+        if (isAnyStage<IT>(_stage)) {
           stage = _stage
         } else {
           stage = new Stage(_stage)
@@ -79,12 +81,12 @@ export class Pipeline<T extends StageObject> extends Stage<
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
       err: Possible<ComplexError>,
-      context: T,
+      context: ContextType<T>,
       done: CallbackFunction<T>,
     ) => {
       let i = -1
       // sequential run;
-      let next = (err: Possible<ComplexError>, ctx: T) => {
+      let next = (err: Possible<ComplexError>, ctx: ContextType<T>) => {
         i += 1
         if (!err && i < this.config.stages.length) {
           const st = this.config.stages[i]

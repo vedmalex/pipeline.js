@@ -4,6 +4,7 @@ import { Context } from '../context'
 import { DoWhile } from '../dowhile'
 import { Stage } from '../stage'
 import { Wrap } from '../wrap'
+import { Possible } from '../../lib/utils/types'
 
 describe('Wrap', function () {
   it('works', function (done) {
@@ -74,10 +75,16 @@ describe('Wrap', function () {
     )
   })
   it('prepare context -> moved to Wrap with fork', function (done) {
-    var stage0 = new Stage(function (ctx) {
+    type Ctx = {
+      iter: number
+    }
+    type InternalCtx = {
+      iteration: number
+    }
+    var stage0 = new Stage<InternalCtx>(function (ctx: InternalCtx) {
       ctx.iteration += 1
     })
-    var stage = new Wrap({
+    var stage = new Wrap<Ctx>({
       prepare: function (ctx) {
         return ctx.fork({
           iteration: ctx.iter,
@@ -87,7 +94,7 @@ describe('Wrap', function () {
         ctx.iter = retCtx.iteration
         expect(retCtx.iteration).toBe(10)
       },
-      stage: new DoWhile({
+      stage: new DoWhile<InternalCtx>({
         stage: stage0,
         split: function (ctx, iter) {
           return ctx
@@ -97,14 +104,19 @@ describe('Wrap', function () {
         },
       }),
     })
+
     stage.execute(
-      Context.ensure({
+      {
         iter: 0,
-      }),
+      },
       function (err, context) {
-        expect(context.iter).toEqual(10)
-        expect(context.iteration).toBeUndefined()
-        done()
+        if (context) {
+          expect(context.iter).toEqual(10)
+          expect(context.iteration).toBeUndefined()
+          done()
+        } else {
+          throw Error('nonsense')
+        }
       },
     )
   })

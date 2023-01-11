@@ -1,3 +1,4 @@
+import { ContextType } from './context'
 import { Stage } from './stage'
 import { ComplexError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
@@ -11,11 +12,14 @@ import {
   WrapConfig,
 } from './utils/types'
 
-export class Wrap<T extends StageObject> extends Stage<T, WrapConfig<T>> {
-  constructor(config?: AllowedStage<T, WrapConfig<T>>) {
+export class Wrap<T extends StageObject, R extends StageObject> extends Stage<
+  T,
+  WrapConfig<T, R>
+> {
+  constructor(config?: AllowedStage<T, R, WrapConfig<T, R>>) {
     super()
     if (config) {
-      this._config = getWrapConfig<T, WrapConfig<T>>(config)
+      this._config = getWrapConfig<T, R, WrapConfig<T, R>>(config)
     }
   }
 
@@ -28,16 +32,16 @@ export class Wrap<T extends StageObject> extends Stage<T, WrapConfig<T>> {
   }
 
   override compile(rebuild: boolean = false): StageRun<T> {
-    let run: StageRun<T> = (
+    let run = (
       err: Possible<ComplexError>,
-      context: T,
+      context: ContextType<T>,
       done: CallbackFunction<T>,
     ) => {
       const ctx = this.prepare(context)
       if (this.config.stage) {
-        run_or_execute(this.config.stage, err, ctx, ((
+        run_or_execute<any>(this.config.stage, err, ctx, ((
           err: Possible<ComplexError>,
-          retCtx: T,
+          retCtx: ContextType<R>,
         ) => {
           if (!err) {
             const result = this.finalize(context, retCtx ?? ctx)
@@ -53,14 +57,14 @@ export class Wrap<T extends StageObject> extends Stage<T, WrapConfig<T>> {
 
     return super.compile(rebuild)
   }
-  prepare(ctx: T): T {
+  prepare(ctx: ContextType<T>): unknown {
     if (this.config.prepare) {
       return this.config.prepare(ctx) ?? ctx
     } else {
       return ctx
     }
   }
-  finalize(ctx: Possible<T>, retCtx: Possible<T>): Possible<T> {
+  finalize(ctx: ContextType<T>, retCtx: ContextType<R>): ContextType<T> {
     // by default the main context will be used to return;
     if (this.config.finalize) {
       return this.config.finalize(ctx, retCtx)

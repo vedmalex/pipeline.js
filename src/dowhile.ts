@@ -1,6 +1,8 @@
 import { Stage } from './stage'
 import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
+import { ContextType } from './context'
+import { isAnyStage } from './utils/types'
 import {
   AnyStage,
   CallbackFunction,
@@ -13,45 +15,47 @@ import {
   StageRun,
 } from './utils/types'
 
-export interface DoWhileConfig<T extends StageObject> extends StageConfig<T> {
-  stage: AnyStage<T> | SingleStageFunction<T>
+export interface DoWhileConfig<T extends StageObject, R extends StageObject>
+  extends StageConfig<T> {
+  stage: AnyStage<T, R> | SingleStageFunction<T>
   split?: Func2Sync<T, Possible<T>, number>
   reachEnd?: Func3Sync<boolean, Possible<ComplexError>, Possible<T>, number>
 }
 
-export class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
+export class DoWhile<
+  T extends StageObject,
+  R extends StageObject,
+> extends Stage<T, DoWhileConfig<T, R>> {
   constructor()
   constructor(stage: Stage<T, StageConfig<T>>)
-  constructor(config: DoWhileConfig<T>)
+  constructor(config: DoWhileConfig<T, R>)
   constructor(stageFn: SingleStageFunction<T>)
   constructor(
     _config?:
       | Stage<T, StageConfig<T>>
-      | DoWhileConfig<T>
+      | DoWhileConfig<T, R>
       | SingleStageFunction<T>,
   ) {
-    let config: DoWhileConfig<T> = {} as DoWhileConfig<T>
-    if (_config instanceof Stage) {
+    let config: DoWhileConfig<T, R> = {} as DoWhileConfig<T, R>
+    if (isAnyStage<T, R>(_config)) {
+      config.stage = _config
+    } else if (typeof _config == 'function') {
       config.stage = _config
     } else {
-      if (typeof _config == 'function') {
-        config.stage = _config
-      } else {
-        if (_config?.run && _config?.stage) {
-          throw CreateError('use or run or stage, not both')
-        }
+      if (_config?.run && _config?.stage) {
+        throw CreateError('use or run or stage, not both')
+      }
 
-        if (_config?.stage) {
-          config.stage = _config.stage
-        }
+      if (_config?.stage) {
+        config.stage = _config.stage
+      }
 
-        if (_config?.split instanceof Function) {
-          config.split = _config.split
-        }
+      if (_config?.split instanceof Function) {
+        config.split = _config.split
+      }
 
-        if (_config?.reachEnd instanceof Function) {
-          config.reachEnd = _config.reachEnd
-        }
+      if (_config?.reachEnd instanceof Function) {
+        config.reachEnd = _config.reachEnd
       }
     }
     super(config)
@@ -88,7 +92,7 @@ export class DoWhile<T extends StageObject> extends Stage<T, DoWhileConfig<T>> {
   override compile(rebuild: boolean = false): StageRun<any> {
     let run: StageRun<any> = (
       err: Possible<ComplexError>,
-      context: T,
+      context: ContextType<T>,
       done: CallbackFunction<T>,
     ) => {
       let iter: number = -1

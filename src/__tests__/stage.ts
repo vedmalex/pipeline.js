@@ -1,15 +1,6 @@
 import { JSONSchemaType } from 'ajv'
 import 'jest'
 import { Stage } from '../stage'
-import { empty_run } from '../utils/empty_run'
-import { run_or_execute } from '../utils/run_or_execute'
-import {
-  CallbackFunction,
-  RunPipelineFunction,
-  SingleStageFunction,
-  StageConfig,
-  StageRun,
-} from '../utils/types'
 
 describe('stage', () => {
   it('throw error', done => {

@@ -2,7 +2,7 @@ import { CreateError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import {
-  CallbackFunction,
+  CallbackExternalFunction,
   Func1Sync,
   is_thenable,
   Possible,
@@ -11,17 +11,18 @@ import {
 } from './types'
 import { is_func1, is_func1_async, is_func2 } from './types'
 import { Func1Async } from './types'
+import { ContextType } from '../context'
 
 export function execute_validate<T>(
   validate: ValidateFunction<T>,
-  context: Possible<T>,
-  done: CallbackFunction<boolean>,
+  context: ContextType<T>,
+  done: CallbackExternalFunction<boolean>,
 ) {
   switch (validate.length) {
     case 1:
       if (is_func1_async(validate)) {
         try {
-          ;(validate as Func1Async<boolean, Possible<T>>)(context)
+          ;(validate as Func1Async<boolean, ContextType<T>>)(context)
             .then(res => done(undefined, res))
             .catch(err => done(err))
         } catch (err) {

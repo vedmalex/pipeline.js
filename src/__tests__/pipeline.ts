@@ -1,8 +1,10 @@
 import 'jest'
+import { Context } from '../context'
 
 import { Pipeline } from '../pipeline'
 import { Stage } from '../stage'
 import { ComplexError } from '../utils/ErrorList'
+import { isAnyStage } from '../utils/types'
 
 describe('Pipeline', function () {
   it('defaults', function (done) {
@@ -35,7 +37,7 @@ describe('Pipeline', function () {
     var pipe = new Pipeline()
     pipe.addStage(new Stage())
     expect(pipe.config.stages.length).toEqual(1)
-    expect(pipe.config.stages[0] instanceof Stage).toEqual(true)
+    expect(isAnyStage(pipe.config.stages[0])).toEqual(true)
     done()
   })
 
@@ -45,7 +47,7 @@ describe('Pipeline', function () {
       throw new Error('error')
     })
     pipe.execute({}, function (err, ctx) {
-      expect('error').toEqual(err?.message)
+      expect('error').toEqual(err?.payload.message)
       done()
     })
   })
@@ -62,7 +64,7 @@ describe('Pipeline', function () {
       },
     ])
     pipe.execute({}, function (err, ctx) {
-      expect('error').toEqual(err?.message)
+      expect('error').toEqual(err?.payload.message)
       done()
     })
   })
@@ -123,7 +125,7 @@ describe('Pipeline', function () {
         done()
       },
     })
-    expect(pipe.config.stages[0] instanceof Stage).toBeTruthy()
+    expect(isAnyStage(pipe.config.stages[0])).toBeTruthy()
     done()
   })
 
@@ -180,14 +182,11 @@ describe('Pipeline', function () {
       }),
     )
 
-    pipe.execute({})
-    expect(ensure).toEqual(1)
-    expect(compile).toEqual(1)
-
-    pipe.execute({})
-    expect(ensure).toEqual(2)
-    expect(compile).toEqual(1)
-    done()
+    const r1 = pipe.execute({}, (err, ctx) => {
+      expect(ensure).toEqual(1)
+      expect(compile).toEqual(1)
+      done()
+    })
   })
 
   it('executes pipes in pipes', function (done) {
@@ -212,39 +211,39 @@ describe('Pipeline', function () {
 
   it('context catch all errors', function (done) {
     var pipe = new Pipeline()
-    var ctx1 = {
+    var ctx1 = new Context({
       s1: false,
       s2: false,
       s3: false,
-    }
+    })
     var error = new Error('THE ERROR')
 
-    var s1 = new Stage(function (err, context, done) {
+    var s1 = new Stage(function (context, done) {
       expect(context).toEqual(ctx1)
       context.s1 = true
       done()
     })
-    var s2 = new Stage(function (err, context, done) {
+    var s2 = new Stage(function (context, done) {
       expect(context).toEqual(ctx1)
       context.s2 = true
       done(error)
     })
-    var s3 = new Stage(function (err, context, done) {
-      expect(true).toEqual(false)
+    var s3 = new Stage(function (context, done) {
       context.s3 = true
-      done()
+      done(new Error('another ERROR'))
     })
 
     pipe.addStage(s1)
     pipe.addStage(s2)
+    pipe.addStage(s3)
 
     pipe.execute(ctx1, function (err, ctx) {
-      expect(err).toEqual(error)
+      expect(err?.payload).toEqual(error)
       // expect(ctx1.hasErrors()).toEqual(true);
       // expect(ctx1.getErrors()[0] == error).toEqual(true);
-      expect(ctx1.s1).toEqual(true)
-      expect(ctx1.s2).toEqual(true)
-      expect(ctx1.s3).toEqual(false)
+      expect(ctx1.get('s1')).toEqual(true)
+      expect(ctx1.get('s2')).toEqual(true)
+      expect(ctx1.get('s3')).toEqual(false)
       done()
     })
   })

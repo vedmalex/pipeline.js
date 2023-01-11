@@ -2,6 +2,7 @@ import { Stage } from './stage'
 import { ComplexError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { AllowedStage, getTimeoutConfig, StageObject } from './utils/types'
+import { ContextType } from './context'
 import {
   CallbackFunction,
   Possible,
@@ -10,7 +11,7 @@ import {
 } from './utils/types'
 
 export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
-  constructor(config?: AllowedStage<T, TimeoutConfig<T>>) {
+  constructor(config?: AllowedStage<T, T, TimeoutConfig<T>>) {
     super()
     if (config) {
       this._config = getTimeoutConfig<T>(config)
@@ -28,11 +29,14 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
       err: Possible<ComplexError>,
-      ctx: T,
+      ctx: ContextType<T>,
       done: CallbackFunction<T>,
     ) => {
       let to: any
-      let localDone = ((err: Possible<ComplexError>, retCtx: T) => {
+      let localDone = ((
+        err: Possible<ComplexError>,
+        retCtx: ContextType<T>,
+      ) => {
         if (to) {
           clearTimeout(to)
           to = null

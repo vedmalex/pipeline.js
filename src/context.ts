@@ -5,6 +5,7 @@ import { defaultsDeep, get, set } from 'lodash'
 import { StageObject } from './utils/types'
 
 export const ContextSymbol = Symbol('Context')
+export const OriginalObject = Symbol('OriginalObject')
 export const ProxySymbol = Symbol('Handler')
 
 /*!
@@ -23,6 +24,7 @@ const RESERVED: Record<string, RESERVATIONS> = {
   setParent: RESERVATIONS.func_ctx,
   setRoot: RESERVATIONS.func_ctx,
   toString: RESERVATIONS.func_ctx,
+  original: RESERVATIONS.prop,
   __parent: RESERVATIONS.prop,
   __root: RESERVATIONS.prop,
   __stack: RESERVATIONS.prop,
@@ -55,7 +57,8 @@ export interface IContextProxy<T> {
   toObject(clean?: boolean): T
   toString(): string
   fork<C extends StageObject>(config: C): ContextType<T & C>
-  get(path: string): any
+  get(path: keyof T): any
+  get original(): T
   [key: string | symbol | number]: any
 }
 
@@ -87,14 +90,18 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
   protected __parent!: ContextType<T>
   protected __root!: ContextType<T>
   protected __stack?: string[]
-  protected id: number
+  protected id: number;
+  [OriginalObject]?: boolean
+  get original() {
+    return this.ctx
+  }
 
   constructor(config: T) {
     this.ctx = config as T
     this.id = count++
     allContexts[this.id] = this
     const res = new Proxy(this, {
-      get(target: Context<T>, key: string | symbol, _proxy: any): any {
+      get(target: Context<T>, key: string | symbol | number, _proxy: any): any {
         if (key == ContextSymbol) return true
         if (key == ProxySymbol) return _proxy
         if (key == 'allContexts') return allContexts
@@ -113,7 +120,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
           if (
             RESERVED[key as keyof typeof RESERVED] == RESERVATIONS.func_this
           ) {
-            return (target as any)[key]
+            return (target as any)[key].bind(target)
           } else return (target as any)[key] // just props
         }
       },
@@ -195,8 +202,8 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
    * @param path String path to context object that need to be a Context instance
    * @return {Context} | {Primitive type}
    */
-  get(path: string): any {
-    var root = get(this, path)
+  get(path: keyof T): any {
+    var root = get(this.ctx, path) as any
     if (root instanceof Object) {
       var result = root
       if (!Context.isContext(result)) {
@@ -206,6 +213,8 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         result = lctx
       }
       return result
+    } else {
+      return root
     }
   }
 

@@ -1,5 +1,6 @@
 import { StageObject } from './utils/types';
 export declare const ContextSymbol: unique symbol;
+export declare const OriginalObject: unique symbol;
 export declare const ProxySymbol: unique symbol;
 export declare enum RESERVATIONS {
     prop = 0,
@@ -16,7 +17,8 @@ export interface IContextProxy<T> {
     toObject(clean?: boolean): T;
     toString(): string;
     fork<C extends StageObject>(config: C): ContextType<T & C>;
-    get(path: string): any;
+    get(path: keyof T): any;
+    get original(): T;
     [key: string | symbol | number]: any;
 }
 export declare class Context<T extends StageObject> implements IContextProxy<T> {
@@ -28,10 +30,12 @@ export declare class Context<T extends StageObject> implements IContextProxy<T> 
     protected __root: ContextType<T>;
     protected __stack?: string[];
     protected id: number;
+    [OriginalObject]?: boolean;
+    get original(): T;
     constructor(config: T);
     fork<C extends StageObject>(ctx: C): ContextType<T & C>;
     addChild<C>(child: ContextType<C>): ContextType<C>;
-    get(path: string): any;
+    get(path: keyof T): any;
     addSubtree<C>(lctx: ContextType<C>): ContextType<C>;
     getParent(): ContextType<T>;
     getRoot(): ContextType<T>;

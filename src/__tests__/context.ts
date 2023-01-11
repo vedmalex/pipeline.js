@@ -9,6 +9,7 @@ describe('context', () => {
     }
     const ctx = Context.ensure(context)
     expect(ctx.name).toBe('alex')
+    expect(ctx.get('name')).toBe('alex')
     expect(ctx.age).toBe(43)
     expect(context.name).toBe('alex')
     expect(context.age).toBe(43)

@@ -148,8 +148,9 @@ describe('DoWhile', function () {
   it('cheks context as well', function (done) {
     type Context = { some: Array<number>; iter?: number }
     var stage0 = new Stage<Context>({
-      validate: function () {
-        return false
+      validate: function (ctx) {
+        if (ctx.iter > 5) return new Error('error')
+        return true
       },
       run: function (ctx, done) {
         ctx.liter = 1

@@ -7,7 +7,13 @@ import {
   RunPipelineFunction,
   StageObject,
 } from './types'
-import { CallbackFunction, Possible, StageConfig, StageRun } from './types'
+import {
+  CallbackFunction,
+  Possible,
+  StageConfig,
+  StageRun,
+  isAnyStage,
+} from './types'
 
 export interface TemplateConfig<T extends StageObject> extends StageConfig<T> {
   stage: AnyStage<T> | RunPipelineFunction<T>
@@ -16,11 +22,11 @@ export interface TemplateConfig<T extends StageObject> extends StageConfig<T> {
 export function getTemplateConfig<
   T extends StageObject,
   C extends TemplateConfig<T>,
->(config: AllowedStage<T, C>): C {
+>(config: AllowedStage<T, T, C>): C {
   const res = getStageConfig(config)
-  if (res instanceof Stage) {
+  if (isAnyStage<T, C>(res)) {
     return { stage: res } as C
-  } else if (typeof config == 'object' && !(config instanceof Stage)) {
+  } else if (typeof config == 'object' && !isAnyStage<T, C>(config)) {
     if (config.run && config.stage) {
       throw CreateError("don't use run and stage both")
     }
@@ -41,7 +47,7 @@ export class Template<
   T extends StageObject,
   C extends TemplateConfig<T>,
 > extends Stage<T, C> {
-  constructor(config?: AllowedStage<T, C>) {
+  constructor(config?: AllowedStage<T, T, C>) {
     super()
     if (config) {
       this._config = getTemplateConfig<T, C>(config)

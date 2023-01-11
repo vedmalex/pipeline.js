@@ -1,13 +1,9 @@
 import { Possible } from './types';
-export declare function CreateError<T extends {
-    message: string;
-}>(err: string | T | null | undefined | (string | T | null | undefined)[]): Possible<ComplexError>;
-export declare class ComplexError<T extends {
-    [key: string]: any;
-} = any> extends Error {
-    payload: T;
+export declare function CreateError(err: string | Error | ComplexError | null | undefined | (string | Error | ComplexError | null | undefined)[]): Possible<ComplexError>;
+export declare function isComplexError(inp: any): inp is ComplexError;
+export declare class ComplexError extends Error {
+    payload: Array<Error>;
     isComplex: boolean;
-    [key: string]: any;
-    constructor(payload: T);
+    constructor(...payload: Array<Error>);
 }
 //# sourceMappingURL=ErrorList.d.ts.map
