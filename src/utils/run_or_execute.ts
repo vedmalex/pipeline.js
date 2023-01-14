@@ -1,6 +1,7 @@
 import { ComplexError } from './ErrorList'
 import { execute_callback } from './execute_callback'
 import { ContextType } from '../context'
+import { isAnyStage } from './types'
 import {
   AnyStage,
   CallbackFunction,
@@ -18,7 +19,7 @@ export function run_or_execute<T extends StageObject>(
   const done = ((err: Possible<ComplexError>, ctx: ContextType<T>) => {
     _done(err, ctx ?? context)
   }) as CallbackFunction<T>
-  if (typeof stage == 'object') {
+  if (isAnyStage<T>(stage)) {
     stage.execute(err, context, done)
   } else {
     execute_callback<T>(err, stage, context, done)

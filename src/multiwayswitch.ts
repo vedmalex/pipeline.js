@@ -214,7 +214,10 @@ export class MultiWaySwitch<
         if (caseItem.stage instanceof Function) {
           caseItem.stage = caseItem.stage
         }
-        if (!isAnyStage<R, StageObject> && typeof caseItem.stage == 'object') {
+        if (
+          !isAnyStage<R, StageObject>(caseItem.stage) &&
+          typeof caseItem.stage == 'object'
+        ) {
           caseItem.stage = new Stage(caseItem.stage)
         }
 
