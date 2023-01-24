@@ -1,5 +1,5 @@
 import 'jest'
-import { Context, ContextSymbol } from '../context'
+import { Context } from '../context'
 
 describe('context', () => {
   it('create a context object as Proxy', () => {
