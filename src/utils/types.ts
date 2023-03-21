@@ -491,8 +491,8 @@ export function getEmptyConfig<T extends StageObject, R extends StageObject>(
 export interface WrapConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T> {
   stage: AnyStage<T> | RunPipelineFunction<T>
-  prepare(ctx: ContextType<T>): ContextType<R>
-  finalize(ctx: ContextType<T>, retCtx: ContextType<R>): ContextType<T>
+  prepare: (ctx: ContextType<T>) => ContextType<R>
+  finalize?: (ctx: ContextType<T>, retCtx: ContextType<R>) => ContextType<T>
 }
 
 export function getWrapConfig<

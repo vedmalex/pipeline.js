@@ -38,6 +38,7 @@ export class Pipeline<T extends StageObject> extends Stage<
 > {
   constructor(
     config?:
+      | PipelineConfig<T>
       | AllowedStage<T, T, PipelineConfig<T>>
       | Array<Stage<T, PipelineConfig<T>> | RunPipelineFunction<T>>,
   ) {

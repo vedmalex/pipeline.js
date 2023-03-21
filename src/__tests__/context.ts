@@ -13,6 +13,7 @@ describe('context', () => {
     expect(ctx.age).toBe(43)
     expect(context.name).toBe('alex')
     expect(context.age).toBe(43)
+    //@ts-ignore
     delete ctx.age
     expect(context.age).toBeUndefined()
     expect('name' in ctx).toBeTruthy()

@@ -47,7 +47,8 @@
     "typescript": "^4.9.3"
   },
   "scripts": {
-    "test": "jest --coverage",
+    "test": "jest",
+    "coverage": "jest --coverage",
     "clean": "git clean -dfqX -- ./node_modules **/{dist,node_modules}/",
     "compile": "tsc --build tsconfig.json",
     "compile:clean": "tsc --build tsconfig.json --clean",

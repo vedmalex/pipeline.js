@@ -90,8 +90,8 @@ export declare function getParallelConfig<T extends StageObject, R extends Stage
 export declare function getEmptyConfig<T extends StageObject, R extends StageObject>(config: AllowedStage<T, R, StageConfig<T>>): AnyStage<T> | StageConfig<T>;
 export interface WrapConfig<T extends StageObject, R extends StageObject> extends StageConfig<T> {
     stage: AnyStage<T> | RunPipelineFunction<T>;
-    prepare(ctx: ContextType<T>): ContextType<R>;
-    finalize(ctx: ContextType<T>, retCtx: ContextType<R>): ContextType<T>;
+    prepare: (ctx: ContextType<T>) => ContextType<R>;
+    finalize?: (ctx: ContextType<T>, retCtx: ContextType<R>) => ContextType<T>;
 }
 export declare function getWrapConfig<T extends StageObject, R extends StageObject, C extends WrapConfig<T, R>>(config: AllowedStage<T, R, C>): C;
 export interface TimeoutConfig<T extends StageObject> extends StageConfig<T> {

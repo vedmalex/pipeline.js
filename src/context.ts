@@ -190,7 +190,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
     return child as ContextType<T & C>
   }
 
-  addChild<C>(child: ContextType<C>): ContextType<C> {
+  addChild<C extends StageObject>(child: ContextType<C>): ContextType<C> {
     if (!this.hasChild<C>(child)) {
       child.setParent(this.proxy as unknown as ContextType<C>)
     }
@@ -218,7 +218,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
     }
   }
 
-  addSubtree<C>(lctx: ContextType<C>): ContextType<C> {
+  addSubtree<C extends StageObject>(lctx: ContextType<C>): ContextType<C> {
     if (!this.hasSubtree<C>(lctx)) {
       lctx.setRoot(this.proxy)
     }
@@ -248,7 +248,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
    * @api public
    * @return {Boolean}
    */
-  hasChild<C>(ctx: ContextType<C>): boolean {
+  hasChild<C extends StageObject>(ctx: ContextType<C>): boolean {
     if (Context.isContext(ctx) && ctx.__parent) {
       return (
         ctx.__parent == (this.proxy as unknown as ContextType<C>) ||
@@ -258,7 +258,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
       return false
     }
   }
-  hasSubtree<C>(ctx: ContextType<C>): boolean {
+  hasSubtree<C extends StageObject>(ctx: ContextType<C>): boolean {
     if (Context.isContext(ctx) && ctx.__root) {
       return (
         ctx.__root == (this.proxy as unknown as ContextType<C>) ||
