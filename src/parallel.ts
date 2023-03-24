@@ -1,17 +1,8 @@
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
-import { ComplexError, CreateError } from './utils/ErrorList'
+import { CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
-import { ContextType } from './context'
-import {
-  AllowedStage,
-  CallbackFunction,
-  getParallelConfig,
-  ParallelConfig,
-  Possible,
-  StageObject,
-  StageRun,
-} from './utils/types'
+import { AllowedStage, CallbackFunction, getParallelConfig, ParallelConfig, StageRun } from './utils/types/types'
 
 /**
  * Process staging in parallel way
@@ -30,33 +21,12 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Parallel<
-  T extends StageObject,
-  R extends StageObject,
-> extends Stage<T, ParallelConfig<T, R>> {
-  constructor(config?: AllowedStage<T, R, ParallelConfig<T, R>>) {
+export class Parallel<R, C extends ParallelConfig<R>> extends Stage<R, C> {
+  constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
-      this._config = getParallelConfig<T, R>(config)
+      this._config = getParallelConfig(config)
     }
-  }
-
-  split(ctx: ContextType<T>): Array<ContextType<R>> {
-    return this._config.split ? this._config.split(ctx) : [ctx]
-  }
-
-  combine(
-    ctx: ContextType<T>,
-    children: Array<ContextType<R>>,
-  ): ContextType<T> {
-    let res: ContextType<T>
-    if (this.config.combine) {
-      let c = this.config.combine(ctx, children)
-      res = c ?? ctx
-    } else {
-      res = ctx
-    }
-    return res
   }
 
   public override get reportName() {
@@ -70,13 +40,9 @@ export class Parallel<
     return this._config.name ?? this._config.stage?.name ?? ''
   }
 
-  override compile(rebuild: boolean = false): StageRun<T> {
+  override compile(rebuild: boolean = false): StageRun<R> {
     if (this.config.stage) {
-      var run: StageRun<T> = (
-        err: Possible<ComplexError>,
-        ctx: ContextType<T>,
-        done: CallbackFunction<T>,
-      ) => {
+      var run: StageRun<R> = (err: unknown, ctx, done: CallbackFunction<R>) => {
         var iter = 0
         var children = this.split(ctx)
         var len = children ? children.length : 0
@@ -84,7 +50,7 @@ export class Parallel<
         let hasError = false
 
         var next = (index: number) => {
-          return (err: Possible<ComplexError>, retCtx: any) => {
+          return (err: unknown, retCtx: any) => {
             if (!err) {
               children[index] = retCtx ?? children[index]
             } else {
@@ -117,39 +83,49 @@ export class Parallel<
           return done(err, ctx)
         } else {
           for (var i = 0; i < len; i++) {
-            run_or_execute(
-              this.config.stage,
-              err,
-              children[i],
-              next(i) as CallbackFunction<T>,
-            )
+            run_or_execute(this.config.stage, err, children[i], next(i) as CallbackFunction<R>)
           }
         }
       }
-      this.run = run
+      this.run = run as StageRun<R>
     } else {
       this.run = empty_run
     }
 
-    return super.compile()
+    return super.compile(rebuild)
+  }
+
+  protected split(ctx: unknown): Array<unknown> {
+    return this._config.split ? this._config.split(ctx as R) : [ctx]
+  }
+
+  protected combine(ctx: unknown, children: Array<unknown>): unknown {
+    let res: unknown
+    if (this.config.combine) {
+      let c = this.config.combine(ctx as R, children)
+      res = c ?? ctx
+    } else {
+      res = ctx
+    }
+    return res
   }
 }
 
 export type ParallelErrorInput = {
   stage?: string
   index: number
-  err: Error
-  ctx: any
+  err: unknown
+  ctx: unknown
 }
 
-export class ParallelError<T> extends Error {
+export class ParallelError extends Error {
   override name: string
   stage?: string
   index: number
-  err: Error
-  ctx: T
+  err: unknown
+  ctx: unknown
   constructor(init: ParallelErrorInput) {
-    super(init.err.message)
+    super()
     this.name = 'ParallerStageError'
     this.stage = init.stage
     this.ctx = init.ctx
@@ -159,7 +135,6 @@ export class ParallelError<T> extends Error {
   override toString() {
     return `${this.name}: at stage ${this.stage} error occured:
     iteration ${this.index}
-    ${this.err.message}
-    stack is: ${this.err.stack}`
+    ${this.err}`
   }
 }

@@ -1,7 +1,7 @@
 import { ComplexError, CreateError, isComplexError } from './ErrorList'
-import { CallbackFunction } from './types'
+import { CallbackFunction } from './types/types'
 
-export function process_error<T>(err: unknown, done: CallbackFunction<T>) {
+export function process_error<R>(err: unknown, done: CallbackFunction<R>) {
   if (isComplexError(err)) {
     done(err)
   } else if (err instanceof Error) {

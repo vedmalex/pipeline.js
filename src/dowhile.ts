@@ -1,67 +1,17 @@
 import { Stage } from './stage'
-import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
-import { ContextType } from './context'
-import { isAnyStage } from './utils/types'
-import {
-  AnyStage,
-  CallbackFunction,
-  Func2Sync,
-  Func3Sync,
-  Possible,
-  SingleStageFunction,
-  StageConfig,
-  StageObject,
-  StageRun,
-} from './utils/types'
+import { AnyStage, DoWhileConfig, getDoWhileConfig } from './utils/types/types'
+import { SingleStageFunction, StageRun } from './utils/types/types'
 
-export interface DoWhileConfig<T extends StageObject, R extends StageObject>
-  extends StageConfig<T> {
-  stage: AnyStage<T, R> | SingleStageFunction<T>
-  split?: Func2Sync<T, Possible<T>, number>
-  reachEnd?: Func3Sync<boolean, Possible<ComplexError>, Possible<T>, number>
-}
-
-export class DoWhile<
-  T extends StageObject,
-  R extends StageObject,
-> extends Stage<T, DoWhileConfig<T, R>> {
+export class DoWhile<R, C extends DoWhileConfig<R>> extends Stage<R, C> {
   constructor()
-  constructor(stage: Stage<T, StageConfig<T>>)
-  constructor(config: DoWhileConfig<T, R>)
-  constructor(stageFn: SingleStageFunction<T>)
-  constructor(
-    _config?:
-      | Stage<T, StageConfig<T>>
-      | DoWhileConfig<T, R>
-      | SingleStageFunction<T>,
-  ) {
-    let config: DoWhileConfig<T, R> = {} as DoWhileConfig<T, R>
-    if (isAnyStage<T, R>(_config)) {
-      config.stage = _config
-    } else if (typeof _config == 'function') {
-      config.stage = _config
-    } else {
-      if (_config?.run && _config?.stage) {
-        throw CreateError('use or run or stage, not both')
-      }
-
-      if (_config?.stage) {
-        config.stage = _config.stage
-      }
-
-      if (_config?.split instanceof Function) {
-        config.split = _config.split
-      }
-
-      if (_config?.reachEnd instanceof Function) {
-        config.reachEnd = _config.reachEnd
-      }
-    }
-    super(config)
-    this._config = {
-      ...this._config,
-      ...config,
+  constructor(stage: AnyStage)
+  constructor(config: C)
+  constructor(stageFn: SingleStageFunction<R>)
+  constructor(config?: AnyStage | C | SingleStageFunction<R>) {
+    super()
+    if (config) {
+      this._config = getDoWhileConfig(config)
     }
   }
 
@@ -72,47 +22,38 @@ export class DoWhile<
   public override toString() {
     return '[pipeline DoWhile]'
   }
-
-  reachEnd(
-    err: Possible<ComplexError>,
-    ctx: Possible<T>,
-    iter: number,
-  ): boolean {
+  reachEnd<T>(err: unknown, ctx: T, iter: number): boolean {
     if (this.config.reachEnd) {
-      return this.config.reachEnd(err, ctx, iter)
+      let result = this.config.reachEnd(err, ctx, iter)
+      if (typeof result === 'boolean') {
+        return result
+      } else {
+        throw new Error('reachEnd return unexpected value')
+      }
     } else return true
   }
 
-  split(ctx: Possible<T>, iter: number): any {
+  split<T>(ctx: T, iter: number): any {
     if (this.config.split) {
       return this.config.split(ctx, iter)
     } else return ctx
   }
 
-  override compile(rebuild: boolean = false): StageRun<any> {
-    let run: StageRun<any> = (
-      err: Possible<ComplexError>,
-      context: ContextType<T>,
-      done: CallbackFunction<T>,
-    ) => {
+  override compile(rebuild: boolean = false): StageRun<R> {
+    let run: StageRun<R> = (err, context, done) => {
       let iter: number = -1
-      let next = (err: Possible<ComplexError>) => {
+      let next = (err: unknown) => {
         iter++
         if (this.reachEnd(err, context, iter)) {
           return done(err, context)
         } else {
-          run_or_execute<T>(
-            this.config.stage,
-            err,
-            this.split(context, iter),
-            next as CallbackFunction<T>,
-          )
+          run_or_execute(this.config.stage, err, this.split(context, iter), next)
         }
       }
       next(err)
     }
 
-    this.run = run
+    this.run = run as StageRun<R>
 
     return super.compile(rebuild)
   }

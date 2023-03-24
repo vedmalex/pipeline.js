@@ -1,11 +1,5 @@
-import { ComplexError } from './ErrorList'
-import { CallbackFunction, Possible, StageObject } from './types'
-import { ContextType } from '../context'
+import { CallbackFunction } from './types/types'
 
-export function empty_run<T extends StageObject>(
-  err: Possible<ComplexError>,
-  context: ContextType<T>,
-  done: CallbackFunction<T>,
-) {
+export function empty_run<R>(err: unknown, context: R, done: CallbackFunction<R>) {
   done(err, context)
 }

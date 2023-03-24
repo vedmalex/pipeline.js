@@ -1,32 +1,17 @@
 import { Stage } from '../stage'
-import { ComplexError, CreateError } from './ErrorList'
-import {
-  AllowedStage,
-  AnyStage,
-  getStageConfig,
-  RunPipelineFunction,
-  StageObject,
-} from './types'
-import {
-  CallbackFunction,
-  Possible,
-  StageConfig,
-  StageRun,
-  isAnyStage,
-} from './types'
+import { CreateError } from './ErrorList'
+import { AllowedStage, getStageConfig, RunPipelineFunction, AnyStage, StageRun } from './types/types'
+import { CallbackFunction, StageConfig, isAnyStage } from './types/types'
 
-export interface TemplateConfig<T extends StageObject> extends StageConfig<T> {
-  stage: AnyStage<T> | RunPipelineFunction<T>
+export interface TemplateConfig<R> extends StageConfig<R> {
+  stage: AnyStage | RunPipelineFunction<R>
 }
 
-export function getTemplateConfig<
-  T extends StageObject,
-  C extends TemplateConfig<T>,
->(config: AllowedStage<T, T, C>): C {
+export function getTemplateConfig<R, C extends TemplateConfig<R>>(config: AllowedStage<R, C>): C {
   const res = getStageConfig(config)
-  if (isAnyStage<T, C>(res)) {
+  if (isAnyStage(res)) {
     return { stage: res } as C
-  } else if (typeof config == 'object' && !isAnyStage<T, C>(config)) {
+  } else if (typeof config == 'object' && !isAnyStage(config)) {
     if (config.run && config.stage) {
       throw CreateError("don't use run and stage both")
     }
@@ -43,14 +28,11 @@ export function getTemplateConfig<
   return res
 }
 
-export class Template<
-  T extends StageObject,
-  C extends TemplateConfig<T>,
-> extends Stage<T, C> {
-  constructor(config?: AllowedStage<T, T, C>) {
+export class Template<R, C extends TemplateConfig<R>> extends Stage<R, C> {
+  constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
-      this._config = getTemplateConfig<T, C>(config)
+      this._config = getTemplateConfig(config)
     }
   }
 
@@ -62,14 +44,10 @@ export class Template<
     return '[pipeline Template]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<T> {
-    let run: StageRun<T> = (
-      err: Possible<ComplexError>,
-      context: Possible<T>,
-      done: CallbackFunction<T>,
-    ) => {}
+  override compile(rebuild: boolean = false): StageRun<R> {
+    let run: StageRun<R> = (err: unknown, context: unknown, done: CallbackFunction<R>) => {}
 
-    this.run = run
+    this.run = run as StageRun<R>
 
     return super.compile(rebuild)
   }

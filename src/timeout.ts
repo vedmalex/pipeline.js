@@ -1,20 +1,13 @@
 import { Stage } from './stage'
-import { ComplexError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
-import { AllowedStage, getTimeoutConfig, StageObject } from './utils/types'
-import { ContextType } from './context'
-import {
-  CallbackFunction,
-  Possible,
-  StageRun,
-  TimeoutConfig,
-} from './utils/types'
+import { AllowedStage, getTimeoutConfig } from './utils/types/types'
+import { CallbackFunction, StageRun, TimeoutConfig } from './utils/types/types'
 
-export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
-  constructor(config?: AllowedStage<T, T, TimeoutConfig<T>>) {
+export class Timeout<R, C extends TimeoutConfig<R>> extends Stage<R, C> {
+  constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
-      this._config = getTimeoutConfig<T>(config)
+      this._config = getTimeoutConfig(config) as C
     }
   }
 
@@ -26,27 +19,20 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
     return '[pipeline Timeout]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<T> {
-    let run: StageRun<T> = (
-      err: Possible<ComplexError>,
-      ctx: ContextType<T>,
-      done: CallbackFunction<T>,
-    ) => {
+  override compile(rebuild: boolean = false): StageRun<R> {
+    let run: StageRun<R> = (err: unknown, ctx: unknown, done: CallbackFunction<R>) => {
       let to: any
-      let localDone = ((
-        err: Possible<ComplexError>,
-        retCtx: ContextType<T>,
-      ) => {
+      let localDone = (err: unknown, retCtx: unknown) => {
         if (to) {
           clearTimeout(to)
           to = null
           return done(err, retCtx)
         }
-      }) as CallbackFunction<T>
+      }
       let waitFor
 
       if (this.config.timeout instanceof Function) {
-        waitFor = this.config.timeout(ctx)
+        waitFor = this.config.timeout(ctx as R)
       } else {
         waitFor = this.config.timeout
       }
@@ -71,7 +57,7 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
       }
     }
 
-    this.run = run
+    this.run = run as StageRun<R>
 
     return super.compile(rebuild)
   }

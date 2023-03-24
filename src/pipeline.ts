@@ -1,23 +1,9 @@
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
-import { ComplexError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
-import { ContextType } from './context'
-import { isAnyStage } from './utils/types'
-import {
-  AnyStage,
-  getPipelinConfig,
-  Possible,
-  StageObject,
-} from './utils/types'
-import {
-  AllowedStage,
-  CallbackFunction,
-  PipelineConfig,
-  RunPipelineFunction,
-  StageConfig,
-  StageRun,
-} from './utils/types'
+import { isAnyStage, AnyStage } from './utils/types/types'
+import { getPipelinConfig } from './utils/types/types'
+import { AllowedStage, CallbackFunction, PipelineConfig, RunPipelineFunction, StageRun } from './utils/types/types'
 
 /**
  * it make possible to choose which stage to run according to result of `condition` evaluation
@@ -32,16 +18,8 @@ import {
  *
  * @param {Object} config configuration object
  */
-export class Pipeline<T extends StageObject> extends Stage<
-  T,
-  PipelineConfig<T>
-> {
-  constructor(
-    config?:
-      | PipelineConfig<T>
-      | AllowedStage<T, T, PipelineConfig<T>>
-      | Array<Stage<T, PipelineConfig<T>> | RunPipelineFunction<T>>,
-  ) {
+export class Pipeline<R, C extends PipelineConfig<R>> extends Stage<R, C> {
+  constructor(config?: PipelineConfig<R> | AllowedStage<R, C> | Array<AnyStage | RunPipelineFunction<R>>) {
     super()
     if (config) {
       this._config = getPipelinConfig(config)
@@ -54,15 +32,13 @@ export class Pipeline<T extends StageObject> extends Stage<
     return `PIPE:${this.config.name ? this.config.name : ''}`
   }
 
-  addStage<IT extends StageObject>(
-    _stage: StageConfig<IT> | RunPipelineFunction<IT> | AnyStage<IT>,
-  ) {
-    let stage: AnyStage<IT> | RunPipelineFunction<IT> | undefined
+  public addStage(_stage: unknown) {
+    let stage: AnyStage | RunPipelineFunction<R> | undefined
     if (typeof _stage === 'function') {
-      stage = _stage
+      stage = _stage as RunPipelineFunction<R>
     } else {
-      if (typeof _stage === 'object') {
-        if (isAnyStage<IT>(_stage)) {
+      if (typeof _stage === 'object' && _stage !== null) {
+        if (isAnyStage(_stage)) {
           stage = _stage
         } else {
           stage = new Stage(_stage)
@@ -79,24 +55,15 @@ export class Pipeline<T extends StageObject> extends Stage<
     return '[pipeline Pipeline]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<T> {
-    let run: StageRun<T> = (
-      err: Possible<ComplexError>,
-      context: ContextType<T>,
-      done: CallbackFunction<T>,
-    ) => {
+  override compile(rebuild: boolean = false): StageRun<R> {
+    let run: StageRun<R> = (err, context, done) => {
       let i = -1
       // sequential run;
-      let next = (err: Possible<ComplexError>, ctx: ContextType<T>) => {
+      let next = (err: unknown, ctx: unknown) => {
         i += 1
         if (!err && i < this.config.stages.length) {
           const st = this.config.stages[i]
-          run_or_execute<T>(
-            st,
-            err,
-            ctx ?? context,
-            next as CallbackFunction<T>,
-          )
+          run_or_execute(st, err, ctx ?? context, next as CallbackFunction<R>)
         } else if (i >= this.config.stages.length || err) {
           done(err, ctx ?? context)
         }
@@ -105,7 +72,7 @@ export class Pipeline<T extends StageObject> extends Stage<
     }
 
     if (this.config.stages.length > 0) {
-      this.run = run
+      this.run = run as StageRun<R>
     } else {
       this.run = empty_run
     }

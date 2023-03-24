@@ -2,7 +2,7 @@
  * Module dependency
  */
 import { defaultsDeep, get, set } from 'lodash'
-import { StageObject } from './utils/types'
+import { StageObject } from './utils/types/types'
 
 export const ContextSymbol = Symbol('Context')
 export const OriginalObject = Symbol('OriginalObject')
@@ -46,9 +46,9 @@ const RESERVED: Record<string, RESERVATIONS> = {
 // контекст может быть массивом, не обязательно
 // весь объект инициализировать сделать внутреннее хранилище, для неизменяемости ссылки....
 
-export type ContextType<T> = IContextProxy<T> & T
+export type ContextType<T> = T extends StageObject ? IContextProxy<T> & T : never
 
-export interface IContextProxy<T> {
+export interface IContextProxy<T extends StageObject> {
   getParent(): ContextType<T>
   getRoot(): ContextType<T>
   setParent(parent: ContextType<T>): void
@@ -59,6 +59,7 @@ export interface IContextProxy<T> {
   fork<C extends StageObject>(config: C): ContextType<T & C>
   get(path: keyof T): any
   get original(): T
+  [OriginalObject]?: true
   [key: string | symbol | number]: any
 }
 
@@ -69,20 +70,24 @@ var allContexts: Record<string, Context<any>> = {}
  *  @param {Object} config The object that is the source for the **Context**.
  */
 export class Context<T extends StageObject> implements IContextProxy<T> {
-  public static ensure<T extends StageObject>(
-    _config?: Partial<T>,
-  ): ContextType<T> {
+  public static ensure<T extends StageObject>(_config?: T): ContextType<T> {
     if (Context.isContext<T>(_config)) {
-      return _config as unknown as ContextType<T>
+      return _config
     } else {
-      return new Context(_config ?? {}) as unknown as ContextType<T>
+      if (typeof _config === 'object' && _config !== null) {
+        return this.create(_config)
+      } else {
+        return this.create()
+      }
     }
   }
 
-  public static isContext<T extends StageObject>(
-    obj?: any,
-  ): obj is IContextProxy<T> {
-    return obj ? obj[ContextSymbol] : false
+  public static create<T extends StageObject>(input?: object): ContextType<T> {
+    return new Context<T>((input ?? {}) as T) as unknown as ContextType<T>
+  }
+
+  public static isContext<T extends StageObject>(obj?: unknown): obj is ContextType<T> {
+    return typeof obj == 'object' && obj !== null ? obj[ContextSymbol] : false
   }
 
   protected ctx: T
@@ -91,12 +96,12 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
   protected __root!: ContextType<T>
   protected __stack?: string[]
   protected id: number;
-  [OriginalObject]?: boolean
+  [OriginalObject]?: true
   get original() {
     return this.ctx
   }
 
-  constructor(config: T) {
+  protected constructor(config: object) {
     this.ctx = config as T
     this.id = count++
     allContexts[this.id] = this
@@ -108,29 +113,22 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
 
         if (!(key in RESERVED)) {
           if (key in target.ctx) {
-            return (target.ctx as any)[key]
+            return target.ctx[key]
           } else {
-            return target.__parent?.[key as any]
+            return target.__parent?.[key]
           }
-          // return (target.ctx as any)[key]
         } else {
           if (RESERVED[key as keyof typeof RESERVED] == RESERVATIONS.func_ctx) {
-            return (target as any)[key].bind(target)
+            return target[key].bind(target)
           }
-          if (
-            RESERVED[key as keyof typeof RESERVED] == RESERVATIONS.func_this
-          ) {
-            return (target as any)[key].bind(target)
-          } else return (target as any)[key] // just props
+          if (RESERVED[key as keyof typeof RESERVED] == RESERVATIONS.func_this) {
+            return target[key].bind(target)
+          } else return target[key] // just props
         }
       },
-      set(
-        target: Context<T>,
-        key: keyof typeof RESERVED | string | symbol,
-        value,
-      ): boolean {
+      set(target: Context<T>, key: keyof typeof RESERVED | string | symbol, value): boolean {
         if (!(key in RESERVED)) {
-          ;(target.ctx as any)[key] = value
+          target.ctx[key] = value
           return true
         } else if (
           typeof key == 'string' &&
@@ -139,13 +137,13 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         ) {
           return false
         } else {
-          ;(target as any)[key] = value
+          target[key] = value
           return true
         }
       },
       deleteProperty(target: Context<T>, key: string | symbol) {
         if (!(key in RESERVED)) {
-          return delete target.ctx[key as keyof T]
+          return delete target.ctx[key]
         } else {
           return false
         }
@@ -163,10 +161,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
       },
       ownKeys(target: Context<T>) {
         if (target.__parent) {
-          return [
-            ...Reflect.ownKeys(target.ctx),
-            ...Reflect.ownKeys(target.__parent),
-          ]
+          return [...Reflect.ownKeys(target.ctx), ...Reflect.ownKeys(target.__parent)]
         } else {
           return Reflect.ownKeys(target.ctx)
         }
@@ -185,16 +180,18 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
    * @retrun {Context}
    */
   fork<C extends StageObject>(ctx: C): ContextType<T & C> {
-    var child = Context.ensure<C>(ctx)
-    this.addChild<C>(child)
+    var child = Context.ensure(ctx)
+    this.addChild(child)
     return child as ContextType<T & C>
   }
 
-  addChild<C extends StageObject>(child: ContextType<C>): ContextType<C> {
-    if (!this.hasChild<C>(child)) {
-      child.setParent(this.proxy as unknown as ContextType<C>)
-    }
-    return child
+  addChild(child: object): unknown {
+    if (Context.isContext(child)) {
+      if (!this.hasChild(child)) {
+        child.setParent(this.proxy)
+      }
+      return child
+    } else return child
   }
 
   /**
@@ -218,11 +215,15 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
     }
   }
 
-  addSubtree<C extends StageObject>(lctx: ContextType<C>): ContextType<C> {
-    if (!this.hasSubtree<C>(lctx)) {
-      lctx.setRoot(this.proxy)
+  addSubtree(lctx: object): unknown {
+    if (Context.isContext(lctx)) {
+      if (!this.hasSubtree(lctx)) {
+        lctx.setRoot(this.proxy)
+      }
+      return lctx
+    } else {
+      return lctx
     }
-    return lctx
   }
 
   /**
@@ -248,22 +249,16 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
    * @api public
    * @return {Boolean}
    */
-  hasChild<C extends StageObject>(ctx: ContextType<C>): boolean {
+  hasChild(ctx: object): boolean {
     if (Context.isContext(ctx) && ctx.__parent) {
-      return (
-        ctx.__parent == (this.proxy as unknown as ContextType<C>) ||
-        (this.proxy as unknown as ContextType<C>) == ctx
-      )
+      return ctx.__parent == this.proxy || this.proxy == ctx
     } else {
       return false
     }
   }
-  hasSubtree<C extends StageObject>(ctx: ContextType<C>): boolean {
+  hasSubtree(ctx: object): boolean {
     if (Context.isContext(ctx) && ctx.__root) {
-      return (
-        ctx.__root == (this.proxy as unknown as ContextType<C>) ||
-        (this.proxy as unknown as ContextType<C>) == ctx
-      )
+      return ctx.__root == this.proxy || this.proxy == ctx
     } else {
       return false
     }
@@ -275,7 +270,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
    * @param {Boolean} [clean]  `true` it need to clean object from referenced Types except Function and raw Object(js hash)
    * @return {Object}
    */
-  toObject<T>(): T {
+  toObject(): T {
     const obj = {} as T
     defaultsDeep(obj, this.ctx)
     if (this.__parent) {

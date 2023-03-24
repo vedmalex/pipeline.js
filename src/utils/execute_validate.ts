@@ -2,43 +2,37 @@ import { CreateError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import {
-  CallbackExternalFunction,
-  Func1Sync,
+  CallbackFunction,
   is_thenable,
-  Possible,
-  Thanable,
+  isValidateAsync,
+  isValidateCallback,
+  isValidateSync,
   ValidateFunction,
-} from './types'
-import { is_func1, is_func1_async, is_func2 } from './types'
-import { Func1Async } from './types'
-import { ContextType } from '../context'
+} from './types/types'
 
-export function execute_validate<T>(
-  validate: ValidateFunction<T>,
-  context: ContextType<T>,
-  done: CallbackExternalFunction<boolean>,
-) {
+export function execute_validate(validate: ValidateFunction, context: unknown, done: CallbackFunction<boolean>) {
   switch (validate.length) {
     case 1:
-      if (is_func1_async(validate)) {
+      if (isValidateAsync(validate)) {
         try {
-          ;(validate as Func1Async<boolean, ContextType<T>>)(context)
-            .then(res => done(undefined, res))
+          validate(context)
+            .then(res => {
+              if (typeof res == 'boolean') {
+                done(undefined, res)
+              } else {
+                done(res)
+              }
+            })
             .catch(err => done(err))
         } catch (err) {
           process_error(err, done)
         }
-      } else if (is_func1(validate)) {
+      } else if (isValidateSync(validate)) {
         try {
-          const res = (
-            validate as Func1Sync<
-              boolean | Promise<boolean> | Thanable<boolean>,
-              Possible<T>
-            >
-          )(context)
+          const res = validate(context)
           if (res instanceof Promise) {
             res.then(res => done(undefined, res)).catch(err => done(err))
-          } else if (is_thenable(res)) {
+          } else if (is_thenable<boolean>(res)) {
             res.then(res => done(undefined, res)).catch(err => done(err))
           } else if (typeof res == 'boolean') {
             if (res) {
@@ -47,7 +41,11 @@ export function execute_validate<T>(
               done(CreateError(ERROR.invalid_context))
             }
           } else {
-            done(res)
+            if (typeof res === 'object' && res) {
+              done(res as Error)
+            } else {
+              done(new Error(String(res)))
+            }
           }
         } catch (err) {
           process_error(err, done)
@@ -57,9 +55,9 @@ export function execute_validate<T>(
       }
       break
     case 2:
-      if (is_func2(validate)) {
+      if (isValidateCallback(validate)) {
         try {
-          validate(context, (err: Possible<Error>, res: boolean) => {
+          validate(context, (err, res) => {
             if (err) done(CreateError(err), res)
             else done(err, res)
           })

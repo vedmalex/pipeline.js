@@ -2,20 +2,14 @@ import { Stage } from './stage'
 import { ComplexError } from './utils/ErrorList'
 import { execute_validate } from './utils/execute_validate'
 import { run_or_execute } from './utils/run_or_execute'
-import {
-  AllowedStage,
-  getIfElseConfig,
-  IfElseConfig,
-  StageObject,
-} from './utils/types'
-import { CallbackFunction, Possible, StageRun } from './utils/types'
-import { ContextType } from './context'
+import { AllowedStage, getIfElseConfig, IfElseConfig } from './utils/types/types'
+import { CallbackFunction, Possible, StageRun } from './utils/types/types'
 
-export class IfElse<T extends StageObject> extends Stage<T, IfElseConfig<T>> {
-  constructor(config?: AllowedStage<T, T, IfElseConfig<T>>) {
+export class IfElse<R, C extends IfElseConfig<R>> extends Stage<R, C> {
+  constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
-      this._config = getIfElseConfig<T, IfElseConfig<T>>(config)
+      this._config = getIfElseConfig(config)
     }
   }
 
@@ -27,14 +21,10 @@ export class IfElse<T extends StageObject> extends Stage<T, IfElseConfig<T>> {
     return '[pipeline IfElse]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<T> {
-    let run: StageRun<T> = (
-      err: Possible<ComplexError>,
-      context: ContextType<T>,
-      done: CallbackFunction<T>,
-    ) => {
+  override compile(rebuild: boolean = false): StageRun<R> {
+    let run: StageRun<R> = (err, context, done) => {
       if (typeof this.config.condition == 'function') {
-        execute_validate<T>(this.config.condition, context, ((
+        execute_validate(this.config.condition, context, ((
           err: Possible<ComplexError>,
           condition: Possible<boolean>,
         ) => {
@@ -47,7 +37,7 @@ export class IfElse<T extends StageObject> extends Stage<T, IfElseConfig<T>> {
               run_or_execute(this.config.failed, err, context, done)
             }
           }
-        }) as CallbackFunction<boolean>)
+        }) as CallbackFunction<R>)
       } else if (typeof this.config.condition == 'boolean') {
         if (this.config.condition) {
           if (this.config.success) {
@@ -69,7 +59,7 @@ export class IfElse<T extends StageObject> extends Stage<T, IfElseConfig<T>> {
       }
     }
 
-    this.run = run
+    this.run = run as StageRun<R>
 
     return super.compile(rebuild)
   }

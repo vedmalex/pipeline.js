@@ -1,20 +1,12 @@
-import { Possible } from './types'
+import { Possible } from './types/types'
 
-export function CreateError(
-  err:
-    | string
-    | Error
-    | ComplexError
-    | null
-    | undefined
-    | (string | Error | ComplexError | null | undefined)[],
-): Possible<ComplexError> {
+export function CreateError(err: unknown | Array<unknown>): Possible<ComplexError> {
   if (typeof err == 'string') {
     return new ComplexError(new Error(err))
   }
   if (typeof err == 'object' && err !== null) {
     if (Array.isArray(err)) {
-      let result: Array<Error> = []
+      let result: Array<unknown> = []
       err
         .filter(e => e)
         .forEach(ler => {
@@ -44,15 +36,25 @@ export function CreateError(
   // throw new Error('unknown error, see console for details')
 }
 
-export function isComplexError(inp: any): inp is ComplexError {
-  return inp.isComplex && Array.isArray(inp.payload)
+export function isComplexError(inp: unknown): inp is ComplexError {
+  if (
+    typeof inp == 'object' &&
+    inp &&
+    'isComplex' in inp &&
+    'payload' in inp &&
+    Array.isArray(inp.payload) &&
+    inp.isComplex
+  ) {
+    return true
+  } else {
+    return false
+  }
 }
 export class ComplexError extends Error {
-  payload: Array<Error>
+  payload: Array<unknown>
   isComplex: boolean
   // to store all details of single error
-  constructor(...payload: Array<Error>) {
-    debugger
+  constructor(...payload: Array<unknown>) {
     super()
     this.payload = payload
     this.isComplex = true

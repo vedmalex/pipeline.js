@@ -42,7 +42,8 @@
     "test": "jest --coverage",
     "prepublish": "rollup -c",
     "build": "rollup -c",
-    "watch": "tsc -w --noEmit"
+    "watchonly": "tsc -w --noEmit -p tsconfig.build.json",
+    "watch": "tsc -w -p tsconfig.build.json"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.module.js",

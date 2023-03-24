@@ -1,45 +1,32 @@
-import { CreateError, ComplexError } from './ErrorList'
+import { CreateError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import {
   CallbackFunction,
   EnsureFunction,
-  Func1Sync,
+  isEnsureAsync,
+  isEnsureCallback,
+  isEnsureSync,
   is_thenable,
-  Thanable,
-} from './types'
-import { is_func1, is_func1_async, is_func2 } from './types'
-import { Func1Async } from './types'
-import { ContextType } from '../context'
+} from './types/types'
 
-export function execute_ensure<T>(
-  ensure: EnsureFunction<T>,
-  context: ContextType<T>,
-  done: CallbackFunction<T>,
-) {
+export function execute_ensure<R>(ensure: EnsureFunction<unknown>, context: unknown, done: CallbackFunction<R>) {
   switch (ensure.length) {
     case 1:
-      if (is_func1_async(ensure)) {
+      if (isEnsureAsync(ensure)) {
         try {
-          ;(ensure as Func1Async<ContextType<T>, ContextType<T>>)(context)
+          ensure(context)
             .then(res => done(undefined, res))
             .catch(err => done(err))
         } catch (err) {
           process_error(err, done)
         }
-      } else if (is_func1(ensure)) {
+      } else if (isEnsureSync(ensure)) {
         try {
-          const res = (
-            ensure as Func1Sync<
-              | ContextType<T>
-              | Promise<ContextType<T>>
-              | Thanable<ContextType<T>>,
-              T
-            >
-          )(context)
+          const res = ensure(context)
           if (res instanceof Promise) {
             res.then(res => done(undefined, res)).catch(err => done(err))
-          } else if (is_thenable(res)) {
+          } else if (is_thenable<R>(res)) {
             res.then(res => done(undefined, res)).catch(err => done(err))
           } else {
             done(undefined, res)
@@ -52,9 +39,9 @@ export function execute_ensure<T>(
       }
       break
     case 2:
-      if (is_func2(ensure)) {
+      if (isEnsureCallback(ensure)) {
         try {
-          ensure(context, (err: ComplexError, ctx: ContextType<T>) => {
+          ensure(context, (err, ctx) => {
             done(err, ctx)
           })
         } catch (err) {

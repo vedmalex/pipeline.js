@@ -1,20 +1,17 @@
-import { ComplexError, CreateError } from './ErrorList'
-import { CallbackFunction, Possible } from './types'
-import { ContextType } from '../context'
+import { CreateError } from './ErrorList'
+import { CallbackFunction } from './types/types'
 
-export function run_callback_once<T>(
-  wrapee: CallbackFunction<T>,
-): CallbackFunction<T> {
+export function run_callback_once<R>(wrapee: CallbackFunction<R>): CallbackFunction<R> {
   let done_call = 0
-  const c = function (err: Possible<ComplexError>, ctx: ContextType<T>) {
+  const c: CallbackFunction<R> = function (err, ctx) {
     if (done_call == 0) {
       done_call += 1
       wrapee(err, ctx)
     } else if (err) {
       throw err
     } else {
-      throw CreateError([err, 'callback called more than once'])
+      throw CreateError([ctx, 'callback called more than once'])
     }
-  } as CallbackFunction<T>
+  }
   return c
 }
