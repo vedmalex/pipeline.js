@@ -52,7 +52,7 @@ class Pipeline extends stage_1.Stage {
                     (0, run_or_execute_1.run_or_execute)(st, err, ctx !== null && ctx !== void 0 ? ctx : context, next);
                 }
                 else if (i >= this.config.stages.length || err) {
-                    done(err, ctx !== null && ctx !== void 0 ? ctx : context);
+                    done(err, (ctx !== null && ctx !== void 0 ? ctx : context));
                 }
             };
             next(err, context);

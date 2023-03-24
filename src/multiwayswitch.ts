@@ -222,7 +222,7 @@ export class MultiWaySwitch<R, C extends MultWaySwitchConfig<R>> extends Stage<R
           }
 
           if (iter >= actuals.length) {
-            return done(hasError ? CreateError(errors) : undefined, res ?? ctx)
+            return done(hasError ? CreateError(errors) : undefined, (res ?? ctx) as R)
           }
         }
       }

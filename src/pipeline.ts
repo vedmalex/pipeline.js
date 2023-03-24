@@ -65,7 +65,7 @@ export class Pipeline<R, C extends PipelineConfig<R>> extends Stage<R, C> {
           const st = this.config.stages[i]
           run_or_execute(st, err, ctx ?? context, next as CallbackFunction<R>)
         } else if (i >= this.config.stages.length || err) {
-          done(err, ctx ?? context)
+          done(err, (ctx ?? context) as R)
         }
       }
       next(err, context)

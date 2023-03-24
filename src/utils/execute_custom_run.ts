@@ -52,7 +52,7 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
           try {
             run
               .call(this, context)
-              .then(ctx => done(undefined, ctx))
+              .then(ctx => done(undefined, ctx as R))
               .catch(err => done(err))
           } catch (err) {
             process_error(err, done)
@@ -65,7 +65,7 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
             } else if (is_thenable<R>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
-              done(undefined, res)
+              done(undefined, res as R)
             }
           } catch (err) {
             process_error(err, done)
@@ -79,7 +79,7 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
           try {
             run
               .call(this, err, context)
-              .then(ctx => done(undefined, ctx))
+              .then(ctx => done(undefined, ctx as R))
               .catch(err => done(err))
           } catch (err) {
             process_error(err, done)

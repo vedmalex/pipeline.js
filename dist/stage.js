@@ -163,7 +163,7 @@ class Stage {
     }
     stage(err, context, callback) {
         const back = callback;
-        const sucess = (ret) => back(undefined, ret !== null && ret !== void 0 ? ret : context);
+        const sucess = (ret) => back(undefined, (ret !== null && ret !== void 0 ? ret : context));
         const fail = (err) => back(err, context);
         if (this._config.run) {
             if (context) {
@@ -172,7 +172,7 @@ class Stage {
                         this.rescue(err, ctx !== null && ctx !== void 0 ? ctx : context, fail, sucess);
                     }
                     else {
-                        callback(undefined, ctx !== null && ctx !== void 0 ? ctx : context);
+                        callback(undefined, (ctx !== null && ctx !== void 0 ? ctx : context));
                     }
                 });
             }
@@ -265,7 +265,7 @@ class Stage {
     }
     ensure(ensure, context, callback) {
         (0, execute_ensure_1.execute_ensure)(ensure, context, (err, result) => {
-            callback(err, result !== null && result !== void 0 ? result : context);
+            callback(err, (result !== null && result !== void 0 ? result : context));
         });
     }
 }

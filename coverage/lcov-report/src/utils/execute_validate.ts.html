@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">43.47% </span>
+                <span class="strong">42.22% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>20/46</span>
+                <span class='fraction'>19/45</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">48.78% </span>
+                <span class="strong">47.5% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>20/41</span>
+                <span class='fraction'>19/40</span>
             </div>
         
             
@@ -135,17 +135,21 @@
 <a name='L70'></a><a href='#L70'>70</a>
 <a name='L71'></a><a href='#L71'>71</a>
 <a name='L72'></a><a href='#L72'>72</a>
-<a name='L73'></a><a href='#L73'>73</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-yes">11x</span>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
@@ -210,17 +214,19 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { CreateError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
-import { CallbackExternalFunction, is_thenable, Possible, ValidateFunction } from './types/types'
-import { is_func1, is_func1_async, is_func2 } from './types/types'
+import {
+  CallbackFunction,
+  is_thenable,
+  isValidateAsync,
+  isValidateCallback,
+  isValidateSync,
+  ValidateFunction,
+} from './types/types'
 &nbsp;
-export function execute_validate(
-  validate: ValidateFunction,
-  context: unknown,
-  done: CallbackExternalFunction&lt;boolean&gt;,
-) {
+export function execute_validate(validate: ValidateFunction, context: unknown, done: CallbackFunction&lt;boolean&gt;) {
   switch (validate.length) {
     case 1:
-      <span class="missing-if-branch" title="if path not taken" >I</span>if (is_func1_async(validate)) {
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (isValidateAsync(validate)) {
 <span class="cstat-no" title="statement not covered" >        try {</span>
 <span class="cstat-no" title="statement not covered" >          validate(context)</span>
             .then(<span class="fstat-no" title="function not covered" >res </span>=&gt; {
@@ -234,7 +240,7 @@ export function execute_validate(
         } catch (err) {
 <span class="cstat-no" title="statement not covered" >          process_error(err, done)</span>
         }
-      } else if (is_func1(validate)) {
+      } else if (isValidateSync(validate)) {
         try {
           const res = validate(context)
           <span class="missing-if-branch" title="if path not taken" >I</span>if (res instanceof Promise) {
@@ -262,9 +268,9 @@ export function execute_validate(
       }
       break
 <span class="branch-1 cbranch-no" title="branch not covered" >    case 2:</span>
-<span class="cstat-no" title="statement not covered" >      if (is_func2(validate)) {</span>
+<span class="cstat-no" title="statement not covered" >      if (isValidateCallback(validate)) {</span>
 <span class="cstat-no" title="statement not covered" >        try {</span>
-<span class="cstat-no" title="statement not covered" >          validate(context, <span class="fstat-no" title="function not covered" >(e</span>rr: Possible&lt;Error&gt;, res: boolean) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >          validate(context, <span class="fstat-no" title="function not covered" >(e</span>rr, res) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >            if (err) <span class="cstat-no" title="statement not covered" >done(CreateError(err), res)</span></span>
             else <span class="cstat-no" title="statement not covered" >done(err, res)</span>
           })
@@ -286,7 +292,7 @@ export function execute_validate(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2023-03-23T16:46:20.501Z
+                at 2023-03-24T17:43:16.227Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

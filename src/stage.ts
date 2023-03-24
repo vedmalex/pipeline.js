@@ -27,6 +27,7 @@ export const StageSymbol = Symbol('stage')
 export function isStage(obj: unknown): boolean {
   return typeof obj === 'object' && obj !== null && StageSymbol in obj
 }
+
 export class Stage<R, C extends StageConfig<R>> implements AnyStage {
   public get config(): C {
     return this._config
@@ -118,7 +119,7 @@ export class Stage<R, C extends StageConfig<R>> implements AnyStage {
               if (Context.isContext(ctx)) {
                 res(ctx.original as T)
               } else {
-                res(ctx as T)
+                res(ctx as unknown as T)
               }
             }
           }
@@ -191,20 +192,20 @@ export class Stage<R, C extends StageConfig<R>> implements AnyStage {
 
   protected stage(err: unknown, context: unknown, callback: CallbackFunction<R>) {
     const back = callback
-    const sucess = (ret: unknown) => back(undefined, ret ?? context)
-    const fail = (err: unknown) => back(err, context)
+    const sucess = (ret: unknown) => back(undefined, (ret ?? context) as R)
+    const fail = (err: unknown) => back(err, context as R)
     if (this._config.run) {
       if (context) {
         execute_callback(err, this._config.run, context, (err: unknown, ctx: unknown) => {
           if (err) {
             this.rescue(err, ctx ?? context, fail, sucess)
           } else {
-            callback(undefined, ctx ?? context)
+            callback(undefined, (ctx ?? context) as R)
           }
         })
       } else {
         // возвращаем управление
-        callback(null, context)
+        callback(null, context as R)
       }
     } else {
       const retErr: Array<any> = [this.reportName + ' reports: run is not a function']
@@ -283,11 +284,11 @@ export class Stage<R, C extends StageConfig<R>> implements AnyStage {
   protected validate(validate: ValidateFunction, context: unknown, callback: CallbackFunction<R>) {
     execute_validate(validate, context, (err, result) => {
       if (err) {
-        callback(err, context)
+        callback(err, context as R)
       } else {
         if (result) {
           if ('boolean' === typeof result) {
-            callback(undefined, context)
+            callback(undefined, context as R)
           } else if (Array.isArray(result)) {
             callback(CreateError(result))
           }
@@ -299,7 +300,7 @@ export class Stage<R, C extends StageConfig<R>> implements AnyStage {
   }
   protected ensure(ensure: EnsureFunction<unknown>, context: unknown, callback: CallbackFunction<R>) {
     execute_ensure<R>(ensure, context, (err, result) => {
-      callback(err, result ?? context)
+      callback(err, (result ?? context) as R)
     })
   }
 }

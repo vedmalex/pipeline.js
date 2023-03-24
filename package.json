@@ -39,7 +39,8 @@
     "typescript": "next"
   },
   "scripts": {
-    "test": "jest --coverage",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
     "prepublish": "rollup -c",
     "build": "rollup -c",
     "watchonly": "tsc -w --noEmit -p tsconfig.build.json",

@@ -3,7 +3,7 @@ export type StageObject = object;
 export type CombineFunction<T> = <R>(ctx: T, children: R[]) => T;
 export type SplitFunction<T> = <R>(ctx: T) => R[];
 export type EvaluateFunction<T> = (ctx: T) => boolean;
-export type CallbackFunction<R> = (err?: unknown, res?: R | unknown) => void;
+export type CallbackFunction<R> = (err?: unknown, res?: R) => void;
 export declare function isCallback<R>(inp?: unknown): inp is CallbackFunction<R>;
 export declare function isExternalCallback<T>(inp?: unknown): inp is CallbackFunction<T>;
 export declare function is_async_function(inp?: unknown): boolean;
@@ -150,8 +150,8 @@ export interface IfElseConfig<R> extends StageConfig<R> {
 export declare function getIfElseConfig<R, C extends IfElseConfig<R>>(config: AllowedStage<R, C>): C;
 export interface AnyStage {
     get reportName(): string;
-    toString(): string;
     get name(): string;
+    toString(): string;
     execute<T>(context: unknown): Promise<T>;
     execute<T>(context: unknown, callback: CallbackFunction<T>): void;
     execute<T>(err: unknown, context: unknown, callback: CallbackFunction<T>): void;

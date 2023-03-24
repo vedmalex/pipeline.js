@@ -30,9 +30,9 @@ describe('Wrap', function () {
       FullName: 'NEO',
       Retry: 1,
     }
-    wr.execute(ctx, function (err, retCtx: typeof ctx) {
+    wr.execute(ctx, function (err, retCtx) {
       expect(err).toBeUndefined()
-      expect(retCtx.Retry).toBe(2)
+      expect(retCtx?.Retry).toBe(2)
       expect(retCtx).toEqual(ctx)
       done()
     })

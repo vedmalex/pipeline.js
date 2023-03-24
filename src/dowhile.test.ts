@@ -2,6 +2,7 @@ import 'jest'
 
 import { DoWhile } from './dowhile'
 import { Stage } from './stage'
+import { StageConfig } from './utils/types/types'
 
 describe('DoWhile', function () {
   it('works with default', function (done) {
@@ -64,7 +65,7 @@ describe('DoWhile', function () {
     }
   })
   it('run stage', function (done) {
-    var stage0 = new Stage((err, ctx, done) => {
+    var stage0 = new Stage((err, ctx: { iter: number }, done) => {
       if (typeof ctx == 'object' && ctx) {
         ctx.iter++
       }
@@ -90,11 +91,12 @@ describe('DoWhile', function () {
   })
 
   it('complex example 1', function (done) {
-    var stage0 = new Stage({
-      run: function (ctx) {
+    const conf = {
+      run: function (ctx: { some: number[] }) {
         result++
       },
-    })
+    } as StageConfig<{ some: number[] }>
+    var stage0 = new Stage(conf)
     var ctx = {
       some: [1, 2, 3, 4, 5, 6, 7],
     }

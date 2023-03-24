@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">44.64% </span>
+                <span class="strong">43.63% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>25/56</span>
+                <span class='fraction'>24/55</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">41.66% </span>
+                <span class="strong">45.45% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>10/24</span>
+                <span class='fraction'>10/22</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">52.08% </span>
+                <span class="strong">51.06% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>25/48</span>
+                <span class='fraction'>24/47</span>
             </div>
         
             
@@ -143,18 +143,22 @@
 <a name='L78'></a><a href='#L78'>78</a>
 <a name='L79'></a><a href='#L79'>79</a>
 <a name='L80'></a><a href='#L80'>80</a>
-<a name='L81'></a><a href='#L81'>81</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">11x</span>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">13x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">5x</span>
@@ -223,21 +227,23 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { ComplexError, CreateError } from './ErrorList'
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { CreateError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
-import { is_func2_async, is_func3, is_func3_async, is_thenable, Possible, Rescue } from './types/types'
-import { is_func1, is_func1_async, is_func2 } from './types/types'
+import {
+  Rescue,
+  isRescue1ASync,
+  isRescue1Sync,
+  isRescue2ASync,
+  isRescue2Sync,
+  isRescue3Callback,
+  is_thenable,
+} from './types/types'
 &nbsp;
-export function execute_rescue&lt;T&gt;(
-  rescue: Rescue,
-  err: Error,
-  context: unknown,
-  done: (err?: Possible&lt;ComplexError&gt;) =&gt; void,
-) {
+export function execute_rescue&lt;R&gt;(rescue: Rescue&lt;R&gt;, err: Error, context: unknown, done: (err?) =&gt; void) {
   switch (rescue.length) {
     case 1:
-      <span class="missing-if-branch" title="if path not taken" >I</span>if (is_func1_async(rescue)) {
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (isRescue1ASync(rescue)) {
 <span class="cstat-no" title="statement not covered" >        try {</span>
 <span class="cstat-no" title="statement not covered" >          rescue(err)</span>
             .then(<span class="fstat-no" title="function not covered" >_ </span>=&gt; <span class="cstat-no" title="statement not covered" >done(undefined))</span>
@@ -245,7 +251,7 @@ export function execute_rescue&lt;T&gt;(
         } catch (err) {
 <span class="cstat-no" title="statement not covered" >          process_error(err, done)</span>
         }
-      } else if (is_func1(rescue)) {
+      } else if (isRescue1Sync(rescue)) {
         try {
           const res = rescue(err)
           <span class="missing-if-branch" title="if path not taken" >I</span>if (res instanceof Promise) {
@@ -263,7 +269,7 @@ export function execute_rescue&lt;T&gt;(
       }
       break
     case 2:
-      <span class="missing-if-branch" title="if path not taken" >I</span>if (is_func2_async(rescue)) {
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (isRescue2ASync(rescue)) {
 <span class="cstat-no" title="statement not covered" >        try {</span>
 <span class="cstat-no" title="statement not covered" >          rescue(err, context)</span>
             .then(<span class="fstat-no" title="function not covered" >_ </span>=&gt; <span class="cstat-no" title="statement not covered" >done())</span>
@@ -271,7 +277,7 @@ export function execute_rescue&lt;T&gt;(
         } catch (err) {
 <span class="cstat-no" title="statement not covered" >          process_error(err, done)</span>
         }
-      } else if (is_func2(rescue)) {
+      } else if (isRescue2Sync(rescue)) {
         try {
           const res = rescue(err, context)
           <span class="missing-if-branch" title="if path not taken" >I</span>if (res instanceof Promise) {
@@ -289,7 +295,7 @@ export function execute_rescue&lt;T&gt;(
       }
       break
 <span class="branch-2 cbranch-no" title="branch not covered" >    case 3:</span>
-<span class="cstat-no" title="statement not covered" >      if (is_func3(rescue) &amp;&amp; !is_func3_async(rescue)) {</span>
+<span class="cstat-no" title="statement not covered" >      if (isRescue3Callback(rescue)) {</span>
 <span class="cstat-no" title="statement not covered" >        try {</span>
 <span class="cstat-no" title="statement not covered" >          rescue(err, context, done)</span>
         } catch (err) {
@@ -310,7 +316,7 @@ export function execute_rescue&lt;T&gt;(
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2023-03-23T16:46:20.501Z
+                at 2023-03-24T17:43:16.227Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

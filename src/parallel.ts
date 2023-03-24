@@ -71,16 +71,16 @@ export class Parallel<R, C extends ParallelConfig<R>> extends Stage<R, C> {
             if (iter >= len) {
               if (!hasError) {
                 let result = this.combine(ctx, children)
-                return done(undefined, result)
+                return done(undefined, result as R)
               } else {
-                return done(CreateError(errors), ctx)
+                return done(CreateError(errors), ctx as R)
               }
             }
           }
         }
 
         if (len === 0) {
-          return done(err, ctx)
+          return done(err, ctx as R)
         } else {
           for (var i = 0; i < len; i++) {
             run_or_execute(this.config.stage, err, children[i], next(i) as CallbackFunction<R>)

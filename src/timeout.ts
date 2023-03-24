@@ -26,7 +26,7 @@ export class Timeout<R, C extends TimeoutConfig<R>> extends Stage<R, C> {
         if (to) {
           clearTimeout(to)
           to = null
-          return done(err, retCtx)
+          return done(err, retCtx as R)
         }
       }
       let waitFor

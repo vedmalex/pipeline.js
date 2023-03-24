@@ -58,14 +58,14 @@ export class Sequential<R, C extends ParallelConfig<R>> extends Stage<R, C> {
           iter += 1
           if (iter >= len) {
             let result = this.combine(ctx, children)
-            return done(undefined, result)
+            return done(undefined, result as R)
           } else {
             run_or_execute(this.config.stage, err, children[iter], next)
           }
         }
 
         if (len === 0) {
-          return done(err, ctx)
+          return done(err, ctx as R)
         } else {
           next(err)
         }

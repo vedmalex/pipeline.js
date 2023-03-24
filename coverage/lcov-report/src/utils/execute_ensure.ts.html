@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">36.11% </span>
+                <span class="strong">22.85% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>13/36</span>
+                <span class='fraction'>8/35</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">25% </span>
+                <span class="strong">12.5% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>2/8</span>
+                <span class='fraction'>1/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">40.62% </span>
+                <span class="strong">25.8% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>13/32</span>
+                <span class='fraction'>8/31</span>
             </div>
         
             
@@ -114,14 +114,26 @@
 <a name='L49'></a><a href='#L49'>49</a>
 <a name='L50'></a><a href='#L50'>50</a>
 <a name='L51'></a><a href='#L51'>51</a>
-<a name='L52'></a><a href='#L52'>52</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">11x</span>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">11x</span>
-<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -149,18 +161,18 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -168,29 +180,35 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { CreateError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
-import { CallbackFunction, EnsureFunction, is_thenable } from './types/types'
-import { is_func1, is_func1_async, is_func2 } from './types/types'
+import {
+  CallbackFunction,
+  EnsureFunction,
+  isEnsureAsync,
+  isEnsureCallback,
+  isEnsureSync,
+  is_thenable,
+} from './types/types'
 &nbsp;
-export function execute_ensure&lt;T&gt;(ensure: EnsureFunction, context: unknown, done: CallbackFunction) {
+export function execute_ensure&lt;R&gt;(ensure: EnsureFunction&lt;unknown&gt;, context: unknown, done: CallbackFunction&lt;R&gt;) {
   switch (ensure.length) {
 <span class="branch-0 cbranch-no" title="branch not covered" >    case 1:</span>
-<span class="cstat-no" title="statement not covered" >      if (is_func1_async(ensure)) {</span>
+<span class="cstat-no" title="statement not covered" >      if (isEnsureAsync(ensure)) {</span>
 <span class="cstat-no" title="statement not covered" >        try {</span>
 <span class="cstat-no" title="statement not covered" >          ensure(context)</span>
-            .then(<span class="fstat-no" title="function not covered" >res </span>=&gt; <span class="cstat-no" title="statement not covered" >done(undefined, res))</span>
+            .then(<span class="fstat-no" title="function not covered" >res </span>=&gt; <span class="cstat-no" title="statement not covered" >done(undefined, res as R))</span>
             .catch(<span class="fstat-no" title="function not covered" >err </span>=&gt; <span class="cstat-no" title="statement not covered" >done(err))</span>
         } catch (err) {
 <span class="cstat-no" title="statement not covered" >          process_error(err, done)</span>
         }
-      } else <span class="cstat-no" title="statement not covered" >if (is_func1(ensure)) {</span>
+      } else <span class="cstat-no" title="statement not covered" >if (isEnsureSync(ensure)) {</span>
 <span class="cstat-no" title="statement not covered" >        try {</span>
           const res = <span class="cstat-no" title="statement not covered" >ensure(context)</span>
 <span class="cstat-no" title="statement not covered" >          if (res instanceof Promise) {</span>
 <span class="cstat-no" title="statement not covered" >            res.then(<span class="fstat-no" title="function not covered" >res </span>=&gt; <span class="cstat-no" title="statement not covered" >done(undefined, res))</span>.catch(<span class="fstat-no" title="function not covered" >err </span>=&gt; <span class="cstat-no" title="statement not covered" >done(err))</span></span>
-          } else <span class="cstat-no" title="statement not covered" >if (is_thenable(res)) {</span>
+          } else <span class="cstat-no" title="statement not covered" >if (is_thenable&lt;R&gt;(res)) {</span>
 <span class="cstat-no" title="statement not covered" >            res.then(<span class="fstat-no" title="function not covered" >res </span>=&gt; <span class="cstat-no" title="statement not covered" >done(undefined, res))</span>.catch(<span class="fstat-no" title="function not covered" >err </span>=&gt; <span class="cstat-no" title="statement not covered" >done(err))</span></span>
           } else {
-<span class="cstat-no" title="statement not covered" >            done(undefined, res)</span>
+<span class="cstat-no" title="statement not covered" >            done(undefined, res as R)</span>
           }
         } catch (err) {
 <span class="cstat-no" title="statement not covered" >          process_error(err, done)</span>
@@ -200,18 +218,18 @@ export function execute_ensure&lt;T&gt;(ensure: EnsureFunction, context: unknown
       }
 <span class="cstat-no" title="statement not covered" >      break</span>
     case 2:
-      if (is_func2(ensure)) {
-        try {
-          ensure(context, (err: unknown, ctx: unknown) =&gt; {
-            done(err, ctx)
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (isEnsureCallback(ensure)) {
+<span class="cstat-no" title="statement not covered" >        try {</span>
+<span class="cstat-no" title="statement not covered" >          ensure(context, <span class="fstat-no" title="function not covered" >(e</span>rr, ctx) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >            done(err, ctx as R)</span>
           })
         } catch (err) {
-          process_error(err, done)
+<span class="cstat-no" title="statement not covered" >          process_error(err, done)</span>
         }
-      } else <span class="missing-if-branch" title="else path not taken" >E</span>{
-<span class="cstat-no" title="statement not covered" >        done(CreateError(ERROR.signature))</span>
+      } else {
+        done(CreateError(ERROR.signature))
       }
-      break
+<span class="cstat-no" title="statement not covered" >      break</span>
 <span class="branch-2 cbranch-no" title="branch not covered" >    default:</span>
 <span class="cstat-no" title="statement not covered" >      done(CreateError(ERROR.signature))</span>
   }
@@ -223,7 +241,7 @@ export function execute_ensure&lt;T&gt;(ensure: EnsureFunction, context: unknown
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2023-03-23T16:46:20.501Z
+                at 2023-03-24T17:43:16.227Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

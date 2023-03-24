@@ -206,7 +206,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
       if (!Context.isContext(result)) {
         var lctx = Context.ensure(result)
         this.addSubtree(lctx)
-        set(this, path, lctx)
+        set(this.original, path, lctx)
         result = lctx
       }
       return result

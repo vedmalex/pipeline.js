@@ -311,13 +311,11 @@
 <a name='L246'></a><a href='#L246'>246</a>
 <a name='L247'></a><a href='#L247'>247</a>
 <a name='L248'></a><a href='#L248'>248</a>
-<a name='L249'></a><a href='#L249'>249</a>
-<a name='L250'></a><a href='#L250'>250</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L249'></a><a href='#L249'>249</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -564,56 +562,55 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Stage } from './stage'
 import { CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
-import { isAnyStage } from './utils/types/types'
+import { isAnyStage, SplitFunction } from './utils/types/types'
 import {
   AllowedStage,
-  Func1,
-  Func1Sync,
-  Func2Sync,
   getStageConfig,
   isRunPipelineFunction,
   RunPipelineFunction,
+  CombineFunction,
+  EvaluateFunction,
 } from './utils/types/types'
 import { CallbackFunction, Possible, StageConfig, StageRun, AnyStage } from './utils/types/types'
 &nbsp;
-export type MultiWaySwitchCase = MultiWaySwitchStatic | MultiWaySwitchDynamic
+export type MultiWaySwitchCase&lt;R&gt; = MultiWaySwitchStatic&lt;R&gt; | MultiWaySwitchDynamic&lt;R&gt;
 &nbsp;
-export interface MultiWaySwitchStatic {
-  stage: AnyStage | RunPipelineFunction
+export interface MultiWaySwitchStatic&lt;R&gt; {
+  stage: AnyStage | RunPipelineFunction&lt;R&gt;
   evaluate?: boolean
-  split?: Func1Sync
-  combine?: Func2Sync
+  split?: SplitFunction&lt;R&gt;
+  combine?: CombineFunction&lt;R&gt;
 }
 &nbsp;
-export interface MultiWaySwitchDynamic {
-  stage: AnyStage | RunPipelineFunction
-  evaluate: Func1
-  split?: Func1Sync
-  combine?: Func2Sync
+export interface MultiWaySwitchDynamic&lt;R&gt; {
+  stage: AnyStage | RunPipelineFunction&lt;R&gt;
+  evaluate: EvaluateFunction&lt;R&gt;
+  split?: SplitFunction&lt;R&gt;
+  combine?: CombineFunction&lt;R&gt;
 }
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >isMultiWaySwitch(</span>inp: object): inp is MultiWaySwitchCase {
+export function <span class="fstat-no" title="function not covered" >isMultiWaySwitch&lt;</span>R&gt;(inp: object): inp is MultiWaySwitchCase&lt;R&gt; {
 <span class="cstat-no" title="statement not covered" >  return (</span>
     typeof inp == 'object' &amp;&amp; inp != null &amp;&amp; 'stage' in inp &amp;&amp; isRunPipelineFunction((inp as { stage: any })['stage'])
   )
 }
 &nbsp;
 //пересмотреть!!!!
-export interface MultWaySwitchConfig extends StageConfig {
-  cases: Array&lt;MultiWaySwitchCase&gt;
-  split?: Func1Sync&lt;Array&lt;unknown&gt;&gt;
-  combine?: Func2Sync
+export interface MultWaySwitchConfig&lt;R&gt; extends StageConfig&lt;R&gt; {
+  cases: Array&lt;MultiWaySwitchCase&lt;R&gt;&gt;
+  split?: SplitFunction&lt;R&gt;
+  combine?: CombineFunction&lt;R&gt;
 }
 &nbsp;
-export type AllowedMWS&lt;C extends StageConfig&gt; =
-  | AllowedStage&lt;C&gt;
-  | Array&lt;AnyStage | RunPipelineFunction | MultiWaySwitchCase&gt;
+export type AllowedMWS&lt;R, C extends StageConfig&lt;R&gt;&gt; =
+  | AllowedStage&lt;R, C&gt;
+  | Array&lt;AnyStage | RunPipelineFunction&lt;R&gt; | MultiWaySwitchCase&lt;R&gt;&gt;
 &nbsp;
-export function getMultWaySwitchConfig&lt;C extends MultWaySwitchConfig&gt;(config: AllowedMWS&lt;C&gt;): C {
+export function getMultWaySwitchConfig&lt;R, C extends MultWaySwitchConfig&lt;R&gt;&gt;(config: AllowedMWS&lt;R, C&gt;): C {
   if (Array.isArray(config)) {
     return {
       cases: config.map(item =&gt; {
-        let res: MultiWaySwitchCase
+        let res: MultiWaySwitchCase&lt;R&gt;
         <span class="missing-if-branch" title="if path not taken" >I</span>if (isRunPipelineFunction(item)) {
 <span class="cstat-no" title="statement not covered" >          res = { stage: item, evaluate: true }</span>
         } else if (isAnyStage(item)) {
@@ -621,7 +618,7 @@ export function getMultWaySwitchConfig&lt;C extends MultWaySwitchConfig&gt;(conf
             stage: item,
             evaluate: true,
           }
-        } else <span class="cstat-no" title="statement not covered" ><span class="missing-if-branch" title="else path not taken" >E</span>if (isMultiWaySwitch(item)) {</span>
+        } else <span class="cstat-no" title="statement not covered" ><span class="missing-if-branch" title="else path not taken" >E</span>if (isMultiWaySwitch&lt;R&gt;(item)) {</span>
 <span class="cstat-no" title="statement not covered" >          res = item</span>
         } else {
 <span class="cstat-no" title="statement not covered" >          throw CreateError('not suitable type for array in pipelin')</span>
@@ -658,8 +655,8 @@ export function getMultWaySwitchConfig&lt;C extends MultWaySwitchConfig&gt;(conf
   }
 }
 &nbsp;
-export class MultiWaySwitch&lt;C extends MultWaySwitchConfig&gt; extends Stage&lt;C&gt; {
-  constructor(config?: AllowedStage&lt;C&gt;) {
+export class MultiWaySwitch&lt;R, C extends MultWaySwitchConfig&lt;R&gt;&gt; extends Stage&lt;R, C&gt; {
+  constructor(config?: AllowedStage&lt;R, C&gt;) {
     super()
     if (config) {
       this._config = getMultWaySwitchConfig(config)
@@ -674,17 +671,17 @@ export class MultiWaySwitch&lt;C extends MultWaySwitchConfig&gt; extends Stage&l
 <span class="cstat-no" title="statement not covered" >    return '[pipeline MultWaySwitch]'</span>
   }
 &nbsp;
-  combine(ctx: unknown, retCtx: unknown): unknown {
+  protected combine(ctx: unknown, retCtx: Array&lt;unknown&gt;): unknown {
     <span class="missing-if-branch" title="if path not taken" >I</span>if (this.config.combine) {
-<span class="cstat-no" title="statement not covered" >      return this.config.combine(ctx, retCtx)</span>
+<span class="cstat-no" title="statement not covered" >      return this.config.combine(ctx as R, retCtx)</span>
     } else {
       return ctx
     }
   }
 &nbsp;
-  combineCase(item: MultiWaySwitchCase, ctx: unknown, retCtx: unknown): unknown {
+  protected combineCase(item: MultiWaySwitchCase&lt;R&gt;, ctx: unknown, retCtx: Array&lt;unknown&gt;): unknown {
     if (item.combine) {
-      return item.combine(ctx, retCtx)
+      return item.combine(ctx as R, retCtx)
     } else {
       return this.combine(ctx, retCtx)
     }
@@ -692,7 +689,7 @@ export class MultiWaySwitch&lt;C extends MultWaySwitchConfig&gt; extends Stage&l
 &nbsp;
   split(ctx: unknown): unknown {
     <span class="missing-if-branch" title="if path not taken" >I</span>if (this.config.split) {
-<span class="cstat-no" title="statement not covered" >      return this.config.split(ctx)</span>
+<span class="cstat-no" title="statement not covered" >      return this.config.split(ctx as R)</span>
     } else {
       return ctx
     }
@@ -706,21 +703,21 @@ export class MultiWaySwitch&lt;C extends MultWaySwitchConfig&gt; extends Stage&l
     }
   }
 &nbsp;
-  override compile(rebuild: boolean = false): StageRun {
+  override compile(rebuild: boolean = false): StageRun&lt;R&gt; {
     let i
-    let statics: Array&lt;MultiWaySwitchStatic&gt; = []
-    let dynamics: Array&lt;MultiWaySwitchDynamic&gt; = []
+    let statics: Array&lt;MultiWaySwitchStatic&lt;R&gt;&gt; = []
+    let dynamics: Array&lt;MultiWaySwitchDynamic&lt;R&gt;&gt; = []
 &nbsp;
     // Apply to each stage own environment: evaluate, split, combine
     for (i = 0; i &lt; this.config<span class="branch-0 cbranch-no" title="branch not covered" >?.c</span>ases?.length; i++) {
-      let caseItem: MultiWaySwitchCase
+      let caseItem: MultiWaySwitchCase&lt;R&gt;
       caseItem = this.config.cases[i]
 &nbsp;
       <span class="missing-if-branch" title="if path not taken" >I</span>if (caseItem instanceof Function) {
 <span class="cstat-no" title="statement not covered" >        caseItem = {</span>
           stage: new Stage(caseItem),
           evaluate: true,
-        } as MultiWaySwitchStatic
+        } as MultiWaySwitchStatic&lt;R&gt;
       }
 &nbsp;
       if (isAnyStage(caseItem)) {
@@ -751,19 +748,19 @@ export class MultiWaySwitch&lt;C extends MultWaySwitchConfig&gt; extends Stage&l
         }
         if (typeof caseItem.evaluate === 'function') {
           caseItem.evaluate
-          dynamics.push(caseItem as MultiWaySwitchDynamic)
+          dynamics.push(caseItem as MultiWaySwitchDynamic&lt;R&gt;)
         } else if (typeof caseItem.evaluate === 'boolean' &amp;&amp; caseItem.evaluate) {
-          statics.push(caseItem as MultiWaySwitchStatic)
+          statics.push(caseItem as MultiWaySwitchStatic&lt;R&gt;)
         }
       }
     }
 &nbsp;
-    let run: StageRun = (err: unknown, ctx: unknown, done: CallbackFunction) =&gt; {
-      let actuals: Array&lt;MultiWaySwitchCase&gt; = []
+    let run: StageRun&lt;R&gt; = (err: unknown, ctx: unknown, done: CallbackFunction&lt;R&gt;) =&gt; {
+      let actuals: Array&lt;MultiWaySwitchCase&lt;R&gt;&gt; = []
       actuals.push.apply(actuals, statics)
 &nbsp;
       for (let i = 0; i &lt; dynamics.length; i++) {
-        if (dynamics[i].evaluate(ctx)) {
+        if (dynamics[i].evaluate(ctx as R)) {
           actuals.push(dynamics[i])
         }
       }
@@ -774,7 +771,7 @@ export class MultiWaySwitch&lt;C extends MultWaySwitchConfig&gt; extends Stage&l
       let hasError = false
 &nbsp;
       let next = (index: number) =&gt; {
-        return (err: unknown, retCtx: unknown) =&gt; {
+        return (err: unknown, retCtx: Array&lt;unknown&gt;) =&gt; {
           iter++
           let cur = actuals[index]
           let res: Possible&lt;unknown&gt; = null
@@ -786,7 +783,7 @@ export class MultiWaySwitch&lt;C extends MultWaySwitchConfig&gt; extends Stage&l
           }
 &nbsp;
           if (iter &gt;= actuals.length) {
-            return done(hasError ? CreateError(errors) : undefined, res ?? ctx)
+            return done(hasError ? CreateError(errors) : undefined, (res ?? ctx) as R)
           }
         }
       }
@@ -796,7 +793,7 @@ export class MultiWaySwitch&lt;C extends MultWaySwitchConfig&gt; extends Stage&l
         stg = actuals[i]
         lctx = this.splitCase(stg, ctx)
 &nbsp;
-        run_or_execute(stg.stage, err, lctx, next(i) as CallbackFunction)
+        run_or_execute(stg.stage, err, lctx, next(i) as CallbackFunction&lt;R&gt;)
         // не хватает явной передачи контекста
       }
 &nbsp;
@@ -817,7 +814,7 @@ export class MultiWaySwitch&lt;C extends MultWaySwitchConfig&gt; extends Stage&l
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2023-03-23T16:46:20.501Z
+                at 2023-03-24T17:43:16.227Z
             </div>
         <script src="../prettify.js"></script>
         <script>

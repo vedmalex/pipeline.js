@@ -235,21 +235,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -316,6 +301,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -366,27 +366,12 @@ import { AllowedStage, CallbackFunction, getParallelConfig, ParallelConfig, Stag
  *
  * @param {Object} config configuration object
  */
-export class Parallel&lt;C extends ParallelConfig&gt; extends Stage&lt;C&gt; {
-  constructor(config?: AllowedStage&lt;C&gt;) {
+export class Parallel&lt;R, C extends ParallelConfig&lt;R&gt;&gt; extends Stage&lt;R, C&gt; {
+  constructor(config?: AllowedStage&lt;R, C&gt;) {
     super()
     if (config) {
       this._config = getParallelConfig(config)
     }
-  }
-&nbsp;
-  split(ctx: unknown): Array&lt;unknown&gt; {
-    return this._config.split ? this._config.split(ctx) : [ctx]
-  }
-&nbsp;
-  combine(ctx: unknown, children: Array&lt;unknown&gt;): unknown {
-    let res: unknown
-    if (this.config.combine) {
-      let c = this.config.combine(ctx, children)
-      res = c ?? ctx
-    } else {
-      res = ctx
-    }
-    return res
   }
 &nbsp;
 <span class="fstat-no" title="function not covered" >  public override get r</span>eportName() {
@@ -400,9 +385,9 @@ export class Parallel&lt;C extends ParallelConfig&gt; extends Stage&lt;C&gt; {
     return this._config.name ?? <span class="branch-1 cbranch-no" title="branch not covered" >this._config.stage?.name </span>?? <span class="branch-1 cbranch-no" title="branch not covered" >''</span>
   }
 &nbsp;
-  override compile(rebuild: boolean = false): StageRun {
+  override compile(rebuild: boolean = false): StageRun&lt;R&gt; {
     if (this.config.stage) {
-      var run: StageRun = (err: unknown, ctx: unknown, done: CallbackFunction) =&gt; {
+      var run: StageRun&lt;R&gt; = (err: unknown, ctx, done: CallbackFunction&lt;R&gt;) =&gt; {
         var iter = 0
         var children = this.split(ctx)
         var len = children ? children.length : 0
@@ -431,28 +416,43 @@ export class Parallel&lt;C extends ParallelConfig&gt; extends Stage&lt;C&gt; {
             if (iter &gt;= len) {
               if (!hasError) {
                 let result = this.combine(ctx, children)
-                return done(undefined, result)
+                return done(undefined, result as R)
               } else {
-                return done(CreateError(errors), ctx)
+                return done(CreateError(errors), ctx as R)
               }
             }
           }
         }
 &nbsp;
         if (len === 0) {
-          return done(err, ctx)
+          return done(err, ctx as R)
         } else {
           for (var i = 0; i &lt; len; i++) {
-            run_or_execute(this.config.stage, err, children[i], next(i) as CallbackFunction)
+            run_or_execute(this.config.stage, err, children[i], next(i) as CallbackFunction&lt;R&gt;)
           }
         }
       }
-      this.run = run
+      this.run = run as StageRun&lt;R&gt;
     } else {
       this.run = empty_run
     }
 &nbsp;
-    return super.compile()
+    return super.compile(rebuild)
+  }
+&nbsp;
+  protected split(ctx: unknown): Array&lt;unknown&gt; {
+    return this._config.split ? this._config.split(ctx as R) : [ctx]
+  }
+&nbsp;
+  protected combine(ctx: unknown, children: Array&lt;unknown&gt;): unknown {
+    let res: unknown
+    if (this.config.combine) {
+      let c = this.config.combine(ctx as R, children)
+      res = c ?? ctx
+    } else {
+      res = ctx
+    }
+    return res
   }
 }
 &nbsp;
@@ -490,7 +490,7 @@ export class ParallelError extends Error {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2023-03-23T16:46:20.501Z
+                at 2023-03-24T17:43:16.227Z
             </div>
         <script src="../prettify.js"></script>
         <script>

@@ -21,7 +21,7 @@ class IfElse extends stage_1.Stage {
     compile(rebuild = false) {
         let run = (err, context, done) => {
             if (typeof this.config.condition == 'function') {
-                (0, execute_validate_1.execute_validate)(this.config.condition, context, ((err, condition) => {
+                (0, execute_validate_1.execute_validate)(this.config.condition, context, (err, condition) => {
                     if (condition) {
                         if (this.config.success) {
                             (0, run_or_execute_1.run_or_execute)(this.config.success, err, context, done);
@@ -32,7 +32,7 @@ class IfElse extends stage_1.Stage {
                             (0, run_or_execute_1.run_or_execute)(this.config.failed, err, context, done);
                         }
                     }
-                }));
+                });
             }
             else if (typeof this.config.condition == 'boolean') {
                 if (this.config.condition) {

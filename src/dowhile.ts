@@ -45,7 +45,7 @@ export class DoWhile<R, C extends DoWhileConfig<R>> extends Stage<R, C> {
       let next = (err: unknown) => {
         iter++
         if (this.reachEnd(err, context, iter)) {
-          return done(err, context)
+          return done(err, context as R)
         } else {
           run_or_execute(this.config.stage, err, this.split(context, iter), next)
         }

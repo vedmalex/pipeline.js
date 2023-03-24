@@ -181,7 +181,7 @@ class MultiWaySwitch extends stage_1.Stage {
                         res = this.combineCase(cur, ctx, retCtx);
                     }
                     if (iter >= actuals.length) {
-                        return done(hasError ? (0, ErrorList_1.CreateError)(errors) : undefined, res !== null && res !== void 0 ? res : ctx);
+                        return done(hasError ? (0, ErrorList_1.CreateError)(errors) : undefined, (res !== null && res !== void 0 ? res : ctx));
                     }
                 };
             };

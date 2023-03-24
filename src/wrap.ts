@@ -25,9 +25,9 @@ export class Wrap<R, C extends WrapConfig<R>> extends Stage<R, C> {
         run_or_execute(this.config.stage, err, ctx, (err, retCtx) => {
           if (!err) {
             const result = this.finalize(context, retCtx ?? ctx)
-            done(undefined, result ?? context)
+            done(undefined, (result ?? context) as R)
           } else {
-            done(err, context)
+            done(err, context as R)
           }
         })
       }

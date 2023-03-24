@@ -16,7 +16,7 @@ export function execute_ensure<R>(ensure: EnsureFunction<unknown>, context: unkn
       if (isEnsureAsync(ensure)) {
         try {
           ensure(context)
-            .then(res => done(undefined, res))
+            .then(res => done(undefined, res as R))
             .catch(err => done(err))
         } catch (err) {
           process_error(err, done)
@@ -29,7 +29,7 @@ export function execute_ensure<R>(ensure: EnsureFunction<unknown>, context: unkn
           } else if (is_thenable<R>(res)) {
             res.then(res => done(undefined, res)).catch(err => done(err))
           } else {
-            done(undefined, res)
+            done(undefined, res as R)
           }
         } catch (err) {
           process_error(err, done)
@@ -42,7 +42,7 @@ export function execute_ensure<R>(ensure: EnsureFunction<unknown>, context: unkn
       if (isEnsureCallback(ensure)) {
         try {
           ensure(context, (err, ctx) => {
-            done(err, ctx)
+            done(err, ctx as R)
           })
         } catch (err) {
           process_error(err, done)

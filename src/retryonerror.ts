@@ -69,7 +69,7 @@ export class RetryOnError<R, C extends RetryOnErrorConfig<R>> extends Stage<R, C
       let next = (err: unknown, _ctx: unknown) => {
         iter++
         if (reachEnd(err, iter)) {
-          return done(err, _ctx ?? ctx)
+          return done(err, (_ctx ?? ctx) as R)
         } else {
           // clean changes of existing before values.
           // may be will need to clear at all and rewrite ? i don't know yet.

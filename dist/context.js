@@ -159,7 +159,7 @@ class Context {
             if (!Context.isContext(result)) {
                 var lctx = Context.ensure(result);
                 this.addSubtree(lctx);
-                (0, lodash_1.set)(this, path, lctx);
+                (0, lodash_1.set)(this.original, path, lctx);
                 result = lctx;
             }
             return result;
