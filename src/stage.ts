@@ -66,7 +66,11 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
   public execute<T extends StageObject>(context: T): Promise<T & R>
   public execute<T extends StageObject>(context: T | R, callback: CallbackFunction<T & R>): void
   public execute<T extends StageObject>(err: unknown, context: T, callback: CallbackFunction<T & R>): void
-  public execute<T extends StageObject>(_err?: unknown, _context?: unknown, _callback?: unknown): void | Promise<T> {
+  public execute<T extends StageObject>(
+    _err?: unknown,
+    _context?: unknown,
+    _callback?: unknown,
+  ): void | Promise<T & R> {
     // discover arguments
     let err: Possible<ComplexError>, not_ensured_context: T | ContextType<T>, __callback: Possible<CallbackFunction<T>>
 
@@ -109,17 +113,17 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
       context[OriginalObject] = true
     }
     if (!__callback) {
-      return new Promise<T>((res, rej) => {
+      return new Promise<T & R>((res, rej) => {
         this.execute(err, context, (err: unknown, ctx) => {
           if (err) rej(err)
           else {
             if (input_is_context) {
-              res(ctx as T)
+              res(ctx as T & R)
             } else {
               if (Context.isContext(ctx)) {
-                res(ctx.original as T)
+                res(ctx.original as T & R)
               } else {
-                res(ctx as unknown as T)
+                res(ctx as unknown as T & R)
               }
             }
           }
