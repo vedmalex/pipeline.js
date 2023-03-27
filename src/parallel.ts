@@ -97,13 +97,15 @@ export class Parallel<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T
   }
 
   protected split(ctx: unknown): Array<unknown> {
-    return this._config.split ? this._config.split(ctx as ContextType<R>) ?? [ctx] : [ctx]
+    return this._config.split
+      ? this._config.split(ctx as ContextType<R>) ?? [ctx as ContextType<R>]
+      : [ctx as ContextType<R>]
   }
 
   protected combine(ctx: unknown, children: Array<unknown>): unknown {
     let res: unknown
     if (this.config.combine) {
-      let c = this.config.combine(ctx as R, children as Array<T>)
+      let c = this.config.combine(ctx as ContextType<R>, children as Array<T>)
       res = c ?? ctx
     } else {
       res = ctx

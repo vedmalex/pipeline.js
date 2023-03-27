@@ -83,9 +83,8 @@ describe('Parallel', function () {
     })
     var stage = new Parallel<CTX, CTX>({
       stage: stage0,
-      split: function () {
-        return null
-      },
+      // @ts-expect-error
+      split: function () {},
     })
     stage.execute(
       {
@@ -99,17 +98,20 @@ describe('Parallel', function () {
   })
 
   it('complex example 1', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+    type CTX = { some: Array<number>; result?: number }
+    type SubCTX = { liter?: number; some: number }
+    var stage0 = new Stage<SubCTX>(function (err, ctx, done) {
       ctx.liter = 1
       done()
     })
     var ctx = {
       some: [1, 2, 3, 4, 5, 6, 7],
-    }
-    var stage = new Parallel({
+    } satisfies CTX
+
+    var stage = new Parallel<CTX, SubCTX>({
       stage: stage0,
-      split: function (ctx, iter) {
-        var res = []
+      split: function (ctx) {
+        var res: Array<SubCTX> = []
         var len = ctx.some.length
         for (var i = 0; i < len; i++) {
           res.push({
@@ -122,18 +124,20 @@ describe('Parallel', function () {
         var len = childs.length
         ctx.result = 0
         for (var i = 0; i < len; i++) {
-          ctx.result += childs[i].liter
+          ctx.result += childs[i].liter ?? 0
         }
       },
     })
     stage.execute(ctx, function (err, context) {
-      expect(context.result).toEqual(7)
+      expect(context?.result).toEqual(7)
       done()
     })
   })
 
   it('complex example 1 - Error Handling', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+    type CTX = { some: Array<number>; result?: number }
+    type SubCTX = { liter?: number; some: number }
+    var stage0 = new Stage<SubCTX>(function (err, ctx, done) {
       ctx.liter = 1
       if (ctx.some == 4) done(new Error('4'))
       else if (ctx.some == 5) done(new Error('5'))
@@ -142,10 +146,10 @@ describe('Parallel', function () {
     var ctx = {
       some: [1, 2, 3, 4, 5, 6, 7],
     }
-    var stage = new Parallel({
+    var stage = new Parallel<CTX, SubCTX>({
       stage: stage0,
-      split: function (ctx, iter) {
-        var res = []
+      split: function (ctx) {
+        var res: Array<SubCTX> = []
         var len = ctx.some.length
         for (var i = 0; i < len; i++) {
           res.push({
@@ -158,30 +162,32 @@ describe('Parallel', function () {
         var len = childs.length
         ctx.result = 0
         for (var i = 0; i < len; i++) {
-          ctx.result += childs[i].liter
+          ctx.result += childs[i].liter ?? 0
         }
       },
     })
     stage.execute(ctx, function (err, context) {
       expect(err instanceof ComplexError).toEqual(true)
       expect(err.payload.length).toEqual(2)
-      expect(!context.result).toEqual(true)
+      expect(!context?.result).toEqual(true)
       done()
     })
   })
 
   it('complex example 2', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+    type CTX = { some: Array<number>; result?: number }
+    type SubCTX = { liter?: number; some: number }
+    var stage0 = new Stage<SubCTX>(function (err, ctx, done) {
       ctx.liter = 1
       done()
     })
     var ctx = Context.ensure({
       some: [1, 2, 3, 4, 5, 6, 7],
     })
-    var stage = new Parallel({
+    var stage = new Parallel<CTX, SubCTX>({
       stage: stage0,
-      split: function (ctx, iter) {
-        var res = []
+      split: function (ctx) {
+        var res: Array<SubCTX> = []
         var len = ctx.some.length
         for (var i = 0; i < len; i++) {
           res.push(ctx.fork())
@@ -193,22 +199,25 @@ describe('Parallel', function () {
         var len = childs.length
         ctx.result = 0
         for (var i = 0; i < len; i++) {
-          ctx.result += childs[i].liter
+          ctx.result += childs[i].liter ?? 0
         }
       },
     })
 
     stage.execute(ctx, function (err, context) {
-      expect(context.result).toEqual(7)
+      expect(context?.result).toEqual(7)
       done()
     })
   })
 
   it('prepare context -> moved to Wrap', function (done) {
-    var stage0 = new Stage(function (ctx) {
+    type CTX = { some: Array<number>; iter?: number }
+    type SubCTX = { iteration?: number }
+    type SubSubCTX = { iteration: number; some: number }
+    var stage0 = new Stage<SubCTX>(function (ctx) {
       ctx.iteration++
     })
-    var stage = new Wrap({
+    var stage = new Wrap<CTX, SubCTX>({
       prepare: function (ctx) {
         return {
           iteration: ctx.iter,
@@ -217,7 +226,7 @@ describe('Parallel', function () {
       finalize: function (ctx, retCtx) {
         ctx.iter = retCtx.iteration
       },
-      stage: new Parallel({
+      stage: new Parallel<SubCTX, SubSubCTX>({
         stage: stage0,
         split: function (ctx) {
           ctx.split = [0, 0, 0, 0, 0]
@@ -245,8 +254,9 @@ describe('Parallel', function () {
       function (err, context) {
         // throw Error()
         expect(err).toBeUndefined()
-        expect(context.iter).toEqual(5)
-        expect(context.iteration).toBeUndefined()
+        expect(context?.iter).toEqual(5)
+        // @ts-expect-error
+        expect(context?.iteration).toBeUndefined()
         done()
       },
     )

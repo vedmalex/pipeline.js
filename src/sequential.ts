@@ -86,7 +86,7 @@ export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R,
   protected combine(ctx: unknown, children: Array<unknown>): unknown {
     let res: unknown
     if (this.config.combine) {
-      let c = this.config.combine(ctx as R, children as Array<T>)
+      let c = this.config.combine(ctx as ContextType<R>, children as Array<T>)
       res = c ?? ctx
     } else {
       res = ctx

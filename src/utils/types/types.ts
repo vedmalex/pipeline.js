@@ -345,8 +345,8 @@ export interface PipelineConfig<R> extends StageConfig<R> {
 
 export interface ParallelConfig<R, T> extends StageConfig<R> {
   stage: AllowedStageStored<R, StageConfig<R>>
-  split?: (ctx: ContextType<R>) => T[] | null | undefined | void
-  combine?: (ctx: R, children: T[]) => R | unknown
+  split?: (ctx: ContextType<R>) => T[]
+  combine?: ((ctx: ContextType<R>, children: T[]) => R) | ((ctx: ContextType<R>, children: T[]) => unknown)
 }
 
 export function isStageRun<R>(inp: unknown): inp is StageRun<R> {

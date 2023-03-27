@@ -3,8 +3,8 @@ import { Stage } from './stage';
 import { AllowedStage, RunPipelineFunction, EvaluateFunction } from './utils/types/types';
 import { StageConfig, StageRun, AnyStage } from './utils/types/types';
 export type MultiWaySwitchCase<R, T> = MultiWaySwitchStatic<R, T> | MultiWaySwitchDynamic<R, T>;
-export type CombineFunction<R, T> = (ctx: ContextType<R>, children: T) => R | unknown;
-export type SplitFunction<R, T> = (ctx: ContextType<R>) => T | null | undefined | void;
+export type CombineFunction<R, T> = ((ctx: ContextType<R>, children: T) => R) | ((ctx: ContextType<R>, children: T) => unknown);
+export type SplitFunction<R, T> = ((ctx: ContextType<R>) => ContextType<T>) | ((ctx: ContextType<R>) => T);
 export interface MultiWaySwitchStatic<R, T> {
     stage: AnyStage<R> | RunPipelineFunction<R>;
     evaluate?: boolean;
