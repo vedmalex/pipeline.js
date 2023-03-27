@@ -16,7 +16,7 @@ export interface IContextProxy<T extends StageObject> {
     toJSON(): string;
     toObject(clean?: boolean): T;
     toString(): string;
-    fork<C extends StageObject>(config: C): ContextType<T & C>;
+    fork<C extends StageObject>(config?: C): ContextType<T & C>;
     get(path: keyof T): any;
     get original(): T;
     [OriginalObject]?: true;
@@ -35,7 +35,7 @@ export declare class Context<T extends StageObject> implements IContextProxy<T> 
     [OriginalObject]?: true;
     get original(): T;
     protected constructor(config: object);
-    fork<C extends StageObject>(ctx: C): ContextType<T & C>;
+    fork<C extends StageObject>(ctx?: C): ContextType<T & C>;
     addChild(child: object): unknown;
     get(path: keyof T): any;
     addSubtree(lctx: object): unknown;

@@ -16,7 +16,13 @@ import {
 } from './types/types'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
-export function execute_callback<R>(err: unknown, run: unknown, context: R, _done: CallbackFunction<R>) {
+export function execute_callback<R>(
+  this: object | void,
+  err: unknown,
+  run: unknown,
+  context: R,
+  _done: CallbackFunction<R>,
+) {
   const done = run_callback_once<R>(_done)
   if (isStageCallbackFunction<R>(run))
     switch (run.length) {
@@ -47,7 +53,8 @@ export function execute_callback<R>(err: unknown, run: unknown, context: R, _don
       case 1:
         if (isCallback1Async<R>(run)) {
           try {
-            run(context)
+            run
+              .call(this, context)
               .then(ctx => done(undefined, ctx))
               .catch(err => done(err))
           } catch (err) {
@@ -55,7 +62,7 @@ export function execute_callback<R>(err: unknown, run: unknown, context: R, _don
           }
         } else if (isCallback1Sync(run)) {
           try {
-            const res = run(context)
+            const res = run.call(this, context)
             if (res instanceof Promise) {
               res.then(r => done(undefined, r ?? context)).catch(err => done(err))
             } else if (is_thenable<R>(res)) {
@@ -73,7 +80,8 @@ export function execute_callback<R>(err: unknown, run: unknown, context: R, _don
       case 2:
         if (isCallback2Async(run)) {
           try {
-            run(err, context)
+            run
+              .call(this, err, context)
               .then(ctx => done(undefined, ctx as R))
               .catch(err => done(err))
           } catch (err) {
@@ -82,7 +90,7 @@ export function execute_callback<R>(err: unknown, run: unknown, context: R, _don
         } else if (isCallback2Callback(run)) {
           try {
             //@ts-expect-error
-            run(context, done)
+            run.call(this, context, done)
           } catch (err) {
             process_error(err, done)
           }
@@ -93,7 +101,8 @@ export function execute_callback<R>(err: unknown, run: unknown, context: R, _don
       case 3:
         if (isCallback3Callback<R>(run)) {
           try {
-            run(err, context, done)
+            //@ts-ignore
+            run.call(this, err, context, done)
           } catch (err) {
             process_error(err, done)
           }

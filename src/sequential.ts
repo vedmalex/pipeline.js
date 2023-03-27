@@ -1,3 +1,4 @@
+import { ContextType } from './context'
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
 import { run_or_execute } from './utils/run_or_execute'
@@ -20,11 +21,11 @@ import { AllowedStage, getParallelConfig, ParallelConfig, StageRun } from './uti
  *
  * @param {Object} config configuration object
  */
-export class Sequential<R, C extends ParallelConfig<R>> extends Stage<R, C> {
+export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T>> extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
-      this._config = getParallelConfig(config)
+      this._config = getParallelConfig<R, T, C>(config)
     }
   }
 
@@ -79,13 +80,13 @@ export class Sequential<R, C extends ParallelConfig<R>> extends Stage<R, C> {
     return super.compile()
   }
   protected split(ctx: unknown): Array<unknown> {
-    return this._config.split ? this._config.split(ctx as R) : [ctx]
+    return this._config.split ? this._config.split(ctx as ContextType<R>) ?? [ctx] : [ctx]
   }
 
   protected combine(ctx: unknown, children: Array<unknown>): unknown {
     let res: unknown
     if (this.config.combine) {
-      let c = this.config.combine(ctx as R, children)
+      let c = this.config.combine(ctx as R, children as Array<T>)
       res = c ?? ctx
     } else {
       res = ctx

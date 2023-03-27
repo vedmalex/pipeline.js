@@ -1,17 +1,18 @@
+import { ContextType } from './context'
 import { Stage } from './stage'
 import { run_or_execute } from './utils/run_or_execute'
 import { AnyStage, DoWhileConfig, getDoWhileConfig } from './utils/types/types'
 import { SingleStageFunction, StageRun } from './utils/types/types'
 
-export class DoWhile<R, C extends DoWhileConfig<R>> extends Stage<R, C> {
+export class DoWhile<R, T, C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>> extends Stage<R, C> {
   constructor()
-  constructor(stage: AnyStage)
+  constructor(stage: AnyStage<R>)
   constructor(config: C)
   constructor(stageFn: SingleStageFunction<R>)
-  constructor(config?: AnyStage | C | SingleStageFunction<R>) {
+  constructor(config?: AnyStage<R> | C | SingleStageFunction<R>) {
     super()
     if (config) {
-      this._config = getDoWhileConfig(config)
+      this._config = getDoWhileConfig<R, T, C>(config)
     }
   }
 
@@ -22,20 +23,20 @@ export class DoWhile<R, C extends DoWhileConfig<R>> extends Stage<R, C> {
   public override toString() {
     return '[pipeline DoWhile]'
   }
-  reachEnd<T>(err: unknown, ctx: T, iter: number): boolean {
+  protected reachEnd(err: unknown, ctx: unknown, iter: number): boolean {
     if (this.config.reachEnd) {
-      let result = this.config.reachEnd(err, ctx, iter)
+      let result = this.config.reachEnd(err, ctx as ContextType<R>, iter)
       if (typeof result === 'boolean') {
         return result
       } else {
-        throw new Error('reachEnd return unexpected value')
+        return Boolean(result)
       }
     } else return true
   }
 
-  split<T>(ctx: T, iter: number): any {
+  protected split(ctx: unknown, iter: number): any {
     if (this.config.split) {
-      return this.config.split(ctx, iter)
+      return this.config.split(ctx as ContextType<R>, iter)
     } else return ctx
   }
 
@@ -44,10 +45,10 @@ export class DoWhile<R, C extends DoWhileConfig<R>> extends Stage<R, C> {
       let iter: number = -1
       let next = (err: unknown) => {
         iter++
-        if (this.reachEnd(err, context, iter)) {
+        if (this.reachEnd(err, context as R, iter)) {
           return done(err, context as R)
         } else {
-          run_or_execute(this.config.stage, err, this.split(context, iter), next)
+          run_or_execute(this.config.stage, err, this.split(context as R, iter), next)
         }
       }
       next(err)

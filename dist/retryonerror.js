@@ -51,12 +51,13 @@ class RetryOnError extends stage_1.Stage {
         let run = (err, ctx, done) => {
             let backup = this.backupContext(ctx);
             const reachEnd = (err, iter) => {
+                var _a;
                 if (err) {
                     if (this.config.retry instanceof Function) {
                         return !this.config.retry(err, ctx, iter);
                     }
                     else {
-                        return iter > this.config.retry;
+                        return iter > ((_a = this.config.retry) !== null && _a !== void 0 ? _a : 1);
                     }
                 }
                 else {

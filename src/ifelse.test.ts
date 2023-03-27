@@ -20,7 +20,7 @@ describe('if->else', function () {
   })
 
   it('simple works sucess', function (done) {
-    var s0 = new Stage(function (err, ctx, done) {
+    var s0 = new Stage<{ done: boolean }>(function (err, ctx, done) {
       if (ctx) ctx.done = true
       else throw new Error('nonsense')
       done()
@@ -32,8 +32,8 @@ describe('if->else', function () {
       success: s0,
       failed: new Stage(),
     })
-    stage.execute({}, function (err, context) {
-      expect(context.done).toBeTruthy()
+    stage.execute<{ done?: boolean }>({}, function (err, context) {
+      expect(context?.done).toBeTruthy()
       done()
     })
   })
@@ -50,14 +50,14 @@ describe('if->else', function () {
       success: s0,
       failed: new Stage(),
     })
-    stage.execute({}, function (err, context) {
-      expect(context.done).toBeTruthy()
+    stage.execute<{ done?: boolean }>({}, function (err, context) {
+      expect(context?.done).toBeTruthy()
       done()
     })
   })
 
   it('simple works failed', function (done) {
-    var s0 = new Stage(function (err, ctx, done) {
+    var s0 = new Stage<{ done?: boolean }>(function (err, ctx, done) {
       if (ctx) ctx.done = true
       else throw new Error('nonsense')
       done()
@@ -71,8 +71,8 @@ describe('if->else', function () {
       success: new Stage(),
     })
 
-    stage.execute({}, function (err, context) {
-      expect(context.done).toBeTruthy()
+    stage.execute<{ done?: boolean }>({}, function (err, context) {
+      expect(context?.done).toBeTruthy()
       done()
     })
   })
@@ -91,8 +91,8 @@ describe('if->else', function () {
       success: new Stage(),
     })
 
-    stage.execute({}, function (err, context) {
-      expect(context.done).toBeTruthy()
+    stage.execute<{ done?: boolean }>({}, function (err, context) {
+      expect(context?.done).toBeTruthy()
       done()
     })
   })

@@ -167,7 +167,7 @@ class Stage {
         const fail = (err) => back(err, context);
         if (this._config.run) {
             if (context) {
-                (0, execute_callback_1.execute_callback)(err, this._config.run, context, (err, ctx) => {
+                execute_callback_1.execute_callback.call(this, err, this._config.run, context, (err, ctx) => {
                     if (err) {
                         this.rescue(err, ctx !== null && ctx !== void 0 ? ctx : context, fail, sucess);
                     }

@@ -5,6 +5,7 @@ import { Parallel } from './parallel'
 import { Stage } from './stage'
 import { Wrap } from './wrap'
 import { isAnyStage } from './utils/types/types'
+import { ComplexError } from './utils/ErrorList'
 
 describe('Parallel', function () {
   it('works with default', function (done) {
@@ -33,11 +34,12 @@ describe('Parallel', function () {
   })
 
   it('run stage', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+    type CTX = { iter: number }
+    var stage0 = new Stage<CTX>(function (err, ctx, done) {
       ctx.iter++
       done()
     })
-    var stage = new Parallel({
+    var stage = new Parallel<CTX, CTX>({
       stage: stage0,
     })
     stage.execute(
@@ -45,15 +47,17 @@ describe('Parallel', function () {
         iter: 1,
       },
       function (err, context) {
-        expect(context.iter).toEqual(2)
+        expect(context?.iter).toEqual(2)
         done()
       },
     )
   })
 
   it('empty split not run combine', function (done) {
-    var stage0 = new Stage(function (ctx) {})
-    var stage = new Parallel({
+    type CTX = { combine: boolean }
+
+    var stage0 = new Stage<CTX>(function (ctx) {})
+    var stage = new Parallel<CTX, CTX>({
       stage: stage0,
       split: function (ctx) {
         return []
@@ -65,17 +69,19 @@ describe('Parallel', function () {
     })
 
     stage.execute({}, function (err, context) {
-      expect(!context.combine).toEqual(true)
+      expect(!context?.combine).toEqual(true)
       done()
     })
   })
 
   it('run with empty result of split', function (done) {
-    var stage0 = new Stage(function (err, ctx, done) {
+    type CTX = { iter: number }
+
+    var stage0 = new Stage<CTX>(function (err, ctx, done) {
       ctx.iter++
       done()
     })
-    var stage = new Parallel({
+    var stage = new Parallel<CTX, CTX>({
       stage: stage0,
       split: function () {
         return null
@@ -86,7 +92,7 @@ describe('Parallel', function () {
         iter: 1,
       },
       function (err, context) {
-        expect(context.iter).toEqual(1)
+        expect(context?.iter).toEqual(2)
         done()
       },
     )
@@ -157,8 +163,8 @@ describe('Parallel', function () {
       },
     })
     stage.execute(ctx, function (err, context) {
-      expect(err instanceof Error).toEqual(true)
-      expect(err.errors.length).toEqual(2)
+      expect(err instanceof ComplexError).toEqual(true)
+      expect(err.payload.length).toEqual(2)
       expect(!context.result).toEqual(true)
       done()
     })

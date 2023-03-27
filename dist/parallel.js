@@ -79,7 +79,8 @@ class Parallel extends stage_1.Stage {
         return super.compile(rebuild);
     }
     split(ctx) {
-        return this._config.split ? this._config.split(ctx) : [ctx];
+        var _a;
+        return this._config.split ? (_a = this._config.split(ctx)) !== null && _a !== void 0 ? _a : [ctx] : [ctx];
     }
     combine(ctx, children) {
         let res;

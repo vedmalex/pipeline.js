@@ -1,6 +1,6 @@
 import { Stage } from './stage';
 import { AllowedStage, AnyStage, StageRun, RetryOnErrorConfig } from './utils/types/types';
-export declare class RetryOnError<R, C extends RetryOnErrorConfig<R>> extends Stage<R, C> implements AnyStage {
+export declare class RetryOnError<R, T, C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>> extends Stage<R, C> implements AnyStage<R> {
     constructor(config?: AllowedStage<R, C>);
     get reportName(): string;
     toString(): string;

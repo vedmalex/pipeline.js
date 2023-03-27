@@ -1,6 +1,6 @@
 import { Stage } from './stage';
 import { AllowedStage, ParallelConfig, StageRun } from './utils/types/types';
-export declare class Parallel<R, C extends ParallelConfig<R>> extends Stage<R, C> {
+export declare class Parallel<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T>> extends Stage<R, C> {
     constructor(config?: AllowedStage<R, C>);
     get reportName(): string;
     toString(): string;

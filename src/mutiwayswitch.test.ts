@@ -3,6 +3,7 @@ import { Context } from './context'
 import { MultiWaySwitch } from './multiwayswitch'
 import { Pipeline } from './pipeline'
 import { Stage } from './stage'
+import { StageConfig } from './utils/types/types'
 
 describe('MWS', function () {
   it('works', function (done) {
@@ -23,7 +24,7 @@ describe('MWS', function () {
 
   it('must enter in each pipe works in parallel', function (done) {
     var cnt = 0
-    var pipe0 = new Pipeline([
+    var pipe0 = new Pipeline<{ p00: boolean; p01: boolean }>([
       function (err, ctx, done) {
         if (ctx) ctx.p00 = true
         else throw new Error('nonsense')
@@ -37,7 +38,7 @@ describe('MWS', function () {
         done()
       },
     ])
-    var pipe1 = new Pipeline([
+    var pipe1 = new Pipeline<{ p10: boolean; p11: boolean }>([
       function (err, ctx, done) {
         if (ctx) ctx.p10 = true
         else throw new Error('nonsense')
@@ -51,7 +52,7 @@ describe('MWS', function () {
         done()
       },
     ])
-    var pipe2 = new Pipeline({
+    var pipe2 = new Pipeline<{ p20: boolean; p21: boolean }>({
       stages: [
         function (err, ctx, done) {
           if (ctx) ctx.p20 = true
@@ -76,7 +77,11 @@ describe('MWS', function () {
   })
 
   it('use trace', function (done) {
-    var sw = new MultiWaySwitch({
+    const ctx = Context.ensure({
+      trace: true,
+    })
+    type CTX = typeof ctx
+    var sw = new MultiWaySwitch<CTX, CTX>({
       cases: [
         {
           stage: function (err, ctx, done) {
@@ -94,7 +99,7 @@ describe('MWS', function () {
             run: function (err, ctx, done) {
               done()
             },
-          },
+          } as StageConfig<CTX>,
           evaluate: function () {
             return true
           },
@@ -105,14 +110,9 @@ describe('MWS', function () {
       ],
     })
 
-    sw.execute(
-      Context.ensure({
-        trace: true,
-      }),
-      function (err, ctx) {
-        done()
-      },
-    )
+    sw.execute(ctx, function (err, ctx) {
+      done()
+    })
   })
 
   it('use defaults condition as object', function (done) {
@@ -145,7 +145,14 @@ describe('MWS', function () {
   })
 
   it('must enter in each pipe works in parallel', function (done) {
-    var pipe0 = new Pipeline([
+    type SubCTX = { cnt: number }
+
+    const ctx = Context.ensure({
+      size: 0,
+    })
+    type CTX = typeof ctx
+
+    var pipe0 = new Pipeline<SubCTX>([
       function (err, ctx, done) {
         ctx.cnt = 1
         done()
@@ -155,7 +162,7 @@ describe('MWS', function () {
         done()
       },
     ])
-    var pipe1 = new Pipeline([
+    var pipe1 = new Pipeline<SubCTX>([
       function (err, ctx, done) {
         ctx.cnt = 1
         done()
@@ -166,7 +173,7 @@ describe('MWS', function () {
       },
     ])
 
-    var sw = new MultiWaySwitch({
+    var sw = new MultiWaySwitch<CTX, SubCTX>({
       cases: [pipe0, pipe1],
       split: function (ctx) {
         return ctx.fork()
@@ -175,19 +182,16 @@ describe('MWS', function () {
         ctx.size += retCtx.cnt
       },
     })
-    sw.execute(
-      Context.ensure({
-        size: 0,
-      }),
-      function (err, ctx) {
-        expect(ctx.size).toEqual(4)
-        done()
-      },
-    )
+
+    sw.execute(ctx, function (err, ctx) {
+      expect(ctx?.size).toEqual(4)
+      done()
+    })
   })
 
   it('exception errors for', function (done) {
-    var pipe0 = new Pipeline([
+    type CTX = { cnt: number }
+    var pipe0 = new Pipeline<CTX>([
       function (err, ctx, done) {
         ctx.cnt = 1
         done()
@@ -197,7 +201,7 @@ describe('MWS', function () {
         done(new Error())
       },
     ])
-    var pipe1 = new Pipeline([
+    var pipe1 = new Pipeline<CTX>([
       function (err, ctx, done) {
         ctx.cnt = 1
         done()
@@ -208,7 +212,7 @@ describe('MWS', function () {
       },
     ])
 
-    var sw = new MultiWaySwitch({
+    var sw = new MultiWaySwitch<CTX, CTX>({
       cases: [pipe0, pipe1],
       split: function (ctx) {
         return ctx.fork()
@@ -222,8 +226,7 @@ describe('MWS', function () {
         size: 0,
       }),
       function (err, ctx) {
-        expect(ctx.size).toBe(2)
-        debugger
+        expect(ctx?.size).toBe(2)
         expect(err instanceof Error).toBe(true)
         done()
       },
@@ -231,7 +234,8 @@ describe('MWS', function () {
   })
 
   it('exception errors for 2', function (done) {
-    var pipe0 = new Pipeline([
+    type CTX = { cnt: number }
+    var pipe0 = new Pipeline<CTX>([
       function (err, ctx, done) {
         ctx.cnt = 1
         done()
@@ -241,7 +245,7 @@ describe('MWS', function () {
         done()
       },
     ])
-    var pipe1 = new Pipeline([
+    var pipe1 = new Pipeline<CTX>([
       function (err, ctx, done) {
         ctx.cnt = 1
         done(new Error())
@@ -252,7 +256,7 @@ describe('MWS', function () {
       },
     ])
 
-    var sw = new MultiWaySwitch({
+    var sw = new MultiWaySwitch<CTX, CTX>({
       cases: [pipe0, pipe1],
       split: function (ctx) {
         return ctx.fork()
@@ -269,7 +273,7 @@ describe('MWS', function () {
         size: 0,
       }),
       function (err, ctx) {
-        expect(ctx.size).toBe(2)
+        expect(ctx?.size).toBe(2)
         expect(err instanceof Error).toBe(true)
         done()
       },
@@ -277,7 +281,8 @@ describe('MWS', function () {
   })
 
   it('rescue work as expected 1 ', function (done) {
-    var pipe0 = new Pipeline([
+    type CTX = { cnt: number }
+    var pipe0 = new Pipeline<CTX>([
       function (ctx) {
         ctx.cnt = 1
       },
@@ -286,7 +291,7 @@ describe('MWS', function () {
       },
     ])
 
-    var pipe1 = new Pipeline({
+    var pipe1 = new Pipeline<CTX>({
       rescue: function (err, ctx) {
         return
       },
@@ -301,7 +306,7 @@ describe('MWS', function () {
       ],
     })
 
-    var sw = new MultiWaySwitch({
+    var sw = new MultiWaySwitch<CTX, CTX>({
       cases: [pipe0, pipe1],
       split: function (ctx) {
         return ctx.fork()
@@ -315,7 +320,7 @@ describe('MWS', function () {
         size: 0,
       }),
       function (err, ctx) {
-        expect(ctx.size).toBe(4)
+        expect(ctx?.size).toBe(4)
         expect(err).toBeUndefined()
         done()
       },
@@ -323,7 +328,8 @@ describe('MWS', function () {
   })
 
   it('rescue work as expected 2', function (done) {
-    var pipe0 = new Pipeline([
+    type CTX = { cnt: number }
+    var pipe0 = new Pipeline<CTX>([
       function (ctx) {
         ctx.cnt = 1
       },
@@ -332,7 +338,7 @@ describe('MWS', function () {
       },
     ])
     // THIS STAGE WILL BE FAILED
-    var pipe1 = new Pipeline([
+    var pipe1 = new Pipeline<CTX>([
       function (ctx) {
         ctx.cnt = 1
       },
@@ -342,7 +348,7 @@ describe('MWS', function () {
       },
     ])
 
-    var sw = new MultiWaySwitch({
+    var sw = new MultiWaySwitch<CTX, CTX>({
       cases: [pipe0, pipe1],
       split: function (ctx) {
         return ctx.fork()
@@ -359,7 +365,7 @@ describe('MWS', function () {
         size: 0,
       }),
       function (err, ctx) {
-        expect(ctx.size).toBe(2)
+        expect(ctx?.size).toBe(2)
         expect(err).toBeUndefined()
         done()
       },
@@ -367,7 +373,8 @@ describe('MWS', function () {
   })
 
   it('not evaluate if missing evaluate property only if they are strongly evaluate = false', function (done) {
-    var pipe0 = new Pipeline([
+    type CTX = { cnt: number }
+    var pipe0 = new Pipeline<CTX>([
       function (err, ctx, done) {
         ctx.cnt = 1
         done()
@@ -377,7 +384,7 @@ describe('MWS', function () {
         done()
       },
     ])
-    var pipe1 = new Pipeline({
+    var pipe1 = new Pipeline<CTX>({
       rescue: function () {
         return false
       },
@@ -393,7 +400,7 @@ describe('MWS', function () {
       ],
     })
 
-    var sw = new MultiWaySwitch({
+    var sw = new MultiWaySwitch<CTX, CTX>({
       cases: [
         pipe0,
         {
@@ -413,7 +420,7 @@ describe('MWS', function () {
         size: 0,
       }),
       function (err, ctx) {
-        expect(ctx.size).toBe(2)
+        expect(ctx?.size).toBe(2)
         expect(err).toBeUndefined()
         done()
       },
@@ -421,7 +428,9 @@ describe('MWS', function () {
   })
 
   it('evaluate if missing evaluate property', function (done) {
-    var pipe0 = new Pipeline([
+    type CTX = { cnt: number }
+
+    var pipe0 = new Pipeline<CTX>([
       function (err, ctx, done) {
         ctx.cnt = 1
         done()
@@ -431,7 +440,7 @@ describe('MWS', function () {
         done()
       },
     ])
-    var pipe1 = new Pipeline({
+    var pipe1 = new Pipeline<CTX>({
       rescue: function (err) {
         return false
       },
@@ -447,7 +456,7 @@ describe('MWS', function () {
       ],
     })
 
-    var sw = new MultiWaySwitch({
+    var sw = new MultiWaySwitch<CTX, CTX>({
       cases: [
         pipe0,
         {
@@ -466,7 +475,7 @@ describe('MWS', function () {
         size: 0,
       }),
       function (err, ctx) {
-        expect(ctx.size).toBe(4)
+        expect(ctx?.size).toBe(4)
         expect(err).toBeUndefined()
         done()
       },
@@ -474,7 +483,11 @@ describe('MWS', function () {
   })
 
   it('individual exception handler work', function (done) {
-    var pipe0 = new Pipeline([
+    type SubCTX = { cnt: number }
+    type CTX = {
+      size: number
+    }
+    var pipe0 = new Pipeline<SubCTX>([
       function (err, ctx, done) {
         ctx.cnt = 1
         done()
@@ -484,7 +497,7 @@ describe('MWS', function () {
         done()
       },
     ])
-    var pipe1 = new Pipeline({
+    var pipe1 = new Pipeline<SubCTX>({
       rescue: function (err) {
         return false
       },
@@ -500,7 +513,7 @@ describe('MWS', function () {
       ],
     })
 
-    var sw = new MultiWaySwitch({
+    var sw = new MultiWaySwitch<CTX, SubCTX>({
       cases: [
         pipe0,
         {
@@ -515,12 +528,13 @@ describe('MWS', function () {
         ctx.size += retCtx.cnt
       },
     })
+
     sw.execute(
       Context.ensure({
         size: 0,
       }),
       function (err, ctx) {
-        expect(ctx.size).toBe(4)
+        expect(ctx?.size).toBe(4)
         expect(err).toBeUndefined()
         done()
       },
@@ -529,7 +543,7 @@ describe('MWS', function () {
 
   it('empty split run combine', function (done) {
     var stage0 = new Stage(function (ctx) {})
-    var stage = new MultiWaySwitch({
+    var stage = new MultiWaySwitch<{ combine: boolean }, {}>({
       cases: [stage0],
       split: function (ctx) {
         return []
@@ -540,7 +554,7 @@ describe('MWS', function () {
       },
     })
     stage.execute({}, function (err, context) {
-      expect(context.combine).toBe(true)
+      expect(context?.combine).toBe(true)
       done()
     })
   })

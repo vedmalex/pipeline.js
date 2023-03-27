@@ -1,13 +1,17 @@
 import { Context } from './context'
 import { Stage } from './stage'
+import { ComplexError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { AllowedStage, AnyStage, StageRun, RetryOnErrorConfig, getRetryOnErrorConfig } from './utils/types/types'
 
-export class RetryOnError<R, C extends RetryOnErrorConfig<R>> extends Stage<R, C> implements AnyStage {
+export class RetryOnError<R, T, C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>>
+  extends Stage<R, C>
+  implements AnyStage<R>
+{
   constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
-      this._config = getRetryOnErrorConfig(config)
+      this._config = getRetryOnErrorConfig<R, T, C>(config)
     }
   }
 
@@ -21,7 +25,7 @@ export class RetryOnError<R, C extends RetryOnErrorConfig<R>> extends Stage<R, C
 
   protected backupContext(ctx: unknown): unknown {
     if (this.config.backup) {
-      return this.config.backup(ctx)
+      return this.config.backup(ctx as R)
     } else {
       if (Context.isContext(ctx)) {
         return ctx.fork({})
@@ -33,7 +37,7 @@ export class RetryOnError<R, C extends RetryOnErrorConfig<R>> extends Stage<R, C
 
   protected restoreContext(ctx: unknown, backup: unknown): unknown {
     if (this.config.restore) {
-      return this.config.restore(ctx, backup)
+      return this.config.restore(ctx as R, backup as T)
     } else {
       if (Context.isContext(ctx) && typeof backup === 'object' && backup !== null) {
         for (let key in backup) {
@@ -55,10 +59,10 @@ export class RetryOnError<R, C extends RetryOnErrorConfig<R>> extends Stage<R, C
       const reachEnd = (err: unknown, iter: number) => {
         if (err) {
           if (this.config.retry instanceof Function) {
-            return !this.config.retry(err, ctx, iter)
+            return !this.config.retry(err as ComplexError, ctx, iter)
           } else {
             // number
-            return iter > this.config.retry
+            return iter > (this.config.retry ?? 1)
           }
         } else {
           return true

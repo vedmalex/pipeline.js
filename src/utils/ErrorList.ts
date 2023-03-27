@@ -1,12 +1,12 @@
 import { Possible } from './types/types'
 
-export function CreateError(err: unknown | Array<unknown>): Possible<ComplexError> {
+export function CreateError(err: Error | object | Array<Error | object | string> | string): Possible<ComplexError> {
   if (typeof err == 'string') {
     return new ComplexError(new Error(err))
   }
   if (typeof err == 'object' && err !== null) {
     if (Array.isArray(err)) {
-      let result: Array<unknown> = []
+      let result: Array<Error | object | string> = []
       err
         .filter(e => e)
         .forEach(ler => {
@@ -51,10 +51,10 @@ export function isComplexError(inp: unknown): inp is ComplexError {
   }
 }
 export class ComplexError extends Error {
-  payload: Array<unknown>
+  payload: Array<Error | object | string>
   isComplex: boolean
   // to store all details of single error
-  constructor(...payload: Array<unknown>) {
+  constructor(...payload: Array<Error | object | string>) {
     super()
     this.payload = payload
     this.isComplex = true

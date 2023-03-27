@@ -55,7 +55,8 @@ describe('Pipeline', function () {
   })
 
   it('catch throw errors 2', function (done) {
-    var pipe = new Pipeline([
+    type CTX = { cnt: number }
+    var pipe = new Pipeline<CTX>([
       function (err, ctx, done) {
         ctx.cnt = 1
         done(new Error('error'))
@@ -160,6 +161,7 @@ describe('Pipeline', function () {
     var pipe = new Pipeline()
     pipe.addStage(new Stage())
     pipe.compile()
+    // @ts-expect-error
     expect(typeof pipe.run == 'function').toBeTruthy()
     pipe.addStage(new Stage())
     expect(!(pipe as any).run).toBeTruthy()
@@ -176,6 +178,7 @@ describe('Pipeline', function () {
       },
       ensure: function (ctx, callback) {
         ensure++
+        callback()
       },
     } as any)
     pipe.addStage(
@@ -184,7 +187,7 @@ describe('Pipeline', function () {
       }),
     )
 
-    const r1 = pipe.execute({}, (err, ctx) => {
+    pipe.execute({}, (err, ctx) => {
       expect(ensure).toEqual(1)
       expect(compile).toEqual(1)
       done()
@@ -192,7 +195,8 @@ describe('Pipeline', function () {
   })
 
   it('executes pipes in pipes', function (done) {
-    var pipe = new Pipeline()
+    type CTX = { item: number }
+    var pipe = new Pipeline<CTX>()
     var nestedpipe = new Pipeline()
     nestedpipe.addStage(function (err, ctx, done) {
       ctx.item = 1
@@ -205,15 +209,16 @@ describe('Pipeline', function () {
       },
       function (err, ctx) {
         expect(err).toBeUndefined()
-        expect(1).toEqual(ctx.item)
+        expect(1).toEqual(ctx?.item)
         done()
       },
     )
   })
 
   it('context catch all errors', function (done) {
-    var pipe = new Pipeline()
-    var ctx1 = new Context({
+    type CTX = { s1: boolean; s2: boolean; s3: boolean }
+    var pipe = new Pipeline<CTX>()
+    var ctx1 = Context.create<CTX>({
       s1: false,
       s2: false,
       s3: false,
@@ -240,7 +245,7 @@ describe('Pipeline', function () {
     pipe.addStage(s3)
 
     pipe.execute(ctx1, function (err, ctx) {
-      expect(err?.payload).toEqual(error)
+      expect(err?.payload[0]).toEqual(error)
       // expect(ctx1.hasErrors()).toEqual(true);
       // expect(ctx1.getErrors()[0] == error).toEqual(true);
       expect(ctx1.get('s1')).toEqual(true)
@@ -251,21 +256,22 @@ describe('Pipeline', function () {
   })
 
   it('ensure Context Error use', function (done) {
-    var ctx = {}
-    ctx.SomeValue = 1
-    var pipe = new Pipeline()
+    type CTX = { SomeValue: number }
+    var ctx: CTX = { SomeValue: 1 }
+    var pipe = new Pipeline<CTX>()
     var error = new Error('context not ready')
-    var stage1 = {
-      run: function (err, context, done) {
-        context.SomeValue += 1
-        done()
-      },
-      ensure: function (context, callback) {
-        if (context.SomeValue !== 1) callback(error)
-        else callback(null, context)
-      },
-    }
-    pipe.addStage(new Stage(stage1))
+    pipe.addStage(
+      new Stage<CTX>({
+        run: function (err, context, done) {
+          context.SomeValue += 1
+          done()
+        },
+        ensure: function (context, callback) {
+          if (context.SomeValue !== 1) callback(error)
+          else callback(null, context)
+        },
+      }),
+    )
     var stage2 = {
       ensure: function WV(context, callback) {
         if (context.SomeValue !== 1) {
@@ -278,13 +284,13 @@ describe('Pipeline', function () {
     pipe.addStage(s2)
     pipe.execute(ctx, function (err) {
       expect(err).not.toBeUndefined()
-      expect(/Error: STG: reports: run is not a function/.test(err.errors[0].toString())).toBeTruthy()
+      expect(/Error: STG: reports: run is not a function/.test(err.payload[0].toString())).toBeTruthy()
       done()
     })
   })
 
   it('can do subclassing of Pipeline', function (done) {
-    class newPipe extends Pipeline {
+    class newPipe extends Pipeline<{}> {
       constructor() {
         super()
         this.addStage(new Stage())
@@ -304,24 +310,24 @@ describe('Pipeline', function () {
   })
 
   it('allow reenterability', function (done) {
-    debugger
-    var pipe = new Pipeline()
+    type CTX = { one: number }
+    var pipe = new Pipeline<CTX>()
 
-    pipe.addStage(function (context, done) {
+    pipe.addStage(function (context: CTX, done) {
       process.nextTick(function () {
         context.one++
         done()
       })
     })
 
-    pipe.addStage(function (context, done) {
+    pipe.addStage(function (context: CTX, done) {
       process.nextTick(function () {
         context.one += 1
         done()
       })
     })
 
-    pipe.addStage(function (context, done) {
+    pipe.addStage(function (context: CTX, done) {
       context.one += 5
       done()
     })
@@ -333,11 +339,11 @@ describe('Pipeline', function () {
     }
     for (var i = 0; i < 10; i++) {
       ;(function () {
-        var ctx1 = {
+        var ctx1: CTX = {
           one: 1,
         }
         pipe.execute(ctx1, function (err, data) {
-          expect(data.one).toEqual(8)
+          expect(data?.one).toEqual(8)
           gotit()
         })
       })()

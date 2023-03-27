@@ -51,8 +51,8 @@ describe('Timeout', function () {
   })
 
   it('timeout can be a function!', function (done) {
-    var to = new Timeout({
-      timeout: function (ctx: { to: number }) {
+    var to = new Timeout<{ to: number }>({
+      timeout: function (ctx) {
         return ctx.to
       },
       stage: new Stage(function (err, ctx, done) {
@@ -87,7 +87,7 @@ describe('Timeout', function () {
   })
 
   it('overdue called', function (done) {
-    var to = new Timeout({
+    var to = new Timeout<{ overdue: boolean }>({
       timeout: 100,
       stage: function (err, ctx, done) {
         setTimeout(function () {
@@ -99,7 +99,7 @@ describe('Timeout', function () {
         done()
       },
     })
-    to.execute({}, function (err, ctx) {
+    to.execute<{ overdue?: boolean }>({}, function (err, ctx) {
       if (ctx) expect(ctx.overdue).toBeTruthy()
       else throw new Error('context is not defined')
       done()

@@ -2,7 +2,6 @@ import 'jest'
 
 import { DoWhile } from './dowhile'
 import { Stage } from './stage'
-import { StageConfig } from './utils/types/types'
 
 describe('DoWhile', function () {
   it('works with default', function (done) {
@@ -65,13 +64,14 @@ describe('DoWhile', function () {
     }
   })
   it('run stage', function (done) {
-    var stage0 = new Stage((err, ctx: { iter: number }, done) => {
+    type CTX = { iter: number }
+    var stage0 = new Stage<CTX>((err, ctx, done) => {
       if (typeof ctx == 'object' && ctx) {
         ctx.iter++
       }
       done(err)
     })
-    var stage = new DoWhile({
+    var stage = new DoWhile<CTX, CTX>({
       stage: stage0,
       reachEnd: function (err, ctx, iter) {
         return !!err || iter == 10
@@ -91,12 +91,11 @@ describe('DoWhile', function () {
   })
 
   it('complex example 1', function (done) {
-    const conf = {
+    var stage0 = new Stage({
       run: function (ctx: { some: number[] }) {
         result++
       },
-    } as StageConfig<{ some: number[] }>
-    var stage0 = new Stage(conf)
+    })
     var ctx = {
       some: [1, 2, 3, 4, 5, 6, 7],
     }
@@ -116,14 +115,21 @@ describe('DoWhile', function () {
   })
 
   it('complex example 1 error handling', function (done) {
-    var CTX = {
-      some: [1, 2, 3, 4, 5, 6, 7],
+    type CTX = {
+      some: Array<number>
     }
-    var len = CTX.some.length
-    var stage = new DoWhile({
-      stage: new Stage({
-        run: function (ctx, done) {
-          ctx.liter = 1
+    type SubCTX = {
+      iter: number
+    }
+
+    var ctx = {
+      some: [1, 2, 3, 4, 5, 6, 7],
+    } satisfies CTX
+    var len = ctx.some.length
+    var stage = new DoWhile<CTX, SubCTX>({
+      stage: new Stage<SubCTX>({
+        run: function (ctx: SubCTX, done) {
+          ctx.iter += 1
           if (ctx.iter === 4) done(new Error())
           else done()
         },
@@ -134,11 +140,11 @@ describe('DoWhile', function () {
         }
       },
       reachEnd: function (err, ctx, iter) {
-        return !!err || iter == len
+        return err || iter == len
       },
     })
 
-    stage.execute(CTX, function (err, context) {
+    stage.execute(ctx, function (err, context) {
       expect(err).not.toBeUndefined()
       done()
     })
@@ -169,7 +175,7 @@ describe('DoWhile', function () {
         }
       },
       reachEnd: function (err, ctx, iter) {
-        return !!err || iter == len
+        return err || iter == len
       },
     })
     stage.execute(ctx, function (err, context) {

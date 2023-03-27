@@ -1,6 +1,8 @@
 import 'jest'
 import { Context } from './context'
 import { Stage } from './stage'
+import { StageConfig } from './utils/types/types'
+import { ComplexError } from './utils/ErrorList'
 
 describe('Stage', function () {
   describe('sync', function () {
@@ -44,14 +46,14 @@ describe('Stage', function () {
   describe('rescue', function () {
     it('sync', function (done) {
       var st = new Stage<{ n?: number }>({
-        rescue: function (err: Error, ctx: { n?: number }) {
-          expect('some').toEqual(err.message)
+        rescue: function (err: any, ctx: { n?: number }) {
+          expect('some').toEqual(err.payload[0].message)
         },
         run: function (ctx: { n?: number }) {
           ctx.n = 1
           throw new Error('some')
         },
-      })
+      } as StageConfig<{ n?: number }>)
       st.execute({}, function (err, ctx) {
         expect(ctx?.n).toEqual(1)
         expect(err).toBeUndefined()
@@ -61,14 +63,14 @@ describe('Stage', function () {
 
     it('async', function (done) {
       var st = new Stage<{ n?: number }>({
-        rescue: function (err: Error) {
-          expect('some').toEqual(err.message)
+        rescue: function (err: any) {
+          expect('some').toEqual(err.payload[0].message)
         },
         run: function (ctx: { n?: number }) {
           ctx.n = 1
           throw new Error('some')
         },
-      })
+      } as StageConfig<{ n?: number }>)
       st.execute({}, function (err, ctx) {
         expect(ctx?.n).toEqual(1)
         expect(err).toBeUndefined()
@@ -151,7 +153,8 @@ describe('Stage', function () {
 
   it('not allows to use constructor as a function', function (done) {
     try {
-      var s = (Stage as any)()
+      //@ts-expect-error
+      var s = Stage()
       done()
     } catch (err) {
       done()
@@ -159,13 +162,13 @@ describe('Stage', function () {
   })
 
   it('runs within stage', function (done) {
-    var s = new Stage(function (ctx, done) {
-      expect((this as any).someCode).toEqual(100)
+    var s = new Stage(function (this: { someCode: number }, ctx, done) {
+      expect(this.someCode).toEqual(100)
       done()
     })
     ;(s as any).someCode = 100
     s.execute({}, function (err, ctx) {
-      expect(err).not.toBeUndefined()
+      expect(err).toBeUndefined()
       done()
     })
   })
@@ -276,7 +279,7 @@ describe('Stage', function () {
     }
     stage.execute({ done: -1 }, function (err, ctx) {
       expect(ensure).toEqual(1)
-      expect(ctx.done).toEqual(1)
+      expect(ctx?.done).toEqual(1)
       done()
     })
   })
@@ -312,7 +315,7 @@ describe('Stage', function () {
     var ctx = Context.ensure({})
     stage.execute(ctx, function (err) {
       // expect(ctx.hasErrors().toEqual( true);
-      expect(/Error\: STG\: reports\: run is not a function/.test(err.toString())).toBeTruthy()
+      expect(/Error\: STG\: reports\: run is not a function/.test(err.payload[0].toString())).toBeTruthy()
       done()
     })
   })
@@ -322,7 +325,7 @@ describe('Stage', function () {
     var ctx = Context.ensure({})
     stage.execute(ctx, function (err, context) {
       expect(ctx).toEqual(context)
-      expect(/Error\: STG\: reports\: run is not a function/.test(err.toString())).toBeTruthy()
+      expect(/Error\: STG\: reports\: run is not a function/.test(err.payload[0].toString())).toBeTruthy()
       done()
     })
   })

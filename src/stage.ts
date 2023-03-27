@@ -28,7 +28,7 @@ export function isStage(obj: unknown): boolean {
   return typeof obj === 'object' && obj !== null && StageSymbol in obj
 }
 
-export class Stage<R, C extends StageConfig<R>> implements AnyStage {
+export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyStage<R> {
   public get config(): C {
     return this._config
   }
@@ -38,7 +38,7 @@ export class Stage<R, C extends StageConfig<R>> implements AnyStage {
   constructor(name: string)
   constructor(config: C)
   constructor(runFn: RunPipelineFunction<R>)
-  constructor(stage: AnyStage)
+  constructor(stage: AnyStage<R>)
   constructor(config?: AllowedStage<R, C>) {
     this[StageSymbol] = true
     if (config) {
@@ -63,9 +63,9 @@ export class Stage<R, C extends StageConfig<R>> implements AnyStage {
 
   // может быть вызван как Promise
   // сделать все дубликаты и проверки методов для работы с промисами
-  public execute<T extends StageObject>(context: T): Promise<T>
-  public execute<T extends StageObject>(context: T, callback: CallbackFunction<T>): void
-  public execute<T extends StageObject>(err: unknown, context: T, callback: CallbackFunction<T>): void
+  public execute<T extends StageObject>(context: T): Promise<T & R>
+  public execute<T extends StageObject>(context: T | R, callback: CallbackFunction<T & R>): void
+  public execute<T extends StageObject>(err: unknown, context: T, callback: CallbackFunction<T & R>): void
   public execute<T extends StageObject>(_err?: unknown, _context?: unknown, _callback?: unknown): void | Promise<T> {
     // discover arguments
     let err: Possible<ComplexError>, not_ensured_context: T | ContextType<T>, __callback: Possible<CallbackFunction<T>>
@@ -177,13 +177,13 @@ export class Stage<R, C extends StageConfig<R>> implements AnyStage {
   ) {
     if (err || err_) {
       if (this.config.run && !can_fix_error(this.config.run)) {
-        this.rescue(CreateError([err, err_]), ctx ?? context, callback, rescuedContext => {
+        this.rescue(CreateError([err, err_] as Array<Error>), ctx ?? context, callback, rescuedContext => {
           // ошибка обработана все хорошо, продолжаем
           stageToRun(undefined, rescuedContext, callback)
         })
       } else {
         // обработка ошибок может происходить внутри функции
-        stageToRun(CreateError([err, err_]), ctx ?? context, callback)
+        stageToRun(CreateError([err, err_] as Array<Error>), ctx ?? context, callback)
       }
     } else {
       stageToRun(undefined, ctx ?? context, callback)
@@ -196,7 +196,7 @@ export class Stage<R, C extends StageConfig<R>> implements AnyStage {
     const fail = (err: unknown) => back(err, context as R)
     if (this._config.run) {
       if (context) {
-        execute_callback(err, this._config.run, context, (err: unknown, ctx: unknown) => {
+        execute_callback.call(this, err, this._config.run, context, (err: unknown, ctx: unknown) => {
           if (err) {
             this.rescue(err, ctx ?? context, fail, sucess)
           } else {

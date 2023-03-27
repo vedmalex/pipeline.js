@@ -4,7 +4,7 @@ import { run_or_execute } from './utils/run_or_execute'
 import { AllowedStage, getIfElseConfig, IfElseConfig } from './utils/types/types'
 import { StageRun } from './utils/types/types'
 
-export class IfElse<R, C extends IfElseConfig<R>> extends Stage<R, C> {
+export class IfElse<R, C extends IfElseConfig<R> = IfElseConfig<R>> extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {

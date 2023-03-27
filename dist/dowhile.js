@@ -24,7 +24,7 @@ class DoWhile extends stage_1.Stage {
                 return result;
             }
             else {
-                throw new Error('reachEnd return unexpected value');
+                return Boolean(result);
             }
         }
         else

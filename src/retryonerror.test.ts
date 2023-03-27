@@ -3,14 +3,17 @@ import { RetryOnError } from './retryonerror'
 
 describe('RetryOnError', function () {
   it('works', function (done) {
-    var st = new RetryOnError({
+    type CTX = {
+      works: boolean
+    }
+    var st = new RetryOnError<CTX, CTX>({
       run: function (ctx) {
         ctx.works = true
       },
     })
     st.execute({}, function (err, ctx) {
       expect(err).toBeUndefined()
-      expect(ctx.works).toBeTruthy()
+      expect(ctx?.works).toBeTruthy()
       done()
     })
   })
@@ -19,18 +22,17 @@ describe('RetryOnError', function () {
     var st = new RetryOnError({
       run: function (ctx) {
         ctx.works = true
+        throw new Error()
       },
     })
-    expect(() =>
-      st.execute({}, function (err, ctx) {
-        throw new Error()
-      }),
-    ).toThrow()
+    st.execute({}, function (err, ctx) {
+      expect(err).not.toBeUndefined()
+    })
   })
 
   it('retry works once by default', function (done) {
     var iter = 0
-    var st = new RetryOnError({
+    var st = new RetryOnError<{ works: boolean }, {}>({
       run: function (ctx) {
         ctx.works = true
         if (iter == 0) {
@@ -41,7 +43,7 @@ describe('RetryOnError', function () {
     })
     st.execute({}, function (err, ctx) {
       expect(err).toBeUndefined()
-      expect(ctx.works).toBeTruthy()
+      expect(ctx?.works).toBeTruthy()
       expect(iter).toEqual(1)
       done()
     })
@@ -49,7 +51,7 @@ describe('RetryOnError', function () {
 
   it('retry use custom restore and backup', function (done) {
     var iter = -1
-    var st = new RetryOnError({
+    var st = new RetryOnError<{ works: boolean; backup: number; restore: number }, { works: boolean }>({
       run: function (ctx) {
         ctx.works = true
         if (iter++ < 3) {
@@ -63,7 +65,7 @@ describe('RetryOnError', function () {
           works: ctx.works,
         }
       },
-      restore: function (ctx, backup) {
+      restore: function (ctx, backup: { works: boolean }) {
         ctx.restore++
         ctx.works = backup.works
       },
@@ -76,10 +78,10 @@ describe('RetryOnError', function () {
       },
       function (err, ctx) {
         expect(err).toBeUndefined()
-        expect(ctx.works).toBeTruthy()
+        expect(ctx?.works).toBeTruthy()
         expect(iter).toEqual(4)
-        expect(ctx.backup).toEqual(1)
-        expect(ctx.restore).toEqual(4)
+        expect(ctx?.backup).toEqual(1)
+        expect(ctx?.restore).toEqual(4)
         done()
       },
     )
@@ -88,10 +90,10 @@ describe('RetryOnError', function () {
   it('retry works with rescue', function (done) {
     var iter = 0
     var count = 0
-    var st = new RetryOnError({
+    var st = new RetryOnError<{ rescue: boolean; works: boolean }, {}>({
       rescue: function (err, ctx) {
         iter += 1
-        if (err.message !== 'error') return err
+        if (err.payload[0].message !== 'error') return err
         ctx.rescue = true
       },
       run: function (ctx) {
@@ -104,17 +106,17 @@ describe('RetryOnError', function () {
       expect(count).toBe(3)
       expect(iter).toEqual(1)
       expect(err).toBeUndefined()
-      expect(ctx.works).toBeTruthy()
-      expect(ctx.rescue).toBeTruthy()
+      expect(ctx?.works).toBeTruthy()
+      expect(ctx?.rescue).toBeTruthy()
       done()
     })
   })
 
   it('retry works as function', function (done) {
     var iter = 0
-    var st = new RetryOnError({
+    var st = new RetryOnError<{ works: boolean }, {}>({
       retry: function (err, ctx, iter) {
-        return err.message === 'error'
+        return (err?.payload[0] as Error).message === 'error'
       },
       run: function (ctx) {
         if (iter == 0) {
@@ -126,7 +128,7 @@ describe('RetryOnError', function () {
     })
     st.execute({}, function (err, ctx) {
       expect(err).toBeUndefined()
-      expect(ctx.works).toBeTruthy()
+      expect(ctx?.works).toBeTruthy()
       expect(iter).toEqual(1)
       done()
     })
@@ -134,7 +136,7 @@ describe('RetryOnError', function () {
 
   it('retry works as number', function (done) {
     var iter = 0
-    var st = new RetryOnError({
+    var st = new RetryOnError<{ works: boolean }, {}>({
       retry: 1,
       run: function (ctx) {
         if (iter == 0) {
@@ -146,7 +148,7 @@ describe('RetryOnError', function () {
     })
     st.execute({}, function (err, ctx) {
       expect(err).toBeUndefined()
-      expect(ctx.works).toBeTruthy()
+      expect(ctx?.works).toBeTruthy()
       expect(iter).toEqual(1)
       done()
     })

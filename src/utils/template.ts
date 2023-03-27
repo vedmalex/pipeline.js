@@ -4,14 +4,14 @@ import { AllowedStage, getStageConfig, RunPipelineFunction, AnyStage, StageRun }
 import { CallbackFunction, StageConfig, isAnyStage } from './types/types'
 
 export interface TemplateConfig<R> extends StageConfig<R> {
-  stage: AnyStage | RunPipelineFunction<R>
+  stage: AnyStage<R> | RunPipelineFunction<R>
 }
 
 export function getTemplateConfig<R, C extends TemplateConfig<R>>(config: AllowedStage<R, C>): C {
   const res = getStageConfig(config)
-  if (isAnyStage(res)) {
+  if (isAnyStage<R>(res)) {
     return { stage: res } as C
-  } else if (typeof config == 'object' && !isAnyStage(config)) {
+  } else if (typeof config == 'object' && !isAnyStage<R>(config)) {
     if (config.run && config.stage) {
       throw CreateError("don't use run and stage both")
     }

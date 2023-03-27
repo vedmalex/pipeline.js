@@ -1,6 +1,7 @@
 import { JSONSchemaType } from 'ajv'
 import 'jest'
 import { Stage } from './stage'
+import { StageConfig } from './utils/types/types'
 
 describe('stage', () => {
   it('throw error', done => {
@@ -25,7 +26,7 @@ describe('stage', () => {
     expect(s).toMatchSnapshot('names stage')
   })
   it('create with function', () => {
-    const s = new Stage<{ name?: string }>(function RunStage(this: { name?: string }) {
+    const s = new Stage(function RunStage(this: { name?: string }) {
       this.name = 'run this Stage'
     })
     expect(s).not.toBeNull()
@@ -58,10 +59,10 @@ describe('stage', () => {
   it('intialize using schema and validate separately', () => {
     expect(
       () =>
-        new Stage<{ name?: string }>({
+        new Stage<{ name: string }>({
           run: () => {},
-          validate: (_ctx: {}) => true,
-        }),
+          validate: (_ctx: { name?: string }) => true,
+        } as StageConfig<{ name: string }>),
     ).not.toThrow()
     expect(
       () =>
@@ -102,6 +103,12 @@ describe('stage', () => {
     expect(stage.name).toBe('stage')
     expect(stage.reportName).toBe(`STG:${stage.name}`)
     expect(stage).toMatchSnapshot('schema stage 1')
+  })
+
+  it('wors as AnyStage', () => {
+    let stage = {
+      run: () => {},
+    } as StageConfig<{}>
   })
 
   it('create with Lambda 2', () => {

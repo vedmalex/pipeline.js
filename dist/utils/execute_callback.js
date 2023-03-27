@@ -41,7 +41,8 @@ function execute_callback(err, run, context, _done) {
             case 1:
                 if ((0, types_1.isCallback1Async)(run)) {
                     try {
-                        run(context)
+                        run
+                            .call(this, context)
                             .then(ctx => done(undefined, ctx))
                             .catch(err => done(err));
                     }
@@ -51,7 +52,7 @@ function execute_callback(err, run, context, _done) {
                 }
                 else if ((0, types_1.isCallback1Sync)(run)) {
                     try {
-                        const res = run(context);
+                        const res = run.call(this, context);
                         if (res instanceof Promise) {
                             res.then(r => done(undefined, r !== null && r !== void 0 ? r : context)).catch(err => done(err));
                         }
@@ -73,7 +74,8 @@ function execute_callback(err, run, context, _done) {
             case 2:
                 if ((0, types_1.isCallback2Async)(run)) {
                     try {
-                        run(err, context)
+                        run
+                            .call(this, err, context)
                             .then(ctx => done(undefined, ctx))
                             .catch(err => done(err));
                     }
@@ -83,7 +85,7 @@ function execute_callback(err, run, context, _done) {
                 }
                 else if ((0, types_1.isCallback2Callback)(run)) {
                     try {
-                        run(context, done);
+                        run.call(this, context, done);
                     }
                     catch (err) {
                         (0, process_error_1.process_error)(err, done);
@@ -96,7 +98,7 @@ function execute_callback(err, run, context, _done) {
             case 3:
                 if ((0, types_1.isCallback3Callback)(run)) {
                     try {
-                        run(err, context, done);
+                        run.call(this, err, context, done);
                     }
                     catch (err) {
                         (0, process_error_1.process_error)(err, done);

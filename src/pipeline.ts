@@ -18,8 +18,8 @@ import { AllowedStage, CallbackFunction, PipelineConfig, RunPipelineFunction, St
  *
  * @param {Object} config configuration object
  */
-export class Pipeline<R, C extends PipelineConfig<R>> extends Stage<R, C> {
-  constructor(config?: PipelineConfig<R> | AllowedStage<R, C> | Array<AnyStage | RunPipelineFunction<R>>) {
+export class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>> extends Stage<R, C> {
+  constructor(config?: PipelineConfig<R> | AllowedStage<R, C> | Array<AnyStage<R> | RunPipelineFunction<R>>) {
     super()
     if (config) {
       this._config = getPipelinConfig(config)
@@ -33,7 +33,7 @@ export class Pipeline<R, C extends PipelineConfig<R>> extends Stage<R, C> {
   }
 
   public addStage(_stage: unknown) {
-    let stage: AnyStage | RunPipelineFunction<R> | undefined
+    let stage: AnyStage<R> | RunPipelineFunction<R> | undefined
     if (typeof _stage === 'function') {
       stage = _stage as RunPipelineFunction<R>
     } else {

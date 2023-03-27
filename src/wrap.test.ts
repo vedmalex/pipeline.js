@@ -3,33 +3,44 @@ import 'jest'
 import { DoWhile } from './dowhile'
 import { Stage } from './stage'
 import { Wrap } from './wrap'
+import { AnyStage, DoWhileConfig } from './utils/types/types'
 
 describe('Wrap', function () {
   it('works', function (done) {
-    var st1 = new Stage({
+    type CTX = {
+      FullName: string
+      Retry: number
+    }
+    type WrapCTX = {
+      name: string
+      count: number
+    }
+    var ctx = {
+      FullName: 'NEO',
+      Retry: 1,
+    } satisfies CTX
+
+    var st1 = new Stage<CTX>({
       run: function (ctx) {
         ctx.count++
         ctx.name = 'borrow'
       },
     })
-    var wr = new Wrap({
+    var wr = new Wrap<CTX, WrapCTX>({
       stage: st1,
-      prepare: function (ctx) {
+      prepare: function (ctx: CTX) {
         var retCtx = {
           name: ctx.FullName,
           count: ctx.Retry,
         }
         return retCtx
       },
-      finalize: function (ctx, retCtx) {
+      finalize: function (ctx: CTX, retCtx: WrapCTX) {
         ctx.Retry = retCtx.count
         return ctx
       },
     })
-    var ctx = {
-      FullName: 'NEO',
-      Retry: 1,
-    }
+
     wr.execute(ctx, function (err, retCtx) {
       expect(err).toBeUndefined()
       expect(retCtx?.Retry).toBe(2)
@@ -39,10 +50,12 @@ describe('Wrap', function () {
   })
 
   it('prepare context -> moved to Wrap', function (done) {
-    var stage0 = new Stage(function (ctx) {
+    type CTX = { iteration: number; iter: number }
+    type SubCTX = { iteration: number }
+    var stage0 = new Stage(function (ctx: SubCTX) {
       ctx.iteration += 1
     })
-    var stage = new Wrap({
+    var stage = new Wrap<CTX, SubCTX>({
       prepare: function (ctx) {
         return {
           iteration: ctx.iter,
@@ -51,13 +64,13 @@ describe('Wrap', function () {
       finalize: function (ctx, retCtx) {
         ctx.iter = retCtx.iteration
       },
-      stage: new DoWhile({
+      stage: new DoWhile<SubCTX, SubCTX>({
         stage: stage0,
         split: function (ctx, iter) {
           return ctx
         },
         reachEnd: function (err, ctx, iter) {
-          return err || iter == 10
+          return !!err || iter == 10
         },
       }),
     })
@@ -66,8 +79,8 @@ describe('Wrap', function () {
         iter: 0,
       },
       function (err, context) {
-        expect(context.iter).toEqual(10)
-        expect(context.iteration).toBeUndefined()
+        expect(context?.iter).toEqual(10)
+        expect(context?.iteration).toBeUndefined()
         done()
       },
     )
@@ -82,7 +95,7 @@ describe('Wrap', function () {
     var stage0 = new Stage<InternalCtx>(function (ctx: InternalCtx) {
       ctx.iteration += 1
     })
-    var stage = new Wrap<Ctx>({
+    var stage = new Wrap<Ctx, InternalCtx>({
       prepare: function (ctx) {
         return ctx.fork({
           iteration: ctx.iter,
@@ -92,15 +105,15 @@ describe('Wrap', function () {
         ctx.iter = retCtx.iteration
         expect(retCtx.iteration).toBe(10)
       },
-      stage: new DoWhile<InternalCtx>({
+      stage: new DoWhile<InternalCtx, InternalCtx>({
         stage: stage0,
         split: function (ctx, iter) {
           return ctx
         },
         reachEnd: function (err, ctx, iter) {
-          return err || iter == 10
+          return !!err || iter == 10
         },
-      }),
+      } as DoWhileConfig<InternalCtx, InternalCtx>),
     })
 
     stage.execute(
@@ -109,8 +122,9 @@ describe('Wrap', function () {
       },
       function (err, context) {
         if (context) {
-          expect(context.iter).toEqual(10)
-          expect(context.iteration).toBeUndefined()
+          expect(context?.iter).toEqual(10)
+          // @ts-expect-error
+          expect(context?.iteration).toBeUndefined()
           done()
         } else {
           throw Error('nonsense')

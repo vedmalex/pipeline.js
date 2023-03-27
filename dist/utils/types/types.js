@@ -211,7 +211,7 @@ function isEnsureAsync(inp) {
 }
 exports.isEnsureAsync = isEnsureAsync;
 function isEnsureCallback(inp) {
-    return typeof inp == 'function' && inp.length == 3;
+    return typeof inp == 'function' && inp.length == 2;
 }
 exports.isEnsureCallback = isEnsureCallback;
 function isEnsureFunction(inp) {

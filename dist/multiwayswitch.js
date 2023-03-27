@@ -28,7 +28,7 @@ function getMultWaySwitchConfig(config) {
                     res = item;
                 }
                 else {
-                    throw (0, ErrorList_1.CreateError)('not suitable type for array in pipelin');
+                    throw (0, ErrorList_1.CreateError)(new Error('not suitable type for array in pipelin'));
                 }
                 return res;
             }),
@@ -41,7 +41,7 @@ function getMultWaySwitchConfig(config) {
         }
         else if (typeof config == 'object' && !(0, types_1.isAnyStage)(config)) {
             if ((config === null || config === void 0 ? void 0 : config.run) && config.cases && config.cases.length > 0) {
-                throw (0, ErrorList_1.CreateError)(" don't use run and stage both ");
+                throw (0, ErrorList_1.CreateError)(new Error(" don't use run and stage both "));
             }
             if (config.run) {
                 res.cases = [{ stage: config.run, evaluate: true }];
@@ -96,8 +96,9 @@ class MultiWaySwitch extends stage_1.Stage {
         }
     }
     split(ctx) {
+        var _a;
         if (this.config.split) {
-            return this.config.split(ctx);
+            return (_a = this.config.split(ctx)) !== null && _a !== void 0 ? _a : ctx;
         }
         else {
             return ctx;
@@ -193,7 +194,7 @@ class MultiWaySwitch extends stage_1.Stage {
                 (0, run_or_execute_1.run_or_execute)(stg.stage, err, lctx, next(i));
             }
             if (actuals.length === 0) {
-                return done(err);
+                return done(err, ctx);
             }
         };
         this.run = run;

@@ -56,7 +56,7 @@ export interface IContextProxy<T extends StageObject> {
   toJSON(): string
   toObject(clean?: boolean): T
   toString(): string
-  fork<C extends StageObject>(config: C): ContextType<T & C>
+  fork<C extends StageObject>(config?: C): ContextType<T & C>
   get(path: keyof T): any
   get original(): T
   [OriginalObject]?: true
@@ -179,7 +179,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
    * @param {Object|Context} [config] new properties that must exists in new fork
    * @retrun {Context}
    */
-  fork<C extends StageObject>(ctx: C): ContextType<T & C> {
+  fork<C extends StageObject>(ctx?: C): ContextType<T & C> {
     var child = Context.ensure(ctx)
     this.addChild(child)
     return child as ContextType<T & C>
