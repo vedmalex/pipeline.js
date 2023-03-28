@@ -1,7 +1,7 @@
 import { ContextType } from './context'
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
-import { run_or_execute } from './utils/run_or_execute'
+import { /* run_or_execute, */ run_or_execute_async } from './utils/run_or_execute'
 import { AllowedStage, getParallelConfig, ParallelConfig, StageRun } from './utils/types/types'
 
 /**
@@ -47,28 +47,47 @@ export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R,
         var children = this.split ? this.split(ctx) : [ctx]
         var len = children ? children.length : 0
 
-        var next = (err: unknown, retCtx?: unknown) => {
+        // var next = (err: unknown, retCtx?: unknown) => {
+        //   if (err) {
+        //     return done(err)
+        //   }
+
+        //   if (retCtx) {
+        //     children[iter] = retCtx
+        //   }
+
+        //   iter += 1
+        //   if (iter >= len) {
+        //     let result = this.combine(ctx, children)
+        //     return done(undefined, result as R)
+        //   } else {
+        //     run_or_execute(this.config.stage, err, children[iter], next)
+        //   }
+        // }
+        const next = async (err: unknown) => {
           if (err) {
             return done(err)
           }
-
-          if (retCtx) {
-            children[iter] = retCtx
+          while (++iter < len) {
+            try {
+              const retCtx = await run_or_execute_async(this.config.stage, err, children[iter])
+              if (retCtx) {
+                children[iter] = retCtx
+              }
+            } catch (err) {
+              return done(err)
+            }
           }
 
-          iter += 1
-          if (iter >= len) {
-            let result = this.combine(ctx, children)
-            return done(undefined, result as R)
-          } else {
-            run_or_execute(this.config.stage, err, children[iter], next)
-          }
+          let result = this.combine(ctx, children)
+          done(undefined, result as R)
         }
 
         if (len === 0) {
           return done(err, ctx as R)
         } else {
-          next(err)
+          // next(err)
+          next(err).catch(done).then(done)
         }
       }
 

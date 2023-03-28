@@ -204,4 +204,22 @@ describe('stage', () => {
   //     },
   //   })
   // })
+
+  it('rescue do not enter twice into single rescue block', () => {
+    let rescue = 0
+    var st = new Stage({
+      run: function (err, ctx, done) {
+        throw new Error('error')
+      },
+      rescue: function (err, conext) {
+        rescue += 1
+        if (err.payload[0].message !== 'some') {
+          throw err
+        }
+      },
+    })
+    st.execute({}, (err, res) => {
+      expect(rescue).toBe(1)
+    })
+  })
 })

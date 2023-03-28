@@ -59,9 +59,9 @@ export declare function isCustomRun2Callback<R>(inp: unknown): inp is CustomRun2
 export declare function isCustomRun2Async<R>(inp: unknown): inp is CustomRun2Async<R>;
 export declare function isCustomRun3Callback<R>(inp: unknown): inp is CustomRun3Callback<R>;
 export declare function isRunPipelineFunction<R>(inp: any): inp is RunPipelineFunction<R>;
-export type Rescue1Sync<R> = (ctx: R) => R;
-export type Rescue1ASync<R> = (ctx: R) => Promise<R>;
-export type Rescue2ASync<R> = (err: unknown, ctx: R) => Promise<R>;
+export type Rescue1Sync<R> = (ctx: R) => any;
+export type Rescue1ASync<R> = (ctx: R) => Promise<void>;
+export type Rescue2ASync<R> = (err: unknown, ctx: R) => Promise<void>;
 export type Rescue2Sync<R> = (err: unknown, ctx: R) => R;
 export type Rescue3Callback<R> = (err: unknown, ctx: R, done: CallbackFunction<R>) => void;
 export type Rescue<R> = Rescue1Sync<R> | Rescue1ASync<R> | Rescue2ASync<R> | Rescue2Sync<R> | Rescue3Callback<R>;
@@ -123,6 +123,7 @@ export interface ParallelConfig<R, T> extends StageConfig<R> {
 }
 export declare function isStageRun<R>(inp: unknown): inp is StageRun<R>;
 export type StageRun<R> = (err: unknown, context: unknown, callback: CallbackFunction<R>) => void;
+export type AsynStageRun<R> = (err: unknown, context: unknown) => Promise<R>;
 export type AllowedStageStored<R, CONFIG extends StageConfig<R>> = CONFIG | RunPipelineFunction<R> | AnyStage<R>;
 export type AllowedStage<R, CONFIG extends StageConfig<R>> = string | AllowedStageStored<R, CONFIG>;
 export declare function isAllowedStage<R, C extends StageConfig<R>>(inp: any): inp is AllowedStage<R, C>;

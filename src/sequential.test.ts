@@ -19,14 +19,18 @@ describe('Sequential', function () {
         throw new Error('error')
       },
       rescue: function (err, conext) {
-        if (err.message !== 'some') return err
+        if (err.payload[0].message !== 'some') {
+          throw err
+        }
       },
     })
 
     var stage = new Sequential({
       stage: st,
       rescue: function (err, conext) {
-        if (err.info.err.message !== 'error') return err
+        if (err.payload[0].message !== 'error') {
+          throw err
+        }
       },
     })
 

@@ -38,13 +38,18 @@ class Stage {
     get reportName() {
         return `STG:${this._config.name ? this._config.name : ''}`;
     }
+    toString() {
+        return '[pipeline Stage]';
+    }
     get name() {
         var _a;
         return (_a = this._config.name) !== null && _a !== void 0 ? _a : '';
     }
     execute(_err, _context, _callback) {
         var _a, _b;
-        let err, not_ensured_context, __callback;
+        let err;
+        let not_ensured_context;
+        let __callback = undefined;
         if (arguments.length == 1) {
             not_ensured_context = _err;
         }
@@ -119,10 +124,10 @@ class Stage {
                 const fail = (err) => back(err, context);
                 const callback = (err, _ctx) => {
                     if (err) {
-                        this.rescue(err, _ctx, fail, sucess);
+                        this.rescue(err, _ctx !== null && _ctx !== void 0 ? _ctx : context, fail, sucess);
                     }
                     else {
-                        back(err, _ctx);
+                        back(err, _ctx !== null && _ctx !== void 0 ? _ctx : context);
                     }
                 };
                 if (err && this._config.run && !(0, can_fix_error_1.can_fix_error)(this._config.run)) {
@@ -167,17 +172,10 @@ class Stage {
         const fail = (err) => back(err, context);
         if (this._config.run) {
             if (context) {
-                execute_callback_1.execute_callback.call(this, err, this._config.run, context, (err, ctx) => {
-                    if (err) {
-                        this.rescue(err, ctx !== null && ctx !== void 0 ? ctx : context, fail, sucess);
-                    }
-                    else {
-                        callback(undefined, (ctx !== null && ctx !== void 0 ? ctx : context));
-                    }
-                });
+                execute_callback_1.execute_callback.call(this, err, this._config.run, context, callback);
             }
             else {
-                callback(null, context);
+                callback(err);
             }
         }
         else {
@@ -239,9 +237,6 @@ class Stage {
                 success(context);
             }
         }
-    }
-    toString() {
-        return '[pipeline Stage]';
     }
     validate(validate, context, callback) {
         (0, execute_validate_1.execute_validate)(validate, context, (err, result) => {

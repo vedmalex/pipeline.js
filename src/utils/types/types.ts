@@ -180,9 +180,9 @@ export function isRunPipelineFunction<R>(inp: any): inp is RunPipelineFunction<R
   )
 }
 
-export type Rescue1Sync<R> = (ctx: R) => R
-export type Rescue1ASync<R> = (ctx: R) => Promise<R>
-export type Rescue2ASync<R> = (err: unknown, ctx: R) => Promise<R>
+export type Rescue1Sync<R> = (ctx: R) => any
+export type Rescue1ASync<R> = (ctx: R) => Promise<void>
+export type Rescue2ASync<R> = (err: unknown, ctx: R) => Promise<void>
 export type Rescue2Sync<R> = (err: unknown, ctx: R) => R
 export type Rescue3Callback<R> = (err: unknown, ctx: R, done: CallbackFunction<R>) => void
 
@@ -354,6 +354,8 @@ export function isStageRun<R>(inp: unknown): inp is StageRun<R> {
 }
 
 export type StageRun<R> = (err: unknown, context: unknown, callback: CallbackFunction<R>) => void
+
+export type AsynStageRun<R> = (err: unknown, context: unknown) => Promise<R>
 
 export type AllowedStageStored<R, CONFIG extends StageConfig<R>> = CONFIG | RunPipelineFunction<R> | AnyStage<R>
 

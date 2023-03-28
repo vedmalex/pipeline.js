@@ -102,7 +102,7 @@ describe('Pipeline', function () {
         throw new Error('error')
       },
       rescue: function (err, conext) {
-        if (err.message !== 'error') return err
+        if (err.payload[0].message !== 'error') return err
       },
     })
     pipe.addStage(st)

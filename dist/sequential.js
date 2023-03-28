@@ -28,27 +28,29 @@ class Sequential extends stage_1.Stage {
                 var iter = -1;
                 var children = this.split ? this.split(ctx) : [ctx];
                 var len = children ? children.length : 0;
-                var next = (err, retCtx) => {
+                const next = async (err) => {
                     if (err) {
                         return done(err);
                     }
-                    if (retCtx) {
-                        children[iter] = retCtx;
+                    while (++iter < len) {
+                        try {
+                            const retCtx = await (0, run_or_execute_1.run_or_execute_async)(this.config.stage, err, children[iter]);
+                            if (retCtx) {
+                                children[iter] = retCtx;
+                            }
+                        }
+                        catch (err) {
+                            return done(err);
+                        }
                     }
-                    iter += 1;
-                    if (iter >= len) {
-                        let result = this.combine(ctx, children);
-                        return done(undefined, result);
-                    }
-                    else {
-                        (0, run_or_execute_1.run_or_execute)(this.config.stage, err, children[iter], next);
-                    }
+                    let result = this.combine(ctx, children);
+                    done(undefined, result);
                 };
                 if (len === 0) {
                     return done(err, ctx);
                 }
                 else {
-                    next(err);
+                    next(err).catch(done).then(done);
                 }
             };
             this.run = run;

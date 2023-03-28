@@ -12,3 +12,12 @@ export function run_or_execute<R>(stage: unknown, err: unknown, context: unknown
     if (typeof stage === 'function') execute_callback(err, stage, context as R, done)
   }
 }
+
+export function run_or_execute_async<R>(stage: unknown, err: unknown, context: unknown): Promise<R> {
+  return new Promise((resolve, reject) => {
+    run_or_execute<R>(stage, err, context, (err, ctx) => {
+      if (err) reject(err)
+      else resolve(ctx as R)
+    })
+  })
+}

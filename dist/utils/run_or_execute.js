@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.run_or_execute = void 0;
+exports.run_or_execute_async = exports.run_or_execute = void 0;
 const execute_callback_1 = require("./execute_callback");
 const types_1 = require("./types/types");
 function run_or_execute(stage, err, context, _done) {
@@ -16,4 +16,15 @@ function run_or_execute(stage, err, context, _done) {
     }
 }
 exports.run_or_execute = run_or_execute;
+function run_or_execute_async(stage, err, context) {
+    return new Promise((resolve, reject) => {
+        run_or_execute(stage, err, context, (err, ctx) => {
+            if (err)
+                reject(err);
+            else
+                resolve(ctx);
+        });
+    });
+}
+exports.run_or_execute_async = run_or_execute_async;
 //# sourceMappingURL=run_or_execute.js.map

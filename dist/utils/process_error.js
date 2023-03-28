@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.process_error = void 0;
+exports.process_error_async = exports.process_error = void 0;
 const ErrorList_1 = require("./ErrorList");
 function process_error(err, done) {
     if ((0, ErrorList_1.isComplexError)(err)) {
@@ -17,4 +17,15 @@ function process_error(err, done) {
     }
 }
 exports.process_error = process_error;
+function process_error_async(err) {
+    return new Promise((resolve, reject) => {
+        process_error(err, (err, ctx) => {
+            if (err)
+                reject(err);
+            else
+                resolve(ctx);
+        });
+    });
+}
+exports.process_error_async = process_error_async;
 //# sourceMappingURL=process_error.js.map

@@ -12,3 +12,12 @@ export function process_error<R>(err: unknown, done: CallbackFunction<R>) {
     done(CreateError(String(err)))
   }
 }
+
+export function process_error_async<R>(err: unknown): Promise<R> {
+  return new Promise((resolve, reject) => {
+    process_error(err, (err, ctx) => {
+      if (err) reject(err)
+      else resolve(ctx as R)
+    })
+  })
+}

@@ -24,6 +24,7 @@ export function execute_rescue<R>(rescue: Rescue<R>, err: Error, context: unknow
         }
       } else if (isRescue1Sync(rescue)) {
         try {
+          // if error is not handled, then it will be thrown
           const res = rescue(err)
           if (res instanceof Promise) {
             res.then(_ => done()).catch(err => done(err))
@@ -50,13 +51,18 @@ export function execute_rescue<R>(rescue: Rescue<R>, err: Error, context: unknow
         }
       } else if (isRescue2Sync(rescue)) {
         try {
+          // if error is not handled, then it will be thrown
           const res = rescue(err, context)
           if (res instanceof Promise) {
             res.then(_ => done()).catch(err => done(err))
           } else if (is_thenable(res)) {
             res.then(_ => done()).catch(err => done(err))
           } else {
-            done()
+            if (Boolean(res)) {
+              process_error(res, done)
+            } else {
+              done()
+            }
           }
         } catch (err) {
           process_error(err, done)

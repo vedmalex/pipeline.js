@@ -166,8 +166,7 @@ describe('DoWhile', function () {
       some: [1, 2, 3, 4, 5, 6, 7],
     }
     var len = ctx.some.length
-    //@ts-ignore
-    var stage = new DoWhile<Context>({
+    var stage = new DoWhile({
       stage: stage0,
       split: function (ctx: Context, iter) {
         return {

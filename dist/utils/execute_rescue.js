@@ -60,7 +60,12 @@ function execute_rescue(rescue, err, context, done) {
                         res.then(_ => done()).catch(err => done(err));
                     }
                     else {
-                        done();
+                        if (Boolean(res)) {
+                            (0, process_error_1.process_error)(res, done);
+                        }
+                        else {
+                            done();
+                        }
                     }
                 }
                 catch (err) {

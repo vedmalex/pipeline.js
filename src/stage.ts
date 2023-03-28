@@ -57,6 +57,10 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
     return `STG:${this._config.name ? this._config.name : ''}`
   }
 
+  public toString() {
+    return '[pipeline Stage]'
+  }
+
   public get name() {
     return this._config.name ?? ''
   }
@@ -72,7 +76,9 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
     _callback?: unknown,
   ): void | Promise<T & R> {
     // discover arguments
-    let err: Possible<ComplexError>, not_ensured_context: T | ContextType<T>, __callback: Possible<CallbackFunction<T>>
+    let err: Possible<ComplexError>
+    let not_ensured_context: T | ContextType<T>
+    let __callback: Possible<CallbackFunction<T>> = undefined
 
     if (arguments.length == 1) {
       not_ensured_context = _err as T | ContextType<T>
@@ -96,7 +102,7 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
     }
 
     if (!this.run) {
-      this.run = this.compile() as StageRun<R>
+      this.run = this.compile()
     } else if (!this.config?.run) {
       // legacy run
       if (!isStageRun(this.run)) {
@@ -144,11 +150,12 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
       process.nextTick(() => {
         const sucess = (ret: unknown) => back(undefined, (ret as T) ?? context)
         const fail = (err: unknown) => back(err, context)
+
         const callback = (err, _ctx) => {
           if (err) {
-            this.rescue(err, _ctx, fail, sucess)
+            this.rescue(err, _ctx ?? context, fail, sucess)
           } else {
-            back(err, _ctx)
+            back(err, _ctx ?? context)
           }
         }
 
@@ -200,16 +207,10 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
     const fail = (err: unknown) => back(err, context as R)
     if (this._config.run) {
       if (context) {
-        execute_callback.call(this, err, this._config.run, context, (err: unknown, ctx: unknown) => {
-          if (err) {
-            this.rescue(err, ctx ?? context, fail, sucess)
-          } else {
-            callback(undefined, (ctx ?? context) as R)
-          }
-        })
+        execute_callback.call(this, err, this._config.run, context, callback as CallbackFunction<unknown>)
       } else {
         // возвращаем управление
-        callback(null, context as R)
+        callback(err)
       }
     } else {
       const retErr: Array<any> = [this.reportName + ' reports: run is not a function']
@@ -218,6 +219,8 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
     }
   }
 
+  // to be overridden by compile
+  protected run?: StageRun<R>
   /**
    * Compile the pipeline.
    * @param rebuild Whether to rebuild the pipeline.
@@ -241,8 +244,6 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
     }
     return res
   }
-  // to be overridden by compile
-  protected run?: StageRun<R>
 
   // объединение ошибок сделать
   // посмотреть что нужно сделать чтобы вызвать ошибку правильно!!!
@@ -279,10 +280,6 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
         success(context)
       }
     }
-  }
-
-  public toString() {
-    return '[pipeline Stage]'
   }
 
   protected validate(validate: ValidateFunction, context: unknown, callback: CallbackFunction<R>) {
