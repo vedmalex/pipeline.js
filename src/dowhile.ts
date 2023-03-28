@@ -1,6 +1,6 @@
 import { ContextType } from './context'
 import { Stage } from './stage'
-import { run_or_execute } from './utils/run_or_execute'
+import { run_or_execute_async } from './utils/run_or_execute'
 import { AnyStage, DoWhileConfig, getDoWhileConfig } from './utils/types/types'
 import { SingleStageFunction, StageRun } from './utils/types/types'
 
@@ -40,17 +40,44 @@ export class DoWhile<R, T, C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>> 
     } else return ctx
   }
 
+  // override compile(rebuild: boolean = false): StageRun<R> {
+  //   let run: StageRun<R> = (err, context, done) => {
+  //     let iter: number = -1
+  //     let next = (err: unknown) => {
+  //       iter++
+  //       if (this.reachEnd(err, context as R, iter)) {
+  //         return done(err, context as R)
+  //       } else {
+  //         run_or_execute(this.config.stage, err, this.split(context as R, iter), next)
+  //       }
+  //     }
+  //     next(err)
+  //   }
+
+  //   this.run = run as StageRun<R>
+
+  //   return super.compile(rebuild)
+  // }
+
   override compile(rebuild: boolean = false): StageRun<R> {
-    let run: StageRun<R> = (err, context, done) => {
-      let iter: number = -1
-      let next = (err: unknown) => {
+    let run: StageRun<R> = async (err, context, done) => {
+      let iter = -1
+
+      const next = async (err: unknown) => {
         iter++
-        if (this.reachEnd(err, context as R, iter)) {
-          return done(err, context as R)
-        } else {
-          run_or_execute(this.config.stage, err, this.split(context as R, iter), next)
+
+        while (!this.reachEnd(err, context as R, iter)) {
+          try {
+            context = await run_or_execute_async(this.config.stage, err, this.split(context as R, iter))
+          } catch (err) {
+            return done(err)
+          }
+          iter++
         }
+
+        done(err, context as R)
       }
+
       next(err)
     }
 
