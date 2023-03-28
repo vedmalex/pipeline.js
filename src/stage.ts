@@ -147,7 +147,6 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
           }
         }
       }
-      // process.nextTick(() => {
       const success = (ret: unknown) => back(undefined, (ret as T) ?? context)
       const fail = (err: unknown) => back(err, context)
 
@@ -174,7 +173,6 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
           stageToRun(undefined, context, callback)
         }
       }
-      // })
     }
   }
 
