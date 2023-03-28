@@ -19,6 +19,9 @@ class Pipeline extends stage_1.Stage {
     get reportName() {
         return `PIPE:${this.config.name ? this.config.name : ''}`;
     }
+    toString() {
+        return '[pipeline Pipeline]';
+    }
     addStage(_stage) {
         let stage;
         if (typeof _stage === 'function') {
@@ -39,23 +42,32 @@ class Pipeline extends stage_1.Stage {
             this.run = undefined;
         }
     }
-    toString() {
-        return '[pipeline Pipeline]';
-    }
     compile(rebuild = false) {
         let run = (err, context, done) => {
             let i = -1;
-            let next = (err, ctx) => {
-                i += 1;
-                if (!err && i < this.config.stages.length) {
-                    const st = this.config.stages[i];
-                    (0, run_or_execute_1.run_or_execute)(st, err, ctx !== null && ctx !== void 0 ? ctx : context, next);
+            let next = async (err, ctx) => {
+                if (err) {
+                    return done(err);
                 }
-                else if (i >= this.config.stages.length || err) {
-                    done(err, (ctx !== null && ctx !== void 0 ? ctx : context));
+                while (++i < this.config.stages.length) {
+                    ;
+                    [err, ctx] = await (0, run_or_execute_1.run_or_execute_async)(this.config.stages[i], err, ctx !== null && ctx !== void 0 ? ctx : context);
+                    if (err) {
+                        ;
+                        [err, ctx] = await this.rescue_async(err, ctx);
+                        if (err) {
+                            return done(err);
+                        }
+                    }
                 }
+                done(undefined, ctx);
             };
-            next(err, context);
+            if (this.config.stages.length === 0) {
+                done(undefined, context);
+            }
+            else {
+                next(err, context);
+            }
         };
         if (this.config.stages.length > 0) {
             this.run = run;

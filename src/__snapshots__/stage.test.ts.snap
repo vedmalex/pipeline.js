@@ -82,3 +82,5 @@ Stage {
   Symbol(stage): true,
 }
 `;
+
+exports[`stage validate using schema 1`] = `[Error]`;

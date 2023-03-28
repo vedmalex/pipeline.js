@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.execute_rescue = void 0;
+exports.execute_rescue_async = exports.execute_rescue = void 0;
 const ErrorList_1 = require("./ErrorList");
 const errors_1 = require("./errors");
 const process_error_1 = require("./process_error");
@@ -94,4 +94,10 @@ function execute_rescue(rescue, err, context, done) {
     }
 }
 exports.execute_rescue = execute_rescue;
+function execute_rescue_async(rescue, err, context) {
+    return new Promise(resolve => {
+        execute_rescue(rescue, err, context, err => resolve([err, context]));
+    });
+}
+exports.execute_rescue_async = execute_rescue_async;
 //# sourceMappingURL=execute_rescue.js.map

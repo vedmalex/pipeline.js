@@ -86,3 +86,9 @@ export function execute_rescue<R>(rescue: Rescue<R>, err: Error, context: unknow
       done(CreateError(ERROR.signature))
   }
 }
+
+export function execute_rescue_async<R>(rescue: Rescue<R>, err: Error, context: R): Promise<[unknown, R]> {
+  return new Promise(resolve => {
+    execute_rescue(rescue, err, context, err => resolve([err, context]))
+  })
+}

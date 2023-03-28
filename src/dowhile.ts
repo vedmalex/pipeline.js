@@ -65,12 +65,14 @@ export class DoWhile<R, T, C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>> 
 
       const next = async (err: unknown) => {
         iter++
-
+        let retCtx: unknown
         while (!this.reachEnd(err, context as R, iter)) {
-          try {
-            context = await run_or_execute_async(this.config.stage, err, this.split(context as R, iter))
-          } catch (err) {
-            return done(err)
+          ;[err, retCtx] = await run_or_execute_async(this.config.stage, err, this.split(context as R, iter))
+          if (err) {
+            ;[err, context] = await this.rescue_async(err, retCtx)
+            if (err) {
+              return done(err)
+            }
           }
           iter++
         }

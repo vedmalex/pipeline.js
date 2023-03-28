@@ -147,34 +147,34 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
           }
         }
       }
-      process.nextTick(() => {
-        const sucess = (ret: unknown) => back(undefined, (ret as T) ?? context)
-        const fail = (err: unknown) => back(err, context)
+      // process.nextTick(() => {
+      const success = (ret: unknown) => back(undefined, (ret as T) ?? context)
+      const fail = (err: unknown) => back(err, context)
 
-        const callback = (err, _ctx) => {
-          if (err) {
-            this.rescue(err, _ctx ?? context, fail, sucess)
-          } else {
-            back(err, _ctx ?? context)
-          }
-        }
-
-        if (err && this._config.run && !can_fix_error(this._config.run)) {
-          this.rescue(err, context, fail, sucess)
+      const callback = (err, _ctx) => {
+        if (err) {
+          this.rescue(err, _ctx ?? context, fail, success)
         } else {
-          if (this.config.ensure) {
-            this.ensure(this.config.ensure as EnsureFunction<unknown>, context, (err_, ctx) => {
-              this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
-            })
-          } else if (this._config.validate) {
-            this.validate(this._config.validate, context, (err_, ctx) => {
-              this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
-            })
-          } else {
-            stageToRun?.(undefined, context, callback)
-          }
+          back(err, _ctx ?? context)
         }
-      })
+      }
+
+      if (err && this._config.run && !can_fix_error(this._config.run)) {
+        this.rescue(err, context, fail, success)
+      } else {
+        if (this.config.ensure) {
+          this.ensure(this.config.ensure as EnsureFunction<unknown>, context, (err_, ctx) => {
+            this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
+          })
+        } else if (this._config.validate) {
+          this.validate(this._config.validate, context, (err_, ctx) => {
+            this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
+          })
+        } else {
+          stageToRun(undefined, context, callback)
+        }
+      }
+      // })
     }
   }
 
@@ -280,6 +280,21 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
         success(context)
       }
     }
+  }
+
+  protected rescue_async(_err: unknown, context: unknown): Promise<[unknown, unknown]> {
+    return new Promise(resolve => {
+      this.rescue(
+        _err,
+        context,
+        err => {
+          resolve([err, context])
+        },
+        res => {
+          resolve([undefined, res ?? context])
+        },
+      )
+    })
   }
 
   protected validate(validate: ValidateFunction, context: unknown, callback: CallbackFunction<R>) {

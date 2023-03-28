@@ -44,48 +44,45 @@ export class Parallel<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T
   override compile(rebuild: boolean = false): StageRun<R> {
     if (this.config.stage) {
       var run: StageRun<R> = (err: unknown, ctx, done: CallbackFunction<R>) => {
-        var iter = 0
         var children = this.split(ctx)
         var len = children ? children.length : 0
         let errors: Array<Error>
         let hasError = false
-
-        var next = (index: number) => {
-          return (err: unknown, retCtx: any) => {
-            if (!err) {
-              children[index] = retCtx ?? children[index]
-            } else {
-              if (!hasError) {
-                hasError = true
-                errors = []
+        const build = (i: number) => {
+          return new Promise(resolve => {
+            run_or_execute(this.config.stage, err, children[i], (err, res) => {
+              if (err) {
+                if (!hasError) {
+                  hasError = true
+                  errors = []
+                }
+                const error = new ParallelError({
+                  stage: this.name,
+                  index: i,
+                  err: err,
+                  ctx: children[i],
+                })
+                if (error) errors.push(error)
               }
-              const error = new ParallelError({
-                stage: this.name,
-                index: index,
-                err: err,
-                ctx: children[index],
-              })
-              if (error) errors.push(error)
-            }
-
-            iter += 1
-            if (iter >= len) {
-              if (!hasError) {
-                let result = this.combine(ctx, children)
-                return done(undefined, result as R)
-              } else {
-                return done(CreateError(errors), ctx as R)
-              }
-            }
-          }
+              resolve([err, res] as [unknown, T])
+            })
+          })
         }
 
         if (len === 0) {
           return done(err, ctx as R)
         } else {
-          for (var i = 0; i < len; i++) {
-            run_or_execute(this.config.stage, err, children[i], next(i) as CallbackFunction<R>)
+          let result: Array<Promise<[unknown, T]>> = []
+          for (let i = 0; i < children.length; i++) {
+            result.push(build(i) as Promise<[unknown, T]>)
           }
+          Promise.all(result).then(res => {
+            let result = this.combine(
+              ctx,
+              res.map(r => r[1]),
+            )
+            done(CreateError(errors), result as R)
+          })
         }
       }
       this.run = run as StageRun<R>

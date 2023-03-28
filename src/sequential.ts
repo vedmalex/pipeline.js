@@ -64,30 +64,33 @@ export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R,
         //     run_or_execute(this.config.stage, err, children[iter], next)
         //   }
         // }
+
         const next = async (err: unknown) => {
           if (err) {
             return done(err)
           }
+          let retCtx: unknown
           while (++iter < len) {
-            try {
-              const retCtx = await run_or_execute_async(this.config.stage, err, children[iter])
-              if (retCtx) {
-                children[iter] = retCtx
+            ;[err, retCtx] = await run_or_execute_async<T>(this.config.stage, err, children[iter])
+            if (err) {
+              ;[err, retCtx] = await this.rescue_async(err, children[iter])
+              if (err) {
+                return done(err)
               }
-            } catch (err) {
-              return done(err)
+            }
+            if (retCtx) {
+              children[iter] = retCtx
             }
           }
 
           let result = this.combine(ctx, children)
-          done(undefined, result as R)
+          return done(undefined, result as R)
         }
 
         if (len === 0) {
           return done(err, ctx as R)
         } else {
-          // next(err)
-          next(err).catch(done).then(done)
+          next(err)
         }
       }
 
@@ -96,7 +99,7 @@ export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R,
       this.run = empty_run
     }
 
-    return super.compile()
+    return super.compile(rebuild)
   }
   protected split(ctx: unknown): Array<unknown> {
     return this._config.split ? this._config.split(ctx as ContextType<R>) ?? [ctx] : [ctx]

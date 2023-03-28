@@ -119,36 +119,34 @@ class Stage {
                     }
                 }
             };
-            process.nextTick(() => {
-                const sucess = (ret) => { var _a; return back(undefined, (_a = ret) !== null && _a !== void 0 ? _a : context); };
-                const fail = (err) => back(err, context);
-                const callback = (err, _ctx) => {
-                    if (err) {
-                        this.rescue(err, _ctx !== null && _ctx !== void 0 ? _ctx : context, fail, sucess);
-                    }
-                    else {
-                        back(err, _ctx !== null && _ctx !== void 0 ? _ctx : context);
-                    }
-                };
-                if (err && this._config.run && !(0, can_fix_error_1.can_fix_error)(this._config.run)) {
-                    this.rescue(err, context, fail, sucess);
+            const success = (ret) => { var _a; return back(undefined, (_a = ret) !== null && _a !== void 0 ? _a : context); };
+            const fail = (err) => back(err, context);
+            const callback = (err, _ctx) => {
+                if (err) {
+                    this.rescue(err, _ctx !== null && _ctx !== void 0 ? _ctx : context, fail, success);
                 }
                 else {
-                    if (this.config.ensure) {
-                        this.ensure(this.config.ensure, context, (err_, ctx) => {
-                            this.runStageMethod(err, err_, ctx, context, stageToRun, callback);
-                        });
-                    }
-                    else if (this._config.validate) {
-                        this.validate(this._config.validate, context, (err_, ctx) => {
-                            this.runStageMethod(err, err_, ctx, context, stageToRun, callback);
-                        });
-                    }
-                    else {
-                        stageToRun === null || stageToRun === void 0 ? void 0 : stageToRun(undefined, context, callback);
-                    }
+                    back(err, _ctx !== null && _ctx !== void 0 ? _ctx : context);
                 }
-            });
+            };
+            if (err && this._config.run && !(0, can_fix_error_1.can_fix_error)(this._config.run)) {
+                this.rescue(err, context, fail, success);
+            }
+            else {
+                if (this.config.ensure) {
+                    this.ensure(this.config.ensure, context, (err_, ctx) => {
+                        this.runStageMethod(err, err_, ctx, context, stageToRun, callback);
+                    });
+                }
+                else if (this._config.validate) {
+                    this.validate(this._config.validate, context, (err_, ctx) => {
+                        this.runStageMethod(err, err_, ctx, context, stageToRun, callback);
+                    });
+                }
+                else {
+                    stageToRun(undefined, context, callback);
+                }
+            }
         }
     }
     runStageMethod(err_, err, ctx, context, stageToRun, callback) {
@@ -237,6 +235,15 @@ class Stage {
                 success(context);
             }
         }
+    }
+    rescue_async(_err, context) {
+        return new Promise(resolve => {
+            this.rescue(_err, context, err => {
+                resolve([err, context]);
+            }, res => {
+                resolve([undefined, res !== null && res !== void 0 ? res : context]);
+            });
+        });
     }
     validate(validate, context, callback) {
         (0, execute_validate_1.execute_validate)(validate, context, (err, result) => {

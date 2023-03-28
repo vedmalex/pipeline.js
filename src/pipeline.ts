@@ -1,9 +1,9 @@
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
-import { run_or_execute } from './utils/run_or_execute'
+import { run_or_execute_async } from './utils/run_or_execute'
 import { isAnyStage, AnyStage } from './utils/types/types'
 import { getPipelinConfig } from './utils/types/types'
-import { AllowedStage, CallbackFunction, PipelineConfig, RunPipelineFunction, StageRun } from './utils/types/types'
+import { AllowedStage, PipelineConfig, RunPipelineFunction, StageRun } from './utils/types/types'
 
 /**
  * it make possible to choose which stage to run according to result of `condition` evaluation
@@ -32,6 +32,10 @@ export class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>> extend
     return `PIPE:${this.config.name ? this.config.name : ''}`
   }
 
+  public override toString() {
+    return '[pipeline Pipeline]'
+  }
+
   public addStage(_stage: unknown) {
     let stage: AnyStage<R> | RunPipelineFunction<R> | undefined
     if (typeof _stage === 'function') {
@@ -51,24 +55,31 @@ export class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>> extend
     }
   }
 
-  public override toString() {
-    return '[pipeline Pipeline]'
-  }
-
   override compile(rebuild: boolean = false): StageRun<R> {
     let run: StageRun<R> = (err, context, done) => {
       let i = -1
       // sequential run;
-      let next = (err: unknown, ctx: unknown) => {
-        i += 1
-        if (!err && i < this.config.stages.length) {
-          const st = this.config.stages[i]
-          run_or_execute(st, err, ctx ?? context, next as CallbackFunction<R>)
-        } else if (i >= this.config.stages.length || err) {
-          done(err, (ctx ?? context) as R)
+      let next = async (err: unknown, ctx: unknown) => {
+        if (err) {
+          return done(err)
         }
+        while (++i < this.config.stages.length) {
+          ;[err, ctx] = await run_or_execute_async(this.config.stages[i], err, ctx ?? context)
+          if (err) {
+            ;[err, ctx] = await this.rescue_async(err, ctx)
+            if (err) {
+              return done(err)
+            }
+          }
+        }
+        done(undefined, ctx as R)
       }
-      next(err, context)
+
+      if (this.config.stages.length === 0) {
+        done(undefined, context as R)
+      } else {
+        next(err, context)
+      }
     }
 
     if (this.config.stages.length > 0) {

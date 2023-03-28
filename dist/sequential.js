@@ -32,25 +32,29 @@ class Sequential extends stage_1.Stage {
                     if (err) {
                         return done(err);
                     }
+                    let retCtx;
                     while (++iter < len) {
-                        try {
-                            const retCtx = await (0, run_or_execute_1.run_or_execute_async)(this.config.stage, err, children[iter]);
-                            if (retCtx) {
-                                children[iter] = retCtx;
+                        ;
+                        [err, retCtx] = await (0, run_or_execute_1.run_or_execute_async)(this.config.stage, err, children[iter]);
+                        if (err) {
+                            ;
+                            [err, retCtx] = await this.rescue_async(err, children[iter]);
+                            if (err) {
+                                return done(err);
                             }
                         }
-                        catch (err) {
-                            return done(err);
+                        if (retCtx) {
+                            children[iter] = retCtx;
                         }
                     }
                     let result = this.combine(ctx, children);
-                    done(undefined, result);
+                    return done(undefined, result);
                 };
                 if (len === 0) {
                     return done(err, ctx);
                 }
                 else {
-                    next(err).catch(done).then(done);
+                    next(err);
                 }
             };
             this.run = run;
@@ -58,7 +62,7 @@ class Sequential extends stage_1.Stage {
         else {
             this.run = empty_run_1.empty_run;
         }
-        return super.compile();
+        return super.compile(rebuild);
     }
     split(ctx) {
         var _a;

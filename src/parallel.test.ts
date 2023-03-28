@@ -169,7 +169,7 @@ describe('Parallel', function () {
     stage.execute(ctx, function (err, context) {
       expect(err instanceof ComplexError).toEqual(true)
       expect(err.payload.length).toEqual(2)
-      expect(!context?.result).toEqual(true)
+      expect(context?.result).toEqual(7)
       done()
     })
   })

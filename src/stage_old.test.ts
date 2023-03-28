@@ -2,7 +2,6 @@ import 'jest'
 import { Context } from './context'
 import { Stage } from './stage'
 import { StageConfig } from './utils/types/types'
-import { ComplexError } from './utils/ErrorList'
 
 describe('Stage', function () {
   describe('sync', function () {

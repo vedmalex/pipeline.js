@@ -45,7 +45,7 @@ describe('Pipeline', function () {
 
   it('catch throw errors 1', function (done) {
     var pipe = new Pipeline()
-    pipe.addStage(function (err, ctx, done) {
+    pipe.addStage(function (ctx, done) {
       throw new Error('error')
     })
     pipe.execute({}, function (err, ctx) {
@@ -102,7 +102,9 @@ describe('Pipeline', function () {
         throw new Error('error')
       },
       rescue: function (err, conext) {
-        if (err.payload[0].message !== 'error') return err
+        if (err.payload[0].message !== 'error') {
+          return err
+        }
       },
     })
     pipe.addStage(st)

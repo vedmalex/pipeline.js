@@ -13,11 +13,10 @@ export function run_or_execute<R>(stage: unknown, err: unknown, context: unknown
   }
 }
 
-export function run_or_execute_async<R>(stage: unknown, err: unknown, context: unknown): Promise<R> {
-  return new Promise((resolve, reject) => {
+export function run_or_execute_async<R>(stage: unknown, err: unknown, context: unknown): Promise<[unknown, R]> {
+  return new Promise(resolve => {
     run_or_execute<R>(stage, err, context, (err, ctx) => {
-      if (err) reject(err)
-      else resolve(ctx as R)
+      resolve([err, (ctx ?? context) as R])
     })
   })
 }

@@ -21,6 +21,7 @@ export declare class Stage<R, C extends StageConfig<R> = StageConfig<R>> impleme
     protected run?: StageRun<R>;
     protected compile(rebuild?: boolean): StageRun<R>;
     protected rescue(_err: unknown, context: unknown, fail: (err: unknown) => void, success: (ctx: unknown) => void): void;
+    protected rescue_async(_err: unknown, context: unknown): Promise<[unknown, unknown]>;
     protected validate(validate: ValidateFunction, context: unknown, callback: CallbackFunction<R>): void;
     protected ensure(ensure: EnsureFunction<unknown>, context: unknown, callback: CallbackFunction<R>): void;
 }

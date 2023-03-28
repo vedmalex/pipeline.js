@@ -26,49 +26,43 @@ class Parallel extends stage_1.Stage {
     compile(rebuild = false) {
         if (this.config.stage) {
             var run = (err, ctx, done) => {
-                var iter = 0;
                 var children = this.split(ctx);
                 var len = children ? children.length : 0;
                 let errors;
                 let hasError = false;
-                var next = (index) => {
-                    return (err, retCtx) => {
-                        if (!err) {
-                            children[index] = retCtx !== null && retCtx !== void 0 ? retCtx : children[index];
-                        }
-                        else {
-                            if (!hasError) {
-                                hasError = true;
-                                errors = [];
+                const build = (i) => {
+                    return new Promise(resolve => {
+                        (0, run_or_execute_1.run_or_execute)(this.config.stage, err, children[i], (err, res) => {
+                            if (err) {
+                                if (!hasError) {
+                                    hasError = true;
+                                    errors = [];
+                                }
+                                const error = new ParallelError({
+                                    stage: this.name,
+                                    index: i,
+                                    err: err,
+                                    ctx: children[i],
+                                });
+                                if (error)
+                                    errors.push(error);
                             }
-                            const error = new ParallelError({
-                                stage: this.name,
-                                index: index,
-                                err: err,
-                                ctx: children[index],
-                            });
-                            if (error)
-                                errors.push(error);
-                        }
-                        iter += 1;
-                        if (iter >= len) {
-                            if (!hasError) {
-                                let result = this.combine(ctx, children);
-                                return done(undefined, result);
-                            }
-                            else {
-                                return done((0, ErrorList_1.CreateError)(errors), ctx);
-                            }
-                        }
-                    };
+                            resolve([err, res]);
+                        });
+                    });
                 };
                 if (len === 0) {
                     return done(err, ctx);
                 }
                 else {
-                    for (var i = 0; i < len; i++) {
-                        (0, run_or_execute_1.run_or_execute)(this.config.stage, err, children[i], next(i));
+                    let result = [];
+                    for (let i = 0; i < children.length; i++) {
+                        result.push(build(i));
                     }
+                    Promise.all(result).then(res => {
+                        let result = this.combine(ctx, res.map(r => r[1]));
+                        done((0, ErrorList_1.CreateError)(errors), result);
+                    });
                 }
             };
             this.run = run;

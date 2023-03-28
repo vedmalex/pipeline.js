@@ -42,12 +42,16 @@ class DoWhile extends stage_1.Stage {
             let iter = -1;
             const next = async (err) => {
                 iter++;
+                let retCtx;
                 while (!this.reachEnd(err, context, iter)) {
-                    try {
-                        context = await (0, run_or_execute_1.run_or_execute_async)(this.config.stage, err, this.split(context, iter));
-                    }
-                    catch (err) {
-                        return done(err);
+                    ;
+                    [err, retCtx] = await (0, run_or_execute_1.run_or_execute_async)(this.config.stage, err, this.split(context, iter));
+                    if (err) {
+                        ;
+                        [err, context] = await this.rescue_async(err, retCtx);
+                        if (err) {
+                            return done(err);
+                        }
                     }
                     iter++;
                 }
