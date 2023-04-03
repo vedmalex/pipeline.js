@@ -1,6 +1,7 @@
 import { Stage } from './stage';
-import { AnyStage, DoWhileConfig } from './utils/types/types';
-import { SingleStageFunction, StageRun } from './utils/types/types';
+import { AnyStage, DoWhileConfig } from './utils/types';
+import { StageRun } from './utils/types';
+import { SingleStageFunction } from './utils/types/stage/SingleStageFunction';
 export declare class DoWhile<R, T, C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>> extends Stage<R, C> {
     constructor();
     constructor(stage: AnyStage<R>);

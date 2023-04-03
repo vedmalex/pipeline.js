@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.run_callback_once = void 0;
-const ErrorList_1 = require("./ErrorList");
+const CreateError_1 = require("./errors/CreateError");
 function run_callback_once(wrapee) {
     let done_call = 0;
     const c = function (err, ctx) {
@@ -13,7 +13,7 @@ function run_callback_once(wrapee) {
             throw err;
         }
         else {
-            throw (0, ErrorList_1.CreateError)([ctx, 'callback called more than once']);
+            throw (0, CreateError_1.CreateError)([ctx, 'callback called more than once']);
         }
     };
     return c;

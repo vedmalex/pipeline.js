@@ -4,8 +4,8 @@ exports.MultiWaySwitch = exports.getMultWaySwitchConfig = exports.isMultiWaySwit
 const stage_1 = require("./stage");
 const ErrorList_1 = require("./utils/ErrorList");
 const run_or_execute_1 = require("./utils/run_or_execute");
-const types_1 = require("./utils/types/types");
-const types_2 = require("./utils/types/types");
+const types_1 = require("./utils/types");
+const types_2 = require("./utils/types");
 function isMultiWaySwitch(inp) {
     return (typeof inp == 'object' && inp != null && 'stage' in inp && (0, types_2.isRunPipelineFunction)(inp['stage']));
 }

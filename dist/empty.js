@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Empty = void 0;
 const stage_1 = require("./stage");
-const types_1 = require("./utils/types/types");
-const types_2 = require("./utils/types/types");
+const types_1 = require("./utils/types");
+const types_2 = require("./utils/types");
 class Empty extends stage_1.Stage {
     constructor(config) {
         super();

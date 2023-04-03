@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Template = exports.getTemplateConfig = void 0;
 const stage_1 = require("../stage");
-const ErrorList_1 = require("./ErrorList");
-const types_1 = require("./types/types");
-const types_2 = require("./types/types");
+const CreateError_1 = require("../errors/CreateError");
+const types_1 = require("./types");
+const types_2 = require("./types");
 function getTemplateConfig(config) {
     const res = (0, types_1.getStageConfig)(config);
     if ((0, types_2.isAnyStage)(res)) {
@@ -12,7 +12,7 @@ function getTemplateConfig(config) {
     }
     else if (typeof config == 'object' && !(0, types_2.isAnyStage)(config)) {
         if (config.run && config.stage) {
-            throw (0, ErrorList_1.CreateError)("don't use run and stage both");
+            throw (0, CreateError_1.CreateError)("don't use run and stage both");
         }
         if (config.run) {
             res.stage = config.run;

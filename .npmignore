@@ -1,1 +1,9 @@
 node_modules/
+coverage/
+benchmark/
+.vscode/
+src/
+tsconfig.*
+rollup.*
+jest.*
+README.old.md

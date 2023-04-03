@@ -1,7 +1,9 @@
 import { ContextType } from './context';
 import { Stage } from './stage';
-import { AllowedStage, RunPipelineFunction, EvaluateFunction } from './utils/types/types';
-import { StageConfig, StageRun, AnyStage } from './utils/types/types';
+import { AllowedStage, StageEvaluateFunction } from './utils/types';
+import { StageRun, AnyStage } from './utils/types';
+import { StageConfig } from './stage/StageConfig';
+import { RunPipelineFunction } from './stage/RunPipelineFunction';
 export type MultiWaySwitchCase<R, T> = MultiWaySwitchStatic<R, T> | MultiWaySwitchDynamic<R, T>;
 export type CombineFunction<R, T> = ((ctx: ContextType<R>, children: T) => R) | ((ctx: ContextType<R>, children: T) => unknown);
 export type SplitFunction<R, T> = ((ctx: ContextType<R>) => ContextType<T>) | ((ctx: ContextType<R>) => T);
@@ -13,7 +15,7 @@ export interface MultiWaySwitchStatic<R, T> {
 }
 export interface MultiWaySwitchDynamic<R, T> {
     stage: AnyStage<R> | RunPipelineFunction<R> | AllowedStage<R, StageConfig<R>>;
-    evaluate: EvaluateFunction<R>;
+    evaluate: StageEvaluateFunction<R>;
     split?: SplitFunction<R, T>;
     combine?: CombineFunction<R, T>;
 }

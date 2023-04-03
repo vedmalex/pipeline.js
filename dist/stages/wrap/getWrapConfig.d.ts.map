@@ -1,0 +1,1 @@
+{"version":3,"file":"getWrapConfig.d.ts","sourceRoot":"","sources":["../../../src/stages/wrap/getWrapConfig.ts"],"names":[],"mappings":"AAGA,OAAO,EAAE,UAAU,EAAE,MAAM,cAAc,CAAA;AACzC,OAAO,EAAE,YAAY,EAAE,MAAM,gCAAgC,CAAA;AAG7D,wBAAgB,aAAa,CAAC,CAAC,EAAE,CAAC,EAAE,CAAC,SAAS,UAAU,CAAC,CAAC,EAAE,CAAC,CAAC,EAAE,MAAM,EAAE,YAAY,CAAC,CAAC,EAAE,CAAC,CAAC,GAAG,CAAC,CAuB7F"}

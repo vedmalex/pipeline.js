@@ -1,17 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.execute_callback = void 0;
-const ErrorList_1 = require("./ErrorList");
+const CreateError_1 = require("./errors/CreateError");
 const errors_1 = require("./errors");
-const process_error_1 = require("./process_error");
+const process_error_1 = require("./errors/process_error");
 const run_callback_once_1 = require("./run_callback_once");
-const types_1 = require("./types/types");
+const types_1 = require("./types");
+const types_2 = require("./types");
 function execute_callback(err, run, context, _done) {
     const done = (0, run_callback_once_1.run_callback_once)(_done);
-    if ((0, types_1.isStageCallbackFunction)(run))
+    if ((0, types_2.isStageCallbackFunction)(run))
         switch (run.length) {
             case 0:
-                if ((0, types_1.isCallback0Async)(run)) {
+                if ((0, types_2.isCallback0Async)(run)) {
                     try {
                         const res = run.call(context);
                         res.then(res => done(undefined, res !== null && res !== void 0 ? res : context)).catch(err => done(err));
@@ -20,7 +21,7 @@ function execute_callback(err, run, context, _done) {
                         (0, process_error_1.process_error)(err, done);
                     }
                 }
-                else if ((0, types_1.isCallback0Sync)(run)) {
+                else if ((0, types_2.isCallback0Sync)(run)) {
                     try {
                         const res = run.apply(context);
                         if (res instanceof Promise) {
@@ -39,7 +40,7 @@ function execute_callback(err, run, context, _done) {
                 }
                 break;
             case 1:
-                if ((0, types_1.isCallback1Async)(run)) {
+                if ((0, types_2.isCallback1Async)(run)) {
                     try {
                         run
                             .call(this, context)
@@ -50,7 +51,7 @@ function execute_callback(err, run, context, _done) {
                         (0, process_error_1.process_error)(err, done);
                     }
                 }
-                else if ((0, types_1.isCallback1Sync)(run)) {
+                else if ((0, types_2.isCallback1Sync)(run)) {
                     try {
                         const res = run.call(this, context);
                         if (res instanceof Promise) {
@@ -68,11 +69,11 @@ function execute_callback(err, run, context, _done) {
                     }
                 }
                 else {
-                    done((0, ErrorList_1.CreateError)(errors_1.ERROR.signature));
+                    done((0, CreateError_1.CreateError)(errors_1.ERROR.signature));
                 }
                 break;
             case 2:
-                if ((0, types_1.isCallback2Async)(run)) {
+                if ((0, types_2.isCallback2Async)(run)) {
                     try {
                         run
                             .call(this, err, context)
@@ -83,7 +84,7 @@ function execute_callback(err, run, context, _done) {
                         (0, process_error_1.process_error)(err, done);
                     }
                 }
-                else if ((0, types_1.isCallback2Callback)(run)) {
+                else if ((0, types_2.isCallback2Callback)(run)) {
                     try {
                         run.call(this, context, done);
                     }
@@ -92,11 +93,11 @@ function execute_callback(err, run, context, _done) {
                     }
                 }
                 else {
-                    done((0, ErrorList_1.CreateError)(errors_1.ERROR.signature));
+                    done((0, CreateError_1.CreateError)(errors_1.ERROR.signature));
                 }
                 break;
             case 3:
-                if ((0, types_1.isCallback3Callback)(run)) {
+                if ((0, types_2.isCallback3Callback)(run)) {
                     try {
                         run.call(this, err, context, done);
                     }
@@ -105,11 +106,11 @@ function execute_callback(err, run, context, _done) {
                     }
                 }
                 else {
-                    done((0, ErrorList_1.CreateError)(errors_1.ERROR.signature));
+                    done((0, CreateError_1.CreateError)(errors_1.ERROR.signature));
                 }
                 break;
             default:
-                done((0, ErrorList_1.CreateError)(errors_1.ERROR.signature));
+                done((0, CreateError_1.CreateError)(errors_1.ERROR.signature));
         }
 }
 exports.execute_callback = execute_callback;

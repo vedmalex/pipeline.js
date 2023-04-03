@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DoWhile = void 0;
 const stage_1 = require("./stage");
 const run_or_execute_1 = require("./utils/run_or_execute");
-const types_1 = require("./utils/types/types");
+const types_1 = require("./utils/types");
 class DoWhile extends stage_1.Stage {
     constructor(config) {
         super();
@@ -48,7 +48,7 @@ class DoWhile extends stage_1.Stage {
                     [err, retCtx] = await (0, run_or_execute_1.run_or_execute_async)(this.config.stage, err, this.split(context, iter));
                     if (err) {
                         ;
-                        [err, context] = await this.rescue_async(err, retCtx);
+                        [err, context] = (await this.rescue_async(err, retCtx));
                         if (err) {
                             return done(err);
                         }

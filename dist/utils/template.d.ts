@@ -1,6 +1,6 @@
 import { Stage } from '../stage';
-import { AllowedStage, RunPipelineFunction, AnyStage, StageRun } from './types/types';
-import { StageConfig } from './types/types';
+import { AllowedStage, RunPipelineFunction, AnyStage, StageRun } from './types';
+import { StageConfig } from './types';
 export interface TemplateConfig<R> extends StageConfig<R> {
     stage: AnyStage<R> | RunPipelineFunction<R>;
 }

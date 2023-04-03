@@ -1,0 +1,24 @@
+export const fStage: typeof import("./stage").fStage;
+export const fPipeline: typeof import("./pipeline").fPipeline;
+export const fSequential: typeof import("./sequential").fSequential;
+export const fIfElse: typeof import("./ifelse").fIfElse;
+export const fMultiWaySwitch: typeof import("./multywayswitch").fMultiWaySwitch;
+export const fCase: typeof import("./multywayswitch").fCase;
+export const fParallel: typeof import("./parallel").fParallel;
+export const fTimeout: typeof import("./timeout").fTimeout;
+export const fWrap: typeof import("./wrap").fWrap;
+export const fRetryOnError: typeof import("./retryonerror").fRetryOnError;
+export const fDoWhile: typeof import("./dowhile").fDoWhile;
+export const Stage: (fn: any) => import("./stage").fStage;
+export const Pipeline: (stage: any) => import("./pipeline").fPipeline;
+export { Pipeline as Pipe };
+export const Parallel: (stage: any) => import("./parallel").fParallel;
+export const Sequential: (stage: any) => import("./sequential").fSequential;
+export const RetryOnError: (stage: any) => import("./retryonerror").fRetryOnError;
+export const Timeout: (st: any) => import("./timeout").fTimeout;
+export const Wrap: (stage: any) => import("./wrap").fWrap;
+export const DoWhile: (stage: any) => import("./dowhile").fDoWhile;
+export const If: (condition: any) => import("./ifelse").fIfElse;
+export const MWS: () => import("./multywayswitch").fMultiWaySwitch;
+export const MWCase: (fn: any) => import("./multywayswitch").fCase;
+//# sourceMappingURL=index.d.ts.map

@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Wrap = void 0;
 const stage_1 = require("./stage");
 const run_or_execute_1 = require("./utils/run_or_execute");
-const types_1 = require("./utils/types/types");
+const types_1 = require("./utils/types");
 class Wrap extends stage_1.Stage {
     constructor(config) {
         super();

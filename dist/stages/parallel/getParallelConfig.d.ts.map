@@ -1,0 +1,1 @@
+{"version":3,"file":"getParallelConfig.d.ts","sourceRoot":"","sources":["../../../src/stages/parallel/getParallelConfig.ts"],"names":[],"mappings":"AAAA,OAAO,EACL,YAAY,EAMb,MAAM,aAAa,CAAA;AACpB,OAAO,EAAE,cAAc,EAAE,MAAM,kBAAkB,CAAA;AAEjD,wBAAgB,iBAAiB,CAAC,CAAC,EAAE,CAAC,EAAE,CAAC,SAAS,cAAc,CAAC,CAAC,EAAE,CAAC,CAAC,EAAE,MAAM,EAAE,YAAY,CAAC,CAAC,EAAE,CAAC,CAAC,GAAG,CAAC,CA0BrG"}

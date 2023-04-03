@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Stage = exports.isStage = exports.StageSymbol = void 0;
 const ErrorList_1 = require("./utils/ErrorList");
-const types_1 = require("./utils/types/types");
+const types_1 = require("./utils/types");
 const context_1 = require("./context");
 const can_fix_error_1 = require("./utils/can_fix_error");
 const execute_callback_1 = require("./utils/execute_callback");
@@ -10,7 +10,7 @@ const execute_custom_run_1 = require("./utils/execute_custom_run");
 const execute_ensure_1 = require("./utils/execute_ensure");
 const execute_rescue_1 = require("./utils/execute_rescue");
 const execute_validate_1 = require("./utils/execute_validate");
-const types_2 = require("./utils/types/types");
+const types_2 = require("./utils/types");
 exports.StageSymbol = Symbol('stage');
 function isStage(obj) {
     return typeof obj === 'object' && obj !== null && exports.StageSymbol in obj;
@@ -186,7 +186,7 @@ class Stage {
     compile(rebuild = false) {
         let res;
         if (this.config.precompile) {
-            this.config.precompile();
+            this.config.precompile.apply(this);
         }
         if (this.config.compile) {
             res = this.config.compile.call(this, rebuild);
@@ -267,7 +267,7 @@ class Stage {
     }
     ensure(ensure, context, callback) {
         (0, execute_ensure_1.execute_ensure)(ensure, context, (err, result) => {
-            callback(err, (result !== null && result !== void 0 ? result : context));
+            callback(err, result !== null && result !== void 0 ? result : context);
         });
     }
 }
