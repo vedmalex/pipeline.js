@@ -1,7 +1,7 @@
 import { JSONSchemaType } from 'ajv'
 import 'jest'
 import { Stage } from './stage'
-import { StageConfig } from './StageConfig'
+import { StageConfigValidator } from './StageConfig'
 
 describe('stage', () => {
   it('throw error', done => {

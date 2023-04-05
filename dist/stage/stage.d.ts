@@ -1,6 +1,6 @@
 import { StageConfig } from './StageConfig';
+import { StageSymbol } from './getStageConfig';
 import { AnyStage, CallbackFunction, EnsureFunction, RunPipelineFunction, StageObject, StageRun, ValidateFunction } from './types';
-export declare const StageSymbol: unique symbol;
 export declare class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyStage<R> {
     get config(): C;
     [StageSymbol]: boolean;

@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isEvaluateFunction = exports.StageEvaluateFunction = void 0;
+exports.isEvaluateFunction = exports.StageEvaluateFunctionValidator = void 0;
 const tslib_1 = require("tslib");
 const z = tslib_1.__importStar(require("zod"));
-exports.StageEvaluateFunction = z.custom((f) => {
+exports.StageEvaluateFunctionValidator = z.custom((f) => {
     if (typeof f === 'function') {
         return f.length === 1;
     }
@@ -11,7 +11,7 @@ exports.StageEvaluateFunction = z.custom((f) => {
         return false;
 }, 'EvaluateFunction');
 function isEvaluateFunction(arg) {
-    return exports.StageEvaluateFunction.safeParse(arg)['success'];
+    return exports.StageEvaluateFunctionValidator.safeParse(arg)['success'];
 }
 exports.isEvaluateFunction = isEvaluateFunction;
 //# sourceMappingURL=StageEvaluateFunction.js.map

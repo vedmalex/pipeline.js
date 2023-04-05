@@ -19,4 +19,4 @@ export function isSingleStageFunction<R>(inp?: unknown): inp is SingleStageFunct
   return isSingleStage3Function<R>(inp) || isSingleStageFunction2<R>(inp)
 }
 export type SingleStageFunction<R> = SingleStage2Function<R> | SingleStage3Function<R>
-export const SingleStageFunction = z.union([SingleStage2Function, SingleStage3Function])
+export const SingleStageFunctionValidator = z.union([SingleStage2Function, SingleStage3Function])

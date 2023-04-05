@@ -1,4 +1,5 @@
-import { CallbackFunction, isAnyStage } from '../types'
+import { isAnyStage } from '../getStageConfig'
+import { CallbackFunction } from '../types'
 import { execute_callback } from './execute_callback'
 
 export function run_or_execute<R>(stage: unknown, err: unknown, context: unknown, _done: CallbackFunction<R>): void {

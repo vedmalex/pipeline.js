@@ -3,11 +3,11 @@ import { is_async_function } from './is_async_function'
 
 export type CallbackFunction<R> = (err?: any, res?: R) => void
 
-export const CallbackFunction = z.function().args(z.any().optional(), z.any().optional()).returns(z.void())
+export const CallbackFunctionValidator = z.function().args(z.any().optional(), z.any().optional()).returns(z.void())
 
 export function CallbackFunctionWrap(inp: unknown) {
   if (isCallbackFunction(inp)) {
-    return CallbackFunction.implement(inp)
+    return CallbackFunctionValidator.implement(inp)
   } else {
     throw new Error('input not suitable for callback')
   }

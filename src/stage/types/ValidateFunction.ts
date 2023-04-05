@@ -1,5 +1,5 @@
 import * as z from 'zod'
-import { CallbackFunction } from './CallbackFunction'
+import { CallbackFunctionValidator, CallbackFunction } from './CallbackFunction'
 import { Thanable } from './is_thenable'
 import { is_async_function } from './is_async_function'
 
@@ -29,7 +29,7 @@ export function isValidateFunction1Thenable<R>(inp: unknown): inp is ValidateFun
 }
 
 export type ValidateFunction2Sync<R> = (this: void, ctx: R, callback: CallbackFunction<boolean>) => void
-export const ValidateFunction2Sync = z.function().args(z.any(), CallbackFunction).returns(z.void())
+export const ValidateFunction2Sync = z.function().args(z.any(), CallbackFunctionValidator).returns(z.void())
 export function isValidateFunction2Sync<R>(inp: unknown): inp is ValidateFunction2Sync<R> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 2
 }

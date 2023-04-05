@@ -1,4 +1,4 @@
-import { StageConfig as StageConfig } from '../StageConfig'
+import { StageConfig } from '../StageConfig'
 import { RunPipelineFunction } from './RunPipelineFunction'
 import { AnyStage } from './AnyStage'
 

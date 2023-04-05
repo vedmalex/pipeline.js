@@ -25,7 +25,7 @@ function isValidateFunction1Thenable(inp) {
     return !(0, is_async_function_1.is_async_function)(inp) && typeof inp == 'function' && inp.length == 1;
 }
 exports.isValidateFunction1Thenable = isValidateFunction1Thenable;
-exports.ValidateFunction2Sync = z.function().args(z.any(), CallbackFunction_1.CallbackFunction).returns(z.void());
+exports.ValidateFunction2Sync = z.function().args(z.any(), CallbackFunction_1.CallbackFunctionValidator).returns(z.void());
 function isValidateFunction2Sync(inp) {
     return !(0, is_async_function_1.is_async_function)(inp) && typeof inp == 'function' && inp.length == 2;
 }

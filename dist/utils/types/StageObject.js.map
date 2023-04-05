@@ -1,1 +1,0 @@
-{"version":3,"file":"StageObject.js","sourceRoot":"","sources":["../../../src/utils/types/StageObject.ts"],"names":[],"mappings":";;;;AACA,+CAAwB;AAEX,QAAA,WAAW,GAAG,CAAC,CAAC,MAAM,CAAC,EAAE,CAAC,CAAC,WAAW,EAAE,CAAA;AACrD,SAAgB,aAAa,CAAC,GAAQ;IACpC,OAAO,mBAAW,CAAC,SAAS,CAAC,GAAG,CAAC,CAAC,SAAS,CAAC,CAAA;AAC9C,CAAC;AAFD,sCAEC"}

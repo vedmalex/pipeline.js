@@ -2,7 +2,7 @@ import { JSONSchemaType } from 'ajv'
 import * as z from 'zod'
 import { CompileFunction, EnsureFunction, Precompile, Rescue, RunPipelineFunction, ValidateFunction } from './types'
 
-export const StageConfig = z
+export const StageConfigValidator = z
   .object({
     run: RunPipelineFunction.optional(),
     name: z.string().optional(),
@@ -19,7 +19,7 @@ export const StageConfig = z
   }, 'ensure, validate, and schema are mutually exclusive')
 
 export function isStageConfig<R>(obj: unknown): obj is StageConfig<R> {
-  return typeof obj === 'object' && obj !== null && StageConfig.safeParse(obj)['success']
+  return typeof obj === 'object' && obj !== null && StageConfigValidator.safeParse(obj)['success']
 }
 
 export interface StageConfig<R> {

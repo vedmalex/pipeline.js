@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isStageObject = exports.StageObject = void 0;
+exports.isStageObject = exports.StageObjectValidator = void 0;
 const tslib_1 = require("tslib");
 const z = tslib_1.__importStar(require("zod"));
-exports.StageObject = z.object({}).passthrough();
+exports.StageObjectValidator = z.object({}).passthrough();
 function isStageObject(arg) {
-    return exports.StageObject.safeParse(arg)['success'];
+    return exports.StageObjectValidator.safeParse(arg)['success'];
 }
 exports.isStageObject = isStageObject;
 //# sourceMappingURL=StageObject.js.map

@@ -1,7 +1,7 @@
 import * as z from 'zod'
 
 export type StageEvaluateFunction<R> = (ctx: R) => boolean
-export const StageEvaluateFunction = z.custom<StageEvaluateFunction<unknown>>(
+export const StageEvaluateFunctionValidator = z.custom<StageEvaluateFunction<unknown>>(
   (f: unknown): f is StageEvaluateFunction<unknown> => {
     if (typeof f === 'function') {
       return f.length === 1
@@ -11,5 +11,5 @@ export const StageEvaluateFunction = z.custom<StageEvaluateFunction<unknown>>(
 )
 
 export function isEvaluateFunction<R>(arg: any): arg is StageEvaluateFunction<R> {
-  return StageEvaluateFunction.safeParse(arg)['success']
+  return StageEvaluateFunctionValidator.safeParse(arg)['success']
 }

@@ -6,4 +6,6 @@ src/
 tsconfig.*
 rollup.*
 jest.*
-README.old.md
+.eslintrc.js
+TODO.md
+old.md

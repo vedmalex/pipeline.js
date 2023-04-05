@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isCallbackFunction = exports.CallbackFunctionWrap = exports.CallbackFunction = void 0;
+exports.isCallbackFunction = exports.CallbackFunctionWrap = exports.CallbackFunctionValidator = void 0;
 const tslib_1 = require("tslib");
 const z = tslib_1.__importStar(require("zod"));
 const is_async_function_1 = require("./is_async_function");
-exports.CallbackFunction = z.function().args(z.any().optional(), z.any().optional()).returns(z.void());
+exports.CallbackFunctionValidator = z.function().args(z.any().optional(), z.any().optional()).returns(z.void());
 function CallbackFunctionWrap(inp) {
     if (isCallbackFunction(inp)) {
-        return exports.CallbackFunction.implement(inp);
+        return exports.CallbackFunctionValidator.implement(inp);
     }
     else {
         throw new Error('input not suitable for callback');

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Stage = exports.StageSymbol = void 0;
+exports.Stage = void 0;
 const Context_1 = require("./Context");
 const errors_1 = require("./errors");
 const getStageConfig_1 = require("./getStageConfig");
@@ -10,16 +10,15 @@ const execute_custom_run_1 = require("./utils/execute_custom_run");
 const execute_ensure_1 = require("./utils/execute_ensure");
 const execute_rescue_1 = require("./utils/execute_rescue");
 const execute_validate_1 = require("./utils/execute_validate");
-exports.StageSymbol = Symbol('stage');
 class Stage {
     get config() {
         return this._config;
     }
     constructor(config) {
-        this[exports.StageSymbol] = true;
+        this[getStageConfig_1.StageSymbol] = true;
         if (config) {
             let res = (0, getStageConfig_1.getStageConfig)(config);
-            if ((0, types_1.isAnyStage)(res)) {
+            if ((0, getStageConfig_1.isAnyStage)(res)) {
                 return res;
             }
             else {

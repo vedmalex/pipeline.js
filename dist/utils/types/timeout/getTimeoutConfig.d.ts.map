@@ -1,1 +1,0 @@
-{"version":3,"file":"getTimeoutConfig.d.ts","sourceRoot":"","sources":["../../../../src/utils/types/timeout/getTimeoutConfig.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,aAAa,EAAE,MAAM,kBAAkB,CAAA;AAChD,OAAO,EAAE,YAAY,EAAE,MAAM,6BAA6B,CAAA;AAG1D,wBAAgB,gBAAgB,CAAC,CAAC,EAAE,CAAC,SAAS,aAAa,CAAC,CAAC,CAAC,EAAE,MAAM,EAAE,YAAY,CAAC,CAAC,EAAE,CAAC,CAAC,GAAG,CAAC,CAqB7F"}

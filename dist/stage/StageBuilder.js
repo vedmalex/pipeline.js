@@ -48,10 +48,10 @@ class StageBuilder {
         return this;
     }
     isValid() {
-        StageConfig_1.StageConfig.parse(this.cfg);
+        StageConfig_1.StageConfigValidator.parse(this.cfg);
     }
     get config() {
-        return StageConfig_1.StageConfig.parse(this.cfg);
+        return StageConfig_1.StageConfigValidator.parse(this.cfg);
     }
 }
 exports.StageBuilder = StageBuilder;

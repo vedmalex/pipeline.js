@@ -1,7 +1,7 @@
 import { Context, ContextType, OriginalObject } from './Context'
 import { StageConfig } from './StageConfig'
 import { ComplexError, CreateError, can_fix_error } from './errors'
-import { getStageConfig } from './getStageConfig'
+import { StageSymbol, getStageConfig, isAnyStage } from './getStageConfig'
 import {
   AllowedStage,
   AnyStage,
@@ -12,7 +12,6 @@ import {
   StageObject,
   StageRun,
   ValidateFunction,
-  isAnyStage,
   isStageRun,
 } from './types'
 import { execute_callback } from './utils/execute_callback'
@@ -20,8 +19,6 @@ import { execute_custom_run } from './utils/execute_custom_run'
 import { execute_ensure } from './utils/execute_ensure'
 import { execute_rescue } from './utils/execute_rescue'
 import { execute_validate } from './utils/execute_validate'
-
-export const StageSymbol = Symbol('stage')
 
 export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyStage<R> {
   public get config(): C {

@@ -1,5 +1,6 @@
 import { CallbackFunction } from './CallbackFunction';
 export interface AnyStage<R> {
+    config: any;
     get reportName(): string;
     get name(): string;
     toString(): string;

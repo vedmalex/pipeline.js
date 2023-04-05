@@ -1,6 +1,6 @@
 import * as z from 'zod'
 
-import { CallbackFunction } from './CallbackFunction'
+import { CallbackFunction, CallbackFunctionValidator } from './CallbackFunction'
 import { is_async_function } from './is_async_function'
 
 export type EnsureSync<R> = (ctx: R) => R
@@ -10,7 +10,7 @@ export type EnsureAsync<R> = (ctx: R) => Promise<R>
 export const EnsureAsync = z.function().args(z.any()).returns(z.promise(z.any()))
 
 export type EnsureCallback<R> = (ctx: R, done: CallbackFunction<R>) => void
-export const EnsureCallback = z.function().args(z.any(), CallbackFunction).returns(z.undefined())
+export const EnsureCallback = z.function().args(z.any(), CallbackFunctionValidator).returns(z.undefined())
 
 export function isEnsureSync<R>(inp: unknown): inp is EnsureSync<R> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length === 1

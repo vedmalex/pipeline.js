@@ -1,6 +1,6 @@
 import { JSONSchemaType } from 'ajv'
 import * as z from 'zod'
-import { StageConfig } from './StageConfig'
+import { StageConfigValidator, StageConfig } from './StageConfig'
 import { CompileFunction, EnsureFunction, Precompile, Rescue, RunPipelineFunction, ValidateFunction } from './types'
 import { CreateError } from './errors'
 
@@ -46,9 +46,9 @@ export class StageBuilder<R, C extends StageConfig<R>> {
     return this
   }
   isValid() {
-    StageConfig.parse(this.cfg)
+    StageConfigValidator.parse(this.cfg)
   }
   get config() {
-    return StageConfig.parse(this.cfg)
+    return StageConfigValidator.parse(this.cfg)
   }
 }

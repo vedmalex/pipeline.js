@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.run_or_execute_async = exports.run_or_execute = void 0;
-const types_1 = require("../types");
+const getStageConfig_1 = require("../getStageConfig");
 const execute_callback_1 = require("./execute_callback");
 function run_or_execute(stage, err, context, _done) {
     const done = (err, ctx) => {
         _done(err, ctx !== null && ctx !== void 0 ? ctx : context);
     };
-    if ((0, types_1.isAnyStage)(stage)) {
+    if ((0, getStageConfig_1.isAnyStage)(stage)) {
         stage.execute(err, context, done);
     }
     else {

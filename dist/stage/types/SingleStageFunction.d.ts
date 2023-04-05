@@ -8,5 +8,5 @@ export declare const SingleStage3Function: z.ZodFunction<z.ZodTuple<[z.ZodUnknow
 export declare function isSingleStage3Function<R>(inp?: unknown): inp is SingleStage3Function<R>;
 export declare function isSingleStageFunction<R>(inp?: unknown): inp is SingleStageFunction<R>;
 export type SingleStageFunction<R> = SingleStage2Function<R> | SingleStage3Function<R>;
-export declare const SingleStageFunction: z.ZodUnion<[z.ZodFunction<z.ZodTuple<[z.ZodUnknown, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>], z.ZodUnknown>, z.ZodVoid>, z.ZodFunction<z.ZodTuple<[z.ZodUnknown, z.ZodUnknown, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>], z.ZodUnknown>, z.ZodVoid>]>;
+export declare const SingleStageFunctionValidator: z.ZodUnion<[z.ZodFunction<z.ZodTuple<[z.ZodUnknown, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>], z.ZodUnknown>, z.ZodVoid>, z.ZodFunction<z.ZodTuple<[z.ZodUnknown, z.ZodUnknown, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>], z.ZodUnknown>, z.ZodVoid>]>;
 //# sourceMappingURL=SingleStageFunction.d.ts.map
