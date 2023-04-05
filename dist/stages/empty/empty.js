@@ -19,4 +19,4 @@ class Empty extends stage_1.Stage {
     }
 }
 exports.Empty = Empty;
-//# sourceMappingURL=empty.js.map
+//# sourceMappingURL=Empty.js.map

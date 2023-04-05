@@ -1,5 +1,5 @@
 import 'jest'
-import { Sequential } from './sequential'
+import { Sequential } from './Sequential'
 import { Stage } from '../../stage'
 import { Wrap } from '../wrap/wrap'
 

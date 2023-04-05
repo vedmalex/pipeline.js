@@ -1,5 +1,5 @@
 import 'jest'
-import { IfElse } from './ifelse'
+import { IfElse } from './IfElse'
 import { Stage } from '../../stage'
 
 describe('if->else', function () {

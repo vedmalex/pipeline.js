@@ -7,4 +7,4 @@ export declare class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>
     addStage(_stage: unknown): void;
     compile(rebuild?: boolean): StageRun<R>;
 }
-//# sourceMappingURL=pipeline.d.ts.map
+//# sourceMappingURL=Pipeline.d.ts.map

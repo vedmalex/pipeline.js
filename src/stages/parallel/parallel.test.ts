@@ -1,6 +1,7 @@
 import 'jest'
-import { Parallel } from './parallel'
+import { Parallel } from './Parallel'
 import { ComplexError, Context, Stage, isAnyStage } from '../../stage'
+import { Wrap } from '../wrap'
 
 describe('Parallel', function () {
   it('works with default', function (done) {

@@ -1,0 +1,1 @@
+{"version":3,"file":"ComplexError.d.ts","sourceRoot":"","sources":["../../../src/stage/errors/ComplexError.ts"],"names":[],"mappings":"AAAA,qBAAa,YAAa,SAAQ,KAAK;IACrC,OAAO,EAAE,KAAK,CAAC,KAAK,GAAG,MAAM,GAAG,MAAM,CAAC,CAAA;IACvC,SAAS,EAAE,OAAO,CAAA;gBAEN,GAAG,OAAO,EAAE,KAAK,CAAC,KAAK,GAAG,MAAM,GAAG,MAAM,CAAC;CAKvD"}

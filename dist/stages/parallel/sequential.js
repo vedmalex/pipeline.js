@@ -79,4 +79,4 @@ class Sequential extends stage_1.Stage {
     }
 }
 exports.Sequential = Sequential;
-//# sourceMappingURL=sequential.js.map
+//# sourceMappingURL=Sequential.js.map

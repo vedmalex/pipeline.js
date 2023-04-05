@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ParallelError = exports.Parallel = void 0;
+exports.Parallel = void 0;
 const stage_1 = require("../../stage");
 const getParallelConfig_1 = require("./getParallelConfig");
+const ParallelError_1 = require("./ParallelError");
 class Parallel extends stage_1.Stage {
     constructor(config) {
         super();
@@ -35,7 +36,7 @@ class Parallel extends stage_1.Stage {
                                     hasError = true;
                                     errors = [];
                                 }
-                                const error = new ParallelError({
+                                const error = new ParallelError_1.ParallelError({
                                     stage: this.name,
                                     index: i,
                                     err: err,
@@ -88,20 +89,4 @@ class Parallel extends stage_1.Stage {
     }
 }
 exports.Parallel = Parallel;
-class ParallelError extends Error {
-    constructor(init) {
-        super();
-        this.name = 'ParallerStageError';
-        this.stage = init.stage;
-        this.ctx = init.ctx;
-        this.err = init.err;
-        this.index = init.index;
-    }
-    toString() {
-        return `${this.name}: at stage ${this.stage} error occured:
-    iteration ${this.index}
-    ${this.err}`;
-    }
-}
-exports.ParallelError = ParallelError;
-//# sourceMappingURL=parallel.js.map
+//# sourceMappingURL=Parallel.js.map

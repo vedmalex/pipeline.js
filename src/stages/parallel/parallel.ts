@@ -10,6 +10,7 @@ import {
 } from '../../stage'
 import { ParallelConfig } from './ParallelConfig'
 import { getParallelConfig } from './getParallelConfig'
+import { ParallelError } from './ParallelError'
 
 /**
  * Process staging in parallel way
@@ -28,6 +29,7 @@ import { getParallelConfig } from './getParallelConfig'
  *
  * @param {Object} config configuration object
  */
+
 export class Parallel<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T>> extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
     super()
@@ -114,33 +116,5 @@ export class Parallel<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T
       res = ctx
     }
     return res
-  }
-}
-
-export type ParallelErrorInput = {
-  stage?: string
-  index: number
-  err: unknown
-  ctx: unknown
-}
-
-export class ParallelError extends Error {
-  override name: string
-  stage?: string
-  index: number
-  err: unknown
-  ctx: unknown
-  constructor(init: ParallelErrorInput) {
-    super()
-    this.name = 'ParallerStageError'
-    this.stage = init.stage
-    this.ctx = init.ctx
-    this.err = init.err
-    this.index = init.index
-  }
-  override toString() {
-    return `${this.name}: at stage ${this.stage} error occured:
-    iteration ${this.index}
-    ${this.err}`
   }
 }

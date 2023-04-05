@@ -6,4 +6,4 @@ export declare class IfElse<R, C extends IfElseConfig<R> = IfElseConfig<R>> exte
     toString(): string;
     compile(rebuild?: boolean): StageRun<R>;
 }
-//# sourceMappingURL=ifelse.d.ts.map
+//# sourceMappingURL=IfElse.d.ts.map

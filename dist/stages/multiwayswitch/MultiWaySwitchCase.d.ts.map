@@ -1,0 +1,1 @@
+{"version":3,"file":"MultiWaySwitchCase.d.ts","sourceRoot":"","sources":["../../../src/stages/multiwayswitch/MultiWaySwitchCase.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,qBAAqB,EAAE,MAAM,yBAAyB,CAAA;AAC/D,OAAO,EAAE,oBAAoB,EAAE,MAAM,wBAAwB,CAAA;AAE7D,MAAM,MAAM,kBAAkB,CAAC,CAAC,EAAE,CAAC,IAAI,oBAAoB,CAAC,CAAC,EAAE,CAAC,CAAC,GAAG,qBAAqB,CAAC,CAAC,EAAE,CAAC,CAAC,CAAA"}

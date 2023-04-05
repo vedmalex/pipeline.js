@@ -3,4 +3,4 @@ export declare class Empty<R, C extends StageConfig<R> = StageConfig<R>> extends
     constructor(config: AllowedStage<R, C>);
     toString(): string;
 }
-//# sourceMappingURL=empty.d.ts.map
+//# sourceMappingURL=Empty.d.ts.map

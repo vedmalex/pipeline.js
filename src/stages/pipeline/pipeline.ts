@@ -14,7 +14,7 @@ import { getPipelineConfig } from './getPipelineConfig'
 /**
  * it make possible to choose which stage to run according to result of `condition` evaluation
  *  - config as
- 		- `Function` --- first Stage for pipeline
+        - `Function` --- first Stage for pipeline
  * 		- `Stage` --- first Stage
  * 		- `Array` --- list of stages
  * 		- `Object` --- config for Pipeline
@@ -24,6 +24,7 @@ import { getPipelineConfig } from './getPipelineConfig'
  *
  * @param {Object} config configuration object
  */
+
 export class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>> extends Stage<R, C> {
   constructor(config?: PipelineConfig<R> | AllowedStage<R, C> | Array<AnyStage<R> | RunPipelineFunction<R>>) {
     super()

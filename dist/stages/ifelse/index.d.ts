@@ -1,4 +1,4 @@
 export * from './getIfElseConfig';
-export * from './ifelse';
+export * from './IfElse';
 export * from './IfElseConfig';
 //# sourceMappingURL=index.d.ts.map

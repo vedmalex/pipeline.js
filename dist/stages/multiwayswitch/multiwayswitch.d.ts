@@ -1,27 +1,7 @@
-import { AllowedStage, AnyStage, ContextType, RunPipelineFunction, Stage, StageConfig, StageEvaluateFunction, StageRun } from '../../stage';
-export type MultiWaySwitchCase<R, T> = MultiWaySwitchStatic<R, T> | MultiWaySwitchDynamic<R, T>;
-export type CombineFunction<R, T> = ((ctx: ContextType<R>, children: T) => R) | ((ctx: ContextType<R>, children: T) => unknown);
-export type SplitFunction<R, T> = ((ctx: ContextType<R>) => ContextType<T>) | ((ctx: ContextType<R>) => T);
-export interface MultiWaySwitchStatic<R, T> {
-    stage: AnyStage<R> | RunPipelineFunction<R>;
-    evaluate?: boolean;
-    split?: SplitFunction<R, T>;
-    combine?: CombineFunction<R, T>;
-}
-export interface MultiWaySwitchDynamic<R, T> {
-    stage: AnyStage<R> | RunPipelineFunction<R> | AllowedStage<R, StageConfig<R>>;
-    evaluate: StageEvaluateFunction<R>;
-    split?: SplitFunction<R, T>;
-    combine?: CombineFunction<R, T>;
-}
-export declare function isMultiWaySwitch<R, T>(inp: object): inp is MultiWaySwitchCase<R, T>;
-export interface MultWaySwitchConfig<R, T> extends StageConfig<R> {
-    cases: Array<MultiWaySwitchCase<R, T> | AnyStage<R>>;
-    split?: SplitFunction<R, T>;
-    combine?: CombineFunction<R, T>;
-}
-export type AllowedMWS<R, T, C extends StageConfig<R>> = AllowedStage<R, C> | Array<AnyStage<R> | RunPipelineFunction<R> | MultiWaySwitchCase<R, T>>;
-export declare function getMultWaySwitchConfig<R, T, C extends MultWaySwitchConfig<R, T>>(config: AllowedMWS<R, T, C>): C;
+import { Stage, StageRun } from '../../stage';
+import { AllowedMWS } from './AllowedMWS';
+import { MultWaySwitchConfig } from './MultWaySwitchConfig';
+import { MultiWaySwitchCase } from './MultiWaySwitchCase';
 export declare class MultiWaySwitch<R, T, C extends MultWaySwitchConfig<R, T> = MultWaySwitchConfig<R, T>> extends Stage<R, C> {
     constructor(config?: AllowedMWS<R, T, C>);
     get reportName(): string;
@@ -32,4 +12,4 @@ export declare class MultiWaySwitch<R, T, C extends MultWaySwitchConfig<R, T> = 
     protected splitCase(item: unknown, ctx: unknown): any;
     compile(rebuild?: boolean): StageRun<R>;
 }
-//# sourceMappingURL=multiwayswitch.d.ts.map
+//# sourceMappingURL=MultiWaySwitch.d.ts.map

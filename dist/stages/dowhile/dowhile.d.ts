@@ -11,4 +11,4 @@ export declare class DoWhile<R, T, C extends DoWhileConfig<R, T> = DoWhileConfig
     protected split(ctx: unknown, iter: number): any;
     compile(rebuild?: boolean): StageRun<R>;
 }
-//# sourceMappingURL=dowhile.d.ts.map
+//# sourceMappingURL=DoWhile.d.ts.map

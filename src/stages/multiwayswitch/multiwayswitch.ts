@@ -1,106 +1,20 @@
 import {
-  AllowedStage,
   AnyStage,
   CallbackFunction,
   ContextType,
   CreateError,
   Possible,
-  RunPipelineFunction,
   Stage,
-  StageConfig,
-  StageEvaluateFunction,
   StageRun,
-  getStageConfig,
   isAnyStage,
-  isRunPipelineFunction,
   run_or_execute,
 } from '../../stage'
-
-export type MultiWaySwitchCase<R, T> = MultiWaySwitchStatic<R, T> | MultiWaySwitchDynamic<R, T>
-
-export type CombineFunction<R, T> =
-  | ((ctx: ContextType<R>, children: T) => R)
-  | ((ctx: ContextType<R>, children: T) => unknown)
-export type SplitFunction<R, T> = ((ctx: ContextType<R>) => ContextType<T>) | ((ctx: ContextType<R>) => T)
-export interface MultiWaySwitchStatic<R, T> {
-  stage: AnyStage<R> | RunPipelineFunction<R>
-  evaluate?: boolean
-  split?: SplitFunction<R, T>
-  combine?: CombineFunction<R, T>
-}
-
-export interface MultiWaySwitchDynamic<R, T> {
-  stage: AnyStage<R> | RunPipelineFunction<R> | AllowedStage<R, StageConfig<R>>
-  evaluate: StageEvaluateFunction<R>
-  split?: SplitFunction<R, T>
-  combine?: CombineFunction<R, T>
-}
-
-export function isMultiWaySwitch<R, T>(inp: object): inp is MultiWaySwitchCase<R, T> {
-  return (
-    typeof inp == 'object' && inp != null && 'stage' in inp && isRunPipelineFunction((inp as { stage: any })['stage'])
-  )
-}
-
-//пересмотреть!!!!
-export interface MultWaySwitchConfig<R, T> extends StageConfig<R> {
-  cases: Array<MultiWaySwitchCase<R, T> | AnyStage<R>>
-  split?: SplitFunction<R, T>
-  combine?: CombineFunction<R, T>
-}
-
-export type AllowedMWS<R, T, C extends StageConfig<R>> =
-  | AllowedStage<R, C>
-  | Array<AnyStage<R> | RunPipelineFunction<R> | MultiWaySwitchCase<R, T>>
-
-export function getMultWaySwitchConfig<R, T, C extends MultWaySwitchConfig<R, T>>(config: AllowedMWS<R, T, C>): C {
-  if (Array.isArray(config)) {
-    return {
-      cases: config.map(item => {
-        let res: MultiWaySwitchCase<R, T>
-        if (isRunPipelineFunction<R>(item)) {
-          res = { stage: item, evaluate: true }
-        } else if (isAnyStage(item)) {
-          res = {
-            stage: item,
-            evaluate: true,
-          }
-        } else if (isMultiWaySwitch<R, T>(item)) {
-          res = item
-        } else {
-          throw CreateError(new Error('not suitable type for array in pipelin'))
-        }
-        return res
-      }),
-    } as C
-  } else {
-    const res = getStageConfig(config)
-    if (isAnyStage(res)) {
-      return { cases: [{ stage: res, evaluate: true }] } as C
-    } else if (typeof config == 'object' && !isAnyStage(config)) {
-      if (config?.run && config.cases && config.cases.length > 0) {
-        throw CreateError(new Error(" don't use run and stage both "))
-      }
-      if (config.run) {
-        res.cases = [{ stage: config.run, evaluate: true }]
-      }
-      if (config.cases) {
-        res.cases = config.cases
-      }
-      if (config.split) {
-        res.split = config.split
-      }
-      if (config.combine) {
-        res.combine = config.combine
-      }
-    } else if (typeof config == 'function' && res.run) {
-      res.cases = [{ stage: res.run, evaluate: true }]
-      delete res.run
-    }
-    if (typeof res.cases == 'undefined') res.cases = []
-    return res as C
-  }
-}
+import { AllowedMWS } from './AllowedMWS'
+import { MultWaySwitchConfig } from './MultWaySwitchConfig'
+import { MultiWaySwitchCase } from './MultiWaySwitchCase'
+import { MultiWaySwitchDynamic } from './MultiWaySwitchDynamic'
+import { MultiWaySwitchStatic } from './MultiWaySwitchStatic'
+import { getMultWaySwitchConfig } from './getMultWaySwitchConfig'
 
 export class MultiWaySwitch<R, T, C extends MultWaySwitchConfig<R, T> = MultWaySwitchConfig<R, T>> extends Stage<R, C> {
   constructor(config?: AllowedMWS<R, T, C>) {

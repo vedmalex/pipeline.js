@@ -1,6 +1,6 @@
 import 'jest'
 
-import { DoWhile } from './dowhile'
+import { DoWhile } from './DoWhile'
 import { Stage } from '../../stage'
 
 describe('DoWhile', function () {

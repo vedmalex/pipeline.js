@@ -14,10 +14,10 @@ export type ValidateFunction1Thenable<R> = (this: void, ctx: R) => Thanable<bool
 export declare const ValidateFunction1Thenable: z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodBoolean>;
 export declare function isValidateFunction1Thenable<R>(inp: unknown): inp is ValidateFunction1Thenable<R>;
 export type ValidateFunction2Sync<R> = (this: void, ctx: R, callback: CallbackFunction<boolean>) => void;
-export declare const ValidateFunction2Sync: z.ZodFunction<z.ZodTuple<[z.ZodAny, z.ZodEffects<z.ZodFunction<z.ZodTuple<[z.ZodAny, z.ZodAny], z.ZodUnknown>, z.ZodVoid>, (args_0: any, args_1: any, ...args_2: unknown[]) => void, (args_0: any, args_1: any, ...args_2: unknown[]) => void>], z.ZodUnknown>, z.ZodVoid>;
+export declare const ValidateFunction2Sync: z.ZodFunction<z.ZodTuple<[z.ZodAny, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodAny>, z.ZodOptional<z.ZodAny>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodVoid>;
 export declare function isValidateFunction2Sync<R>(inp: unknown): inp is ValidateFunction2Sync<R>;
 export type ValidateFunction<R> = ValidateFunction0Sync<R> | ValidateFunction1Sync<R> | ValidateFunction1Async<R> | ValidateFunction1Thenable<R> | ValidateFunction2Sync<R>;
-export declare const ValidateFunction: z.ZodUnion<[z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodBoolean>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodBoolean>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodPromise<z.ZodBoolean>>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodBoolean>, z.ZodFunction<z.ZodTuple<[z.ZodAny, z.ZodEffects<z.ZodFunction<z.ZodTuple<[z.ZodAny, z.ZodAny], z.ZodUnknown>, z.ZodVoid>, (args_0: any, args_1: any, ...args_2: unknown[]) => void, (args_0: any, args_1: any, ...args_2: unknown[]) => void>], z.ZodUnknown>, z.ZodVoid>]>;
+export declare const ValidateFunction: z.ZodUnion<[z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodBoolean>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodBoolean>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodPromise<z.ZodBoolean>>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodBoolean>, z.ZodFunction<z.ZodTuple<[z.ZodAny, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodAny>, z.ZodOptional<z.ZodAny>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodVoid>]>;
 export declare function isValidateFunction<R>(inp: unknown): inp is ValidateFunction<R>;
 export type ValidateSync<R> = (ctx: R) => R;
 export type ValidateAsync<R> = (ctx: R) => Promise<R>;

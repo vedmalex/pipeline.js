@@ -1,9 +1,7 @@
 import 'jest'
-import { Context } from './context'
-import { MultiWaySwitch } from './multiwayswitch'
-import { Pipeline } from './pipeline'
-import { Stage } from './stage'
-import { StageConfig } from './stage/StageConfig'
+import { MultiWaySwitch } from './MultiWaySwitch'
+import { Context, Stage, StageConfig } from '../../stage'
+import { Pipeline } from '../pipeline'
 
 describe('MWS', function () {
   it('works', function (done) {

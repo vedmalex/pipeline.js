@@ -19,6 +19,7 @@ import { getParallelConfig } from './getParallelConfig'
  *
  * @param {Object} config configuration object
  */
+
 export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T>> extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
     super()
@@ -49,11 +50,9 @@ export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R,
         //   if (err) {
         //     return done(err)
         //   }
-
         //   if (retCtx) {
         //     children[iter] = retCtx
         //   }
-
         //   iter += 1
         //   if (iter >= len) {
         //     let result = this.combine(ctx, children)
@@ -62,7 +61,6 @@ export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R,
         //     run_or_execute(this.config.stage, err, children[iter], next)
         //   }
         // }
-
         const next = async (err: unknown) => {
           if (err) {
             return done(err)

@@ -1,7 +1,9 @@
-import { ComplexError } from './ErrorList'
+import { ComplexError } from './ComplexError'
 
 export function isComplexError(inp: unknown): inp is ComplexError {
-  if (
+  if (inp instanceof ComplexError) {
+    return true
+  } else if (
     typeof inp == 'object' &&
     inp &&
     'isComplex' in inp &&

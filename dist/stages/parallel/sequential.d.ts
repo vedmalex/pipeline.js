@@ -9,4 +9,4 @@ export declare class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelC
     protected split(ctx: unknown): Array<unknown>;
     protected combine(ctx: unknown, children: Array<unknown>): unknown;
 }
-//# sourceMappingURL=sequential.d.ts.map
+//# sourceMappingURL=Sequential.d.ts.map

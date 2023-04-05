@@ -76,4 +76,4 @@ class Pipeline extends stage_1.Stage {
     }
 }
 exports.Pipeline = Pipeline;
-//# sourceMappingURL=pipeline.js.map
+//# sourceMappingURL=Pipeline.js.map

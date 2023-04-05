@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateError = void 0;
-const ErrorList_1 = require("./ErrorList");
+const ComplexError_1 = require("./ComplexError");
 const isComplexError_1 = require("./isComplexError");
 function CreateError(err) {
     if (typeof err == 'string') {
-        return new ErrorList_1.ComplexError(new Error(err));
+        return new ComplexError_1.ComplexError(new Error(err));
     }
     if (typeof err == 'object' && err !== null) {
         if (Array.isArray(err)) {
@@ -24,7 +24,7 @@ function CreateError(err) {
                 }
             });
             if (result.length > 1) {
-                return new ErrorList_1.ComplexError(...result);
+                return new ComplexError_1.ComplexError(...result);
             }
             if (result.length === 1) {
                 return result[0];
@@ -35,7 +35,7 @@ function CreateError(err) {
                 return err;
             }
             else {
-                return new ErrorList_1.ComplexError(err);
+                return new ComplexError_1.ComplexError(err);
             }
         }
     }

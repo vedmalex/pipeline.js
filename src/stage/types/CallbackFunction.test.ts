@@ -1,20 +1,16 @@
-import 'jest'
-import * as z from 'zod'
-import { isCallbackFunction } from './CallbackFunction'
-describe('CallbackFunction', () => {
-  it('should validate a function', () => {
-    expect(isCallbackFunction(() => {})).toBe(true)
-    expect(isCallbackFunction(err => {})).toBe(true)
-    expect(isCallbackFunction((err, ctx) => {})).toBe(true)
-    expect(isCallbackFunction((err, ctx, another) => {})).toBe(false)
+import { CallbackFunctionWrap, isCallbackFunction } from './CallbackFunction'
+
+describe('Callback function', () => {
+  it('validate callback', () => {
+    expect(isCallbackFunction(() => {})).toBeTruthy()
+    expect(isCallbackFunction(err => {})).toBeTruthy()
+    expect(isCallbackFunction((err, data) => {})).toBeTruthy()
+    expect(isCallbackFunction((err, data, some) => {})).toBeFalsy()
   })
-  it('works with function', () => {
-    const myFunction = z.function(z.tuple([z.string(), z.number()]), z.boolean())
-    expect(
-      myFunction.implement((some: string, other: number) => {
-        return Boolean(some + other)
-      })('one', 1),
-    ).toBe(true)
-    type myFunction = z.infer<typeof myFunction>
+  it('can wrap only proper function', () => {
+    expect(() => CallbackFunctionWrap(() => {})).not.toThrow()
+    expect(() => CallbackFunctionWrap(err => {})).not.toThrow()
+    expect(() => CallbackFunctionWrap((err, data) => {})).not.toThrow()
+    expect(() => CallbackFunctionWrap((err, data, some) => {})).toThrow()
   })
 })

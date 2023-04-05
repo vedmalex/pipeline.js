@@ -51,12 +51,9 @@ export class DoWhile<R, T, C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>> 
   //     }
   //     next(err)
   //   }
-
   //   this.run = run as StageRun<R>
-
   //   return super.compile(rebuild)
   // }
-
   override compile(rebuild: boolean = false): StageRun<R> {
     let run: StageRun<R> = async (err, context, done) => {
       let iter = -1

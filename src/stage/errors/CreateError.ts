@@ -1,8 +1,10 @@
 import { Possible } from '../types'
-import { ComplexError } from './ErrorList'
+import { ComplexError } from './ComplexError'
 import { isComplexError } from './isComplexError'
 
-export function CreateError(err: Error | object | Array<Error | object | string> | string): Possible<ComplexError> {
+export function CreateError(
+  err?: Error | object | Array<Error | object | string> | string | unknown | null | undefined,
+): Possible<ComplexError> {
   if (typeof err == 'string') {
     return new ComplexError(new Error(err))
   }
@@ -35,5 +37,4 @@ export function CreateError(err: Error | object | Array<Error | object | string>
       }
     }
   }
-  // throw new Error('unknown error, see console for details')
 }

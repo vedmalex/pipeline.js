@@ -1,4 +1,7 @@
 import 'jest'
+import { Stage } from '../../stage'
+import { Wrap } from './wrap'
+import { DoWhile, DoWhileConfig } from '../dowhile'
 
 describe('Wrap', function () {
   it('works', function (done) {
