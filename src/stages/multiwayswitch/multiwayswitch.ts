@@ -5,6 +5,7 @@ import {
   CreateError,
   Possible,
   Stage,
+  StageObject,
   StageRun,
   isAnyStage,
   run_or_execute,
@@ -16,7 +17,11 @@ import { MultiWaySwitchDynamic } from './MultiWaySwitchDynamic'
 import { MultiWaySwitchStatic } from './MultiWaySwitchStatic'
 import { getMultWaySwitchConfig } from './getMultWaySwitchConfig'
 
-export class MultiWaySwitch<R, T, C extends MultWaySwitchConfig<R, T> = MultWaySwitchConfig<R, T>> extends Stage<R, C> {
+export class MultiWaySwitch<
+  R extends StageObject,
+  T extends StageObject,
+  C extends MultWaySwitchConfig<R, T> = MultWaySwitchConfig<R, T>,
+> extends Stage<R, C> {
   constructor(config?: AllowedMWS<R, T, C>) {
     super()
     if (config) {
@@ -32,17 +37,17 @@ export class MultiWaySwitch<R, T, C extends MultWaySwitchConfig<R, T> = MultWayS
     return '[pipeline MultWaySwitch]'
   }
 
-  protected combine(ctx: unknown, retCtx: unknown): unknown {
+  protected combine(ctx: ContextType<R>, retCtx: ContextType<T>): ContextType<R> {
     if (this.config.combine) {
-      return this.config.combine(ctx as ContextType<R>, retCtx as T)
+      return this.config.combine(ctx, retCtx)
     } else {
       return ctx
     }
   }
 
-  protected combineCase(item: MultiWaySwitchCase<R, T>, ctx: unknown, retCtx: unknown): unknown {
+  protected combineCase(item: MultiWaySwitchCase<R, T>, ctx: ContextType<R>, retCtx: ContextType<T>): ContextType<R> {
     if (item.combine) {
-      return item.combine(ctx as ContextType<R>, retCtx as T)
+      return item.combine(ctx, retCtx)
     } else {
       return this.combine(ctx, retCtx)
     }
@@ -116,7 +121,7 @@ export class MultiWaySwitch<R, T, C extends MultWaySwitchConfig<R, T> = MultWayS
       }
     }
 
-    let run: StageRun<R> = (err: unknown, ctx: unknown, done: CallbackFunction<R>) => {
+    let run: StageRun<R> = (err, ctx, done) => {
       let actuals: Array<MultiWaySwitchCase<R, T>> = []
       actuals.push.apply(actuals, statics)
 
@@ -132,10 +137,10 @@ export class MultiWaySwitch<R, T, C extends MultWaySwitchConfig<R, T> = MultWayS
       let hasError = false
 
       let next = (index: number) => {
-        return (err: unknown, retCtx: Array<unknown>) => {
+        return (err: unknown, retCtx: ContextType<T>) => {
           iter++
           let cur = actuals[index]
-          let res: Possible<unknown> = null
+          let res: Possible<ContextType<R>> = null
           if (err) {
             if (!hasError) hasError = true
             errors.push(err as Error)
@@ -144,7 +149,7 @@ export class MultiWaySwitch<R, T, C extends MultWaySwitchConfig<R, T> = MultWayS
           }
 
           if (iter >= actuals.length) {
-            return done(hasError ? CreateError(errors) : undefined, (res ?? ctx) as R)
+            return done(hasError ? CreateError(errors) : undefined, res ?? ctx)
           }
         }
       }
@@ -154,12 +159,12 @@ export class MultiWaySwitch<R, T, C extends MultWaySwitchConfig<R, T> = MultWayS
         stg = actuals[i]
         lctx = this.splitCase(stg, ctx)
 
-        run_or_execute(stg.stage, err, lctx, next(i) as CallbackFunction<R>)
+        run_or_execute(stg.stage, err, lctx, next(i) as CallbackFunction<ContextType<T>>)
         // не хватает явной передачи контекста
       }
 
       if (actuals.length === 0) {
-        return done(err, ctx as R)
+        return done(err, ctx)
       }
     }
 

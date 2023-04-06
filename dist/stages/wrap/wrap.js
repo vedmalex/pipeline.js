@@ -23,7 +23,7 @@ class Wrap extends stage_1.Stage {
                 (0, stage_1.run_or_execute)(this.config.stage, err, ctx, (err, retCtx) => {
                     if (!err) {
                         const result = this.finalize(context, retCtx !== null && retCtx !== void 0 ? retCtx : ctx);
-                        done(undefined, (result !== null && result !== void 0 ? result : context));
+                        done(undefined, result !== null && result !== void 0 ? result : context);
                     }
                     else {
                         done(err, context);

@@ -1,15 +1,12 @@
-import * as z from 'zod';
+import { ContextType } from '../Context';
 import { CallbackFunction } from './CallbackFunction';
-export type EnsureSync<R> = (ctx: R) => R;
-export declare const EnsureSync: z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodAny>;
-export type EnsureAsync<R> = (ctx: R) => Promise<R>;
-export declare const EnsureAsync: z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodPromise<z.ZodAny>>;
-export type EnsureCallback<R> = (ctx: R, done: CallbackFunction<R>) => void;
-export declare const EnsureCallback: z.ZodFunction<z.ZodTuple<[z.ZodAny, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodAny>, z.ZodOptional<z.ZodAny>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUndefined>;
-export declare function isEnsureSync<R>(inp: unknown): inp is EnsureSync<R>;
-export declare function isEnsureAsync<R>(inp: unknown): inp is EnsureAsync<R>;
-export declare function isEnsureCallback<R>(inp: unknown): inp is EnsureCallback<R>;
-export declare function isEnsureFunction<R>(inp: unknown): inp is EnsureFunction<R>;
-export type EnsureFunction<R> = EnsureSync<R> | EnsureAsync<R> | EnsureCallback<R>;
-export declare const EnsureFunction: z.ZodUnion<[z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodAny>, z.ZodFunction<z.ZodTuple<[z.ZodAny], z.ZodUnknown>, z.ZodPromise<z.ZodAny>>, z.ZodFunction<z.ZodTuple<[z.ZodAny, z.ZodFunction<z.ZodTuple<[z.ZodOptional<z.ZodAny>, z.ZodOptional<z.ZodAny>], z.ZodUnknown>, z.ZodVoid>], z.ZodUnknown>, z.ZodUndefined>]>;
+import { StageObject } from './StageObject';
+export type EnsureSync<R extends StageObject> = (ctx: ContextType<R>) => ContextType<R>;
+export type EnsureAsync<R extends StageObject> = (ctx: ContextType<R>) => Promise<ContextType<R>>;
+export type EnsureCallback<R extends StageObject> = (ctx: R, done: CallbackFunction<ContextType<R>>) => void;
+export declare function isEnsureSync<R extends StageObject>(inp: unknown): inp is EnsureSync<R>;
+export declare function isEnsureAsync<R extends StageObject>(inp: unknown): inp is EnsureAsync<R>;
+export declare function isEnsureCallback<R extends StageObject>(inp: unknown): inp is EnsureCallback<R>;
+export declare function isEnsureFunction<R extends StageObject>(inp: unknown): inp is EnsureFunction<R>;
+export type EnsureFunction<R extends StageObject> = EnsureSync<R> | EnsureAsync<R> | EnsureCallback<R>;
 //# sourceMappingURL=EnsureFunction.d.ts.map

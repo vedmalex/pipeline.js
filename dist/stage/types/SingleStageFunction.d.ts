@@ -1,12 +1,10 @@
-import * as z from 'zod';
+import { ContextType } from '../Context';
 import { CallbackFunction } from './CallbackFunction';
-export type SingleStage2Function<R> = (ctx: R, callback: CallbackFunction<R>) => void;
-export declare const SingleStage2Function: z.ZodFunction<z.ZodTuple<[z.ZodUnknown, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>], z.ZodUnknown>, z.ZodVoid>;
-export declare function isSingleStageFunction2<R>(inp?: unknown): inp is SingleStage2Function<R>;
-export type SingleStage3Function<R> = (err: unknown, ctx: R, callback: CallbackFunction<R>) => void;
-export declare const SingleStage3Function: z.ZodFunction<z.ZodTuple<[z.ZodUnknown, z.ZodUnknown, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>], z.ZodUnknown>, z.ZodVoid>;
-export declare function isSingleStage3Function<R>(inp?: unknown): inp is SingleStage3Function<R>;
-export declare function isSingleStageFunction<R>(inp?: unknown): inp is SingleStageFunction<R>;
-export type SingleStageFunction<R> = SingleStage2Function<R> | SingleStage3Function<R>;
-export declare const SingleStageFunctionValidator: z.ZodUnion<[z.ZodFunction<z.ZodTuple<[z.ZodUnknown, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>], z.ZodUnknown>, z.ZodVoid>, z.ZodFunction<z.ZodTuple<[z.ZodUnknown, z.ZodUnknown, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>], z.ZodUnknown>, z.ZodVoid>]>;
+import { StageObject } from './StageObject';
+export type SingleStage2Function<R extends StageObject> = (ctx: ContextType<R>, callback: CallbackFunction<ContextType<R>>) => void;
+export declare function isSingleStageFunction2<R extends StageObject>(inp?: unknown): inp is SingleStage2Function<R>;
+export type SingleStage3Function<R extends StageObject> = (err: unknown, ctx: ContextType<R>, callback: CallbackFunction<ContextType<R>>) => void;
+export declare function isSingleStage3Function<R extends StageObject>(inp?: unknown): inp is SingleStage3Function<R>;
+export declare function isSingleStageFunction<R extends StageObject>(inp?: unknown): inp is SingleStageFunction<R>;
+export type SingleStageFunction<R extends StageObject> = SingleStage2Function<R> | SingleStage3Function<R>;
 //# sourceMappingURL=SingleStageFunction.d.ts.map

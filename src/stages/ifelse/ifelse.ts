@@ -1,8 +1,8 @@
 import { getIfElseConfig } from './getIfElseConfig'
-import { AllowedStage, Stage, StageRun, execute_validate, run_or_execute } from '../../stage'
+import { AllowedStage, Stage, StageObject, StageRun, execute_validate, run_or_execute } from '../../stage'
 import { IfElseConfig } from './IfElseConfig'
 
-export class IfElse<R, C extends IfElseConfig<R> = IfElseConfig<R>> extends Stage<R, C> {
+export class IfElse<R extends StageObject, C extends IfElseConfig<R> = IfElseConfig<R>> extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
@@ -48,7 +48,7 @@ export class IfElse<R, C extends IfElseConfig<R> = IfElseConfig<R>> extends Stag
         } else if (this.config.failed) {
           run_or_execute(this.config.failed, err, context, done)
         } else {
-          done(err, context as R)
+          done(err, context)
         }
       }
     }

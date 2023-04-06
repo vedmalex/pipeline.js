@@ -1,4 +1,5 @@
 import { StageConfig } from '../StageConfig';
 import { AllowedStageStored } from './AllowedStageStored';
-export type AllowedStage<R, CONFIG extends StageConfig<R>> = string | AllowedStageStored<R, CONFIG>;
+import { StageObject } from './StageObject';
+export type AllowedStage<R extends StageObject, CONFIG extends StageConfig<R>> = string | AllowedStageStored<R, CONFIG>;
 //# sourceMappingURL=AllowedStage.d.ts.map

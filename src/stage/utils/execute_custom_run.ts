@@ -1,7 +1,9 @@
+import { ContextType } from '../Context'
 import { CreateError, ERROR, process_error } from '../errors'
 import {
-  CallbackFunction,
+  AnyStage,
   RunPipelineFunction,
+  StageObject,
   StageRun,
   isCustomRun0Async,
   isCustomRun0Sync,
@@ -15,8 +17,8 @@ import {
 import { run_callback_once } from './run_callback_once'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
-export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> {
-  return function (this: object, err: unknown, context: unknown, _done: CallbackFunction<R>) {
+export function execute_custom_run<R extends StageObject>(run: RunPipelineFunction<R>): StageRun<R> {
+  return function (this: AnyStage<R>, err, context, _done) {
     const done = run_callback_once(_done)
     switch (run.length) {
       // this is the context of the run function
@@ -35,7 +37,7 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
             const res = run.apply(context)
             if (res instanceof Promise) {
               res.then(r => done(undefined, r)).catch(err => done(err))
-            } else if (is_thenable<R>(res)) {
+            } else if (is_thenable<ContextType<R>>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
               done(undefined, res)
@@ -46,24 +48,24 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
         }
         break
       case 1:
-        if (isCustomRun1Async(run)) {
+        if (isCustomRun1Async<R>(run)) {
           try {
             run
               .call(this, context)
-              .then(ctx => done(undefined, ctx as R))
+              .then(ctx => done(undefined, ctx))
               .catch(err => done(err))
           } catch (err) {
             process_error(err, done)
           }
-        } else if (isCustomRun1Sync(run)) {
+        } else if (isCustomRun1Sync<R>(run)) {
           try {
             const res = run.call(this, context)
             if (res instanceof Promise) {
               res.then(r => done(undefined, r)).catch(err => done(err))
-            } else if (is_thenable<R>(res)) {
+            } else if (is_thenable<ContextType<R>>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
-              done(undefined, res as R)
+              done(undefined, res)
             }
           } catch (err) {
             process_error(err, done)
@@ -73,11 +75,11 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
         }
         break
       case 2:
-        if (isCustomRun2Async(run)) {
+        if (isCustomRun2Async<R>(run)) {
           try {
             run
               .call(this, err, context)
-              .then(ctx => done(undefined, ctx as R))
+              .then(ctx => done(undefined, ctx))
               .catch(err => done(err))
           } catch (err) {
             process_error(err, done)

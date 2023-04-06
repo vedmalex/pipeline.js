@@ -1,5 +1,5 @@
-import * as z from 'zod';
+import { ContextType } from '../Context';
 import { CallbackFunction } from './CallbackFunction';
-export type StageRun<R> = (err: unknown, context: R, callback: CallbackFunction<R>) => void;
-export declare const StageRun: z.ZodFunction<z.ZodTuple<[z.ZodUnknown, z.ZodUnknown, z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>], z.ZodUnknown>, z.ZodVoid>;
+import { StageObject } from './StageObject';
+export type StageRun<R extends StageObject> = (err: unknown, context: ContextType<R>, callback: CallbackFunction<ContextType<R>>) => void;
 //# sourceMappingURL=StageRun.d.ts.map

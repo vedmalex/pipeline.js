@@ -19,7 +19,7 @@ exports.run_or_execute = run_or_execute;
 function run_or_execute_async(stage, err, context) {
     return new Promise(resolve => {
         run_or_execute(stage, err, context, (err, ctx) => {
-            resolve([err, (ctx !== null && ctx !== void 0 ? ctx : context)]);
+            resolve([err, ctx !== null && ctx !== void 0 ? ctx : context]);
         });
     });
 }

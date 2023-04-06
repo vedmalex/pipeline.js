@@ -1,4 +1,5 @@
-import { CallbackFunction } from '../types';
-export declare function run_or_execute<R>(stage: unknown, err: unknown, context: unknown, _done: CallbackFunction<R>): void;
-export declare function run_or_execute_async<R>(stage: unknown, err: unknown, context: unknown): Promise<[unknown, R]>;
+import { ContextType } from '../Context';
+import { CallbackFunction, StageObject } from '../types';
+export declare function run_or_execute<R extends StageObject>(stage: unknown, err: unknown, context: ContextType<R>, _done: CallbackFunction<ContextType<R>>): void;
+export declare function run_or_execute_async<R extends StageObject>(stage: unknown, err: unknown, context: ContextType<R>): Promise<[unknown, ContextType<R>]>;
 //# sourceMappingURL=run_or_execute.d.ts.map

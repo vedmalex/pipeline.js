@@ -2,13 +2,16 @@ import {
   AllowedStage,
   CreateError,
   RunPipelineFunction,
+  StageObject,
   getStageConfig,
   isAnyStage,
   isRunPipelineFunction,
 } from '../../stage'
 import { ParallelConfig } from './ParallelConfig'
 
-export function getParallelConfig<R, T, C extends ParallelConfig<R, T>>(config: AllowedStage<R, C>): C {
+export function getParallelConfig<R extends StageObject, T extends StageObject, C extends ParallelConfig<R, T>>(
+  config: AllowedStage<R, C>,
+): C {
   const res = getStageConfig<R, ParallelConfig<R, T>>(config)
   if (isAnyStage(res) || isRunPipelineFunction(res)) {
     return { stage: res } as C

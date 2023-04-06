@@ -1,1 +1,1 @@
-{"version":3,"file":"StageObject.js","sourceRoot":"","sources":["../../../src/stage/types/StageObject.ts"],"names":[],"mappings":";;;;AACA,+CAAwB;AAEX,QAAA,oBAAoB,GAAG,CAAC,CAAC,MAAM,CAAC,EAAE,CAAC,CAAC,WAAW,EAAE,CAAA;AAC9D,SAAgB,aAAa,CAAC,GAAQ;IACpC,OAAO,4BAAoB,CAAC,SAAS,CAAC,GAAG,CAAC,CAAC,SAAS,CAAC,CAAA;AACvD,CAAC;AAFD,sCAEC"}
+{"version":3,"file":"StageObject.js","sourceRoot":"","sources":["../../../src/stage/types/StageObject.ts"],"names":[],"mappings":""}

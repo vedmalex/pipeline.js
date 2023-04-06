@@ -1,9 +1,9 @@
 import {
   AllowedStage,
-  CallbackFunction,
   ContextType,
   CreateError,
   Stage,
+  StageObject,
   StageRun,
   empty_run,
   run_or_execute,
@@ -30,7 +30,11 @@ import { ParallelError } from './ParallelError'
  * @param {Object} config configuration object
  */
 
-export class Parallel<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T>> extends Stage<R, C> {
+export class Parallel<
+  R extends StageObject,
+  T extends StageObject,
+  C extends ParallelConfig<R, T> = ParallelConfig<R, T>,
+> extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
@@ -51,7 +55,7 @@ export class Parallel<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T
 
   override compile(rebuild: boolean = false): StageRun<R> {
     if (this.config.stage) {
-      var run: StageRun<R> = (err: unknown, ctx, done: CallbackFunction<R>) => {
+      var run: StageRun<R> = (err, ctx, done) => {
         var children = this.split(ctx)
         var len = children ? children.length : 0
         let errors: Array<Error>
@@ -72,24 +76,24 @@ export class Parallel<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T
                 })
                 if (error) errors.push(error)
               }
-              resolve([err, res] as [unknown, T])
+              resolve([err, res] as [unknown, ContextType<T>])
             })
           })
         }
 
         if (len === 0) {
-          return done(err, ctx as R)
+          return done(err, ctx)
         } else {
-          let result: Array<Promise<[unknown, T]>> = []
+          let result: Array<Promise<[unknown, ContextType<T>]>> = []
           for (let i = 0; i < children.length; i++) {
-            result.push(build(i) as Promise<[unknown, T]>)
+            result.push(build(i) as Promise<[unknown, ContextType<T>]>)
           }
           Promise.all(result).then(res => {
             let result = this.combine(
               ctx,
               res.map(r => r[1]),
             )
-            done(CreateError(errors), result as R)
+            done(CreateError(errors), result)
           })
         }
       }
@@ -101,16 +105,14 @@ export class Parallel<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T
     return super.compile(rebuild)
   }
 
-  protected split(ctx: unknown): Array<unknown> {
-    return this._config.split
-      ? this._config.split(ctx as ContextType<R>) ?? [ctx as ContextType<R>]
-      : [ctx as ContextType<R>]
+  protected split(ctx: ContextType<R>): Array<ContextType<T>> {
+    return this._config.split ? this._config.split(ctx) ?? [ctx] : [ctx as unknown as ContextType<T>]
   }
 
-  protected combine(ctx: unknown, children: Array<unknown>): unknown {
-    let res: unknown
+  protected combine(ctx: ContextType<R>, children: Array<ContextType<T>>): ContextType<R> {
+    let res: ContextType<R>
     if (this.config.combine) {
-      let c = this.config.combine(ctx as ContextType<R>, children as Array<T>)
+      let c = this.config.combine(ctx, children)
       res = c ?? ctx
     } else {
       res = ctx

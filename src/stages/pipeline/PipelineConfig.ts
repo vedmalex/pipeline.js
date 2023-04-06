@@ -1,7 +1,5 @@
-import { StageConfig } from '../../stage/StageConfig'
-import { RunPipelineFunction } from '../../stage/types/RunPipelineFunction'
-import { AnyStage } from '../../stage/types/AnyStage'
+import { StageConfig, RunPipelineFunction, AnyStage, StageObject } from '../../stage'
 
-export interface PipelineConfig<R> extends StageConfig<R> {
+export interface PipelineConfig<R extends StageObject> extends StageConfig<R> {
   stages: Array<AnyStage<R> | RunPipelineFunction<R>>
 }

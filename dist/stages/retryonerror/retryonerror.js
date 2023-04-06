@@ -66,7 +66,7 @@ class RetryOnError extends stage_1.Stage {
             let next = (err, _ctx) => {
                 iter++;
                 if (reachEnd(err, iter)) {
-                    return done(err, (_ctx !== null && _ctx !== void 0 ? _ctx : ctx));
+                    return done(err, _ctx !== null && _ctx !== void 0 ? _ctx : ctx);
                 }
                 else {
                     const res = this.restoreContext(_ctx !== null && _ctx !== void 0 ? _ctx : ctx, backup);

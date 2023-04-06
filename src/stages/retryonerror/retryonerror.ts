@@ -1,8 +1,22 @@
-import { Stage, AnyStage, AllowedStage, Context, StageRun, ComplexError, run_or_execute } from '../../stage'
+import {
+  Stage,
+  AnyStage,
+  AllowedStage,
+  Context,
+  StageRun,
+  ComplexError,
+  run_or_execute,
+  StageObject,
+  ContextType,
+} from '../../stage'
 import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 import { getRetryOnErrorConfig } from './getRetryOnErrorConfig'
 
-export class RetryOnError<R, T, C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>>
+export class RetryOnError<
+    R extends StageObject,
+    T extends StageObject,
+    C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>,
+  >
   extends Stage<R, C>
   implements AnyStage<R>
 {
@@ -21,29 +35,29 @@ export class RetryOnError<R, T, C extends RetryOnErrorConfig<R, T> = RetryOnErro
     return '[pipeline RetryOnError]'
   }
 
-  protected backupContext(ctx: unknown): unknown {
+  protected backupContext(ctx: ContextType<R>): ContextType<T> {
     if (this.config.backup) {
-      return this.config.backup(ctx as R)
+      return this.config.backup(ctx)
     } else {
       if (Context.isContext(ctx)) {
-        return ctx.fork({})
+        return ctx.fork({} as T)
       } else {
         return ctx
       }
     }
   }
 
-  protected restoreContext(ctx: unknown, backup: unknown): unknown {
+  protected restoreContext(ctx: ContextType<R>, backup: ContextType<T>): ContextType<R> {
     if (this.config.restore) {
-      return this.config.restore(ctx as R, backup as T)
+      return this.config.restore(ctx, backup)
     } else {
       if (Context.isContext(ctx) && typeof backup === 'object' && backup !== null) {
         for (let key in backup) {
-          ctx[key] = backup[key]
+          ctx[key] = backup[key] as any
         }
         return ctx
       } else {
-        return backup
+        return backup as unknown as ContextType<R>
       }
     }
   }
@@ -68,10 +82,10 @@ export class RetryOnError<R, T, C extends RetryOnErrorConfig<R, T> = RetryOnErro
       }
       let iter = -1
 
-      let next = (err: unknown, _ctx: unknown) => {
+      let next: typeof done = (err, _ctx) => {
         iter++
         if (reachEnd(err, iter)) {
-          return done(err, (_ctx ?? ctx) as R)
+          return done(err, _ctx ?? ctx)
         } else {
           // clean changes of existing before values.
           // may be will need to clear at all and rewrite ? i don't know yet.

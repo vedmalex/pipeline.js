@@ -1,8 +1,8 @@
-import { AllowedStage, CallbackFunction, Stage, StageRun, run_or_execute } from '../../stage'
+import { AllowedStage, Stage, StageObject, StageRun, run_or_execute } from '../../stage'
 import { TimeoutConfig } from './TimeoutConfig'
 import { getTimeoutConfig } from './getTimeoutConfig'
 
-export class Timeout<R, C extends TimeoutConfig<R> = TimeoutConfig<R>> extends Stage<R, C> {
+export class Timeout<R extends StageObject, C extends TimeoutConfig<R> = TimeoutConfig<R>> extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
@@ -19,19 +19,19 @@ export class Timeout<R, C extends TimeoutConfig<R> = TimeoutConfig<R>> extends S
   }
 
   override compile(rebuild: boolean = false): StageRun<R> {
-    let run: StageRun<R> = (err: unknown, ctx: unknown, done: CallbackFunction<R>) => {
+    let run: StageRun<R> = (err, ctx, done) => {
       let to: any
-      let localDone = (err: unknown, retCtx: unknown) => {
+      let localDone: typeof done = (err, retCtx) => {
         if (to) {
           clearTimeout(to)
           to = null
-          return done(err, retCtx as R)
+          return done(err, retCtx)
         }
       }
-      let waitFor
+      let waitFor: number | undefined
 
       if (this.config.timeout instanceof Function) {
-        waitFor = this.config.timeout(ctx as R)
+        waitFor = this.config.timeout(ctx)
       } else {
         waitFor = this.config.timeout
       }

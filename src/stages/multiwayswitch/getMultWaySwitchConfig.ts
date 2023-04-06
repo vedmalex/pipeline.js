@@ -1,10 +1,14 @@
-import { CreateError, getStageConfig, isAnyStage, isRunPipelineFunction } from '../../stage'
+import { CreateError, StageObject, getStageConfig, isAnyStage, isRunPipelineFunction } from '../../stage'
 import { AllowedMWS } from './AllowedMWS'
 import { MultWaySwitchConfig } from './MultWaySwitchConfig'
 import { MultiWaySwitchCase } from './MultiWaySwitchCase'
 import { isMultiWaySwitch } from './isMultiWaySwitch'
 
-export function getMultWaySwitchConfig<R, T, C extends MultWaySwitchConfig<R, T>>(config: AllowedMWS<R, T, C>): C {
+export function getMultWaySwitchConfig<
+  R extends StageObject,
+  T extends StageObject,
+  C extends MultWaySwitchConfig<R, T>,
+>(config: AllowedMWS<R, T, C>): C {
   if (Array.isArray(config)) {
     return {
       cases: config.map(item => {

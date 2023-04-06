@@ -1,9 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StageBuilder = void 0;
-const tslib_1 = require("tslib");
-const z = tslib_1.__importStar(require("zod"));
-const StageConfig_1 = require("./StageConfig");
 const types_1 = require("./types");
 const errors_1 = require("./errors");
 class StageBuilder {
@@ -11,7 +8,7 @@ class StageBuilder {
         this.cfg = {};
     }
     run(fn) {
-        if (fn && types_1.RunPipelineFunction.safeParse(fn).success) {
+        if (fn && (0, types_1.isRunPipelineFunction)(fn)) {
             this.cfg.run = fn;
         }
         else {
@@ -19,7 +16,7 @@ class StageBuilder {
         }
     }
     name(name) {
-        this.cfg.name = z.string().parse(name);
+        this.cfg.name = name;
         return this;
     }
     rescue(fn) {
@@ -36,7 +33,6 @@ class StageBuilder {
     }
     validate(fn) {
         this.cfg.validate = fn;
-        this.isValid();
         return this;
     }
     compile(fn) {
@@ -48,10 +44,9 @@ class StageBuilder {
         return this;
     }
     isValid() {
-        StageConfig_1.StageConfigValidator.parse(this.cfg);
     }
     get config() {
-        return StageConfig_1.StageConfigValidator.parse(this.cfg);
+        return this.cfg;
     }
 }
 exports.StageBuilder = StageBuilder;

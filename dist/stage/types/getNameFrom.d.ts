@@ -1,3 +1,4 @@
 import { StageConfig } from '../StageConfig';
-export declare function getNameFrom<R, C extends StageConfig<R>>(config: C): string;
+import { StageObject } from './StageObject';
+export declare function getNameFrom<R extends StageObject, C extends StageConfig<R>>(config: C): string;
 //# sourceMappingURL=getNameFrom.d.ts.map

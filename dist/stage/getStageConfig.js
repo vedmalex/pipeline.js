@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getStageConfig = exports.isAllowedStage = exports.isAnyStage = exports.isStage = exports.StageSymbol = void 0;
+exports.getStageConfig = exports.isAllowedStage = exports.isAnyStage = exports.StageSymbol = void 0;
 const tslib_1 = require("tslib");
 const ajv_1 = tslib_1.__importDefault(require("ajv"));
 const ajv_errors_1 = tslib_1.__importDefault(require("ajv-errors"));
@@ -9,12 +9,8 @@ const ajv_keywords_1 = tslib_1.__importDefault(require("ajv-keywords"));
 const types_1 = require("./types");
 const errors_1 = require("./errors");
 exports.StageSymbol = Symbol('stage');
-function isStage(obj) {
-    return typeof obj === 'object' && obj !== null && exports.StageSymbol in obj;
-}
-exports.isStage = isStage;
 function isAnyStage(obj) {
-    return isStage(obj);
+    return typeof obj === 'object' && obj !== null && exports.StageSymbol in obj;
 }
 exports.isAnyStage = isAnyStage;
 function isAllowedStage(inp) {

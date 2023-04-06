@@ -1,7 +1,9 @@
-import { AllowedStage, CreateError, getStageConfig, isAnyStage } from '../../stage'
+import { AllowedStage, CreateError, StageObject, getStageConfig, isAnyStage } from '../../stage'
 import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 
-export function getRetryOnErrorConfig<R, T, C extends RetryOnErrorConfig<R, T>>(config: AllowedStage<R, C>): C {
+export function getRetryOnErrorConfig<R extends StageObject, T extends StageObject, C extends RetryOnErrorConfig<R, T>>(
+  config: AllowedStage<R, C>,
+): C {
   const res = getStageConfig(config)
   if (isAnyStage(res)) {
     return { stage: res } as C

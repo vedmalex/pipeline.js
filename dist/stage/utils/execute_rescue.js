@@ -8,7 +8,8 @@ function execute_rescue(rescue, err, context, done) {
         case 1:
             if ((0, types_1.isRescue1ASync)(rescue)) {
                 try {
-                    rescue(err)
+                    rescue
+                        .call(context, err)
                         .then(_ => done(undefined))
                         .catch(err => done(err));
                 }
@@ -18,7 +19,7 @@ function execute_rescue(rescue, err, context, done) {
             }
             else if ((0, types_1.isRescue1Sync)(rescue)) {
                 try {
-                    const res = rescue(err);
+                    const res = rescue.call(context, err);
                     if (res instanceof Promise) {
                         res.then(_ => done()).catch(err => done(err));
                     }
@@ -40,7 +41,8 @@ function execute_rescue(rescue, err, context, done) {
         case 2:
             if ((0, types_1.isRescue2ASync)(rescue)) {
                 try {
-                    rescue(err, context)
+                    rescue
+                        .call(null, err, context)
                         .then(_ => done())
                         .catch(err => done(err));
                 }
@@ -50,7 +52,7 @@ function execute_rescue(rescue, err, context, done) {
             }
             else if ((0, types_1.isRescue2Sync)(rescue)) {
                 try {
-                    const res = rescue(err, context);
+                    const res = rescue.call(null, err, context);
                     if (res instanceof Promise) {
                         res.then(_ => done()).catch(err => done(err));
                     }
@@ -77,7 +79,7 @@ function execute_rescue(rescue, err, context, done) {
         case 3:
             if ((0, types_1.isRescue3Callback)(rescue)) {
                 try {
-                    rescue(err, context, done);
+                    rescue.call(null, err, context, done);
                 }
                 catch (err) {
                     (0, errors_1.process_error)(err, done);

@@ -1,4 +1,4 @@
-import { AllowedStage, ContextType, Stage, StageRun, empty_run, run_or_execute_async } from '../../stage'
+import { AllowedStage, ContextType, Stage, StageObject, StageRun, empty_run, run_or_execute_async } from '../../stage'
 import { ParallelConfig } from './ParallelConfig'
 import { getParallelConfig } from './getParallelConfig'
 
@@ -20,7 +20,11 @@ import { getParallelConfig } from './getParallelConfig'
  * @param {Object} config configuration object
  */
 
-export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R, T>> extends Stage<R, C> {
+export class Sequential<
+  R extends StageObject,
+  T extends StageObject,
+  C extends ParallelConfig<R, T> = ParallelConfig<R, T>,
+> extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
@@ -43,33 +47,18 @@ export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R,
     if (this.config.stage) {
       var run: StageRun<R> = (err, ctx, done) => {
         var iter = -1
-        var children = this.split ? this.split(ctx) : [ctx]
+        var children = this.split ? this.split(ctx) : [ctx as unknown as ContextType<T>]
         var len = children ? children.length : 0
 
-        // var next = (err: unknown, retCtx?: unknown) => {
-        //   if (err) {
-        //     return done(err)
-        //   }
-        //   if (retCtx) {
-        //     children[iter] = retCtx
-        //   }
-        //   iter += 1
-        //   if (iter >= len) {
-        //     let result = this.combine(ctx, children)
-        //     return done(undefined, result as R)
-        //   } else {
-        //     run_or_execute(this.config.stage, err, children[iter], next)
-        //   }
-        // }
         const next = async (err: unknown) => {
           if (err) {
             return done(err)
           }
-          let retCtx: unknown
+          let retCtx: ContextType<T>
           while (++iter < len) {
-            ;[err, retCtx] = await run_or_execute_async<T>(this.config.stage, err, children[iter])
+            ;[err, retCtx] = await run_or_execute_async(this.config.stage, err, children[iter])
             if (err) {
-              ;[err, retCtx] = await this.rescue_async(err, children[iter] as R)
+              ;[err, retCtx] = await this.rescue_async(err, children[iter])
               if (err) {
                 return done(err)
               }
@@ -80,11 +69,11 @@ export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R,
           }
 
           let result = this.combine(ctx, children)
-          return done(undefined, result as R)
+          return done(undefined, result)
         }
 
         if (len === 0) {
-          return done(err, ctx as R)
+          return done(err, ctx)
         } else {
           next(err)
         }
@@ -97,14 +86,16 @@ export class Sequential<R, T, C extends ParallelConfig<R, T> = ParallelConfig<R,
 
     return super.compile(rebuild)
   }
-  protected split(ctx: unknown): Array<unknown> {
-    return this._config.split ? this._config.split(ctx as ContextType<R>) ?? [ctx] : [ctx]
+  protected split(ctx: ContextType<R>): Array<ContextType<T>> {
+    return this._config.split
+      ? this._config.split(ctx) ?? [ctx as unknown as ContextType<T>]
+      : [ctx as unknown as ContextType<T>]
   }
 
-  protected combine(ctx: unknown, children: Array<unknown>): unknown {
-    let res: unknown
+  protected combine(ctx: ContextType<R>, children: Array<ContextType<T>>): ContextType<R> {
+    let res: ContextType<R>
     if (this.config.combine) {
-      let c = this.config.combine(ctx as ContextType<R>, children as Array<T>)
+      let c = this.config.combine(ctx, children)
       res = c ?? ctx
     } else {
       res = ctx

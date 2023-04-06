@@ -1,6 +1,8 @@
+import { ContextType } from '../Context'
 import { CreateError, ERROR, process_error } from '../errors'
 import {
   Rescue,
+  StageObject,
   isRescue1ASync,
   isRescue1Sync,
   isRescue2ASync,
@@ -9,12 +11,18 @@ import {
   is_thenable,
 } from '../types'
 
-export function execute_rescue<R>(rescue: Rescue<R>, err: Error, context: unknown, done: (err?) => void) {
+export function execute_rescue<R extends StageObject>(
+  rescue: Rescue,
+  err: Error,
+  context: ContextType<R>,
+  done: (err?) => void,
+) {
   switch (rescue.length) {
     case 1:
       if (isRescue1ASync(rescue)) {
         try {
-          rescue(err)
+          rescue
+            .call(context, err)
             .then(_ => done(undefined))
             .catch(err => done(err))
         } catch (err) {
@@ -23,7 +31,7 @@ export function execute_rescue<R>(rescue: Rescue<R>, err: Error, context: unknow
       } else if (isRescue1Sync(rescue)) {
         try {
           // if error is not handled, then it will be thrown
-          const res = rescue(err)
+          const res = rescue.call(context, err)
           if (res instanceof Promise) {
             res.then(_ => done()).catch(err => done(err))
           } else if (is_thenable(res)) {
@@ -41,7 +49,8 @@ export function execute_rescue<R>(rescue: Rescue<R>, err: Error, context: unknow
     case 2:
       if (isRescue2ASync(rescue)) {
         try {
-          rescue(err, context)
+          rescue
+            .call(null, err, context)
             .then(_ => done())
             .catch(err => done(err))
         } catch (err) {
@@ -50,7 +59,7 @@ export function execute_rescue<R>(rescue: Rescue<R>, err: Error, context: unknow
       } else if (isRescue2Sync(rescue)) {
         try {
           // if error is not handled, then it will be thrown
-          const res = rescue(err, context)
+          const res = rescue.call(null, err, context)
           if (res instanceof Promise) {
             res.then(_ => done()).catch(err => done(err))
           } else if (is_thenable(res)) {
@@ -72,7 +81,7 @@ export function execute_rescue<R>(rescue: Rescue<R>, err: Error, context: unknow
     case 3:
       if (isRescue3Callback(rescue)) {
         try {
-          rescue(err, context, done)
+          rescue.call(null, err, context, done)
         } catch (err) {
           process_error(err, done)
         }
@@ -85,7 +94,11 @@ export function execute_rescue<R>(rescue: Rescue<R>, err: Error, context: unknow
   }
 }
 
-export function execute_rescue_async<R>(rescue: Rescue<R>, err: Error, context: R): Promise<[unknown, R]> {
+export function execute_rescue_async<R extends StageObject>(
+  rescue: Rescue,
+  err: Error,
+  context: ContextType<R>,
+): Promise<[unknown, ContextType<R>]> {
   return new Promise(resolve => {
     execute_rescue(rescue, err, context, err => resolve([err, context]))
   })

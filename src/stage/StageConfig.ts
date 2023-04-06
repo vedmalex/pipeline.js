@@ -1,31 +1,18 @@
 import { JSONSchemaType } from 'ajv'
-import * as z from 'zod'
-import { CompileFunction, EnsureFunction, Precompile, Rescue, RunPipelineFunction, ValidateFunction } from './types'
+import {
+  CompileFunction,
+  EnsureFunction,
+  Precompile,
+  Rescue,
+  RunPipelineFunction,
+  StageObject,
+  ValidateFunction,
+} from './types'
 
-export const StageConfigValidator = z
-  .object({
-    run: RunPipelineFunction.optional(),
-    name: z.string().optional(),
-    rescue: Rescue.optional(),
-    schema: z.object({}).passthrough().optional(),
-    ensure: EnsureFunction.optional(),
-    validate: z.function().optional(),
-    compile: z.function().optional(),
-    precompile: z.function().optional(),
-  })
-  .passthrough()
-  .refine(obj => {
-    return !((obj.ensure && obj.validate) || (obj.ensure && obj.schema) || (obj.validate && obj.schema))
-  }, 'ensure, validate, and schema are mutually exclusive')
-
-export function isStageConfig<R>(obj: unknown): obj is StageConfig<R> {
-  return typeof obj === 'object' && obj !== null && StageConfigValidator.safeParse(obj)['success']
-}
-
-export interface StageConfig<R> {
+export interface StageConfig<R extends StageObject> {
   run?: RunPipelineFunction<R>
   name?: string
-  rescue?: Rescue<R>
+  rescue?: Rescue
   schema?: JSONSchemaType<R>
   ensure?: EnsureFunction<R>
   validate?: ValidateFunction<R>

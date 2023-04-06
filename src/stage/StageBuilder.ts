@@ -1,26 +1,34 @@
 import { JSONSchemaType } from 'ajv'
-import * as z from 'zod'
-import { StageConfigValidator, StageConfig } from './StageConfig'
-import { CompileFunction, EnsureFunction, Precompile, Rescue, RunPipelineFunction, ValidateFunction } from './types'
+import { StageConfig } from './StageConfig'
+import {
+  CompileFunction,
+  EnsureFunction,
+  Precompile,
+  Rescue,
+  RunPipelineFunction,
+  StageObject,
+  ValidateFunction,
+  isRunPipelineFunction,
+} from './types'
 import { CreateError } from './errors'
 
-export class StageBuilder<R, C extends StageConfig<R>> {
+export class StageBuilder<R extends StageObject, C extends StageConfig<R>> {
   private cfg: C
   constructor() {
     this.cfg = {} as C
   }
   run(fn: RunPipelineFunction<R>) {
-    if (fn && RunPipelineFunction.safeParse(fn).success) {
+    if (fn && isRunPipelineFunction(fn)) {
       this.cfg.run = fn
     } else {
       throw CreateError('run should be a `RunPipelineFunction`')
     }
   }
   name(name: string) {
-    this.cfg.name = z.string().parse(name)
+    this.cfg.name = name
     return this
   }
-  rescue(fn: Rescue<R>) {
+  rescue(fn: Rescue) {
     this.cfg.rescue = fn
     return this
   }
@@ -34,7 +42,6 @@ export class StageBuilder<R, C extends StageConfig<R>> {
   }
   validate(fn: ValidateFunction<R>) {
     this.cfg.validate = fn
-    this.isValid()
     return this
   }
   compile(fn: CompileFunction<R>) {
@@ -46,9 +53,9 @@ export class StageBuilder<R, C extends StageConfig<R>> {
     return this
   }
   isValid() {
-    StageConfigValidator.parse(this.cfg)
+    // StageConfigValidator.parse(this.cfg)
   }
   get config() {
-    return StageConfigValidator.parse(this.cfg)
+    return this.cfg
   }
 }

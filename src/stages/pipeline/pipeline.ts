@@ -1,8 +1,10 @@
 import {
   AllowedStage,
   AnyStage,
+  ContextType,
   RunPipelineFunction,
   Stage,
+  StageObject,
   StageRun,
   empty_run,
   isAnyStage,
@@ -25,7 +27,7 @@ import { getPipelineConfig } from './getPipelineConfig'
  * @param {Object} config configuration object
  */
 
-export class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>> extends Stage<R, C> {
+export class Pipeline<R extends StageObject, C extends PipelineConfig<R> = PipelineConfig<R>> extends Stage<R, C> {
   constructor(config?: PipelineConfig<R> | AllowedStage<R, C> | Array<AnyStage<R> | RunPipelineFunction<R>>) {
     super()
     if (config) {
@@ -66,24 +68,24 @@ export class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>> extend
     let run: StageRun<R> = (err, context, done) => {
       let i = -1
       // sequential run;
-      let next = async (err: unknown, ctx: unknown) => {
+      let next = async (err: unknown, ctx: ContextType<R>) => {
         if (err) {
           return done(err)
         }
         while (++i < this.config.stages.length) {
           ;[err, ctx] = await run_or_execute_async(this.config.stages[i], err, ctx ?? context)
           if (err) {
-            ;[err, ctx] = await this.rescue_async(err, ctx as R)
+            ;[err, ctx] = await this.rescue_async(err, ctx)
             if (err) {
               return done(err)
             }
           }
         }
-        done(undefined, ctx as R)
+        done(undefined, ctx)
       }
 
       if (this.config.stages.length === 0) {
-        done(undefined, context as R)
+        done(undefined, context)
       } else {
         next(err, context)
       }

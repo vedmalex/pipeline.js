@@ -6,6 +6,7 @@ import { StageConfig } from './StageConfig'
 import {
   AllowedStage,
   AnyStage,
+  StageObject,
   getNameFrom,
   isEnsureFunction,
   isRescue,
@@ -16,19 +17,17 @@ import { CreateError } from './errors'
 
 export const StageSymbol = Symbol('stage')
 
-export function isStage(obj: unknown): boolean {
+export function isAnyStage<R extends StageObject>(obj: unknown): obj is AnyStage<R> {
   return typeof obj === 'object' && obj !== null && StageSymbol in obj
 }
 
-export function isAnyStage<R>(obj: unknown): obj is AnyStage<R> {
-  return isStage(obj)
-}
-
-export function isAllowedStage<R, C extends StageConfig<R>>(inp: any): inp is AllowedStage<R, C> {
+export function isAllowedStage<R extends StageObject, C extends StageConfig<R>>(inp: any): inp is AllowedStage<R, C> {
   return isRunPipelineFunction(inp) || isAnyStage(inp) || typeof inp == 'object' || typeof inp == 'string'
 }
 
-export function getStageConfig<R, C extends StageConfig<R>>(config: AllowedStage<R, C>): C | AnyStage<R> {
+export function getStageConfig<R extends StageObject, C extends StageConfig<R>>(
+  config: AllowedStage<R, C>,
+): C | AnyStage<R> {
   let result: C = {} as C
   if (typeof config == 'string') {
     result.name = config

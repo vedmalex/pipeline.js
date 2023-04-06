@@ -1,5 +1,9 @@
-import * as z from 'zod'
+import { ContextType } from '../Context'
 import { CallbackFunction } from './CallbackFunction'
+import { StageObject } from './StageObject'
 
-export type StageRun<R> = (err: unknown, context: R, callback: CallbackFunction<R>) => void
-export const StageRun = z.function().args(z.unknown(), z.unknown(), z.function()).returns(z.void())
+export type StageRun<R extends StageObject> = (
+  err: unknown,
+  context: ContextType<R>,
+  callback: CallbackFunction<ContextType<R>>,
+) => void

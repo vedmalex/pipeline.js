@@ -1,8 +1,8 @@
-import { AnyStage, RunPipelineFunction } from '../../stage'
+import { AnyStage, RunPipelineFunction, StageObject } from '../../stage'
 import { CombineFunction } from './CombineFunction'
 import { SplitFunction } from './SplitFunction'
 
-export interface MultiWaySwitchStatic<R, T> {
+export interface MultiWaySwitchStatic<R extends StageObject, T extends StageObject> {
   stage: AnyStage<R> | RunPipelineFunction<R>
   evaluate?: boolean
   split?: SplitFunction<R, T>

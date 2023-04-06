@@ -1,8 +1,20 @@
-import { run_or_execute_async, AnyStage, ContextType, SingleStageFunction, Stage, StageRun } from '../../stage'
+import {
+  run_or_execute_async,
+  AnyStage,
+  ContextType,
+  SingleStageFunction,
+  Stage,
+  StageRun,
+  StageObject,
+} from '../../stage'
 import { DoWhileConfig } from './DoWhileConfig'
 import { getDoWhileConfig } from './getDoWhileConfig'
 
-export class DoWhile<R, T, C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>> extends Stage<R, C> {
+export class DoWhile<
+  R extends StageObject,
+  T extends StageObject,
+  C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>,
+> extends Stage<R, C> {
   constructor()
   constructor(stage: AnyStage<R>)
   constructor(config: C)
@@ -21,9 +33,9 @@ export class DoWhile<R, T, C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>> 
   public override toString() {
     return '[pipeline DoWhile]'
   }
-  protected reachEnd(err: unknown, ctx: unknown, iter: number): boolean {
+  protected reachEnd(err: unknown, ctx: ContextType<R>, iter: number): boolean {
     if (this.config.reachEnd) {
-      let result = this.config.reachEnd(err, ctx as ContextType<R>, iter)
+      let result = this.config.reachEnd(err, ctx, iter)
       if (typeof result === 'boolean') {
         return result
       } else {
@@ -60,11 +72,11 @@ export class DoWhile<R, T, C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>> 
 
       const next = async (err: unknown) => {
         iter++
-        let retCtx: unknown
-        while (!this.reachEnd(err, context as R, iter)) {
+        let retCtx: ContextType<R>
+        while (!this.reachEnd(err, context, iter)) {
           ;[err, retCtx] = await run_or_execute_async(this.config.stage, err, this.split(context as R, iter))
           if (err) {
-            ;[err, context] = (await this.rescue_async(err, retCtx as R)) as [unknown, R]
+            ;[err, context] = (await this.rescue_async(err, retCtx)) as [unknown, ContextType<R>]
             if (err) {
               return done(err)
             }
@@ -72,7 +84,7 @@ export class DoWhile<R, T, C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>> 
           iter++
         }
 
-        done(err, context as R)
+        done(err, context)
       }
 
       next(err)

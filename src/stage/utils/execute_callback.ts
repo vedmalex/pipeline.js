@@ -1,6 +1,8 @@
+import { ContextType } from '../Context'
 import { CreateError, ERROR, process_error } from '../errors'
 import {
   CallbackFunction,
+  StageObject,
   isCallback0Async,
   isCallback0Sync,
   isCallback1Async,
@@ -14,26 +16,26 @@ import {
 import { run_callback_once } from './run_callback_once'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
-export function execute_callback<R>(
+export function execute_callback<R extends StageObject>(
   this: object | void,
   err: unknown,
   run: unknown,
-  context: R,
-  _done: CallbackFunction<R>,
+  context: ContextType<R>,
+  _done: CallbackFunction<ContextType<R>>,
 ) {
-  const done = run_callback_once<R>(_done)
-  if (isStageCallbackFunction<R>(run))
+  const done = run_callback_once(_done)
+  if (isStageCallbackFunction<ContextType<R>>(run))
     switch (run.length) {
       // this is the context of the run function
       case 0:
-        if (isCallback0Async<R>(run)) {
+        if (isCallback0Async<ContextType<R>>(run)) {
           try {
             const res = run.call(context)
             res.then(res => done(undefined, res ?? context)).catch(err => done(err))
           } catch (err) {
             process_error(err, done)
           }
-        } else if (isCallback0Sync<R>(run)) {
+        } else if (isCallback0Sync<ContextType<R>>(run)) {
           try {
             const res = run.apply(context)
             if (res instanceof Promise) {
@@ -49,7 +51,7 @@ export function execute_callback<R>(
         }
         break
       case 1:
-        if (isCallback1Async<R>(run)) {
+        if (isCallback1Async<ContextType<R>>(run)) {
           try {
             run
               .call(this, context)
@@ -58,15 +60,15 @@ export function execute_callback<R>(
           } catch (err) {
             process_error(err, done)
           }
-        } else if (isCallback1Sync(run)) {
+        } else if (isCallback1Sync<ContextType<R>>(run)) {
           try {
             const res = run.call(this, context)
             if (res instanceof Promise) {
               res.then(r => done(undefined, r ?? context)).catch(err => done(err))
-            } else if (is_thenable<R>(res)) {
+            } else if (is_thenable<ContextType<R>>(res)) {
               res.then(r => done(undefined, r ?? context)).catch(err => done(err))
             } else {
-              done(undefined, res as R)
+              done(undefined, res)
             }
           } catch (err) {
             process_error(err, done)
@@ -76,11 +78,11 @@ export function execute_callback<R>(
         }
         break
       case 2:
-        if (isCallback2Async(run)) {
+        if (isCallback2Async<ContextType<R>>(run)) {
           try {
             run
               .call(this, err, context)
-              .then(ctx => done(undefined, ctx as R))
+              .then(ctx => done(undefined, ctx))
               .catch(err => done(err))
           } catch (err) {
             process_error(err, done)

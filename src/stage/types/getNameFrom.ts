@@ -1,6 +1,7 @@
 import { StageConfig } from '../StageConfig'
+import { StageObject } from './StageObject'
 
-export function getNameFrom<R, C extends StageConfig<R>>(config: C): string {
+export function getNameFrom<R extends StageObject, C extends StageConfig<R>>(config: C): string {
   let result: string = ''
   if (!config.name && config.run) {
     var match = config.run.toString().match(/function\s*(\w+)\s*\(/)

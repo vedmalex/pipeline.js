@@ -1,8 +1,12 @@
-import { AllowedStage, ContextType, Stage, StageRun, run_or_execute } from '../../stage'
+import { AllowedStage, ContextType, Stage, StageObject, StageRun, run_or_execute } from '../../stage'
 import { WrapConfig } from './WrapConfig'
 import { getWrapConfig } from './getWrapConfig'
 
-export class Wrap<R, T, C extends WrapConfig<R, T> = WrapConfig<R, T>> extends Stage<R, C> {
+export class Wrap<
+  R extends StageObject,
+  T extends StageObject,
+  C extends WrapConfig<R, T> = WrapConfig<R, T>,
+> extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
@@ -25,9 +29,9 @@ export class Wrap<R, T, C extends WrapConfig<R, T> = WrapConfig<R, T>> extends S
         run_or_execute(this.config.stage, err, ctx, (err, retCtx) => {
           if (!err) {
             const result = this.finalize(context, retCtx ?? ctx)
-            done(undefined, (result ?? context) as R)
+            done(undefined, result ?? context)
           } else {
-            done(err, context as R)
+            done(err, context)
           }
         })
       }
@@ -37,17 +41,17 @@ export class Wrap<R, T, C extends WrapConfig<R, T> = WrapConfig<R, T>> extends S
 
     return super.compile(rebuild)
   }
-  protected prepare(ctx: unknown): unknown {
+  protected prepare(ctx: ContextType<R>): ContextType<T> {
     if (this.config.prepare) {
       return this.config.prepare(ctx as ContextType<R>) ?? ctx
     } else {
-      return ctx
+      return ctx as unknown as ContextType<T>
     }
   }
-  protected finalize(ctx: unknown, retCtx: unknown): unknown {
+  protected finalize(ctx: ContextType<R>, retCtx: ContextType<T>): ContextType<R> | void {
     // by default the main context will be used to return;
     if (this.config.finalize) {
-      return this.config.finalize(ctx as R, retCtx as T)
+      return this.config.finalize(ctx, retCtx)
     } else {
       // so we do nothing here
       return ctx
