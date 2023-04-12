@@ -26,22 +26,18 @@
   },
   "prettier": "../../.prettierrc.js",
   "devDependencies": {
-    "@rollup/plugin-replace": "^5.0.2",
-    "@total-typescript/ts-reset": "^0.3.7",
     "@types/jest": "^29.5.0",
     "@types/lodash": "^4.14.191",
     "jest": "^29.4.3",
     "jest-config": "^29.4.3",
-    "rollup": "^3.17.3",
-    "rollup-plugin-ts": "^3.2.0",
-    "rollup-plugin-tsconfig-paths": "^1.4.0",
     "typescript": "next"
   },
   "scripts": {
     "test": "jest --coverage",
     "prepublish": "tsc -b tsconfig.build.json",
-    "build": "tsc -b tsconfig.build.json",
-    "watch": "tsc -w -p tsconfig.json"
+    "build": "tsc -p tsconfig.build.json",
+    "watchall": "tsc -w -p tsconfig.json",
+    "watch": "tsc -w -p tsconfig.build.json"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
