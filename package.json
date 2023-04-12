@@ -41,7 +41,7 @@
     "test": "jest --coverage",
     "prepublish": "tsc -b tsconfig.build.json",
     "build": "tsc -b tsconfig.build.json",
-    "watch": "tsc -w tsconfig.json"
+    "watch": "tsc -w -p tsconfig.json"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

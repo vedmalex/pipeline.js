@@ -9,3 +9,5 @@ jest.*
 .eslintrc.js
 TODO.md
 old.md
+jest.config.js
+*.tsbuildinfo
