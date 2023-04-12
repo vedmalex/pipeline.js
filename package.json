@@ -19,7 +19,7 @@
     "colors": "1.4.0",
     "comparator.js": "^1.4.3",
     "debug": "4.3.4",
-    "fte.js": "3.0.0-rc.4",
+    "fte.js": "3.0.0-rc.10",
     "js-schema": "1.0.1",
     "lodash": "^4.17.21",
     "semver": "7.3.8"
@@ -38,14 +38,13 @@
     "typescript": "next"
   },
   "scripts": {
-    "test": "jest",
-    "test:coverage": "jest --coverage",
-    "prepublish": "rollup -c",
-    "build": "rollup -c",
-    "watchonly": "tsc -w --noEmit -p tsconfig.build.json",
-    "watch": "tsc -w -p tsconfig.build.json"
+    "test": "jest --coverage",
+    "prepublish": "tsc -b tsconfig.build.json",
+    "build": "tsc -b tsconfig.build.json",
+    "watch": "tsc -w tsconfig.json"
   },
-  "main": "./dist/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/vedmalex/pipeline.js.git"
