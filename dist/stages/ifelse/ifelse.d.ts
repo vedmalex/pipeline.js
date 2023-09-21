@@ -6,4 +6,4 @@ export declare class IfElse<R extends StageObject, C extends IfElseConfig<R> = I
     toString(): string;
     compile(rebuild?: boolean): StageRun<R>;
 }
-//# sourceMappingURL=IfElse.d.ts.map
+//# sourceMappingURL=Ifelse.d.ts.map

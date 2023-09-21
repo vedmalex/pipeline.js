@@ -29,7 +29,7 @@ export class Wrap<
         run_or_execute(this.config.stage, err, ctx, (err, retCtx) => {
           if (!err) {
             const result = this.finalize(context, retCtx ?? ctx)
-            done(undefined, result ?? context)
+            done(undefined, result ? result : context)
           } else {
             done(err, context)
           }
@@ -43,7 +43,7 @@ export class Wrap<
   }
   protected prepare(ctx: ContextType<R>): ContextType<T> {
     if (this.config.prepare) {
-      return this.config.prepare(ctx as ContextType<R>) ?? ctx
+      return this.config.prepare(ctx) ?? ctx as unknown as ContextType<T>
     } else {
       return ctx as unknown as ContextType<T>
     }

@@ -139,4 +139,4 @@ class MultiWaySwitch extends stage_1.Stage {
     }
 }
 exports.MultiWaySwitch = MultiWaySwitch;
-//# sourceMappingURL=MultiWaySwitch.js.map
+//# sourceMappingURL=MultiwaySwitch.js.map

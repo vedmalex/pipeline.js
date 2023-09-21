@@ -1,65 +1,12 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Bun Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`stage create named: names stage 1`] = `
 Stage {
   "_config": {
     "name": "name",
   },
-  Symbol(stage): true,
-}
-`;
-
-exports[`stage create with Config: config stage 1`] = `
-Stage {
-  "_config": {
-    "name": "(err, ctx, done) => {
-            if (!err) {
-                ctx.name = 'run the stage';
-                done(undefined, ctx);
-            }
-            else {
-                done(err);
-            }
-        }",
-    "run": [Function],
-  },
-  Symbol(stage): true,
-}
-`;
-
-exports[`stage create with Lambda 2: lambda stage 1`] = `
-Stage {
-  "_config": {
-    "name": "(err, ctx) => {
-            if (!err) {
-                ctx.name = 'run the stage';
-                return Promise.resolve(ctx);
-            }
-            else {
-                return Promise.reject(err);
-            }
-        }",
-    "run": [Function],
-  },
-  Symbol(stage): true,
-}
-`;
-
-exports[`stage create with Lambda 3: lambda stage 1`] = `
-Stage {
-  "_config": {
-    "name": "(err, ctx, done) => {
-            if (!err) {
-                ctx.name = 'run the stage';
-                done(undefined, ctx);
-            }
-            else {
-                done(err);
-            }
-        }",
-    "run": [Function],
-  },
-  Symbol(stage): true,
+  "run": undefined,
+  [Symbol(stage)]: true,
 }
 `;
 
@@ -67,11 +14,32 @@ exports[`stage create with function: function stage 1`] = `
 Stage {
   "_config": {
     "name": "RunStage",
-    "run": [Function],
+    "run": [Function: RunStage],
   },
-  Symbol(stage): true,
+  "run": undefined,
+  [Symbol(stage)]: true,
 }
 `;
+
+exports[`stage create with Lambda 3: lambda stage 1`] = `
+Stage {
+  "_config": {
+    "name": 
+"(err, ctx, done) => {
+      if (!err)
+        ctx.name = "run the stage", done(void 0, ctx);
+      else
+        done(err);
+    }"
+,
+    "run": [Function],
+  },
+  "run": undefined,
+  [Symbol(stage)]: true,
+}
+`;
+
+exports[`stage validate using schema 1`] = `[ComplexError]`;
 
 exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
 Stage {
@@ -79,8 +47,43 @@ Stage {
     "name": "stage",
     "run": [Function],
   },
-  Symbol(stage): true,
+  "run": undefined,
+  [Symbol(stage)]: true,
 }
 `;
 
-exports[`stage validate using schema 1`] = `[Error]`;
+exports[`stage create with Lambda 2: lambda stage 1`] = `
+Stage {
+  "_config": {
+    "name": 
+"(err, ctx) => {
+      if (!err)
+        return ctx.name = "run the stage", Promise.resolve(ctx);
+      else
+        return Promise.reject(err);
+    }"
+,
+    "run": [Function],
+  },
+  "run": undefined,
+  [Symbol(stage)]: true,
+}
+`;
+
+exports[`stage create with Config: config stage 1`] = `
+Stage {
+  "_config": {
+    "name": 
+"(err, ctx, done) => {
+      if (!err)
+        ctx.name = "run the stage", done(void 0, ctx);
+      else
+        done(err);
+    }"
+,
+    "run": [Function],
+  },
+  "run": undefined,
+  [Symbol(stage)]: true,
+}
+`;

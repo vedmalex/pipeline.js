@@ -1,6 +1,5 @@
 import 'jest'
 import { Stage } from './stage'
-import { StageConfigValidator } from './StageConfig'
 import { Context } from './Context'
 
 describe('Stage', function () {

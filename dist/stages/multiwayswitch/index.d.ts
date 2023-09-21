@@ -2,7 +2,7 @@ export * from './AllowedMWS';
 export * from './CombineFunction';
 export * from './getMultWaySwitchConfig';
 export * from './isMultiWaySwitch';
-export * from './MultiWaySwitch';
+export * from './MultiwaySwitch';
 export * from './MultiWaySwitchCase';
 export * from './MultiWaySwitchDynamic';
 export * from './MultiWaySwitchStatic';

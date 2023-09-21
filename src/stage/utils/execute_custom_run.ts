@@ -2,6 +2,8 @@ import { ContextType } from '../Context'
 import { CreateError, ERROR, process_error } from '../errors'
 import {
   AnyStage,
+  CustomRun2Callback,
+  CustomRun3Callback,
   RunPipelineFunction,
   StageObject,
   StageRun,
@@ -85,9 +87,9 @@ export function execute_custom_run<R extends StageObject>(run: RunPipelineFuncti
             process_error(err, done)
           }
         } else if (isCustomRun2Callback<R>(run)) {
+          const _run: CustomRun2Callback<R> = run
           try {
-            //@ts-expect-error
-            run.call(this, context, done)
+            _run.call(this, context, done)
           } catch (err) {
             process_error(err, done)
           }
@@ -97,9 +99,9 @@ export function execute_custom_run<R extends StageObject>(run: RunPipelineFuncti
         break
       case 3:
         if (isCustomRun3Callback<R>(run)) {
+          const _run: CustomRun3Callback<R> = run
           try {
-            //@ts-expect-error
-            run.call(this, err, context, done)
+            _run.call(this, err, context, done)
           } catch (err) {
             process_error(err, done)
           }

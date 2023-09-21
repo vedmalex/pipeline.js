@@ -12,6 +12,9 @@ import {
   isCallback3Callback,
   isStageCallbackFunction,
   is_thenable,
+  Thenable,
+  CustomRun3Callback,
+  CustomRun2Callback
 } from '../types'
 import { run_callback_once } from './run_callback_once'
 
@@ -37,11 +40,11 @@ export function execute_callback<R extends StageObject>(
           }
         } else if (isCallback0Sync<ContextType<R>>(run)) {
           try {
-            const res = run.apply(context)
+            const res = run.apply(context) as ContextType<R> | Promise<ContextType<R>> | Thenable<ContextType<R>>
             if (res instanceof Promise) {
-              res.then(_ => done(undefined, res ?? context)).catch(err => done(err))
+              res.then(r => done(undefined, r ?? context)).catch(err => done(err))
             } else if (is_thenable(res)) {
-              res.then(_ => done(undefined, res ?? context)).catch(err => done(err))
+              res.then(r => done(undefined, r ?? context)).catch(err => done(err))
             } else {
               done(undefined, res ?? context)
             }
@@ -88,9 +91,9 @@ export function execute_callback<R extends StageObject>(
             process_error(err, done)
           }
         } else if (isCallback2Callback(run)) {
+          const _run: CustomRun2Callback<R> = run
           try {
-            //@ts-expect-error
-            run.call(this, context, done)
+            _run.call(this, context, done)
           } catch (err) {
             process_error(err, done)
           }
@@ -100,9 +103,9 @@ export function execute_callback<R extends StageObject>(
         break
       case 3:
         if (isCallback3Callback<R>(run)) {
+          const _run: CustomRun3Callback<R> = run
           try {
-            //@ts-ignore
-            run.call(this, err, context, done)
+            _run.call(this, err, context, done)
           } catch (err) {
             process_error(err, done)
           }

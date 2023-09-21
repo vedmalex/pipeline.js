@@ -12,4 +12,4 @@ export declare class MultiWaySwitch<R extends StageObject, T extends StageObject
     protected splitCase(item: unknown, ctx: unknown): any;
     compile(rebuild?: boolean): StageRun<R>;
 }
-//# sourceMappingURL=MultiWaySwitch.d.ts.map
+//# sourceMappingURL=MultiwaySwitch.d.ts.map

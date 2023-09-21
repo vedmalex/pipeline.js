@@ -22,10 +22,10 @@ function execute_callback(err, run, context, _done) {
                     try {
                         const res = run.apply(context);
                         if (res instanceof Promise) {
-                            res.then(_ => done(undefined, res !== null && res !== void 0 ? res : context)).catch(err => done(err));
+                            res.then(r => done(undefined, r !== null && r !== void 0 ? r : context)).catch(err => done(err));
                         }
                         else if ((0, types_1.is_thenable)(res)) {
-                            res.then(_ => done(undefined, res !== null && res !== void 0 ? res : context)).catch(err => done(err));
+                            res.then(r => done(undefined, r !== null && r !== void 0 ? r : context)).catch(err => done(err));
                         }
                         else {
                             done(undefined, res !== null && res !== void 0 ? res : context);
@@ -82,8 +82,9 @@ function execute_callback(err, run, context, _done) {
                     }
                 }
                 else if ((0, types_1.isCallback2Callback)(run)) {
+                    const _run = run;
                     try {
-                        run.call(this, context, done);
+                        _run.call(this, context, done);
                     }
                     catch (err) {
                         (0, errors_1.process_error)(err, done);
@@ -95,8 +96,9 @@ function execute_callback(err, run, context, _done) {
                 break;
             case 3:
                 if ((0, types_1.isCallback3Callback)(run)) {
+                    const _run = run;
                     try {
-                        run.call(this, err, context, done);
+                        _run.call(this, err, context, done);
                     }
                     catch (err) {
                         (0, errors_1.process_error)(err, done);

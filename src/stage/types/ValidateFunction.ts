@@ -1,5 +1,5 @@
 import { CallbackFunction } from './CallbackFunction'
-import { Thanable } from './is_thenable'
+import { Thenable } from './is_thenable'
 import { is_async_function } from './is_async_function'
 
 export type ValidateFunction0Sync<R> = (this: R) => boolean
@@ -18,7 +18,7 @@ export function isValidateFunction1Async<R>(inp: unknown): inp is ValidateFuncti
   return is_async_function(inp) && typeof inp == 'function' && inp.length == 1
 }
 
-export type ValidateFunction1Thenable<R> = (this: void, ctx: R) => Thanable<boolean>
+export type ValidateFunction1Thenable<R> = (this: void, ctx: R) => Thenable<boolean>
 export function isValidateFunction1Thenable<R>(inp: unknown): inp is ValidateFunction1Thenable<R> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 1
 }

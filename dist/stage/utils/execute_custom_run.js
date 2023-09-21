@@ -84,8 +84,9 @@ function execute_custom_run(run) {
                     }
                 }
                 else if ((0, types_1.isCustomRun2Callback)(run)) {
+                    const _run = run;
                     try {
-                        run.call(this, context, done);
+                        _run.call(this, context, done);
                     }
                     catch (err) {
                         (0, errors_1.process_error)(err, done);
@@ -97,8 +98,9 @@ function execute_custom_run(run) {
                 break;
             case 3:
                 if ((0, types_1.isCustomRun3Callback)(run)) {
+                    const _run = run;
                     try {
-                        run.call(this, err, context, done);
+                        _run.call(this, err, context, done);
                     }
                     catch (err) {
                         (0, errors_1.process_error)(err, done);

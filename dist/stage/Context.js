@@ -12,7 +12,7 @@ var RESERVATIONS;
     RESERVATIONS[RESERVATIONS["prop"] = 0] = "prop";
     RESERVATIONS[RESERVATIONS["func_this"] = 1] = "func_this";
     RESERVATIONS[RESERVATIONS["func_ctx"] = 2] = "func_ctx";
-})(RESERVATIONS = exports.RESERVATIONS || (exports.RESERVATIONS = {}));
+})(RESERVATIONS || (exports.RESERVATIONS = RESERVATIONS = {}));
 exports.RESERVED = {
     getParent: RESERVATIONS.func_ctx,
     getRoot: RESERVATIONS.func_ctx,

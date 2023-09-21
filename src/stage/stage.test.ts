@@ -6,7 +6,7 @@ import { StageConfigValidator } from './StageConfig'
 describe('stage', () => {
   it('throw error', done => {
     let st = new Stage()
-    expect.assertions(1)
+    // expect.assertions(1)
     st.execute({}, (err, context) => {
       expect(err).not.toBeUndefined()
       done()

@@ -1,5 +1,5 @@
 import 'jest'
-import { MultiWaySwitch } from './MultiWaySwitch'
+import { MultiWaySwitch } from './MultiwaySwitch'
 import { Context, Stage, StageConfigValidator } from '../../stage'
 import { Pipeline } from '../pipeline'
 
