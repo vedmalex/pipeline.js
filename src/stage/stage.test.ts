@@ -1,7 +1,7 @@
-import { JSONSchemaType } from 'ajv'
+import {z } from 'zod'
 import 'jest'
 import { Stage } from './stage'
-import { StageConfigValidator } from './StageConfig'
+import { StageConfig } from './StageConfig'
 
 describe('stage', () => {
   it('throw error', done => {
@@ -26,7 +26,7 @@ describe('stage', () => {
     expect(s).toMatchSnapshot('names stage')
   })
   it('create with function', () => {
-    const s = new Stage(function RunStage(this: { name?: string }) {
+    const s = new Stage(function(this: { name?: string }) {
       this.name = 'run this Stage'
     })
     expect(s).not.toBeNull()
@@ -76,15 +76,9 @@ describe('stage', () => {
   it('validate using schema', () => {
     const st = new Stage<{ name: string }>({
       run: () => {},
-      schema: {
-        type: 'object',
-        properties: {
-          name: { type: 'string' },
-        },
-        required: ['name'],
-        additionalProperties: false,
-        errorMessage: 'should be an object with a name property',
-      },
+      schema: z.object({
+        name: z.string({ required_error: 'should be an object with a name property' }),
+      }),
     })
 
     st.execute({ fullname: 1 } as unknown as { name: string }, (err, res) => {
@@ -105,10 +99,11 @@ describe('stage', () => {
     expect(stage).toMatchSnapshot('schema stage 1')
   })
 
-  it('wors as AnyStage', () => {
+  it('works as AnyStage', () => {
     let stage = {
       run: () => {},
     } as StageConfig<{}>
+
   })
 
   it('create with Lambda 2', () => {

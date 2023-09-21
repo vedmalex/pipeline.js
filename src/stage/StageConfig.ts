@@ -1,4 +1,4 @@
-import { JSONSchemaType } from 'ajv'
+import { z } from 'zod'
 import {
   CompileFunction,
   EnsureFunction,
@@ -13,7 +13,7 @@ export interface StageConfig<R extends StageObject> {
   run?: RunPipelineFunction<R>
   name?: string
   rescue?: Rescue
-  schema?: JSONSchemaType<R>
+  schema?: z.Schema<R>
   ensure?: EnsureFunction<R>
   validate?: ValidateFunction<R>
   compile?: CompileFunction<R>

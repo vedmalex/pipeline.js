@@ -198,7 +198,7 @@ export class Stage<R extends StageObject, C extends StageConfig<R> = StageConfig
     const fail = (err: unknown) => back(err, context)
     if (this._config.run) {
       if (context) {
-        execute_callback.call(this, err, this._config.run, context, callback as CallbackFunction<unknown>)
+        execute_callback.call(this as AnyStage<R>, err, this._config.run, context, callback as CallbackFunction<unknown>)
       } else {
         // возвращаем управление
         callback(err)

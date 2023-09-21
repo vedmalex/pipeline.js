@@ -14,13 +14,14 @@ import {
   is_thenable,
   Thenable,
   CustomRun3Callback,
-  CustomRun2Callback
+  CustomRun2Callback,
+  AnyStage
 } from '../types'
 import { run_callback_once } from './run_callback_once'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
 export function execute_callback<R extends StageObject>(
-  this: object | void,
+  this:  AnyStage<R>| void,
   err: unknown,
   run: unknown,
   context: ContextType<R>,

@@ -1,4 +1,4 @@
-import { JSONSchemaType } from 'ajv'
+import {z} from 'zod'
 import { StageConfig } from './StageConfig'
 import {
   CompileFunction,
@@ -32,7 +32,7 @@ export class StageBuilder<R extends StageObject, C extends StageConfig<R>> {
     this.cfg.rescue = fn
     return this
   }
-  schema(obj: JSONSchemaType<R>) {
+  schema(obj: z.Schema<R>) {
     this.cfg.schema = obj
     return this
   }

@@ -1,7 +1,4 @@
-import Ajv from 'ajv'
-import ajvErrors from 'ajv-errors'
-import ajvFormats from 'ajv-formats'
-import ajvKeywords from 'ajv-keywords'
+
 import { StageConfig } from './StageConfig'
 import {
   AllowedStage,
@@ -14,6 +11,7 @@ import {
   isValidateFunction,
 } from './types'
 import { CreateError } from './errors'
+import { fromZodError } from 'zod-validation-error'
 
 export const StageSymbol = Symbol('stage')
 
@@ -69,16 +67,14 @@ export function getStageConfig<R extends StageObject, C extends StageConfig<R>>(
     }
     if (config.schema) {
       result.schema = config.schema
-      const ajv = new Ajv({ allErrors: true })
-      ajvFormats(ajv)
-      ajvErrors(ajv, { singleError: true })
-      ajvKeywords(ajv)
-      const validate = ajv.compile(result.schema)
-      result.validate = (ctx: unknown): boolean => {
-        if (!validate(ctx) && validate.errors) {
-          throw CreateError(ajv.errorsText(validate.errors))
-        } else return true
-      }
+      result.validate = ((ctx: unknown): boolean => {
+        const pr = result.schema?.safeParse(ctx)
+        if (!pr?.success) {
+          throw CreateError(fromZodError(pr?.error!))
+        } else {
+          return true
+        }
+      })
     }
     if (!config.name) {
       result.name = getNameFrom<R, C>(config)

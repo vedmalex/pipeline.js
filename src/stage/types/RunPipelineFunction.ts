@@ -21,13 +21,13 @@ export type CustomRun2Async<R extends StageObject> = (
 ) => Promise<ContextType<R>>
 
 export type CustomRun2Callback<R extends StageObject> = (
-  this: AnyStage<R>,
+  this: AnyStage<R>| void,
   ctx: ContextType<R>,
   done: CallbackFunction<ContextType<R>>,
 ) => void
 
 export type CustomRun3Callback<R extends StageObject> = (
-  this: AnyStage<R>,
+  this: AnyStage<R> | void,
   err: any,
   ctx: ContextType<R>,
   done: CallbackFunction<ContextType<R>>,
