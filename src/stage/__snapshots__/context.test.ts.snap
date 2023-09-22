@@ -2,9 +2,9 @@
 
 exports[`context create a context object as Proxy: create-proxy 1`] = `"{\"name\":\"alex\"}"`;
 
-exports[`context ensures object: ensure 1`] = `"{\"name\":\"alex\"}"`;
+exports[`context ensures object: ensure 1`] = `"{\"name\":\"alex\",\"age\":43}"`;
 
-exports[`context ensures object: ensure 2`] = `"{\"name\":\"alex\"}"`;
+exports[`context ensures object: ensure 2`] = `"{\"name\":\"alex\",\"age\":43}"`;
 
 exports[`context fork: Egor 1`] = `"{\"name\":\"Egor\",\"address\":{\"city\":\"NCH\",\"State\":\"RO\",\"country\":\"RU\"}}"`;
 

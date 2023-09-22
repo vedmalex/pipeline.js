@@ -1,3 +1,3 @@
 export * from './getTimeoutConfig'
-export * from './timeout'
+export * from './Timeout'
 export * from './TimeoutConfig'

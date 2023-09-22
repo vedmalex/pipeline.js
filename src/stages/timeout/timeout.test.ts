@@ -1,6 +1,6 @@
 import 'jest'
 import { Stage } from '../../stage'
-import { Timeout } from './timeout'
+import { Timeout } from './Timeout'
 
 describe('Timeout', function () {
   it('not used without construction', function (done) {

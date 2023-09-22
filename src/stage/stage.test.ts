@@ -68,7 +68,7 @@ describe('stage', () => {
       () =>
         new Stage({
           run: () => {},
-          schema: {} as JSONSchemaType<{}>,
+          schema: z.object({}).passthrough()
         }),
     ).not.toThrow()
   })

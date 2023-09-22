@@ -13,8 +13,12 @@ Stage {
 exports[`stage create with function: function stage 1`] = `
 Stage {
   "_config": {
-    "name": "RunStage",
-    "run": [Function: RunStage],
+    "name": 
+"function() {
+      this.name = "run this Stage";
+    }"
+,
+    "run": [Function],
   },
   "run": undefined,
   [Symbol(stage)]: true,

@@ -40,7 +40,7 @@ export class RetryOnError<
       return this.config.backup(ctx)
     } else {
       if (Context.isContext(ctx)) {
-        return ctx.fork({} as T)
+        return ctx.fork({} as T) as ContextType<T>
       } else {
         return ctx
       }
@@ -53,7 +53,8 @@ export class RetryOnError<
     } else {
       if (Context.isContext(ctx) && typeof backup === 'object' && backup !== null) {
         for (let key in backup) {
-          ctx[key] = backup[key] as any
+          //@ts-expect-error
+          ctx[key] = backup[key]
         }
         return ctx
       } else {

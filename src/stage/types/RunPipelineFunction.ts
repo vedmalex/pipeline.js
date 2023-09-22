@@ -65,7 +65,7 @@ export function isCustomRun3Callback<R extends StageObject>(inp: unknown): inp i
   return !is_async_function(inp) && typeof inp === 'function' && inp.length === 3
 }
 
-export function isRunPipelineFunction<R extends StageObject>(inp: any): inp is RunPipelineFunction<R> {
+export function isRunPipelineFunction<R extends StageObject>(inp: unknown): inp is RunPipelineFunction<R> {
   return (
     isCustomRun0Async(inp) ||
     isCustomRun1Async(inp) ||

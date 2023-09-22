@@ -1,3 +1,4 @@
+import {z} from 'zod'
 import { defaultsDeep, get, set } from 'lodash'
 
 import { StageObject } from './types'
@@ -11,15 +12,57 @@ export interface IContextProxy<T extends StageObject> {
   getRoot(): ContextType<T>
   setParent(parent: ContextType<T>): void
   setRoot(parent: ContextType<T>): void
-  toJSON(): string
+  hasChild(ctx: object): boolean
+  hasSubtree(ctx: object): boolean
   toObject(clean?: boolean): T
+  toJSON(): string
   toString(): string
-  fork<C extends StageObject>(config?: C): ContextType<T & C>
-  get(path: keyof T): any
   get original(): T
   [OriginalObject]?: true
   [key: string | symbol | number]: any
 }
+
+export interface ContextProxy<T extends StageObject> {
+  fork<C extends T>(config: C, schema: z.ZodType<C>): ContextType<T & C>
+  addChild(child: object): unknown
+  get(path: keyof T): any
+  addSubtree(lctx: object): unknown
+  getParent(): ContextType<T>
+  getRoot(): ContextType<T>
+  setParent(parent: ContextType<T>): void
+  setRoot(parent: ContextType<T>): void
+  hasChild(ctx: object): boolean
+  hasSubtree(ctx: object): boolean
+  toObject(clean?: boolean): T
+  toJSON(): string
+  toString(): string
+  get original(): T
+  [OriginalObject]?: true
+  [key: string | symbol | number]: any
+}
+
+export const ContextProxySchema = z.object({
+  fork: z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
+  addChild:z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
+  get: z.function(z.tuple([z.string()]), z.unknown()),
+  addSubtree:z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
+  getParent: z.function(z.tuple([]), z.unknown()),
+  getRoot: z.function(z.tuple([]), z.unknown()),
+  setParent: z.function(z.tuple([z.unknown()]), z.void()),
+  setRoot: z.function(z.tuple([z.unknown()]), z.void()),
+  hasChild:z.function(z.tuple([z.object({}).passthrough().optional()]), z.boolean()),
+  hasSubtree: z.function(z.tuple([z.object({}).passthrough().optional()]), z.boolean()),
+  toJSON: z.function(z.tuple([z.boolean().optional()]), z.string()),
+  toObject: z.function(z.tuple([z.boolean().optional()]), z.unknown()),
+  toString: z.function(z.tuple([]), z.string()),
+  get original() {
+    return z.unknown(); // This assumes 'original' is a property with any type
+  },
+  // Add other properties as needed, such as [OriginalObject]
+  [OriginalObject]: z.boolean().optional(),
+  // [key: string | symbol | number]: z.unknown(),
+}).passthrough();
+
 
 export type ContextType<T> = T extends StageObject ? IContextProxy<T> & T : never
 
@@ -32,7 +75,7 @@ export enum RESERVATIONS {
   func_ctx,
 }
 
-export const RESERVED: Record<string, RESERVATIONS> = {
+export const RESERVED = {
   getParent: RESERVATIONS.func_ctx,
   getRoot: RESERVATIONS.func_ctx,
   setParent: RESERVATIONS.func_ctx,
@@ -58,7 +101,7 @@ export const RESERVED: Record<string, RESERVATIONS> = {
  *  @param {Object} config The object that is the source for the **Context**.
  */
 export class Context<T extends StageObject> implements IContextProxy<T> {
-  public static ensure<T extends StageObject>(_config?: T): ContextType<T> {
+  public static ensure<T extends StageObject>(_config?: unknown): ContextType<T> {
     if (Context.isContext<T>(_config)) {
       return _config
     } else {
@@ -70,7 +113,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
     }
   }
 
-  public static create<T extends StageObject>(input?: object): ContextType<T> {
+  public static create<T extends StageObject>(input?: unknown): ContextType<T> {
     return new Context<T>((input ?? {}) as T) as unknown as ContextType<T>
   }
 
@@ -89,7 +132,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
     return this.ctx
   }
 
-  protected constructor(config: object) {
+  protected constructor(config: unknown) {
     this.ctx = config as T
     this.id = count++
     allContexts[this.id] = this
@@ -101,6 +144,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
 
         if (!(key in RESERVED)) {
           if (key in target.ctx) {
+            //@ts-expect-error
             return target.ctx[key]
           } else {
             return target.__parent?.[key]
@@ -114,8 +158,9 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
           } else return target[key] // just props
         }
       },
-      set(target: Context<T>, key: keyof typeof RESERVED | string | symbol, value): boolean {
+      set(target: Context<T>, key: keyof typeof RESERVED | string | symbol | number, value): boolean {
         if (!(key in RESERVED)) {
+          //@ts-expect-error
           target.ctx[key] = value
           return true
         } else if (
@@ -131,6 +176,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
       },
       deleteProperty(target: Context<T>, key: string | symbol) {
         if (!(key in RESERVED)) {
+          //@ts-expect-error
           return delete target.ctx[key]
         } else {
           return false
@@ -263,7 +309,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
     defaultsDeep(obj, this.ctx)
     if (this.__parent) {
       // TODO: взять весь объект по всей структуре дерева
-      defaultsDeep(obj, this.__parent.toObject())
+      defaultsDeep(obj, this.__parent.toObject(false))
     }
     return obj
   }
