@@ -3,11 +3,11 @@ import { CallbackFunction } from './CallbackFunction'
 import { is_async_function } from './is_async_function'
 import { StageObject } from './StageObject'
 
-export type EnsureSync<R extends StageObject> = (ctx: ContextType<R>) => ContextType<R>
+export type EnsureSync<R extends StageObject> = (ctx: unknown) => ContextType<R>
 
-export type EnsureAsync<R extends StageObject> = (ctx: ContextType<R>) => Promise<ContextType<R>>
+export type EnsureAsync<R extends StageObject> = (ctx: unknown) => Promise<ContextType<R>>
 
-export type EnsureCallback<R extends StageObject> = (ctx: R, done: CallbackFunction<ContextType<R>>) => void
+export type EnsureCallback<R extends StageObject> = (ctx: unknown, done: CallbackFunction<ContextType<R>>) => void
 
 export function isEnsureSync<R extends StageObject>(inp: unknown): inp is EnsureSync<R> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length === 1

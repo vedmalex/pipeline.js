@@ -23,6 +23,7 @@ export class StageBuilder<R extends StageObject, C extends StageConfig<R>> {
     } else {
       throw CreateError('run should be a `RunPipelineFunction`')
     }
+    return this
   }
   name(name: string) {
     this.cfg.name = name

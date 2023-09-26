@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { ContextType } from '../Context'
-import { CallbackFunction } from './CallbackFunction'
+import { ContextProxySchema, ContextType } from '../Context'
+import { CallbackFunction, CallbackFunctionSchema } from './CallbackFunction'
 import { StageObject } from './StageObject'
 
 export type StageRun<R extends StageObject> = (
@@ -9,4 +9,4 @@ export type StageRun<R extends StageObject> = (
   callback: CallbackFunction<ContextType<R>>,
 ) => void
 
-export const StageRunSchema = z.function(z.tuple([z.unknown()]), z.void())
+export const StageRunSchema = z.function(z.tuple([z.unknown(), ContextProxySchema, CallbackFunctionSchema]), z.void())

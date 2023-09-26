@@ -6,5 +6,5 @@ export const ExtendStageObjectWith = <T extends z.ZodRawShape>(schema: z.ZodObje
   return StageObjectSchema.merge(schema)
 }
 
-export type StageObject = z.ZodRawShape
+export type StageObject<R = object> = R extends object ? R : never
 

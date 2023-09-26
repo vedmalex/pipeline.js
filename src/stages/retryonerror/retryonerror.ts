@@ -40,7 +40,7 @@ export class RetryOnError<
       return this.config.backup(ctx)
     } else {
       if (Context.isContext(ctx)) {
-        return ctx.fork({} as T) as ContextType<T>
+        return ctx.fork({}) as ContextType<T>
       } else {
         return ctx
       }

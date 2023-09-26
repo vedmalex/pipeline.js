@@ -33,7 +33,7 @@ export function getStageConfig<R extends StageObject, C extends StageConfig<R>>(
     return config
   } else if (isRunPipelineFunction<R>(config)) {
     result.run = config
-    result.name = getNameFrom<R, C>(result)
+    result.name = getNameFrom(result)
   } else {
     if (config.name) {
       result.name = config.name
@@ -77,7 +77,7 @@ export function getStageConfig<R extends StageObject, C extends StageConfig<R>>(
       })
     }
     if (!config.name) {
-      result.name = getNameFrom<R, C>(config)
+      result.name = getNameFrom(config)
     }
   }
   return result

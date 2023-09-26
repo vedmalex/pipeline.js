@@ -1,7 +1,6 @@
 import {
   AllowedStage,
   AnyStage,
-  RunPipelineFunction,
   StageConfig,
   StageObject,
   empty_run,
@@ -17,7 +16,7 @@ export function getEmptyConfig<R extends StageObject, C extends StageConfig<R>>(
   if (isAnyStage(res)) {
     return res
   } else {
-    res.run = empty_run as RunPipelineFunction<R>
+    res.run = empty_run
   }
 
   return res

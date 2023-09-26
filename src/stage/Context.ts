@@ -6,24 +6,8 @@ import { StageObject } from './types'
 export const ContextSymbol = Symbol('Context')
 export const OriginalObject = Symbol('OriginalObject')
 export const ProxySymbol = Symbol('Handler')
-
-export interface IContextProxy<T extends StageObject> {
-  getParent(): ContextType<T>
-  getRoot(): ContextType<T>
-  setParent(parent: ContextType<T>): void
-  setRoot(parent: ContextType<T>): void
-  hasChild(ctx: object): boolean
-  hasSubtree(ctx: object): boolean
-  toObject(clean?: boolean): T
-  toJSON(): string
-  toString(): string
-  get original(): T
-  [OriginalObject]?: true
-  [key: string | symbol | number]: any
-}
-
 export interface ContextProxy<T extends StageObject> {
-  fork<C extends T>(config: C, schema: z.ZodType<C>): ContextType<T & C>
+  fork<C extends T>(config: C): ContextType<T & C>
   addChild(child: object): unknown
   get(path: keyof T): any
   addSubtree(lctx: object): unknown
@@ -59,12 +43,16 @@ export const ContextProxySchema = z.object({
     return z.unknown(); // This assumes 'original' is a property with any type
   },
   // Add other properties as needed, such as [OriginalObject]
-  [OriginalObject]: z.boolean().optional(),
+  // [OriginalObject]: z.boolean().optional(),
   // [key: string | symbol | number]: z.unknown(),
 }).passthrough();
 
 
-export type ContextType<T> = T extends StageObject ? IContextProxy<T> & T : never
+export type ContextType<T> = T extends StageObject ? ContextProxy<T> & T : never
+
+export const ExtendContextTypeWith = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
+  return ContextProxySchema.merge(schema)
+}
 
 var count = 0
 var allContexts: Record<string, Context<any>> = {}
@@ -100,7 +88,7 @@ export const RESERVED = {
  *  The **Context** itself
  *  @param {Object} config The object that is the source for the **Context**.
  */
-export class Context<T extends StageObject> implements IContextProxy<T> {
+export class Context<T extends StageObject> implements ContextProxy<T> {
   public static ensure<T extends StageObject>(_config?: unknown): ContextType<T> {
     if (Context.isContext<T>(_config)) {
       return _config
@@ -144,7 +132,6 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
 
         if (!(key in RESERVED)) {
           if (key in target.ctx) {
-            //@ts-expect-error
             return target.ctx[key]
           } else {
             return target.__parent?.[key]
@@ -160,7 +147,6 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
       },
       set(target: Context<T>, key: keyof typeof RESERVED | string | symbol | number, value): boolean {
         if (!(key in RESERVED)) {
-          //@ts-expect-error
           target.ctx[key] = value
           return true
         } else if (
@@ -176,7 +162,6 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
       },
       deleteProperty(target: Context<T>, key: string | symbol) {
         if (!(key in RESERVED)) {
-          //@ts-expect-error
           return delete target.ctx[key]
         } else {
           return false

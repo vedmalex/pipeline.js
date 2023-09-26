@@ -1,21 +1,21 @@
 // Bun Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`stage create named: names stage 1`] = `
+exports[`stageBuilder create named: names stage 1`] = `
 Stage {
   "_config": {
-    "name": "name",
+    "name": "names stage",
   },
   "run": undefined,
   [Symbol(stage)]: true,
 }
 `;
 
-exports[`stage create with function: function stage 1`] = `
+exports[`stageBuilder create with function: function stage 1`] = `
 Stage {
   "_config": {
     "name": 
-"function(ctx) {
-      ctx.name = "run this Stage";
+"function() {
+      this.name = "run this Stage";
     }"
 ,
     "run": [Function],
@@ -25,7 +25,7 @@ Stage {
 }
 `;
 
-exports[`stage create with Lambda 3: lambda stage 1`] = `
+exports[`stageBuilder create with Lambda 3: lambda stage 1`] = `
 Stage {
   "_config": {
     "name": 
@@ -43,19 +43,20 @@ Stage {
 }
 `;
 
-exports[`stage validate using schema 1`] = `[ComplexError]`;
+exports[`stageBuilder validate using schema 1`] = `[ComplexError]`;
 
-exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
+exports[`stageBuilder initialize other stuff sucessfully: schema stage 1 1`] = `
 Stage {
   "_config": {
     "name": "stage",
+    "run": [Function],
   },
   "run": undefined,
   [Symbol(stage)]: true,
 }
 `;
 
-exports[`stage create with Lambda 2: lambda stage 1`] = `
+exports[`stageBuilder create with Lambda 2: lambda stage 1`] = `
 Stage {
   "_config": {
     "name": 
@@ -73,7 +74,7 @@ Stage {
 }
 `;
 
-exports[`stage create with Config: config stage 1`] = `
+exports[`stageBuilder create with Config: config stage 1`] = `
 Stage {
   "_config": {
     "name": 
