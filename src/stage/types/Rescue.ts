@@ -1,9 +1,9 @@
 import { CallbackFunction } from './CallbackFunction'
 import { is_async_function } from './is_async_function'
 
-export type Rescue1Sync = <R>(this: R, ctx: Error) => any
+export type Rescue1Sync = <R>(this: R, err: Error) => any
 
-export type Rescue1ASync = <R>(this: R, ctx: Error) => Promise<void>
+export type Rescue1ASync = <R>(this: R, err: Error) => Promise<void>
 
 export type Rescue2ASync = <R>(this: null, err: Error, ctx: R) => Promise<void>
 

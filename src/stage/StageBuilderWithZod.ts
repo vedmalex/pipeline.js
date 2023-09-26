@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ComplexError, CreateError } from './errors'
 import { StageConfig } from './StageConfig'
-import { CallbackFunction, isRunPipelineFunction, StageObject } from './types'
+import { AnyStage, CallbackFunction, isRunPipelineFunction, StageObject, StageRun } from './types'
 
 export const unsetMarker = Symbol('unset')
 
@@ -28,6 +28,7 @@ export interface BuilderParams<
 export type AnyStageConfig = StageConfig<any>
 
 export type BuilderDef = {
+  stage: unknown
   inputs: Parser
   outputs: Parser
   cfg: AnyStageConfig
@@ -67,6 +68,60 @@ export function createBuilder<TInput extends StageObject, TConfig extends StageC
         ..._def,
       }) as any
     },
+    name(name) {
+      if (!_def.cfg) {
+        _def.cfg = {}
+      }
+      _def.cfg.name = name
+      return createBuilder({
+        ..._def,
+      }) as any
+    },
+    rescue(rescue) {
+      if (!_def.cfg) {
+        _def.cfg = {}
+      }
+      _def.cfg.rescue = rescue as any
+      return createBuilder({
+        ..._def,
+      }) as any
+    },
+    ensure(ensure) {
+      if (!_def.cfg) {
+        _def.cfg = {}
+      }
+      _def.cfg.ensure = ensure as any
+      return createBuilder({
+        ..._def,
+      }) as any
+    },
+    validate(ensure) {
+      if (!_def.cfg) {
+        _def.cfg = {}
+      }
+      _def.cfg.ensure = ensure as any
+      return createBuilder({
+        ..._def,
+      }) as any
+    },
+    compile(fn) {
+      if (!_def.cfg) {
+        _def.cfg = {}
+      }
+      _def.cfg.compile = fn as any
+      return createBuilder({
+        ..._def,
+      }) as any
+    },
+    precompile(fn) {
+      if (!_def.cfg) {
+        _def.cfg = {}
+      }
+      _def.cfg.precompile = fn as any
+      return createBuilder({
+        ..._def,
+      }) as any
+    },
   }
 }
 
@@ -84,6 +139,8 @@ export type inferParser<TParser extends Parser> = TParser extends ParserZod<infe
   : never
 
 type ErrorMessage<TMessage extends string> = TMessage
+
+// должен быть Stage
 
 export interface Builder<TParams extends BuilderParams> {
   /**
@@ -133,6 +190,36 @@ export interface Builder<TParams extends BuilderParams> {
     _input: TParams['_input']
     _output: TParams['_output']
   }>
+  name(name:string):Builder<{
+    _config: TParams['_config']
+    _input: TParams['_input']
+    _output: TParams['_output']
+  }>
+  rescue(rescue:Rescue<TParams['_input']>):Builder<{
+    _config: TParams['_config']
+    _input: TParams['_input']
+    _output: TParams['_output']
+  }>
+  ensure(ensure: Ensure<TParams['_input']>):Builder<{
+    _config: TParams['_config']
+    _input: TParams['_input']
+    _output: TParams['_output']
+  }>
+  validate(fn: ValidateFn<TParams['_input']>):Builder<{
+    _config: TParams['_config']
+    _input: TParams['_input']
+    _output: TParams['_output']
+  }>
+  compile(fn: Compile<TParams['_input']>):Builder<{
+    _config: TParams['_config']
+    _input: TParams['_input']
+    _output: TParams['_output']
+  }>
+  precompile(fn: Precompile<TParams['_input']>):Builder<{
+    _config: TParams['_config']
+    _input: TParams['_input']
+    _output: TParams['_output']
+  }>
   _def: BuilderDef
 }
 
@@ -143,7 +230,38 @@ export type CustomRun<$P1> = (
   p3?: CallbackFunction<$P1> | undefined,
 ) => Promise<$P1> | $P1 | void
 
-const p = createBuilder()
+export type Rescue<$P1> = (
+  this: $P1  | null,
+  p1?: Error | $P1 | undefined,
+  p2?: $P1 | undefined,
+  p3?: CallbackFunction<$P1> | undefined,
+) => Promise<$P1> | $P1 | void
+
+export type Ensure<$P1> = (
+  p1?: $P1 | undefined,
+  p2?: CallbackFunction<$P1> | undefined,
+) => Promise<$P1> | $P1 | void
+
+export type ValidateFn<$P1> = (
+  this: $P1  | null,
+  p1?: $P1 | undefined,
+  p2?: CallbackFunction<boolean> | undefined,
+) => Promise<boolean> | boolean | void
+
+export type Compile<$P1> = (this: $P1 extends StageObject ? AnyStage<$P1>: never, rebuild?: boolean) =>$P1 extends StageObject ? StageRun<$P1>: never
+
+export type Precompile<$P1> = (
+  this: AnyStage<$P1 extends StageObject ? $P1 : never>
+) => void
+
+createBuilder()
   .input(z.object({ name: z.string() }))
+  .name("stage")
+  .rescue(function(err, ctx) {
+    this?.name
+  })
+  .ensure(() => {
+    return
+  })
   .run(function () {
   })
