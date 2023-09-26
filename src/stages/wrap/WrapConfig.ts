@@ -1,9 +1,9 @@
-import { AllowedStageStored, ContextType, StageConfig, StageObject } from '../../stage'
+import { AllowedStageStored, StageConfig } from '../../stage'
 
-export interface WrapConfig<R extends StageObject, T extends StageObject> extends StageConfig<R> {
+export interface WrapConfig<R, T> extends StageConfig<R> {
   stage: AllowedStageStored<R, StageConfig<R>>
-  prepare?: (ctx: ContextType<R>) => ContextType<T>
+  prepare?: (ctx: R) => T
   finalize?:
-    | ((ctx: ContextType<R>, retCtx: ContextType<T>) => ContextType<R>)
-    | ((ctx: ContextType<R>, retCtx: ContextType<T>) => void)
+    | ((ctx: R, retCtx: T) => R)
+    | ((ctx: R, retCtx: T) => void)
 }

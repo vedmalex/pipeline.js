@@ -1,18 +1,16 @@
 import {
   AnyStage,
-  ContextType,
   run_or_execute_async,
   SingleStageFunction,
   Stage,
-  StageObject,
   StageRun,
 } from '../../stage'
 import { DoWhileConfig } from './DoWhileConfig'
 import { getDoWhileConfig } from './getDoWhileConfig'
 
 export class DoWhile<
-  R extends StageObject,
-  T extends StageObject,
+  R,
+  T,
   C extends DoWhileConfig<R, T> = DoWhileConfig<R, T>,
 > extends Stage<R, C> {
   constructor()
@@ -33,7 +31,7 @@ export class DoWhile<
   public override toString() {
     return '[pipeline DoWhile]'
   }
-  protected reachEnd(err: unknown, ctx: ContextType<R>, iter: number): boolean {
+  protected reachEnd(err: unknown, ctx: R, iter: number): boolean {
     if (this.config.reachEnd) {
       let result = this.config.reachEnd(err, ctx, iter)
       if (typeof result === 'boolean') {
@@ -48,7 +46,7 @@ export class DoWhile<
 
   protected split(ctx: unknown, iter: number): any {
     if (this.config.split) {
-      return this.config.split(ctx as ContextType<R>, iter)
+      return this.config.split(ctx as R, iter)
     } else {
       return ctx
     }
@@ -76,11 +74,11 @@ export class DoWhile<
 
       const next = async (err: unknown) => {
         iter++
-        let retCtx: ContextType<R>
+        let retCtx: R
         while (!this.reachEnd(err, context, iter)) {
           ;[err, retCtx] = await run_or_execute_async(this.config.stage, err, this.split(context as R, iter))
           if (err) {
-            ;[err, context] = (await this.rescue_async(err, retCtx)) as [unknown, ContextType<R>]
+            ;[err, context] = (await this.rescue_async(err, retCtx)) as [unknown, R]
             if (err) {
               return done(err)
             }

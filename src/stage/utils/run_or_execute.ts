@@ -1,15 +1,14 @@
-import { ContextType } from '../Context'
 import { isAnyStage } from '../getStageConfig'
-import { CallbackFunction, StageObject } from '../types'
+import { CallbackFunction } from '../types'
 import { execute_callback } from './execute_callback'
 
-export function run_or_execute<R extends StageObject>(
+export function run_or_execute<R>(
   stage: unknown,
   err: unknown,
-  context: ContextType<R>,
-  _done: CallbackFunction<ContextType<R>>,
+  context: R,
+  _done: CallbackFunction<R>,
 ): void {
-  const done: CallbackFunction<ContextType<R>> = (err, ctx) => {
+  const done: CallbackFunction<R> = (err, ctx) => {
     _done(err, ctx ?? context)
   }
   if (isAnyStage<R>(stage)) {
@@ -21,11 +20,11 @@ export function run_or_execute<R extends StageObject>(
   }
 }
 
-export function run_or_execute_async<R extends StageObject>(
+export function run_or_execute_async<R>(
   stage: unknown,
   err: unknown,
-  context: ContextType<R>,
-): Promise<[unknown, ContextType<R>]> {
+  context: R,
+): Promise<[unknown, R]> {
   return new Promise(resolve => {
     run_or_execute<R>(stage, err, context, (err, ctx) => {
       resolve([err, ctx ?? context])

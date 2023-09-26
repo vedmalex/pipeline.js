@@ -1,13 +1,11 @@
 import {
-  AnyStage,
   CallbackFunction,
-  ContextType,
   CreateError,
   isAnyStage,
   Possible,
   run_or_execute,
   Stage,
-  StageObject,
+  StageConfig,
   StageRun,
 } from '../../stage'
 import { AllowedMWS } from './AllowedMWS'
@@ -18,8 +16,8 @@ import { MultiWaySwitchStatic } from './MultiWaySwitchStatic'
 import { MultWaySwitchConfig } from './MultWaySwitchConfig'
 
 export class MultiWaySwitch<
-  R extends StageObject,
-  T extends StageObject,
+  R,
+  T,
   C extends MultWaySwitchConfig<R, T> = MultWaySwitchConfig<R, T>,
 > extends Stage<R, C> {
   constructor(config?: AllowedMWS<R, T, C>) {
@@ -37,7 +35,7 @@ export class MultiWaySwitch<
     return '[pipeline MultWaySwitch]'
   }
 
-  protected combine(ctx: ContextType<R>, retCtx: ContextType<T>): ContextType<R> {
+  protected combine(ctx: R, retCtx: T): R {
     if (this.config.combine) {
       return this.config.combine(ctx, retCtx)
     } else {
@@ -45,7 +43,7 @@ export class MultiWaySwitch<
     }
   }
 
-  protected combineCase(item: MultiWaySwitchCase<R, T>, ctx: ContextType<R>, retCtx: ContextType<T>): ContextType<R> {
+  protected combineCase(item: MultiWaySwitchCase<R, T>, ctx: R, retCtx: T): R {
     if (item.combine) {
       return item.combine(ctx, retCtx)
     } else {
@@ -55,7 +53,7 @@ export class MultiWaySwitch<
 
   protected split(ctx: unknown): unknown {
     if (this.config.split) {
-      return this.config.split(ctx as ContextType<R>) ?? ctx
+      return this.config.split(ctx as R) ?? ctx
     } else {
       return ctx
     }
@@ -76,7 +74,7 @@ export class MultiWaySwitch<
 
     // Apply to each stage own environment: evaluate, split, combine
     for (i = 0; i < this.config?.cases?.length; i++) {
-      let caseItem: MultiWaySwitchCase<R, T> | AnyStage<R>
+      let caseItem: MultiWaySwitchCase<R, T>
       caseItem = this.config.cases[i]
 
       if (caseItem instanceof Function) {
@@ -90,15 +88,15 @@ export class MultiWaySwitch<
         caseItem = {
           stage: caseItem,
           evaluate: true,
-        }
+        } as MultiWaySwitchCase<R,T>
       }
 
       if (caseItem.stage) {
         if (caseItem.stage instanceof Function) {
           caseItem.stage = caseItem.stage
         }
-        if (!isAnyStage(caseItem.stage) && typeof caseItem.stage == 'object') {
-          caseItem.stage = new Stage<R>(caseItem.stage)
+        if (!isAnyStage<R>(caseItem.stage) && typeof caseItem.stage == 'object') {
+          caseItem.stage = new Stage<R, StageConfig<R>>( caseItem.stage )
         }
 
         if (!(caseItem.split instanceof Function)) {
@@ -137,10 +135,10 @@ export class MultiWaySwitch<
       let hasError = false
 
       let next = (index: number) => {
-        return (err: unknown, retCtx: ContextType<T>) => {
+        return (err: unknown, retCtx: T) => {
           iter++
           let cur = actuals[index]
-          let res: Possible<ContextType<R>> = null
+          let res: Possible<R> = null
           if (err) {
             if (!hasError) {
               hasError = true
@@ -161,7 +159,7 @@ export class MultiWaySwitch<
         stg = actuals[i]
         lctx = this.splitCase(stg, ctx)
 
-        run_or_execute(stg.stage, err, lctx, next(i) as CallbackFunction<ContextType<T>>)
+        run_or_execute(stg.stage, err, lctx, next(i) as CallbackFunction<T>)
         // не хватает явной передачи контекста
       }
 

@@ -13,11 +13,7 @@ Stage {
 exports[`stage create with function: function stage 1`] = `
 Stage {
   "_config": {
-    "name": 
-"function() {
-      this.name = "run this Stage";
-    }"
-,
+    "name": "",
     "run": [Function],
   },
   "run": undefined,
@@ -28,14 +24,7 @@ Stage {
 exports[`stage create with Lambda 3: lambda stage 1`] = `
 Stage {
   "_config": {
-    "name": 
-"(err, ctx, done) => {
-      if (!err)
-        ctx.name = "run the stage", done(void 0, ctx);
-      else
-        done(err);
-    }"
-,
+    "name": "",
     "run": [Function],
   },
   "run": undefined,
@@ -59,14 +48,7 @@ Stage {
 exports[`stage create with Lambda 2: lambda stage 1`] = `
 Stage {
   "_config": {
-    "name": 
-"(err, ctx) => {
-      if (!err)
-        return ctx.name = "run the stage", Promise.resolve(ctx);
-      else
-        return Promise.reject(err);
-    }"
-,
+    "name": "",
     "run": [Function],
   },
   "run": undefined,
@@ -77,14 +59,7 @@ Stage {
 exports[`stage create with Config: config stage 1`] = `
 Stage {
   "_config": {
-    "name": 
-"(err, ctx, done) => {
-      if (!err)
-        ctx.name = "run the stage", done(void 0, ctx);
-      else
-        done(err);
-    }"
-,
+    "name": "",
     "run": [Function],
   },
   "run": undefined,

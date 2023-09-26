@@ -1,7 +1,7 @@
-import { AllowedStage, CreateError, getStageConfig, isAnyStage, StageObject } from '../../stage'
+import { AllowedStage, CreateError, getStageConfig, isAnyStage } from '../../stage'
 import { TimeoutConfig } from './TimeoutConfig'
 
-export function getTimeoutConfig<R extends StageObject, C extends TimeoutConfig<R>>(config: AllowedStage<R, C>): C {
+export function getTimeoutConfig<R, C extends TimeoutConfig<R>>(config: AllowedStage<R, C>): C {
   const res = getStageConfig(config)
   if (isAnyStage(res)) {
     return { stage: res } as C

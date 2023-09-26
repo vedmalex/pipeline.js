@@ -1,11 +1,9 @@
 import {
   AllowedStage,
-  ContextType,
   CreateError,
   empty_run,
   run_or_execute,
   Stage,
-  StageObject,
   StageRun,
 } from '../../stage'
 import { getParallelConfig } from './getParallelConfig'
@@ -31,8 +29,8 @@ import { ParallelError } from './ParallelError'
  */
 
 export class Parallel<
-  R extends StageObject,
-  T extends StageObject,
+  R,
+  T,
   C extends ParallelConfig<R, T> = ParallelConfig<R, T>,
 > extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
@@ -78,7 +76,7 @@ export class Parallel<
                   errors.push(error)
                 }
               }
-              resolve([err, res] as [unknown, ContextType<T>])
+              resolve([err, res] as [unknown, T])
             })
           })
         }
@@ -86,9 +84,9 @@ export class Parallel<
         if (len === 0) {
           return done(err, ctx)
         } else {
-          let result: Array<Promise<[unknown, ContextType<T>]>> = []
+          let result: Array<Promise<[unknown, T]>> = []
           for (let i = 0; i < children.length; i++) {
-            result.push(build(i) as Promise<[unknown, ContextType<T>]>)
+            result.push(build(i) as Promise<[unknown, T]>)
           }
           Promise.all(result).then(res => {
             let result = this.combine(ctx, res.map(r => r[1]))
@@ -104,12 +102,12 @@ export class Parallel<
     return super.compile(rebuild)
   }
 
-  protected split(ctx: ContextType<R>): Array<ContextType<T>> {
-    return this._config.split ? this._config.split(ctx) ?? [ctx] : [ctx as unknown as ContextType<T>]
+  protected split(ctx: R): Array<T> {
+    return this._config.split ? this._config.split(ctx) ?? [ctx] : [ctx as unknown as T]
   }
 
-  protected combine(ctx: ContextType<R>, children: Array<ContextType<T>>): ContextType<R> {
-    let res: ContextType<R>
+  protected combine(ctx: R, children: Array<T>): R {
+    let res: R
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
       res = c ?? ctx

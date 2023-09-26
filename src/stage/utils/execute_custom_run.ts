@@ -1,4 +1,3 @@
-import { ContextType } from '../Context'
 import { CreateError, ERROR, process_error } from '../errors'
 import {
   AnyStage,
@@ -13,13 +12,12 @@ import {
   isCustomRun2Callback,
   isCustomRun3Callback,
   RunPipelineFunction,
-  StageObject,
   StageRun,
 } from '../types'
 import { run_callback_once } from './run_callback_once'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
-export function execute_custom_run<R extends StageObject>(run: RunPipelineFunction<R>): StageRun<R> {
+export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> {
   return function (this: AnyStage<R>, err, context, _done) {
     const done = run_callback_once(_done)
     switch (run.length) {
@@ -39,7 +37,7 @@ export function execute_custom_run<R extends StageObject>(run: RunPipelineFuncti
             const res = run.apply(context)
             if (res instanceof Promise) {
               res.then(r => done(undefined, r)).catch(err => done(err))
-            } else if (is_thenable<ContextType<R>>(res)) {
+            } else if (is_thenable<R>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
               done(undefined, res)
@@ -64,7 +62,7 @@ export function execute_custom_run<R extends StageObject>(run: RunPipelineFuncti
             const res = run.call(this, context)
             if (res instanceof Promise) {
               res.then(r => done(undefined, r)).catch(err => done(err))
-            } else if (is_thenable<ContextType<R>>(res)) {
+            } else if (is_thenable<R>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
               done(undefined, res)

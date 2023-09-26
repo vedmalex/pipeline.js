@@ -1,7 +1,7 @@
-import { AnyStage, CreateError, isAnyStage, SingleStageFunction, StageObject } from '../../stage'
+import { AnyStage, CreateError, isAnyStage,  SingleStageFunction } from '../../stage'
 import { DoWhileConfig } from './DoWhileConfig'
 
-export function getDoWhileConfig<R extends StageObject, T extends StageObject, C extends DoWhileConfig<R, T>>(
+export function getDoWhileConfig<R, T, C extends DoWhileConfig<R, T>>(
   _config: AnyStage<R> | C | SingleStageFunction<R>,
 ): C {
   let config: C = {} as C

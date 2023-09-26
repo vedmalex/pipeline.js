@@ -1,4 +1,3 @@
-import { ContextType } from '../Context'
 import { CreateError, ERROR, process_error } from '../errors'
 import {
   is_thenable,
@@ -8,14 +7,13 @@ import {
   isRescue2Sync,
   isRescue3Callback,
   Rescue,
-  StageObject,
 } from '../types'
 
-export function execute_rescue<R extends StageObject>(
-  rescue: Rescue,
+export function execute_rescue<R>(
+  rescue: Rescue<R>,
   err: Error,
-  context: ContextType<R>,
-  done: (err?) => void,
+  context: R,
+  done: (err?:unknown) => void,
 ) {
   switch (rescue.length) {
     case 1:
@@ -94,11 +92,11 @@ export function execute_rescue<R extends StageObject>(
   }
 }
 
-export function execute_rescue_async<R extends StageObject>(
-  rescue: Rescue,
+export function execute_rescue_async<R>(
+  rescue: Rescue<R>,
   err: Error,
-  context: ContextType<R>,
-): Promise<[unknown, ContextType<R>]> {
+  context: R,
+): Promise<[unknown, R]> {
   return new Promise(resolve => {
     execute_rescue(rescue, err, context, err => resolve([err, context]))
   })

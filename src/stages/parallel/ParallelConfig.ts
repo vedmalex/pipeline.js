@@ -1,7 +1,7 @@
-import { AllowedStageStored, ContextType, StageConfig, StageObject } from '../../stage'
+import { AllowedStageStored, StageConfig } from '../../stage'
 
-export interface ParallelConfig<R extends StageObject, T extends StageObject> extends StageConfig<R> {
+export interface ParallelConfig<R, T> extends StageConfig<R> {
   stage: AllowedStageStored<R, StageConfig<R>>
-  split?: (ctx: ContextType<R>) => Array<ContextType<T>>
-  combine?: (ctx: ContextType<R>, children: Array<ContextType<T>>) => ContextType<R>
+  split?: (ctx: R) => Array<T>
+  combine?: (ctx: R, children: Array<T>) => R
 }

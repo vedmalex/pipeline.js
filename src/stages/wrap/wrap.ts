@@ -1,10 +1,10 @@
-import { AllowedStage, ContextType, run_or_execute, Stage, StageObject, StageRun } from '../../stage'
+import { AllowedStage,  run_or_execute, Stage, StageRun } from '../../stage'
 import { getWrapConfig } from './getWrapConfig'
 import { WrapConfig } from './WrapConfig'
 
 export class Wrap<
-  R extends StageObject,
-  T extends StageObject,
+  R,
+  T,
   C extends WrapConfig<R, T> = WrapConfig<R, T>,
 > extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
@@ -41,14 +41,14 @@ export class Wrap<
 
     return super.compile(rebuild)
   }
-  protected prepare(ctx: ContextType<R>): ContextType<T> {
+  protected prepare(ctx: R): T {
     if (this.config.prepare) {
-      return this.config.prepare(ctx) ?? ctx as unknown as ContextType<T>
+      return this.config.prepare(ctx) ?? ctx as unknown as T
     } else {
-      return ctx as unknown as ContextType<T>
+      return ctx as unknown as T
     }
   }
-  protected finalize(ctx: ContextType<R>, retCtx: ContextType<T>): ContextType<R> | void {
+  protected finalize(ctx: R, retCtx: T): R | void {
     // by default the main context will be used to return;
     if (this.config.finalize) {
       return this.config.finalize(ctx, retCtx)

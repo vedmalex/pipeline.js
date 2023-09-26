@@ -1,22 +1,21 @@
 import { defaultsDeep, get, set } from 'lodash'
-import { z } from 'zod'
 
 import { StageObject } from './types'
 
 export const ContextSymbol = Symbol('Context')
 export const OriginalObject = Symbol('OriginalObject')
 export const ProxySymbol = Symbol('Handler')
-export interface ContextProxy<T extends StageObject> {
-  fork<C extends T>(config: C): ContextType<T & C>
-  addChild(child: object): unknown
+export interface ContextProxy<T> {
+  fork<C extends T>(config: C): ProxyType<T & C>
+  // addChild(child: object): unknown
   get(path: keyof T): any
-  addSubtree(lctx: object): unknown
-  getParent(): ContextType<T>
-  getRoot(): ContextType<T>
-  setParent(parent: ContextType<T>): void
-  setRoot(parent: ContextType<T>): void
+  // addSubtree(lctx: object): unknown
+  getParent(): ProxyType<T>
+  getRoot(): ProxyType<T>
+  setParent(parent: ProxyType<T>): void
+  setRoot(parent: ProxyType<T>): void
   hasChild(ctx: object): boolean
-  hasSubtree(ctx: object): boolean
+  // hasSubtree(ctx: object): boolean
   toObject(clean?: boolean): T
   toJSON(): string
   toString(): string
@@ -25,33 +24,8 @@ export interface ContextProxy<T extends StageObject> {
   [key: string | symbol | number]: any
 }
 
-export const ContextProxySchema = z.object({
-  fork: z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
-  addChild: z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
-  get: z.function(z.tuple([z.string()]), z.unknown()),
-  addSubtree: z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
-  getParent: z.function(z.tuple([]), z.unknown()),
-  getRoot: z.function(z.tuple([]), z.unknown()),
-  setParent: z.function(z.tuple([z.unknown()]), z.void()),
-  setRoot: z.function(z.tuple([z.unknown()]), z.void()),
-  hasChild: z.function(z.tuple([z.object({}).passthrough().optional()]), z.boolean()),
-  hasSubtree: z.function(z.tuple([z.object({}).passthrough().optional()]), z.boolean()),
-  toJSON: z.function(z.tuple([z.boolean().optional()]), z.string()),
-  toObject: z.function(z.tuple([z.boolean().optional()]), z.unknown()),
-  toString: z.function(z.tuple([]), z.string()),
-  get original() {
-    return z.unknown() // This assumes 'original' is a property with any type
-  },
-  // Add other properties as needed, such as [OriginalObject]
-  // [OriginalObject]: z.boolean().optional(),
-  // [key: string | symbol | number]: z.unknown(),
-}).passthrough()
-
-export type ContextType<T> = T extends StageObject ? ContextProxy<T> & T : never
-
-export const ExtendContextTypeWith = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
-  return ContextProxySchema.merge(schema)
-}
+export type ProxyType<T> = ContextProxy<T> & T
+export type ContextType<T> = T extends StageObject ? ProxyType<T> : T
 
 var count = 0
 var allContexts: Record<string, Context<any>> = {}
@@ -88,8 +62,8 @@ export const RESERVED = {
  *  @param {Object} config The object that is the source for the **Context**.
  */
 export class Context<T extends StageObject> implements ContextProxy<T> {
-  public static ensure<T extends StageObject>(_config?: unknown): ContextType<T> {
-    if (Context.isContext<T>(_config)) {
+  public static ensure<T>(_config?: T): ProxyType<T> {
+    if (Context.isProxy<T>(_config)) {
       return _config
     } else {
       if (typeof _config === 'object' && _config !== null) {
@@ -100,18 +74,18 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
     }
   }
 
-  public static create<T extends StageObject>(input?: unknown): ContextType<T> {
-    return new Context<T>((input ?? {}) as T) as unknown as ContextType<T>
+  public static create<T>(input?: unknown): ProxyType<T> {
+    return new Context((input ?? {})) as unknown as ProxyType<T>
   }
 
-  public static isContext<T extends StageObject>(obj?: unknown): obj is ContextType<T> {
+  public static isProxy<T>(obj?: unknown): obj is ProxyType<T> {
     return typeof obj == 'object' && obj !== null ? obj[ContextSymbol] : false
   }
 
-  protected ctx: T
+  protected ctx: T extends StageObject ? T : never
   protected proxy: any
-  protected __parent!: ContextType<T>
-  protected __root!: ContextType<T>
+  protected __parent!: ProxyType<T>
+  protected __root!: ProxyType<T>
   protected __stack?: string[]
   protected id: number;
   [OriginalObject]?: true
@@ -119,8 +93,8 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
     return this.ctx
   }
 
-  protected constructor(config: unknown) {
-    this.ctx = config as T
+  protected constructor(config: T extends StageObject ? T : never) {
+    this.ctx = config
     this.id = count++
     allContexts[this.id] = this
     const res = new Proxy(this, {
@@ -205,14 +179,14 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
    * @param {Object|Context} [config] new properties that must exists in new fork
    * @retrun {Context}
    */
-  fork<C extends StageObject>(ctx?: C): ContextType<T & C> {
+  fork<C>(ctx?: C): ProxyType<T & C> {
     var child = Context.ensure(ctx)
     this.addChild(child)
-    return child as ContextType<T & C>
+    return child as ProxyType<T & C>
   }
 
-  addChild(child: object): unknown {
-    if (Context.isContext(child)) {
+  protected addChild<R extends StageObject>(child:unknown): unknown {
+    if (Context.isProxy<R>(child)) {
       if (!this.hasChild(child)) {
         child.setParent(this.proxy)
       }
@@ -231,7 +205,7 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
     var root = get(this.ctx, path) as any
     if (root instanceof Object) {
       var result = root
-      if (!Context.isContext(result)) {
+      if (!Context.isProxy(result)) {
         var lctx = Context.ensure(result)
         this.addSubtree(lctx)
         set(this.original, path, lctx)
@@ -243,8 +217,8 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
     }
   }
 
-  addSubtree(lctx: object): unknown {
-    if (Context.isContext(lctx)) {
+  protected addSubtree(lctx: object): unknown {
+    if (Context.isProxy<T>(lctx)) {
       if (!this.hasSubtree(lctx)) {
         lctx.setRoot(this.proxy)
       }
@@ -265,10 +239,10 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
   getRoot() {
     return this.__root
   }
-  setParent(parent: ContextType<T>) {
+  setParent(parent: ProxyType<T>) {
     this.__parent = parent
   }
-  setRoot(root: ContextType<T>) {
+  setRoot(root: ProxyType<T>) {
     this.__root = root
   }
   /**
@@ -277,15 +251,15 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
    * @api public
    * @return {Boolean}
    */
-  hasChild(ctx: object): boolean {
-    if (Context.isContext(ctx) && ctx.__parent) {
+  hasChild(ctx: unknown): boolean {
+    if (Context.isProxy<T>(ctx) && ctx.__parent) {
       return ctx.__parent == this.proxy || this.proxy == ctx
     } else {
       return false
     }
   }
-  hasSubtree(ctx: object): boolean {
-    if (Context.isContext(ctx) && ctx.__root) {
+  protected hasSubtree(ctx: unknown): boolean {
+    if (Context.isProxy<T>(ctx) && ctx.__root) {
       return ctx.__root == this.proxy || this.proxy == ctx
     } else {
       return false

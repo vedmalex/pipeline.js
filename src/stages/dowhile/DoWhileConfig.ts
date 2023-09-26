@@ -1,7 +1,7 @@
-import { AllowedStageStored, ContextType, StageConfig, StageObject } from '../../stage'
+import { AllowedStageStored, StageConfig } from '../../stage'
 
-export interface DoWhileConfig<R extends StageObject, T extends StageObject> extends StageConfig<R> {
+export interface DoWhileConfig<R, T> extends StageConfig<R> {
   stage: AllowedStageStored<R, StageConfig<R>>
-  split?: (ctx: ContextType<R>, iter: number) => T
-  reachEnd?: (err: unknown, ctx: ContextType<R>, iter: number) => unknown
+  split?: (ctx: R, iter: number) => T
+  reachEnd?: (err: unknown, ctx: R, iter: number) => unknown
 }

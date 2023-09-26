@@ -3,19 +3,15 @@ import {
   AnyStage,
   ComplexError,
   Context,
-  ContextType,
   run_or_execute,
   Stage,
-  StageObject,
   StageRun,
 } from '../../stage'
 import { getRetryOnErrorConfig } from './getRetryOnErrorConfig'
 import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 
 export class RetryOnError<
-  R extends StageObject,
-  T extends StageObject,
-  C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>,
+  R, T, C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>,
 > extends Stage<R, C> implements AnyStage<R> {
   constructor(config?: AllowedStage<R, C>) {
     super()
@@ -32,30 +28,30 @@ export class RetryOnError<
     return '[pipeline RetryOnError]'
   }
 
-  protected backupContext(ctx: ContextType<R>): ContextType<T> {
+  protected backupContext(ctx: R): T {
     if (this.config.backup) {
       return this.config.backup(ctx)
     } else {
-      if (Context.isContext(ctx)) {
-        return ctx.fork({}) as ContextType<T>
+      if (Context.isProxy<T>(ctx)) {
+        return ctx.fork<T>({} as T) as T
       } else {
-        return ctx
+        return ctx as unknown as T
       }
     }
   }
 
-  protected restoreContext(ctx: ContextType<R>, backup: ContextType<T>): ContextType<R> {
+  protected restoreContext(ctx: R, backup: T): R {
     if (this.config.restore) {
       return this.config.restore(ctx, backup)
     } else {
-      if (Context.isContext(ctx) && typeof backup === 'object' && backup !== null) {
+      if (Context.isProxy(ctx) && typeof backup === 'object' && backup !== null) {
         for (let key in backup) {
           // @ts-expect-error
           ctx[key] = backup[key]
         }
         return ctx
       } else {
-        return backup as unknown as ContextType<R>
+        return backup as unknown as R
       }
     }
   }

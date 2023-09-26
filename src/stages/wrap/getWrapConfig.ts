@@ -1,7 +1,7 @@
-import { AllowedStage, CreateError, getStageConfig, isAnyStage, RunPipelineFunction, StageObject } from '../../stage'
+import { AllowedStage, CreateError, getStageConfig, isAnyStage, RunPipelineFunction } from '../../stage'
 import { WrapConfig } from './WrapConfig'
 
-export function getWrapConfig<R extends StageObject, T extends StageObject, C extends WrapConfig<R, T>>(
+export function getWrapConfig<R, T, C extends WrapConfig<R, T>>(
   config: AllowedStage<R, C>,
 ): C {
   const res = getStageConfig(config)

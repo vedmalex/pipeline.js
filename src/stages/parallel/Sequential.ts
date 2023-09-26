@@ -1,4 +1,4 @@
-import { AllowedStage, ContextType, empty_run, run_or_execute_async, Stage, StageObject, StageRun } from '../../stage'
+import { AllowedStage, empty_run, run_or_execute_async, Stage, StageRun } from '../../stage'
 import { getParallelConfig } from './getParallelConfig'
 import { ParallelConfig } from './ParallelConfig'
 
@@ -21,8 +21,8 @@ import { ParallelConfig } from './ParallelConfig'
  */
 
 export class Sequential<
-  R extends StageObject,
-  T extends StageObject,
+  R,
+  T,
   C extends ParallelConfig<R, T> = ParallelConfig<R, T>,
 > extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {
@@ -47,18 +47,20 @@ export class Sequential<
     if (this.config.stage) {
       var run: StageRun<R> = (err, ctx, done) => {
         var iter = -1
-        var children = this.split ? this.split(ctx) : [ctx as unknown as ContextType<T>]
+        var children = this.split ? this.split(ctx) : [ctx as unknown as T]
         var len = children ? children.length : 0
 
         const next = async (err: unknown) => {
           if (err) {
             return done(err)
           }
-          let retCtx: ContextType<T>
+          let retCtx: T
           while (++iter < len) {
             ;[err, retCtx] = await run_or_execute_async(this.config.stage, err, children[iter])
             if (err) {
-              ;[err, retCtx] = await this.rescue_async(err, children[iter])
+              //TODO: refactor it
+              // для всех сложных параметров должен быть свой собственный rescue, а не один на всех
+              ;[err, retCtx] = await this.rescue_async(err, children[iter] as unknown as R) as unknown as [unknown, T]
               if (err) {
                 return done(err)
               }
@@ -86,14 +88,14 @@ export class Sequential<
 
     return super.compile(rebuild)
   }
-  protected split(ctx: ContextType<R>): Array<ContextType<T>> {
+  protected split(ctx: R): Array<T> {
     return this._config.split
-      ? this._config.split(ctx) ?? [ctx as unknown as ContextType<T>]
-      : [ctx as unknown as ContextType<T>]
+      ? this._config.split(ctx) ?? [ctx as unknown as T]
+      : [ctx as unknown as T]
   }
 
-  protected combine(ctx: ContextType<R>, children: Array<ContextType<T>>): ContextType<R> {
-    let res: ContextType<R>
+  protected combine(ctx: R, children: Array<T>): R {
+    let res: R
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
       res = c ?? ctx

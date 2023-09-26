@@ -1,12 +1,10 @@
-import { StageConfig } from '../StageConfig'
 import { AnyStage } from './AnyStage'
 import { RunPipelineFunction } from './RunPipelineFunction'
-import { StageObject } from './StageObject'
 
 /**
  * хранимая часть конфига
  */
-export type AllowedStageStored<R extends StageObject, CONFIG extends StageConfig<R>> =
-  | CONFIG
+export type AllowedStageStored<R, C> =
+  | C
   | RunPipelineFunction<R>
   | AnyStage<R>

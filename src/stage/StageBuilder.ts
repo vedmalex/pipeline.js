@@ -8,11 +8,10 @@ import {
   Precompile,
   Rescue,
   RunPipelineFunction,
-  StageObject,
   ValidateFunction,
 } from './types'
 
-export class StageBuilder<R extends StageObject, C extends StageConfig<R>> {
+export class StageBuilder<R, C extends StageConfig<R>> {
   private cfg: C
   constructor() {
     this.cfg = {} as C
@@ -29,7 +28,7 @@ export class StageBuilder<R extends StageObject, C extends StageConfig<R>> {
     this.cfg.name = name
     return this
   }
-  rescue(fn: Rescue) {
+  rescue(fn: Rescue<R>) {
     this.cfg.rescue = fn
     return this
   }

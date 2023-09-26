@@ -5,11 +5,10 @@ import {
   isAnyStage,
   isRunPipelineFunction,
   RunPipelineFunction,
-  StageObject,
 } from '../../stage'
 import { ParallelConfig } from './ParallelConfig'
 
-export function getParallelConfig<R extends StageObject, T extends StageObject, C extends ParallelConfig<R, T>>(
+export function getParallelConfig<R, T, C extends ParallelConfig<R, T>>(
   config: AllowedStage<R, C>,
 ): C {
   const res = getStageConfig<R, ParallelConfig<R, T>>(config)

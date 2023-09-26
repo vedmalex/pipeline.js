@@ -1,13 +1,12 @@
 import {
   AllowedStage,
   AnyStage,
-  ContextType,
   empty_run,
   isAnyStage,
+  isRunPipelineFunction,
   run_or_execute_async,
   RunPipelineFunction,
   Stage,
-  StageObject,
   StageRun,
 } from '../../stage'
 import { getPipelineConfig } from './getPipelineConfig'
@@ -27,7 +26,7 @@ import { PipelineConfig } from './PipelineConfig'
  * @param {Object} config configuration object
  */
 
-export class Pipeline<R extends StageObject, C extends PipelineConfig<R> = PipelineConfig<R>> extends Stage<R, C> {
+export class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>> extends Stage<R, C> {
   constructor(config?: PipelineConfig<R> | AllowedStage<R, C> | Array<AnyStage<R> | RunPipelineFunction<R>>) {
     super()
     if (config) {
@@ -47,11 +46,11 @@ export class Pipeline<R extends StageObject, C extends PipelineConfig<R> = Pipel
 
   public addStage(_stage: unknown) {
     let stage: AnyStage<R> | RunPipelineFunction<R> | undefined
-    if (typeof _stage === 'function') {
-      stage = _stage as RunPipelineFunction<R>
+    if (isRunPipelineFunction<R>(_stage)) {
+      stage = _stage
     } else {
       if (typeof _stage === 'object' && _stage !== null) {
-        if (isAnyStage(_stage)) {
+        if (isAnyStage<R>(_stage)) {
           stage = _stage
         } else {
           stage = new Stage(_stage)
@@ -68,7 +67,7 @@ export class Pipeline<R extends StageObject, C extends PipelineConfig<R> = Pipel
     let run: StageRun<R> = (err, context, done) => {
       let i = -1
       // sequential run;
-      let next = async (err: unknown, ctx: ContextType<R>) => {
+      let next = async (err: unknown, ctx: R) => {
         if (err) {
           return done(err)
         }

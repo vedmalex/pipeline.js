@@ -5,12 +5,11 @@ import {
   isAnyStage,
   isRunPipelineFunction,
   RunPipelineFunction,
-  StageObject,
 } from '../../stage'
 import { AllowedPipeline } from './AllowedPipeline'
 import { PipelineConfig } from './PipelineConfig'
 
-export function getPipelineConfig<R extends StageObject, C extends PipelineConfig<R>>(config: AllowedPipeline<R>): C {
+export function getPipelineConfig<R, C extends PipelineConfig<R>>(config: AllowedPipeline<R>): C {
   if (Array.isArray(config)) {
     return {
       stages: config.map((item): AnyStage<R> | RunPipelineFunction<R> => {
