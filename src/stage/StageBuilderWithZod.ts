@@ -1,6 +1,7 @@
 import {z} from 'zod'
 import { StageConfig } from './StageConfig'
-import { RunPipelineFunction, StageObject } from './types';
+import { CallbackFunction, StageObject } from './types';
+import { ComplexError } from './errors';
 
 export const unsetMarker = Symbol('unset')
 
@@ -142,7 +143,7 @@ export interface Builder<TParams extends BuilderParams> {
       inferParser<$Parser>['in']
     >
     }>
-  run<$Input = TParams['_input']>(fn: RunPipelineFunction<$Input extends UnsetMarker ? never : $Input extends object ?$Input:never  >):Builder<{
+  run<$Input = TParams['_input']>(fn: CustomRun<$Input>):Builder<{
     _config: TParams['_config']
     _input: TParams['_input']
     _output: TParams['_output'],
@@ -150,11 +151,14 @@ export interface Builder<TParams extends BuilderParams> {
   _def: BuilderDef<TParams['_input']>
 }
 
-
+export type CustomRun<$P1> = (
+  this: $P1 | undefined,
+  p1?: ComplexError | $P1 | undefined,
+  p2?: $P1 | undefined,
+  p3?: CallbackFunction<$P1> | undefined,
+) => Promise<$P1> | void
 
 const p = createBuilder()
   .input(z.object({ name: z.string() }))
-  .output(z.object({ fullname: z.string(), name: z.string() }))
-  .run(async(ctx, done) =>{
-
+  .run(function () {
   })

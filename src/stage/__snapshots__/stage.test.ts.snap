@@ -14,8 +14,8 @@ exports[`stage create with function: function stage 1`] = `
 Stage {
   "_config": {
     "name": 
-"function(ctx) {
-      ctx.name = "run this Stage";
+"function() {
+      this.name = "run this Stage";
     }"
 ,
     "run": [Function],
@@ -49,6 +49,7 @@ exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
 Stage {
   "_config": {
     "name": "stage",
+    "run": [Function],
   },
   "run": undefined,
   [Symbol(stage)]: true,

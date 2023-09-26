@@ -7,6 +7,8 @@ import {
   RunPipelineFunction,
   StageObject,
   StageRun,
+  isCustomRun0Async,
+  isCustomRun0Sync,
   isCustomRun1Async,
   isCustomRun1Sync,
   isCustomRun2Async,
@@ -22,6 +24,31 @@ export function execute_custom_run<R extends StageObject>(run: RunPipelineFuncti
     const done = run_callback_once(_done)
     switch (run.length) {
       // this is the context of the run function
+      case 0:
+        if (isCustomRun0Async<R>(run)) {
+          try {
+            run
+              .apply(context)
+              .then(res => done(undefined, res))
+              .catch(err => done(err))
+          } catch (err) {
+            process_error(err, done)
+          }
+        } else if (isCustomRun0Sync<R>(run)) {
+          try {
+            const res = run.apply(context)
+            if (res instanceof Promise) {
+              res.then(r => done(undefined, r)).catch(err => done(err))
+            } else if (is_thenable<ContextType<R>>(res)) {
+              res.then(r => done(undefined, r)).catch(err => done(err))
+            } else {
+              done(undefined, res)
+            }
+          } catch (err) {
+            process_error(err, done)
+          }
+        }
+        break
       case 1:
         if (isCustomRun1Async<R>(run)) {
           try {

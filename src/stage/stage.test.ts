@@ -26,8 +26,8 @@ describe('stage', () => {
     expect(s).toMatchSnapshot('names stage')
   })
   it('create with function', () => {
-    const s = new Stage(function(ctx) {
-      ctx.name = 'run this Stage'
+    const s = new Stage(function(this: any) {
+      this.name = 'run this Stage'
     })
     expect(s).not.toBeNull()
     expect(s).toMatchSnapshot('function stage')
