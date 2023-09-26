@@ -142,7 +142,7 @@ export class Stage<R, C extends StageConfig<R>> implements AnyStage<R> {
           if (Context.isProxy<R>(_ctx)) {
             __callback?.(err, _ctx.original as R)
           } else {
-            __callback?.(CreateError([err, new Error('context is always context object')]), _ctx)
+            __callback?.(err, _ctx)
           }
         }
       }

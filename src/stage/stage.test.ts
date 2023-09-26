@@ -13,6 +13,16 @@ describe('stage', () => {
     })
   })
 
+  it('use non object context', done => {
+    let st = new Stage((num:number)=> num * 5)
+    // expect.assertions(1)
+    st.execute(10, (err, context) => {
+      expect(err).toBeUndefined()
+      expect(context).toBe(50)
+      done()
+    })
+  })
+
   it('empty run', done => {
     new Stage().execute({}, (err, res) => {
       expect(err).not.toBeUndefined()
