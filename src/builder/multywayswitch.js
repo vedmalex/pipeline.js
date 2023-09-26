@@ -35,7 +35,9 @@ class fMultiWaySwitch extends fBase {
   build() {
     this.cfg.cases = this.cfg.cases
       .map(function (cs) {
-        if (cs instanceof fCase) return cs.build()
+        if (cs instanceof fCase) {
+          return cs.build()
+        }
       })
       .filter(function (cs) {
         return cs
@@ -58,7 +60,9 @@ class fMultiWaySwitch extends fBase {
           throw new Error('unsupported Stage type')
         }
       }
-      if (!this.cfg.cases) this.cfg.cases = []
+      if (!this.cfg.cases) {
+        this.cfg.cases = []
+      }
       this.cfg.cases = this.cfg.cases.concat(cs)
     }
     return this

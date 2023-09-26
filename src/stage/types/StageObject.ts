@@ -7,4 +7,3 @@ export const ExtendStageObjectWith = <T extends z.ZodRawShape>(schema: z.ZodObje
 }
 
 export type StageObject<R = object> = R extends object ? R : never
-

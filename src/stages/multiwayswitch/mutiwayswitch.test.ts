@@ -1,7 +1,7 @@
 import 'jest'
-import { MultiWaySwitch } from './MultiwaySwitch'
 import { Context, Stage, StageConfigValidator } from '../../stage'
 import { Pipeline } from '../pipeline'
+import { MultiWaySwitch } from './MultiwaySwitch'
 
 describe('MWS', function () {
   it('works', function (done) {
@@ -24,28 +24,40 @@ describe('MWS', function () {
     var cnt = 0
     var pipe0 = new Pipeline<{ p00: boolean; p01: boolean }>([
       function (err, ctx, done) {
-        if (ctx) ctx.p00 = true
-        else throw new Error('nonsense')
+        if (ctx) {
+          ctx.p00 = true
+        } else {
+          throw new Error('nonsense')
+        }
         cnt++
         done()
       },
       function (err, ctx, done) {
-        if (ctx) ctx.p01 = true
-        else throw new Error('nonsense')
+        if (ctx) {
+          ctx.p01 = true
+        } else {
+          throw new Error('nonsense')
+        }
         cnt++
         done()
       },
     ])
     var pipe1 = new Pipeline<{ p10: boolean; p11: boolean }>([
       function (err, ctx, done) {
-        if (ctx) ctx.p10 = true
-        else throw new Error('nonsense')
+        if (ctx) {
+          ctx.p10 = true
+        } else {
+          throw new Error('nonsense')
+        }
         cnt++
         done()
       },
       function (err, ctx, done) {
-        if (ctx) ctx.p11 = true
-        else throw new Error('nonsense')
+        if (ctx) {
+          ctx.p11 = true
+        } else {
+          throw new Error('nonsense')
+        }
         cnt++
         done()
       },
@@ -53,14 +65,20 @@ describe('MWS', function () {
     var pipe2 = new Pipeline<{ p20: boolean; p21: boolean }>({
       stages: [
         function (err, ctx, done) {
-          if (ctx) ctx.p20 = true
-          else throw new Error('nonsense')
+          if (ctx) {
+            ctx.p20 = true
+          } else {
+            throw new Error('nonsense')
+          }
           cnt++
           done()
         },
         function (err, ctx, done) {
-          if (ctx) ctx.p21 = true
-          else throw new Error('nonsense')
+          if (ctx) {
+            ctx.p21 = true
+          } else {
+            throw new Error('nonsense')
+          }
           cnt++
           done()
         },

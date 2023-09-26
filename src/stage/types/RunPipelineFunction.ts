@@ -12,7 +12,10 @@ export type CustomRun0Async<R extends StageObject> = (this: ContextType<R>) => P
 
 export type CustomRun1Sync<R extends StageObject> = (this: AnyStage<R>, ctx: ContextType<R>) => ContextType<R>
 
-export type CustomRun1Async<R extends StageObject> = (this: AnyStage<R>, ctx: ContextType<R>) => Promise<ContextType<R>>
+export type CustomRun1Async<R extends StageObject> = (
+  this: AnyStage<R>,
+  ctx: ContextType<R>,
+) => Promise<ContextType<R>>
 
 export type CustomRun2Async<R extends StageObject> = (
   this: AnyStage<R>,
@@ -21,7 +24,7 @@ export type CustomRun2Async<R extends StageObject> = (
 ) => Promise<ContextType<R>>
 
 export type CustomRun2Callback<R extends StageObject> = (
-  this: AnyStage<R>| void,
+  this: AnyStage<R> | void,
   ctx: ContextType<R>,
   done: CallbackFunction<ContextType<R>>,
 ) => void
@@ -67,12 +70,12 @@ export function isCustomRun3Callback<R extends StageObject>(inp: unknown): inp i
 
 export function isRunPipelineFunction<R extends StageObject>(inp: unknown): inp is RunPipelineFunction<R> {
   return (
-    isCustomRun0Async(inp) ||
-    isCustomRun1Async(inp) ||
-    isCustomRun1Sync(inp) ||
-    isCustomRun2Async(inp) ||
-    isCustomRun0Sync(inp) ||
-    isCustomRun2Callback(inp) ||
-    isCustomRun3Callback(inp)
+    isCustomRun0Async(inp)
+    || isCustomRun1Async(inp)
+    || isCustomRun1Sync(inp)
+    || isCustomRun2Async(inp)
+    || isCustomRun0Sync(inp)
+    || isCustomRun2Callback(inp)
+    || isCustomRun3Callback(inp)
   )
 }

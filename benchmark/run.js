@@ -19,7 +19,7 @@ forkContext2 = null
 forkContext3 = null
 
 suiteCreate
-  .add('Create ContextFactory', function() {
+  .add('Create ContextFactory', function () {
     var c = ContextFactory({
       a: 1,
       b: 0,
@@ -31,7 +31,7 @@ suiteCreate
     forkContext = c
     fc1 = c
   })
-  .add('Create Context', function() {
+  .add('Create Context', function () {
     var c = new Context({
       a: 1,
       b: 0,
@@ -43,7 +43,7 @@ suiteCreate
     forkContext2 = c
     fc2 = c
   })
-  .add('Create ContextFactory2', function() {
+  .add('Create ContextFactory2', function () {
     var c = ContextFactory2({
       a: 1,
       b: 0,
@@ -55,17 +55,17 @@ suiteCreate
     forkContext3 = c
     fc3 = c
   })
-  .on('cycle', function(event) {
+  .on('cycle', function (event) {
     console.log(String(event.target))
   })
-  .on('complete', function() {
+  .on('complete', function () {
     console.log('done')
     console.log('Fastest is ' + this.filter('fastest').pluck('name'))
   })
   .run()
 
 suiteFork
-  .add('Fork ContextFactory', function() {
+  .add('Fork ContextFactory', function () {
     if (c1 == 5) {
       forkContext = fc1
       c1 = 0
@@ -75,7 +75,7 @@ suiteFork
     forkContext.d.setDate(forkContext.d.getDate() + 1)
     c1++
   })
-  .add('Fork Context', function() {
+  .add('Fork Context', function () {
     if (c2 == 5) {
       forkContext = fc1
       c2 = 0
@@ -85,7 +85,7 @@ suiteFork
     forkContext2.d.setDate(forkContext2.d.getDate() + 1)
     c2++
   })
-  .add('Fork ContextFactory', function() {
+  .add('Fork ContextFactory', function () {
     if (c3 == 5) {
       forkContext = fc1
       c3 = 0
@@ -95,36 +95,36 @@ suiteFork
     forkContext3.d.setDate(forkContext3.d.getDate() + 1)
     c3++
   })
-  .on('cycle', function(event) {
+  .on('cycle', function (event) {
     console.log(String(event.target))
   })
-  .on('complete', function() {
+  .on('complete', function () {
     console.log('done')
     console.log('Fastest is ' + this.filter('fastest').pluck('name'))
   })
   .run()
 
 suiteError
-  .add('Error ContextFactory', function() {
+  .add('Error ContextFactory', function () {
     forkContext.addError(new Error())
   })
-  .add('Error Context', function() {
+  .add('Error Context', function () {
     forkContext2.addError(new Error())
   })
-  .add('Error ContextFactory2', function() {
+  .add('Error ContextFactory2', function () {
     forkContext3.addError(new Error())
   })
-  .on('cycle', function(event) {
+  .on('cycle', function (event) {
     console.log(String(event.target))
   })
-  .on('complete', function() {
+  .on('complete', function () {
     console.log('done')
     console.log('Fastest is ' + this.filter('fastest').pluck('name'))
   })
   .run()
 
 bench.Suite()
-  .add('native for', function() {
+  .add('native for', function () {
     var itemList = [
       119,
       201,
@@ -151,7 +151,7 @@ bench.Suite()
       res += rec
     }
   })
-  .add('forEach', function() {
+  .add('forEach', function () {
     var itemList = [
       119,
       201,
@@ -170,11 +170,11 @@ bench.Suite()
       2,
     ]
     var res = 0
-    itemList.forEach(function(item) {
+    itemList.forEach(function (item) {
       res += item
     })
   })
-  .add('forHash array', function() {
+  .add('forHash array', function () {
     var itemList = [
       119,
       201,
@@ -197,7 +197,7 @@ bench.Suite()
       res += itemList[p]
     }
   })
-  .add('forObjectKeys', function() {
+  .add('forObjectKeys', function () {
     var itemList = {
       119: 1,
       201: 1,
@@ -224,7 +224,7 @@ bench.Suite()
       res += itemList[plist[i]]
     }
   })
-  .add('forHash object', function() {
+  .add('forHash object', function () {
     var itemList = {
       119: 1,
       201: 1,
@@ -247,10 +247,10 @@ bench.Suite()
       res += itemList[p]
     }
   })
-  .on('cycle', function(event) {
+  .on('cycle', function (event) {
     console.log(String(event.target))
   })
-  .on('complete', function() {
+  .on('complete', function () {
     console.log('done')
     console.log('Fastest is ' + this.filter('fastest').pluck('name'))
   })

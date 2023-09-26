@@ -1,6 +1,6 @@
 import 'jest'
+import { ComplexError, Context, isAnyStage, Stage } from '../../stage'
 import { Pipeline } from './Pipeline'
-import { ComplexError, Context, Stage, isAnyStage } from '../../stage'
 
 describe('Pipeline', function () {
   it('defaults', function (done) {
@@ -10,7 +10,7 @@ describe('Pipeline', function () {
     expect('defaultName' === pipe.name).toBeTruthy()
     // expect(!pipe.config.stages).toEqual(false)
     expect(pipe.config.stages.length).toEqual(0)
-    //@ts-ignore
+    // @ts-ignore
     expect(!pipe.run).toEqual(true)
 
     expect(function () {
@@ -45,7 +45,9 @@ describe('Pipeline', function () {
       throw new Error('error')
     })
     pipe.execute({}, function (err, ctx) {
-      if (err instanceof ComplexError) expect('error').toEqual((err?.payload as Array<Error>)[0].message)
+      if (err instanceof ComplexError) {
+        expect('error').toEqual((err?.payload as Array<Error>)[0].message)
+      }
       done()
     })
   })
@@ -63,7 +65,9 @@ describe('Pipeline', function () {
       },
     ])
     pipe.execute({}, function (err, ctx) {
-      if (err instanceof ComplexError) expect('error').toEqual((err?.payload as Array<Error>)[0].message)
+      if (err instanceof ComplexError) {
+        expect('error').toEqual((err?.payload as Array<Error>)[0].message)
+      }
       done()
     })
   })
@@ -71,7 +75,9 @@ describe('Pipeline', function () {
   it('catch throw errors 3', function (done) {
     var pipe = new Pipeline({
       rescue: function (err?) {
-        if (err?.message == 'error') return false
+        if (err?.message == 'error') {
+          return false
+        }
       },
       stages: [
         function (err, ctx, done) {
@@ -201,16 +207,13 @@ describe('Pipeline', function () {
       done()
     })
     pipe.addStage(nestedpipe)
-    pipe.execute(
-      {
-        item: 0,
-      },
-      function (err, ctx) {
-        expect(err).toBeUndefined()
-        expect(1).toEqual(ctx?.item)
-        done()
-      },
-    )
+    pipe.execute({
+      item: 0,
+    }, function (err, ctx) {
+      expect(err).toBeUndefined()
+      expect(1).toEqual(ctx?.item)
+      done()
+    })
   })
 
   it('context catch all errors', function (done) {
@@ -265,8 +268,11 @@ describe('Pipeline', function () {
           done()
         },
         ensure: function (context, callback) {
-          if (context.SomeValue !== 1) callback(error)
-          else callback(null, context)
+          if (context.SomeValue !== 1) {
+            callback(error)
+          } else {
+            callback(null, context)
+          }
         },
       }),
     )
@@ -274,7 +280,9 @@ describe('Pipeline', function () {
       ensure: function WV(context, callback) {
         if (context.SomeValue !== 1) {
           callback(new Error(/* this.reportName +  */ ': Wrong Value'))
-        } else callback(null, context)
+        } else {
+          callback(null, context)
+        }
       },
       run: undefined, // so it will be 0
     }
@@ -333,7 +341,9 @@ describe('Pipeline', function () {
     var l = 0
 
     function gotit() {
-      if (++l == 10) done()
+      if (++l == 10) {
+        done()
+      }
     }
     for (var i = 0; i < 10; i++) {
       ;(function () {

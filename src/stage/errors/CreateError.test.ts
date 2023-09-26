@@ -1,7 +1,7 @@
 import 'jest'
 
-import { CreateError } from './CreateError'
 import { ComplexError } from './ComplexError'
+import { CreateError } from './CreateError'
 
 describe('CreateError', () => {
   it('create Error from string', () => {

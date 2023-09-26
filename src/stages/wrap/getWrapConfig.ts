@@ -1,4 +1,4 @@
-import { AllowedStage, CreateError, RunPipelineFunction, StageObject, getStageConfig, isAnyStage } from '../../stage'
+import { AllowedStage, CreateError, getStageConfig, isAnyStage, RunPipelineFunction, StageObject } from '../../stage'
 import { WrapConfig } from './WrapConfig'
 
 export function getWrapConfig<R extends StageObject, T extends StageObject, C extends WrapConfig<R, T>>(

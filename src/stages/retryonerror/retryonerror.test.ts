@@ -70,21 +70,18 @@ describe('RetryOnError', function () {
         ctx.works = backup.works
       },
     })
-    st.execute(
-      {
-        works: false,
-        backup: 0,
-        restore: 0,
-      },
-      function (err, ctx) {
-        expect(err).toBeUndefined()
-        expect(ctx?.works).toBeTruthy()
-        expect(iter).toEqual(4)
-        expect(ctx?.backup).toEqual(1)
-        expect(ctx?.restore).toEqual(4)
-        done()
-      },
-    )
+    st.execute({
+      works: false,
+      backup: 0,
+      restore: 0,
+    }, function (err, ctx) {
+      expect(err).toBeUndefined()
+      expect(ctx?.works).toBeTruthy()
+      expect(iter).toEqual(4)
+      expect(ctx?.backup).toEqual(1)
+      expect(ctx?.restore).toEqual(4)
+      done()
+    })
   })
 
   it('retry works with rescue', function (done) {
@@ -93,7 +90,9 @@ describe('RetryOnError', function () {
     var st = new RetryOnError<{ rescue: boolean; works: boolean }, {}>({
       rescue: function (err, ctx) {
         iter += 1
-        if (err.payload[0].message !== 'error') return err
+        if (err.payload[0].message !== 'error') {
+          return err
+        }
         ctx.rescue = true
       },
       run: function (ctx) {

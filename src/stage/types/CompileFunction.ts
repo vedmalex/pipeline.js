@@ -1,6 +1,6 @@
-import { StageRun } from './StageRun'
 import { is_async_function } from './is_async_function'
 import { StageObject } from './StageObject'
+import { StageRun } from './StageRun'
 
 export type CompileFunction<R extends StageObject> = (rebuild?: boolean) => StageRun<R>
 

@@ -1,11 +1,11 @@
 import {
   AllowedStage,
   CreateError,
-  RunPipelineFunction,
-  StageObject,
   getStageConfig,
   isAnyStage,
   isRunPipelineFunction,
+  RunPipelineFunction,
+  StageObject,
 } from '../../stage'
 import { ParallelConfig } from './ParallelConfig'
 

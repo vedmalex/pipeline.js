@@ -2,14 +2,14 @@ import {
   AllowedStage,
   ContextType,
   CreateError,
+  empty_run,
+  run_or_execute,
   Stage,
   StageObject,
   StageRun,
-  empty_run,
-  run_or_execute,
 } from '../../stage'
-import { ParallelConfig } from './ParallelConfig'
 import { getParallelConfig } from './getParallelConfig'
+import { ParallelConfig } from './ParallelConfig'
 import { ParallelError } from './ParallelError'
 
 /**
@@ -74,7 +74,9 @@ export class Parallel<
                   err: err,
                   ctx: children[i],
                 })
-                if (error) errors.push(error)
+                if (error) {
+                  errors.push(error)
+                }
               }
               resolve([err, res] as [unknown, ContextType<T>])
             })
@@ -89,10 +91,7 @@ export class Parallel<
             result.push(build(i) as Promise<[unknown, ContextType<T>]>)
           }
           Promise.all(result).then(res => {
-            let result = this.combine(
-              ctx,
-              res.map(r => r[1]),
-            )
+            let result = this.combine(ctx, res.map(r => r[1]))
             done(CreateError(errors), result)
           })
         }

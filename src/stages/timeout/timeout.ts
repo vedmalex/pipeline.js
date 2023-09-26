@@ -1,6 +1,6 @@
-import { AllowedStage, Stage, StageObject, StageRun, run_or_execute } from '../../stage'
-import { TimeoutConfig } from './TimeoutConfig'
+import { AllowedStage, run_or_execute, Stage, StageObject, StageRun } from '../../stage'
 import { getTimeoutConfig } from './getTimeoutConfig'
+import { TimeoutConfig } from './TimeoutConfig'
 
 export class Timeout<R extends StageObject, C extends TimeoutConfig<R> = TimeoutConfig<R>> extends Stage<R, C> {
   constructor(config?: AllowedStage<R, C>) {

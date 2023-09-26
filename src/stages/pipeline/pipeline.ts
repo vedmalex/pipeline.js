@@ -2,16 +2,16 @@ import {
   AllowedStage,
   AnyStage,
   ContextType,
+  empty_run,
+  isAnyStage,
+  run_or_execute_async,
   RunPipelineFunction,
   Stage,
   StageObject,
   StageRun,
-  empty_run,
-  isAnyStage,
-  run_or_execute_async,
 } from '../../stage'
-import { PipelineConfig } from './PipelineConfig'
 import { getPipelineConfig } from './getPipelineConfig'
+import { PipelineConfig } from './PipelineConfig'
 
 /**
  * it make possible to choose which stage to run according to result of `condition` evaluation

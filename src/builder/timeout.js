@@ -27,8 +27,12 @@ class fTimeout extends fBase {
     }
   }
   build() {
-    if (this.cfg.stage instanceof Base) this.cfg.stage = this.cfg.stage.build()
-    if (this.cfg.overdue instanceof Base) this.cfg.overdue = this.cfg.overdue.build()
+    if (this.cfg.stage instanceof Base) {
+      this.cfg.stage = this.cfg.stage.build()
+    }
+    if (this.cfg.overdue instanceof Base) {
+      this.cfg.overdue = this.cfg.overdue.build()
+    }
     this.isValid()
     return new pipeline.Timeout(this.cfg.clone())
   }

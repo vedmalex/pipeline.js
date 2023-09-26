@@ -1,4 +1,4 @@
-import { AllowedStage, CreateError, StageObject, getStageConfig, isAnyStage } from '../../stage'
+import { AllowedStage, CreateError, getStageConfig, isAnyStage, StageObject } from '../../stage'
 import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 
 export function getRetryOnErrorConfig<R extends StageObject, T extends StageObject, C extends RetryOnErrorConfig<R, T>>(
@@ -29,7 +29,9 @@ export function getRetryOnErrorConfig<R extends StageObject, T extends StageObje
       }
       res.retry = config.retry
     }
-    if (!res.retry) res.retry = 1
+    if (!res.retry) {
+      res.retry = 1
+    }
   } else if (typeof config == 'function' && res.run) {
     res.stage = res.run
     delete res.run

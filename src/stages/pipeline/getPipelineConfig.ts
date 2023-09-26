@@ -1,11 +1,11 @@
 import {
   AnyStage,
   CreateError,
-  RunPipelineFunction,
-  StageObject,
   getStageConfig,
   isAnyStage,
   isRunPipelineFunction,
+  RunPipelineFunction,
+  StageObject,
 } from '../../stage'
 import { AllowedPipeline } from './AllowedPipeline'
 import { PipelineConfig } from './PipelineConfig'
@@ -41,7 +41,9 @@ export function getPipelineConfig<R extends StageObject, C extends PipelineConfi
       res.stages = [res.run]
       delete res.run
     }
-    if (!res.stages) res.stages = []
+    if (!res.stages) {
+      res.stages = []
+    }
     return res as C
   }
 }

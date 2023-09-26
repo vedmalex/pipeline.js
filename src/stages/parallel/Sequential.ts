@@ -1,6 +1,6 @@
-import { AllowedStage, ContextType, Stage, StageObject, StageRun, empty_run, run_or_execute_async } from '../../stage'
-import { ParallelConfig } from './ParallelConfig'
+import { AllowedStage, ContextType, empty_run, run_or_execute_async, Stage, StageObject, StageRun } from '../../stage'
 import { getParallelConfig } from './getParallelConfig'
+import { ParallelConfig } from './ParallelConfig'
 
 /**
  * Process staging in Sequential way

@@ -1,6 +1,6 @@
 import 'jest'
-import { IfElse } from './Ifelse'
 import { Stage } from '../../stage'
+import { IfElse } from './Ifelse'
 
 describe('if->else', function () {
   it('simple works', function (done) {
@@ -21,8 +21,11 @@ describe('if->else', function () {
 
   it('simple works sucess', function (done) {
     var s0 = new Stage<{ done: boolean }>(function (err, ctx, done) {
-      if (ctx) ctx.done = true
-      else throw new Error('nonsense')
+      if (ctx) {
+        ctx.done = true
+      } else {
+        throw new Error('nonsense')
+      }
       done()
     })
     var stage = new IfElse({
@@ -58,8 +61,11 @@ describe('if->else', function () {
 
   it('simple works failed', function (done) {
     var s0 = new Stage<{ done?: boolean }>(function (err, ctx, done) {
-      if (ctx) ctx.done = true
-      else throw new Error('nonsense')
+      if (ctx) {
+        ctx.done = true
+      } else {
+        throw new Error('nonsense')
+      }
       done()
     })
 

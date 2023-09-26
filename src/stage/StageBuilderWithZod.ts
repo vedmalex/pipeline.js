@@ -1,7 +1,7 @@
-import {z} from 'zod'
+import { z } from 'zod'
+import { ComplexError, CreateError } from './errors'
 import { StageConfig } from './StageConfig'
-import { CallbackFunction, StageObject } from './types';
-import { ComplexError } from './errors';
+import { CallbackFunction, isRunPipelineFunction, StageObject } from './types'
 
 export const unsetMarker = Symbol('unset')
 
@@ -11,18 +11,15 @@ export type UnsetMarker = typeof unsetMarker
  * @internal
  * @see https://github.com/ianstormtaylor/superstruct/blob/7973400cd04d8ad92bbdc2b6f35acbfb3c934079/src/utils.ts#L323-L325
  */
-export type Simplify<TType> = TType extends any[] | Date
-  ? TType
-  : { [K in keyof TType]: TType[K] };
+export type Simplify<TType> = TType extends any[] | Date ? TType
+  : { [K in keyof TType]: TType[K] }
 
-
-type OverwriteIfDefined<TType, TWith> = UnsetMarker extends TType
-  ? TWith
-  : Simplify<TType & TWith>;
+type OverwriteIfDefined<TType, TWith> = UnsetMarker extends TType ? TWith
+  : Simplify<TType & TWith>
 
 export interface BuilderParams<
   TConfig = unknown,
-  > {
+> {
   _config: TConfig
   _input: unknown
   _output: unknown
@@ -30,69 +27,63 @@ export interface BuilderParams<
 
 export type AnyStageConfig = StageConfig<any>
 
-export type BuilderDef<TInput> = {
+export type BuilderDef = {
   inputs: Parser
   outputs: Parser
   cfg: AnyStageConfig
 }
 
 export function createBuilder<TInput extends StageObject, TConfig extends StageConfig<TInput>>(
-  _def: Partial<BuilderDef<TInput>> = {},
+  _def: Partial<BuilderDef> = {},
 ): Builder<{
-  _config: TConfig,
-  _input: UnsetMarker,
-  _output: UnsetMarker,
+  _config: TConfig
+  _input: UnsetMarker
+  _output: UnsetMarker
 }> {
   return {
-    _def: _def as BuilderDef<TInput>,
+    _def: _def as BuilderDef,
     input(schema) {
-      return createBuilder(
-        {
-          ..._def,
+      return createBuilder({
+        ..._def,
         inputs: schema,
-        },
-      ) as any
+      }) as any
     },
     output(schema) {
-      return createBuilder(
-        {
-          ..._def,
+      return createBuilder({
+        ..._def,
         outputs: schema,
-        },
-      ) as any
+      }) as any
     },
     run(fn) {
       if (!_def.cfg) {
-        _def.cfg = {} as TConfig
+        _def.cfg = {}
       }
-
-      _def.cfg.run = fn as any
-      return createBuilder(
-        {
-          ..._def,
-        },
-      ) as any
+      if (fn && isRunPipelineFunction(fn)) {
+        _def.cfg.run = fn
+      } else {
+        throw CreateError('run should be a `RunPipelineFunction`')
+      }
+      return createBuilder({
+        ..._def,
+      }) as any
     },
   }
 }
 
 export type ParserZod<TInput, TParsedInput> = {
-  _input: TInput;
-  _output: TParsedInput;
-};
+  _input: TInput
+  _output: TParsedInput
+}
 
 export type Parser = ParserZod<any, any>
 
-export type inferParser<TParser extends Parser> =
-  TParser extends ParserZod<infer $TIn, infer $TOut>
-    ? {
-        in: $TIn;
-        out: $TOut;
-      }
-    : never;
+export type inferParser<TParser extends Parser> = TParser extends ParserZod<infer $TIn, infer $TOut> ? {
+    in: $TIn
+    out: $TOut
+  }
+  : never
 
-type ErrorMessage<TMessage extends string> = TMessage;
-
+type ErrorMessage<TMessage extends string> = TMessage
 
 export interface Builder<TParams extends BuilderParams> {
   /**
@@ -100,55 +91,49 @@ export interface Builder<TParams extends BuilderParams> {
    * @param schema only object allowed
    */
   input<$Parser extends Parser>(
-   schema:TParams['_input'] extends UnsetMarker
-      ? $Parser
+    schema: TParams['_input'] extends UnsetMarker ? $Parser
       : inferParser<$Parser>['out'] extends Record<string, unknown> | undefined
-      ? TParams['_input'] extends Record<string, unknown> | undefined
-        ? undefined extends inferParser<$Parser>['out'] // if current is optional the previous must be too
-          ? undefined extends TParams['_input']
-            ? $Parser
+        ? TParams['_input'] extends Record<string, unknown> | undefined ? undefined extends inferParser<$Parser>['out'] // if current is optional the previous must be too
+            ? undefined extends TParams['_input'] ? $Parser
             : ErrorMessage<'Cannot chain an optional parser to a required parser'>
           : $Parser
         : ErrorMessage<'All input parsers did not resolve to an object'>
       : ErrorMessage<'All input parsers did not resolve to an object'>,
-    ): Builder<{
-      _config: TParams['_config']
-      _input: OverwriteIfDefined<
-        TParams['_input'],
-        inferParser<$Parser>['in']
-      >
-      _output: TParams['_output']
-    }>
+  ): Builder<{
+    _config: TParams['_config']
+    _input: OverwriteIfDefined<
+      TParams['_input'],
+      inferParser<$Parser>['in']
+    >
+    _output: TParams['_output']
+  }>
   /**
    * output of stage
    * @param schema only object allowed
    */
   output<$Parser extends Parser>(
-   schema:TParams['_output'] extends UnsetMarker
-      ? $Parser
+    schema: TParams['_output'] extends UnsetMarker ? $Parser
       : inferParser<$Parser>['out'] extends Record<string, unknown> | undefined
-      ? TParams['_output'] extends Record<string, unknown> | undefined
-        ? undefined extends inferParser<$Parser>['out'] // if current is optional the previous must be too
-          ? undefined extends TParams['_output']
-            ? $Parser
+        ? TParams['_output'] extends Record<string, unknown> | undefined ? undefined extends inferParser<$Parser>['out'] // if current is optional the previous must be too
+            ? undefined extends TParams['_output'] ? $Parser
             : ErrorMessage<'Cannot chain an optional parser to a required parser'>
           : $Parser
         : ErrorMessage<'All input parsers did not resolve to an object1'>
       : ErrorMessage<'All input parsers did not resolve to an object2'>,
-    ): Builder<{
+  ): Builder<{
     _config: TParams['_config']
     _input: TParams['_input']
     _output: OverwriteIfDefined<
       TParams['_output'],
       inferParser<$Parser>['in']
     >
-    }>
-  run<$Input = TParams['_input']>(fn: CustomRun<$Input>):Builder<{
+  }>
+  run<$Input = TParams['_input']>(fn: CustomRun<$Input>): Builder<{
     _config: TParams['_config']
     _input: TParams['_input']
-    _output: TParams['_output'],
-    }>
-  _def: BuilderDef<TParams['_input']>
+    _output: TParams['_output']
+  }>
+  _def: BuilderDef
 }
 
 export type CustomRun<$P1> = (
@@ -156,7 +141,7 @@ export type CustomRun<$P1> = (
   p1?: ComplexError | $P1 | undefined,
   p2?: $P1 | undefined,
   p3?: CallbackFunction<$P1> | undefined,
-) => Promise<$P1> | void
+) => Promise<$P1> | $P1 | void
 
 const p = createBuilder()
   .input(z.object({ name: z.string() }))

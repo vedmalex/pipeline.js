@@ -1,6 +1,6 @@
 import { CallbackFunction } from './CallbackFunction'
-import { StageObject } from './StageObject'
 import { is_async_function } from './is_async_function'
+import { StageObject } from './StageObject'
 
 export type StageCallback<R extends StageObject> =
   | Callback0Sync<R>
@@ -43,12 +43,12 @@ export function isCallback3Callback<R extends StageObject>(inp: unknown): inp is
 
 export function isStageCallbackFunction<R extends StageObject>(inp: any): inp is StageCallback<R> {
   return (
-    isCallback0Async(inp) ||
-    isCallback1Async(inp) ||
-    isCallback1Sync(inp) ||
-    isCallback2Async(inp) ||
-    isCallback0Sync(inp) ||
-    isCallback2Callback(inp) ||
-    isCallback3Callback(inp)
+    isCallback0Async(inp)
+    || isCallback1Async(inp)
+    || isCallback1Sync(inp)
+    || isCallback2Async(inp)
+    || isCallback0Sync(inp)
+    || isCallback2Callback(inp)
+    || isCallback3Callback(inp)
   )
 }

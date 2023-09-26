@@ -1,11 +1,11 @@
 import {
-  run_or_execute_async,
   AnyStage,
   ContextType,
+  run_or_execute_async,
   SingleStageFunction,
   Stage,
-  StageRun,
   StageObject,
+  StageRun,
 } from '../../stage'
 import { DoWhileConfig } from './DoWhileConfig'
 import { getDoWhileConfig } from './getDoWhileConfig'
@@ -41,13 +41,17 @@ export class DoWhile<
       } else {
         return Boolean(result)
       }
-    } else return true
+    } else {
+      return true
+    }
   }
 
   protected split(ctx: unknown, iter: number): any {
     if (this.config.split) {
       return this.config.split(ctx as ContextType<R>, iter)
-    } else return ctx
+    } else {
+      return ctx
+    }
   }
 
   // override compile(rebuild: boolean = false): StageRun<R> {

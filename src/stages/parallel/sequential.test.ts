@@ -1,7 +1,7 @@
 import 'jest'
-import { Sequential } from './Sequential'
 import { Stage } from '../../stage'
 import { Wrap } from '../wrap/wrap'
+import { Sequential } from './Sequential'
 
 describe('Sequential', function () {
   it('works with default', function (done) {
@@ -150,18 +150,15 @@ describe('Sequential', function () {
       }),
     })
 
-    stage.execute(
-      {
-        iter: 0,
-      },
-      function (err, context) {
-        expect(err).toBeUndefined()
-        expect(context).not.toBeUndefined()
-        expect(context?.iter).toEqual(5)
-        // @ts-expect-error
-        expect(context?.iteration).toBeUndefined()
-        done()
-      },
-    )
+    stage.execute({
+      iter: 0,
+    }, function (err, context) {
+      expect(err).toBeUndefined()
+      expect(context).not.toBeUndefined()
+      expect(context?.iter).toEqual(5)
+      // @ts-expect-error
+      expect(context?.iteration).toBeUndefined()
+      done()
+    })
   })
 })

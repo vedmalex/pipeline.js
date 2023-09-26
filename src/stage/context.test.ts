@@ -1,12 +1,10 @@
 import 'jest'
+import { z } from 'zod'
 import { Context } from './Context'
 import { ExtendStageObjectWith } from './types'
-import {z} from 'zod'
 
 describe('context', () => {
   it('create a context object as Proxy', () => {
-
-
     const ContextSchema = ExtendStageObjectWith(z.object({ name: z.string(), age: z.number() }).partial())
 
     const context = ContextSchema.parse({ name: 'alex', age: 43 })
@@ -52,7 +50,7 @@ describe('context', () => {
   })
 
   it('ensures object', () => {
-   const ContextSchema = ExtendStageObjectWith(z.object({ name: z.string(), age: z.number() }).partial())
+    const ContextSchema = ExtendStageObjectWith(z.object({ name: z.string(), age: z.number() }).partial())
     const context = ContextSchema.parse({ name: 'alex', age: 43 })
 
     const ctx = Context.ensure(context)

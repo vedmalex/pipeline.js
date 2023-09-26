@@ -1,14 +1,14 @@
 import { ContextType } from '../Context'
 import { CreateError, ERROR, process_error } from '../errors'
 import {
-  Rescue,
-  StageObject,
+  is_thenable,
   isRescue1ASync,
   isRescue1Sync,
   isRescue2ASync,
   isRescue2Sync,
   isRescue3Callback,
-  is_thenable,
+  Rescue,
+  StageObject,
 } from '../types'
 
 export function execute_rescue<R extends StageObject>(

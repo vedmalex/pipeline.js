@@ -1,5 +1,5 @@
-import {z} from 'zod'
 import { defaultsDeep, get, set } from 'lodash'
+import { z } from 'zod'
 
 import { StageObject } from './types'
 
@@ -27,26 +27,25 @@ export interface ContextProxy<T extends StageObject> {
 
 export const ContextProxySchema = z.object({
   fork: z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
-  addChild:z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
+  addChild: z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
   get: z.function(z.tuple([z.string()]), z.unknown()),
-  addSubtree:z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
+  addSubtree: z.function(z.tuple([z.object({}).passthrough().optional()]), z.unknown()),
   getParent: z.function(z.tuple([]), z.unknown()),
   getRoot: z.function(z.tuple([]), z.unknown()),
   setParent: z.function(z.tuple([z.unknown()]), z.void()),
   setRoot: z.function(z.tuple([z.unknown()]), z.void()),
-  hasChild:z.function(z.tuple([z.object({}).passthrough().optional()]), z.boolean()),
+  hasChild: z.function(z.tuple([z.object({}).passthrough().optional()]), z.boolean()),
   hasSubtree: z.function(z.tuple([z.object({}).passthrough().optional()]), z.boolean()),
   toJSON: z.function(z.tuple([z.boolean().optional()]), z.string()),
   toObject: z.function(z.tuple([z.boolean().optional()]), z.unknown()),
   toString: z.function(z.tuple([]), z.string()),
   get original() {
-    return z.unknown(); // This assumes 'original' is a property with any type
+    return z.unknown() // This assumes 'original' is a property with any type
   },
   // Add other properties as needed, such as [OriginalObject]
   // [OriginalObject]: z.boolean().optional(),
   // [key: string | symbol | number]: z.unknown(),
-}).passthrough();
-
+}).passthrough()
 
 export type ContextType<T> = T extends StageObject ? ContextProxy<T> & T : never
 
@@ -126,9 +125,15 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
     allContexts[this.id] = this
     const res = new Proxy(this, {
       get(target: Context<T>, key: string | symbol | number, _proxy: any): any {
-        if (key == ContextSymbol) return true
-        if (key == ProxySymbol) return _proxy
-        if (key == 'allContexts') return allContexts
+        if (key == ContextSymbol) {
+          return true
+        }
+        if (key == ProxySymbol) {
+          return _proxy
+        }
+        if (key == 'allContexts') {
+          return allContexts
+        }
 
         if (!(key in RESERVED)) {
           if (key in target.ctx) {
@@ -142,7 +147,9 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
           }
           if (RESERVED[key as keyof typeof RESERVED] == RESERVATIONS.func_this) {
             return target[key].bind(target)
-          } else return target[key] // just props
+          } else {
+            return target[key] // just props
+          }
         }
       },
       set(target: Context<T>, key: keyof typeof RESERVED | string | symbol | number, value): boolean {
@@ -150,9 +157,9 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
           target.ctx[key] = value
           return true
         } else if (
-          typeof key == 'string' &&
-          key in RESERVED &&
-          RESERVED[key as keyof typeof RESERVED] != RESERVATIONS.prop
+          typeof key == 'string'
+          && key in RESERVED
+          && RESERVED[key as keyof typeof RESERVED] != RESERVATIONS.prop
         ) {
           return false
         } else {
@@ -210,7 +217,9 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
         child.setParent(this.proxy)
       }
       return child
-    } else return child
+    } else {
+      return child
+    }
   }
 
   /**

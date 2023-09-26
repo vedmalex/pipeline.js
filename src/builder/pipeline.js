@@ -54,7 +54,9 @@ class fPipeline extends fBase {
           throw new Error('unsupported Stage type')
         }
       }
-      if (!this.cfg.stages) this.cfg.stages = []
+      if (!this.cfg.stages) {
+        this.cfg.stages = []
+      }
       this.cfg.stages = this.cfg.stages.concat(fn)
     }
     return this

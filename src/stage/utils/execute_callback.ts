@@ -1,8 +1,11 @@
 import { ContextType } from '../Context'
 import { CreateError, ERROR, process_error } from '../errors'
 import {
+  AnyStage,
   CallbackFunction,
-  StageObject,
+  CustomRun2Callback,
+  CustomRun3Callback,
+  is_thenable,
   isCallback0Async,
   isCallback0Sync,
   isCallback1Async,
@@ -11,24 +14,21 @@ import {
   isCallback2Callback,
   isCallback3Callback,
   isStageCallbackFunction,
-  is_thenable,
+  StageObject,
   Thenable,
-  CustomRun3Callback,
-  CustomRun2Callback,
-  AnyStage
 } from '../types'
 import { run_callback_once } from './run_callback_once'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
 export function execute_callback<R extends StageObject>(
-  this:  AnyStage<R>| void,
+  this: AnyStage<R> | void,
   err: unknown,
   run: unknown,
   context: ContextType<R>,
   _done: CallbackFunction<ContextType<R>>,
 ) {
   const done = run_callback_once(_done)
-  if (isStageCallbackFunction<ContextType<R>>(run))
+  if (isStageCallbackFunction<ContextType<R>>(run)) {
     switch (run.length) {
       // this is the context of the run function
       case 0:
@@ -117,4 +117,5 @@ export function execute_callback<R extends StageObject>(
       default:
         done(CreateError(ERROR.signature))
     }
+  }
 }

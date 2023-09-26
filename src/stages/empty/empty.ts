@@ -1,4 +1,4 @@
-import { AllowedStage, Stage, StageConfig, StageObject, isAnyStage } from '../../stage'
+import { AllowedStage, isAnyStage, Stage, StageConfig, StageObject } from '../../stage'
 import { getEmptyConfig } from './getEmptyConfig'
 
 export class Empty<R extends StageObject, C extends StageConfig<R> = StageConfig<R>> extends Stage<R, C> {

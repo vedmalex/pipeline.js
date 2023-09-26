@@ -1,7 +1,7 @@
 import 'jest'
 import { Stage } from '../../stage'
-import { Wrap } from './wrap'
 import { DoWhile, DoWhileConfig } from '../dowhile'
+import { Wrap } from './wrap'
 
 describe('Wrap', function () {
   it('works', function (done) {
@@ -72,16 +72,13 @@ describe('Wrap', function () {
         },
       }),
     })
-    stage.execute(
-      {
-        iter: 0,
-      },
-      function (err, context) {
-        expect(context?.iter).toEqual(10)
-        expect(context?.iteration).toBeUndefined()
-        done()
-      },
-    )
+    stage.execute({
+      iter: 0,
+    }, function (err, context) {
+      expect(context?.iter).toEqual(10)
+      expect(context?.iteration).toBeUndefined()
+      done()
+    })
   })
   it('prepare context -> moved to Wrap with fork', function (done) {
     type Ctx = {
@@ -114,20 +111,17 @@ describe('Wrap', function () {
       } as DoWhileConfig<InternalCtx, InternalCtx>),
     })
 
-    stage.execute(
-      {
-        iter: 0,
-      },
-      function (err, context) {
-        if (context) {
-          expect(context?.iter).toEqual(10)
-          // @ts-expect-error
-          expect(context?.iteration).toBeUndefined()
-          done()
-        } else {
-          throw Error('nonsense')
-        }
-      },
-    )
+    stage.execute({
+      iter: 0,
+    }, function (err, context) {
+      if (context) {
+        expect(context?.iter).toEqual(10)
+        // @ts-expect-error
+        expect(context?.iteration).toBeUndefined()
+        done()
+      } else {
+        throw Error('nonsense')
+      }
+    })
   })
 })

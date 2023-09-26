@@ -24,7 +24,9 @@ class fDoWhile extends fBase {
     }
   }
   build() {
-    if (this.cfg.stage instanceof Base) this.cfg.stage = this.cfg.stage.build()
+    if (this.cfg.stage instanceof Base) {
+      this.cfg.stage = this.cfg.stage.build()
+    }
     this.isValid()
     return new pipeline.DoWhile(this.cfg.clone())
   }

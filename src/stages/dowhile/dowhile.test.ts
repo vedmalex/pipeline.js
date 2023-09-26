@@ -1,7 +1,7 @@
 import 'jest'
 
-import { DoWhile } from './DoWhile'
 import { Stage } from '../../stage'
+import { DoWhile } from './DoWhile'
 
 describe('DoWhile', function () {
   it('works with default', function (done) {
@@ -21,7 +21,9 @@ describe('DoWhile', function () {
         throw new Error('error')
       },
       rescue: function (err, conext) {
-        if (err.message !== 'error') return err
+        if (err.message !== 'error') {
+          return err
+        }
       },
     })
     pipe.config.stage = st
@@ -34,7 +36,9 @@ describe('DoWhile', function () {
   it('works with config as Stage', function (done) {
     var stage = new DoWhile(
       new Stage(function (err, ctx, done) {
-        if (typeof done === 'function') done()
+        if (typeof done === 'function') {
+          done()
+        }
       }),
     )
     stage.execute({}, function (err, context) {
@@ -77,17 +81,16 @@ describe('DoWhile', function () {
         return !!err || iter == 10
       },
     })
-    stage.execute(
-      {
-        iter: -1,
-      },
-      function (err, context) {
-        if (context) {
-          expect(context.iter).toEqual(9)
-        } else throw new Error('nonsense')
-        done()
-      },
-    )
+    stage.execute({
+      iter: -1,
+    }, function (err, context) {
+      if (context) {
+        expect(context.iter).toEqual(9)
+      } else {
+        throw new Error('nonsense')
+      }
+      done()
+    })
   })
 
   it('complex example 1', function (done) {
@@ -130,8 +133,11 @@ describe('DoWhile', function () {
       stage: new Stage<SubCTX>({
         run: function (ctx: SubCTX, done) {
           ctx.iter += 1
-          if (ctx.iter === 4) done(new Error())
-          else done()
+          if (ctx.iter === 4) {
+            done(new Error())
+          } else {
+            done()
+          }
         },
       }),
       split: function (ctx, iter) {
@@ -154,7 +160,9 @@ describe('DoWhile', function () {
     type Context = { some: Array<number>; iter?: number }
     var stage0 = new Stage<Context>({
       validate: function (ctx) {
-        if (ctx.iter > 5) return new Error('error')
+        if (ctx.iter > 5) {
+          return new Error('error')
+        }
         return true
       },
       run: function (ctx, done) {

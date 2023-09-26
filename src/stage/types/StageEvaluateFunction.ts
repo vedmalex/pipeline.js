@@ -1,5 +1,5 @@
-import { StageObject } from './StageObject'
 import { is_async_function } from './is_async_function'
+import { StageObject } from './StageObject'
 
 export type StageEvaluateFunction<R extends StageObject> = (ctx: R) => boolean
 

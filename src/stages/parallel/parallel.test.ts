@@ -1,7 +1,7 @@
 import 'jest'
-import { Parallel } from './Parallel'
-import { ComplexError, Context, Stage, isAnyStage } from '../../stage'
+import { ComplexError, Context, isAnyStage, Stage } from '../../stage'
 import { Wrap } from '../wrap'
+import { Parallel } from './Parallel'
 
 describe('Parallel', function () {
   it('works with default', function (done) {
@@ -38,15 +38,12 @@ describe('Parallel', function () {
     var stage = new Parallel<CTX, CTX>({
       stage: stage0,
     })
-    stage.execute(
-      {
-        iter: 1,
-      },
-      function (err, context) {
-        expect(context?.iter).toEqual(2)
-        done()
-      },
-    )
+    stage.execute({
+      iter: 1,
+    }, function (err, context) {
+      expect(context?.iter).toEqual(2)
+      done()
+    })
   })
 
   it('empty split not run combine', function (done) {
@@ -82,15 +79,12 @@ describe('Parallel', function () {
       // @ts-expect-error
       split: function () {},
     })
-    stage.execute(
-      {
-        iter: 1,
-      },
-      function (err, context) {
-        expect(context?.iter).toEqual(2)
-        done()
-      },
-    )
+    stage.execute({
+      iter: 1,
+    }, function (err, context) {
+      expect(context?.iter).toEqual(2)
+      done()
+    })
   })
 
   it('complex example 1', function (done) {
@@ -135,9 +129,13 @@ describe('Parallel', function () {
     type SubCTX = { liter?: number; some: number }
     var stage0 = new Stage<SubCTX>(function (err, ctx, done) {
       ctx.liter = 1
-      if (ctx.some == 4) done(new Error('4'))
-      else if (ctx.some == 5) done(new Error('5'))
-      else done()
+      if (ctx.some == 4) {
+        done(new Error('4'))
+      } else if (ctx.some == 5) {
+        done(new Error('5'))
+      } else {
+        done()
+      }
     })
     var ctx = {
       some: [1, 2, 3, 4, 5, 6, 7],
@@ -243,18 +241,15 @@ describe('Parallel', function () {
       }),
     })
 
-    stage.execute(
-      {
-        iter: 0,
-      },
-      function (err, context) {
-        // throw Error()
-        expect(err).toBeUndefined()
-        expect(context?.iter).toEqual(5)
-        // @ts-expect-error
-        expect(context?.iteration).toBeUndefined()
-        done()
-      },
-    )
+    stage.execute({
+      iter: 0,
+    }, function (err, context) {
+      // throw Error()
+      expect(err).toBeUndefined()
+      expect(context?.iter).toEqual(5)
+      // @ts-expect-error
+      expect(context?.iteration).toBeUndefined()
+      done()
+    })
   })
 })

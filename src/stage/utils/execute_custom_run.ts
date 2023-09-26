@@ -4,9 +4,7 @@ import {
   AnyStage,
   CustomRun2Callback,
   CustomRun3Callback,
-  RunPipelineFunction,
-  StageObject,
-  StageRun,
+  is_thenable,
   isCustomRun0Async,
   isCustomRun0Sync,
   isCustomRun1Async,
@@ -14,7 +12,9 @@ import {
   isCustomRun2Async,
   isCustomRun2Callback,
   isCustomRun3Callback,
-  is_thenable,
+  RunPipelineFunction,
+  StageObject,
+  StageRun,
 } from '../types'
 import { run_callback_once } from './run_callback_once'
 

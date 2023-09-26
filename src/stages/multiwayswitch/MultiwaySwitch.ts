@@ -3,19 +3,19 @@ import {
   CallbackFunction,
   ContextType,
   CreateError,
+  isAnyStage,
   Possible,
+  run_or_execute,
   Stage,
   StageObject,
   StageRun,
-  isAnyStage,
-  run_or_execute,
 } from '../../stage'
 import { AllowedMWS } from './AllowedMWS'
-import { MultWaySwitchConfig } from './MultWaySwitchConfig'
+import { getMultWaySwitchConfig } from './getMultWaySwitchConfig'
 import { MultiWaySwitchCase } from './MultiWaySwitchCase'
 import { MultiWaySwitchDynamic } from './MultiWaySwitchDynamic'
 import { MultiWaySwitchStatic } from './MultiWaySwitchStatic'
-import { getMultWaySwitchConfig } from './getMultWaySwitchConfig'
+import { MultWaySwitchConfig } from './MultWaySwitchConfig'
 
 export class MultiWaySwitch<
   R extends StageObject,
@@ -142,7 +142,9 @@ export class MultiWaySwitch<
           let cur = actuals[index]
           let res: Possible<ContextType<R>> = null
           if (err) {
-            if (!hasError) hasError = true
+            if (!hasError) {
+              hasError = true
+            }
             errors.push(err as Error)
           } else {
             res = this.combineCase(cur, ctx, retCtx)

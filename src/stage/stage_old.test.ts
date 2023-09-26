@@ -1,6 +1,6 @@
 import 'jest'
-import { Stage } from './stage'
 import { Context } from './Context'
+import { Stage } from './stage'
 
 describe('Stage', function () {
   describe('sync', function () {
@@ -151,7 +151,7 @@ describe('Stage', function () {
 
   it('not allows to use constructor as a function', function (done) {
     try {
-      //@ts-expect-error
+      // @ts-expect-error
       var s = Stage()
       done()
     } catch (err) {
@@ -228,28 +228,22 @@ describe('Stage', function () {
     var stage = new Stage(function Some(err, context, done) {
       done()
     })
-    stage.execute(
-      {
-        trace: true,
-      },
-      function (err, data) {
-        done()
-      },
-    )
+    stage.execute({
+      trace: true,
+    }, function (err, data) {
+      done()
+    })
   })
 
   it('can be traced with {trace:true}', function (done) {
     var stage = new Stage(function Some(err, context, done) {
       done()
     })
-    stage.execute(
-      {
-        __trace: true,
-      },
-      function (err, data) {
-        done()
-      },
-    )
+    stage.execute({
+      __trace: true,
+    }, function (err, data) {
+      done()
+    })
   })
 
   it('emits done if it configured to do so', function (done) {
@@ -336,7 +330,9 @@ describe('Stage', function () {
     var l = 0
 
     function gotit() {
-      if (++l == 10) done()
+      if (++l == 10) {
+        done()
+      }
     }
 
     function accept(err, data) {

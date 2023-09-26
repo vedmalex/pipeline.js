@@ -15,7 +15,9 @@ export function run_or_execute<R extends StageObject>(
   if (isAnyStage<R>(stage)) {
     stage.execute(err, context, done)
   } else {
-    if (typeof stage === 'function') execute_callback(err, stage, context, done)
+    if (typeof stage === 'function') {
+      execute_callback(err, stage, context, done)
+    }
   }
 }
 

@@ -1,8 +1,8 @@
-import { CreateError, StageObject, getStageConfig, isAnyStage, isRunPipelineFunction } from '../../stage'
+import { CreateError, getStageConfig, isAnyStage, isRunPipelineFunction, StageObject } from '../../stage'
 import { AllowedMWS } from './AllowedMWS'
-import { MultWaySwitchConfig } from './MultWaySwitchConfig'
-import { MultiWaySwitchCase } from './MultiWaySwitchCase'
 import { isMultiWaySwitch } from './isMultiWaySwitch'
+import { MultiWaySwitchCase } from './MultiWaySwitchCase'
+import { MultWaySwitchConfig } from './MultWaySwitchConfig'
 
 export function getMultWaySwitchConfig<
   R extends StageObject,
@@ -52,7 +52,9 @@ export function getMultWaySwitchConfig<
       res.cases = [{ stage: res.run, evaluate: true }]
       delete res.run
     }
-    if (typeof res.cases == 'undefined') res.cases = []
+    if (typeof res.cases == 'undefined') {
+      res.cases = []
+    }
     return res as C
   }
 }

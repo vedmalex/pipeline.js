@@ -1,4 +1,4 @@
-import { StageConfig, AllowedStageStored, ContextType, StageObject } from '../../stage'
+import { AllowedStageStored, ContextType, StageConfig, StageObject } from '../../stage'
 
 export interface DoWhileConfig<R extends StageObject, T extends StageObject> extends StageConfig<R> {
   stage: AllowedStageStored<R, StageConfig<R>>

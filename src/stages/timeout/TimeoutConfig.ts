@@ -1,4 +1,4 @@
-import { StageConfig, RunPipelineFunction, AnyStage, StageObject, ContextType } from '../../stage'
+import { AnyStage, ContextType, RunPipelineFunction, StageConfig, StageObject } from '../../stage'
 
 export interface TimeoutConfig<R extends StageObject> extends StageConfig<R> {
   timeout?: number | ((ctx: ContextType<R>) => number)

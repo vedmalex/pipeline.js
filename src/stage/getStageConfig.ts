@@ -1,17 +1,16 @@
-
+import { fromZodError } from 'zod-validation-error'
+import { CreateError } from './errors'
 import { StageConfig } from './StageConfig'
 import {
   AllowedStage,
   AnyStage,
-  StageObject,
   getNameFrom,
   isEnsureFunction,
   isRescue,
   isRunPipelineFunction,
   isValidateFunction,
+  StageObject,
 } from './types'
-import { CreateError } from './errors'
-import { fromZodError } from 'zod-validation-error'
 
 export const StageSymbol = Symbol('stage')
 
@@ -67,14 +66,14 @@ export function getStageConfig<R extends StageObject, C extends StageConfig<R>>(
     }
     if (config.schema) {
       result.schema = config.schema
-      result.validate = ((ctx: unknown): boolean => {
+      result.validate = (ctx: unknown): boolean => {
         const pr = result.schema?.safeParse(ctx)
         if (!pr?.success) {
           throw CreateError(fromZodError(pr?.error!))
         } else {
           return true
         }
-      })
+      }
     }
     if (!config.name) {
       result.name = getNameFrom(config)

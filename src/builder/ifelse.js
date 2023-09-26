@@ -26,8 +26,12 @@ class fIfElse extends fBase {
     }
   }
   build() {
-    if (this.cfg.success instanceof Base) this.cfg.success = this.cfg.success.build()
-    if (this.cfg.failed instanceof Base) this.cfg.failed = this.cfg.failed.build()
+    if (this.cfg.success instanceof Base) {
+      this.cfg.success = this.cfg.success.build()
+    }
+    if (this.cfg.failed instanceof Base) {
+      this.cfg.failed = this.cfg.failed.build()
+    }
     this.isValid()
     return new pipeline.IfElse(this.cfg.clone())
   }

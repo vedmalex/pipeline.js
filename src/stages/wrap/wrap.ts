@@ -1,6 +1,6 @@
-import { AllowedStage, ContextType, Stage, StageObject, StageRun, run_or_execute } from '../../stage'
-import { WrapConfig } from './WrapConfig'
+import { AllowedStage, ContextType, run_or_execute, Stage, StageObject, StageRun } from '../../stage'
 import { getWrapConfig } from './getWrapConfig'
+import { WrapConfig } from './WrapConfig'
 
 export class Wrap<
   R extends StageObject,

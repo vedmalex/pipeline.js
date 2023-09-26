@@ -1,5 +1,5 @@
+import { AllowedStage, execute_validate, run_or_execute, Stage, StageObject, StageRun } from '../../stage'
 import { getIfElseConfig } from './getIfElseConfig'
-import { AllowedStage, Stage, StageObject, StageRun, execute_validate, run_or_execute } from '../../stage'
 import { IfElseConfig } from './IfElseConfig'
 
 export class IfElse<R extends StageObject, C extends IfElseConfig<R> = IfElseConfig<R>> extends Stage<R, C> {

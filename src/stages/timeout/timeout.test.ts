@@ -61,15 +61,12 @@ describe('Timeout', function () {
         }, 1000)
       }),
     })
-    to.execute(
-      {
-        to: 1000,
-      },
-      function (err, ctx) {
-        expect(err).toBeUndefined()
-        done()
-      },
-    )
+    to.execute({
+      to: 1000,
+    }, function (err, ctx) {
+      expect(err).toBeUndefined()
+      done()
+    })
   })
 
   it('accepts Stages in config', function (done) {
@@ -100,8 +97,11 @@ describe('Timeout', function () {
       },
     })
     to.execute<{ overdue?: boolean }>({}, function (err, ctx) {
-      if (ctx) expect(ctx.overdue).toBeTruthy()
-      else throw new Error('context is not defined')
+      if (ctx) {
+        expect(ctx.overdue).toBeTruthy()
+      } else {
+        throw new Error('context is not defined')
+      }
       done()
     })
   })

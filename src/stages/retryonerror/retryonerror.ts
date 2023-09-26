@@ -1,25 +1,22 @@
 import {
-  Stage,
-  AnyStage,
   AllowedStage,
-  Context,
-  StageRun,
+  AnyStage,
   ComplexError,
-  run_or_execute,
-  StageObject,
+  Context,
   ContextType,
+  run_or_execute,
+  Stage,
+  StageObject,
+  StageRun,
 } from '../../stage'
-import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 import { getRetryOnErrorConfig } from './getRetryOnErrorConfig'
+import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 
 export class RetryOnError<
-    R extends StageObject,
-    T extends StageObject,
-    C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>,
-  >
-  extends Stage<R, C>
-  implements AnyStage<R>
-{
+  R extends StageObject,
+  T extends StageObject,
+  C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>,
+> extends Stage<R, C> implements AnyStage<R> {
   constructor(config?: AllowedStage<R, C>) {
     super()
     if (config) {
@@ -53,7 +50,7 @@ export class RetryOnError<
     } else {
       if (Context.isContext(ctx) && typeof backup === 'object' && backup !== null) {
         for (let key in backup) {
-          //@ts-expect-error
+          // @ts-expect-error
           ctx[key] = backup[key]
         }
         return ctx

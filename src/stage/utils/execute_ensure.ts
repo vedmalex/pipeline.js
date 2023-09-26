@@ -1,12 +1,12 @@
 import { ContextType } from '../Context'
 import { CreateError, ERROR, process_error } from '../errors'
 import {
-  isEnsureAsync,
-  isEnsureSync,
-  isEnsureCallback,
-  EnsureFunction,
   CallbackFunction,
+  EnsureFunction,
   is_thenable,
+  isEnsureAsync,
+  isEnsureCallback,
+  isEnsureSync,
   StageObject,
 } from '../types'
 

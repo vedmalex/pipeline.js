@@ -1,13 +1,13 @@
-import { IfElseConfig } from './IfElseConfig'
 import {
   AllowedStage,
   CreateError,
-  RunPipelineFunction,
-  StageObject,
   empty_run,
   getStageConfig,
   isAnyStage,
+  RunPipelineFunction,
+  StageObject,
 } from '../../stage'
+import { IfElseConfig } from './IfElseConfig'
 
 export function getIfElseConfig<R extends StageObject, C extends IfElseConfig<R>>(config: AllowedStage<R, C>): C {
   const res = getStageConfig<R, C>(config)

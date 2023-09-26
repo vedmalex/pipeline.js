@@ -27,7 +27,9 @@ class fParallel extends fBase {
     }
   }
   build() {
-    if (this.cfg.stage instanceof Base) this.cfg.stage = this.cfg.stage.build()
+    if (this.cfg.stage instanceof Base) {
+      this.cfg.stage = this.cfg.stage.build()
+    }
     this.isValid()
     return new pipeline.Parallel(this.cfg.clone())
   }

@@ -1,16 +1,16 @@
-import {z} from 'zod'
+import { z } from 'zod'
+import { CreateError } from './errors'
 import { StageConfig } from './StageConfig'
 import {
   CompileFunction,
   EnsureFunction,
+  isRunPipelineFunction,
   Precompile,
   Rescue,
   RunPipelineFunction,
   StageObject,
   ValidateFunction,
-  isRunPipelineFunction,
 } from './types'
-import { CreateError } from './errors'
 
 export class StageBuilder<R extends StageObject, C extends StageConfig<R>> {
   private cfg: C

@@ -1,6 +1,6 @@
 import { StageConfig } from '../StageConfig'
-import { RunPipelineFunction } from './RunPipelineFunction'
 import { AnyStage } from './AnyStage'
+import { RunPipelineFunction } from './RunPipelineFunction'
 import { StageObject } from './StageObject'
 
 /**

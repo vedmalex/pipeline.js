@@ -1,12 +1,12 @@
 import { CreateError, ERROR, process_error } from '../errors'
 import {
   CallbackFunction,
-  ValidateFunction,
-  ValidateFunction1Async,
+  is_thenable,
   isValidateFunction1Async,
   isValidateFunction1Sync,
   isValidateFunction2Sync,
-  is_thenable,
+  ValidateFunction,
+  ValidateFunction1Async,
 } from '../types'
 
 export function execute_validate<R>(validate: ValidateFunction<R>, context: R, done: CallbackFunction<boolean>) {
@@ -57,8 +57,11 @@ export function execute_validate<R>(validate: ValidateFunction<R>, context: R, d
       if (isValidateFunction2Sync(validate)) {
         try {
           validate(context, (err, res) => {
-            if (err) done(CreateError(err), res)
-            else done(err, res)
+            if (err) {
+              done(CreateError(err), res)
+            } else {
+              done(err, res)
+            }
           })
         } catch (err) {
           process_error(err, done)

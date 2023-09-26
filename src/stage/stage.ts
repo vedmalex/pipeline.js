@@ -1,18 +1,18 @@
 import { Context, ContextType, OriginalObject } from './Context'
+import { can_fix_error, ComplexError, CreateError } from './errors'
+import { getStageConfig, isAnyStage, StageSymbol } from './getStageConfig'
 import { StageConfig } from './StageConfig'
-import { ComplexError, CreateError, can_fix_error } from './errors'
-import { StageSymbol, getStageConfig, isAnyStage } from './getStageConfig'
 import {
   AllowedStage,
   AnyStage,
   CallbackFunction,
   EnsureFunction,
+  isStageRun,
   Possible,
   RunPipelineFunction,
   StageObject,
   StageRun,
   ValidateFunction,
-  isStageRun,
 } from './types'
 import { execute_callback } from './utils/execute_callback'
 import { execute_custom_run } from './utils/execute_custom_run'
@@ -114,8 +114,9 @@ export class Stage<R extends StageObject, C extends StageConfig<R> = StageConfig
     if (!__callback) {
       return new Promise<T & R>((res, rej) => {
         this.execute(err, context, (err: unknown, ctx) => {
-          if (err) rej(err)
-          else {
+          if (err) {
+            rej(err)
+          } else {
             if (input_is_context) {
               res(ctx as T & R)
             } else {
@@ -198,14 +199,22 @@ export class Stage<R extends StageObject, C extends StageConfig<R> = StageConfig
     const fail = (err: unknown) => back(err, context)
     if (this._config.run) {
       if (context) {
-        execute_callback.call(this as AnyStage<R>, err, this._config.run, context, callback as CallbackFunction<unknown>)
+        execute_callback.call(
+          this as AnyStage<R>,
+          err,
+          this._config.run,
+          context,
+          callback as CallbackFunction<unknown>,
+        )
       } else {
         // возвращаем управление
         callback(err)
       }
     } else {
       const retErr: Array<any> = [this.reportName + ' reports: run is not a function']
-      if (err) retErr.push(err)
+      if (err) {
+        retErr.push(err)
+      }
       this.rescue(CreateError(retErr), context, fail, sucess)
     }
   }
@@ -283,16 +292,11 @@ export class Stage<R extends StageObject, C extends StageConfig<R> = StageConfig
     context: ContextType<R>,
   ): Promise<[unknown, ContextType<R>]> {
     return new Promise(resolve => {
-      this.rescue(
-        _err,
-        context,
-        err => {
-          resolve([err, context])
-        },
-        res => {
-          resolve([undefined, res ?? context])
-        },
-      )
+      this.rescue(_err, context, err => {
+        resolve([err, context])
+      }, res => {
+        resolve([undefined, res ?? context])
+      })
     })
   }
 

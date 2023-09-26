@@ -1,12 +1,4 @@
-import {
-  AllowedStage,
-  AnyStage,
-  StageConfig,
-  StageObject,
-  empty_run,
-  getStageConfig,
-  isAnyStage,
-} from '../../stage'
+import { AllowedStage, AnyStage, empty_run, getStageConfig, isAnyStage, StageConfig, StageObject } from '../../stage'
 
 export function getEmptyConfig<R extends StageObject, C extends StageConfig<R>>(
   config: AllowedStage<R, C>,

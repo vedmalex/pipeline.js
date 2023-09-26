@@ -1,4 +1,4 @@
-import { StageObject, isRunPipelineFunction } from '../../stage'
+import { isRunPipelineFunction, StageObject } from '../../stage'
 import { MultiWaySwitchCase } from './MultiWaySwitchCase'
 
 export function isMultiWaySwitch<R extends StageObject, T extends StageObject>(

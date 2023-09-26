@@ -1,4 +1,4 @@
-import {z } from 'zod'
+import { z } from 'zod'
 import 'jest'
 import { Stage } from './stage'
 import { StageConfig } from './StageConfig'
@@ -26,7 +26,7 @@ describe('stage', () => {
     expect(s).toMatchSnapshot('names stage')
   })
   it('create with function', () => {
-    const s = new Stage(function(this: any) {
+    const s = new Stage(function (this: any) {
       this.name = 'run this Stage'
     })
     expect(s).not.toBeNull()
@@ -46,30 +46,27 @@ describe('stage', () => {
   })
 
   it('creates throws when both parameters validate and schema are passed', () => {
-    expect(
-      () =>
-        new Stage({
-          run: () => {},
-          schema: {},
-          validate: {},
-        } as any),
+    expect(() =>
+      new Stage({
+        run: () => {},
+        schema: {},
+        validate: {},
+      } as any)
     ).toThrow()
   })
 
   it('intialize using schema and validate separately', () => {
-    expect(
-      () =>
-        new Stage<{ name: string }>({
-          run: () => {},
-          validate: (_ctx: { name?: string }) => true,
-        } as StageConfig<{ name: string }>),
+    expect(() =>
+      new Stage<{ name: string }>({
+        run: () => {},
+        validate: (_ctx: { name?: string }) => true,
+      } as StageConfig<{ name: string }>)
     ).not.toThrow()
-    expect(
-      () =>
-        new Stage({
-          run: () => {},
-          schema: z.object({}).passthrough()
-        }),
+    expect(() =>
+      new Stage({
+        run: () => {},
+        schema: z.object({}).passthrough(),
+      })
     ).not.toThrow()
   })
 
@@ -103,7 +100,6 @@ describe('stage', () => {
     let stage = {
       run: () => {},
     } as StageConfig<{}>
-
   })
 
   it('create with Lambda 2', () => {
