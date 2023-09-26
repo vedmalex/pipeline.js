@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { ComplexError, CreateError } from './errors'
 import { StageConfig } from './StageConfig'
 import { AnyStage, CallbackFunction, isRunPipelineFunction, StageObject, StageRun } from './types'
+import { Stage } from './stage'
 
 export const unsetMarker = Symbol('unset')
 
@@ -250,8 +251,8 @@ export type ValidateFn<$P1> = (
 
 export type Compile<$P1> = (this: $P1 extends StageObject ? AnyStage<$P1>: never, rebuild?: boolean) =>$P1 extends StageObject ? StageRun<$P1>: never
 
-export type Precompile<$P1> = (
-  this: AnyStage<$P1 extends StageObject ? $P1 : never>
+export type Precompile<$P1, TStage extends Stage<$P1 extends StageObject ? $P1 : never>> = (
+  this: TStage
 ) => void
 
 createBuilder()
