@@ -11,4 +11,3 @@ export interface AnyStage<R> {
     _callback?: CallbackFunction<R>,
   ): void | Promise<R>
 }
-

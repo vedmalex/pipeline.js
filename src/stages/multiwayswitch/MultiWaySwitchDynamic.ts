@@ -1,10 +1,4 @@
-import {
-  AllowedStage,
-  AnyStage,
-  RunPipelineFunction,
-  StageConfig,
-  StageEvaluateFunction,
-} from '../../stage'
+import { AllowedStage, AnyStage, RunPipelineFunction, StageConfig, StageEvaluateFunction } from '../../stage'
 import { CombineFunction } from './CombineFunction'
 import { SplitFunction } from './SplitFunction'
 

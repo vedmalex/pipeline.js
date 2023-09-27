@@ -58,7 +58,7 @@ export class Sequential<
           while (++iter < len) {
             ;[err, retCtx] = await run_or_execute_async(this.config.stage, err, children[iter])
             if (err) {
-              //TODO: refactor it
+              // TODO: refactor it
               // для всех сложных параметров должен быть свой собственный rescue, а не один на всех
               ;[err, retCtx] = await this.rescue_async(err, children[iter] as unknown as R) as unknown as [unknown, T]
               if (err) {

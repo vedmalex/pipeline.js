@@ -1,17 +1,11 @@
-import {
-  AllowedStage,
-  AnyStage,
-  ComplexError,
-  Context,
-  run_or_execute,
-  Stage,
-  StageRun,
-} from '../../stage'
+import { AllowedStage, AnyStage, ComplexError, Context, run_or_execute, Stage, StageRun } from '../../stage'
 import { getRetryOnErrorConfig } from './getRetryOnErrorConfig'
 import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 
 export class RetryOnError<
-  R, T, C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>,
+  R,
+  T,
+  C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>,
 > extends Stage<R, C> implements AnyStage<R> {
   constructor(config?: AllowedStage<R, C>) {
     super()

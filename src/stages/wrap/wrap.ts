@@ -1,4 +1,4 @@
-import { AllowedStage,  run_or_execute, Stage, StageRun } from '../../stage'
+import { AllowedStage, run_or_execute, Stage, StageRun } from '../../stage'
 import { getWrapConfig } from './getWrapConfig'
 import { WrapConfig } from './WrapConfig'
 

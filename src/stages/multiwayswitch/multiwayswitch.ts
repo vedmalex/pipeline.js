@@ -88,7 +88,7 @@ export class MultiWaySwitch<
         caseItem = {
           stage: caseItem,
           evaluate: true,
-        } as MultiWaySwitchCase<R,T>
+        } as MultiWaySwitchCase<R, T>
       }
 
       if (caseItem.stage) {
@@ -96,7 +96,7 @@ export class MultiWaySwitch<
           caseItem.stage = caseItem.stage
         }
         if (!isAnyStage<R>(caseItem.stage) && typeof caseItem.stage == 'object') {
-          caseItem.stage = new Stage<R, StageConfig<R>>( caseItem.stage )
+          caseItem.stage = new Stage<R, StageConfig<R>>(caseItem.stage)
         }
 
         if (!(caseItem.split instanceof Function)) {

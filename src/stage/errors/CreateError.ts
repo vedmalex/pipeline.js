@@ -3,7 +3,7 @@ import { ComplexError, ComplexErrorInput } from './ComplexError'
 import { isComplexError } from './isComplexError'
 
 export function CreateError(
-  err?: ComplexErrorInput| Array<ComplexErrorInput>
+  err?: ComplexErrorInput | Array<ComplexErrorInput>,
 ): Possible<ComplexError> {
   if (typeof err == 'string') {
     return new ComplexError(new Error(err))

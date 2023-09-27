@@ -1,4 +1,4 @@
-import { AnyStage, CreateError, isAnyStage,  SingleStageFunction } from '../../stage'
+import { AnyStage, CreateError, isAnyStage, SingleStageFunction } from '../../stage'
 import { DoWhileConfig } from './DoWhileConfig'
 
 export function getDoWhileConfig<R, T, C extends DoWhileConfig<R, T>>(

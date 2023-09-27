@@ -75,7 +75,7 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
   }
 
   public static create<T>(input?: unknown): ProxyType<T> {
-    return new Context((input ?? {})) as unknown as ProxyType<T>
+    return new Context(input ?? {}) as unknown as ProxyType<T>
   }
 
   public static isProxy<T>(obj?: unknown): obj is ProxyType<T> {
@@ -185,7 +185,7 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
     return child as ProxyType<T & C>
   }
 
-  protected addChild<R extends StageObject>(child:unknown): unknown {
+  protected addChild<R extends StageObject>(child: unknown): unknown {
     if (Context.isProxy<R>(child)) {
       if (!this.hasChild(child)) {
         child.setParent(this.proxy)

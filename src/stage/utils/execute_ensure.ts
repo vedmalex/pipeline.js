@@ -1,12 +1,5 @@
 import { CreateError, ERROR, process_error } from '../errors'
-import {
-  CallbackFunction,
-  EnsureFunction,
-  is_thenable,
-  isEnsureAsync,
-  isEnsureCallback,
-  isEnsureSync,
-} from '../types'
+import { CallbackFunction, EnsureFunction, is_thenable, isEnsureAsync, isEnsureCallback, isEnsureSync } from '../types'
 
 export function execute_ensure<R>(
   ensure: EnsureFunction<R>,

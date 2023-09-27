@@ -2,7 +2,7 @@ import { AnyStage } from './AnyStage'
 import { CallbackFunction } from './CallbackFunction'
 import { is_async_function } from './is_async_function'
 
-export type CustomRun0SyncVoid<R> = (this:R) => void
+export type CustomRun0SyncVoid<R> = (this: R) => void
 
 export type CustomRun0Sync<R> = (this: R) => R
 

@@ -5,13 +5,13 @@ export type Rescue1Sync<R> = (this: R, err: Error) => any
 
 export type Rescue1ASync<R> = (this: R, err: Error) => Promise<void>
 
-export type Rescue2ASync<R> = (this: null, err: Error, ctx:  R,) => Promise<void>
+export type Rescue2ASync<R> = (this: null, err: Error, ctx: R) => Promise<void>
 
-export type Rescue2Sync<R> = (this: null, err: Error, ctx:  R) =>  R
+export type Rescue2Sync<R> = (this: null, err: Error, ctx: R) => R
 
-export type Rescue3Callback<R> = (this: null, err: Error, ctx:  R, done: CallbackFunction<R> ) => void
+export type Rescue3Callback<R> = (this: null, err: Error, ctx: R, done: CallbackFunction<R>) => void
 
-export function isRescue1Sync<R>(inp: unknown):  inp is Rescue1Sync<R> {
+export function isRescue1Sync<R>(inp: unknown): inp is Rescue1Sync<R> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 1
 }
 

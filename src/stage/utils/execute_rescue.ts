@@ -13,7 +13,7 @@ export function execute_rescue<R>(
   rescue: Rescue<R>,
   err: Error,
   context: R,
-  done: (err?:unknown) => void,
+  done: (err?: unknown) => void,
 ) {
   switch (rescue.length) {
     case 1:

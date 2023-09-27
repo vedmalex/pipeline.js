@@ -1,11 +1,4 @@
-import {
-  AllowedStage,
-  CreateError,
-  empty_run,
-  getStageConfig,
-  isAnyStage,
-  RunPipelineFunction,
-} from '../../stage'
+import { AllowedStage, CreateError, empty_run, getStageConfig, isAnyStage, RunPipelineFunction } from '../../stage'
 import { IfElseConfig } from './IfElseConfig'
 
 export function getIfElseConfig<R, C extends IfElseConfig<R>>(config: AllowedStage<R, C>): C {

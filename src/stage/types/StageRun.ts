@@ -5,4 +5,3 @@ export type StageRun<R> = (
   context: R,
   callback: CallbackFunction<R>,
 ) => void
-

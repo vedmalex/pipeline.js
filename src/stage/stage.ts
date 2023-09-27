@@ -34,9 +34,9 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
     this[StageSymbol] = true
     if (config) {
       if (typeof config === 'string') {
-        this._config = { name: config} as C extends StageConfig<R> ? C : never
+        this._config = { name: config } as C extends StageConfig<R> ? C : never
       } else {
-        let res = getStageConfig<R,C>(config) as C extends StageConfig<R> ? C : never
+        let res = getStageConfig<R, C>(config) as C extends StageConfig<R> ? C : never
         if (isAnyStage<R>(res)) {
           this._config = res.config as any
         } else {
@@ -149,7 +149,7 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
       const success = (ret: R) => back(undefined, ret ?? context)
       const fail = (err: unknown) => back(err, context)
 
-      const callback = (err?, _ctx?:R) => {
+      const callback = (err?, _ctx?: R) => {
         if (err) {
           this.rescue(err, _ctx ?? context, fail, success)
         } else {
@@ -204,13 +204,7 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
     const fail = (err: unknown) => back(err, context)
     if (this._config.run) {
       if (context) {
-        (execute_callback<R>).call(
-          this,
-          err,
-          this._config.run,
-          context,
-          callback
-        )
+        ;(execute_callback<R>).call(this, err, this._config.run, context, callback)
       } else {
         // возвращаем управление
         callback(err)
@@ -273,7 +267,7 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
     }
 
     if (err && this._config.rescue) {
-      execute_rescue(this._config.rescue, err, context, (_err) => {
+      execute_rescue(this._config.rescue, err, context, _err => {
         // здесь может быть исправлена ошибка, и контекст передается дальше на выполнение
         if (_err) {
           fail(_err)

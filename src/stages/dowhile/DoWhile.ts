@@ -1,10 +1,4 @@
-import {
-  AnyStage,
-  run_or_execute_async,
-  SingleStageFunction,
-  Stage,
-  StageRun,
-} from '../../stage'
+import { AnyStage, run_or_execute_async, SingleStageFunction, Stage, StageRun } from '../../stage'
 import { DoWhileConfig } from './DoWhileConfig'
 import { getDoWhileConfig } from './getDoWhileConfig'
 
