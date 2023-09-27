@@ -1,16 +1,16 @@
 import { Possible } from '../types'
-import { ComplexError } from './ComplexError'
+import { ComplexError, ComplexErrorInput } from './ComplexError'
 import { isComplexError } from './isComplexError'
 
 export function CreateError(
-  err?: Error | object | Array<Error | object | string> | string | unknown | null | undefined,
+  err?: ComplexErrorInput| Array<ComplexErrorInput>
 ): Possible<ComplexError> {
   if (typeof err == 'string') {
     return new ComplexError(new Error(err))
   }
   if (typeof err == 'object' && err !== null) {
     if (Array.isArray(err)) {
-      let result: Array<Error | object | string> = []
+      let result: Array<ComplexErrorInput> = []
       err
         .filter(e => e)
         .forEach(ler => {
