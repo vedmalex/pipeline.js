@@ -6,7 +6,7 @@ export const ContextSymbol = Symbol('Context')
 export const OriginalObject = Symbol('OriginalObject')
 export const ProxySymbol = Symbol('Handler')
 export interface ContextProxy<T> {
-  fork<C extends T>(config: C): ProxyType<T & C>
+  fork<C extends T>(config: Partial<C>): ProxyType<T & C>
   // addChild(child: object): unknown
   get(path: keyof T): any
   // addSubtree(lctx: object): unknown
@@ -179,7 +179,7 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
    * @param {Object|Context} [config] new properties that must exists in new fork
    * @retrun {Context}
    */
-  fork<C>(ctx?: C): ProxyType<T & C> {
+  fork<C>(ctx?: Partial<C>): ProxyType<T & C> {
     var child = Context.ensure(ctx)
     this.addChild(child)
     return child as ProxyType<T & C>
