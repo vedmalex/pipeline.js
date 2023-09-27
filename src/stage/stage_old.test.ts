@@ -51,7 +51,7 @@ describe('Stage', function () {
           ctx.n = 1
           throw new Error('some')
         },
-      } as StageConfig<{ n?: number }>)
+      })
       st.execute({}, function (err, ctx) {
         expect(ctx?.n).toEqual(1)
         expect(err).toBeUndefined()
@@ -68,7 +68,7 @@ describe('Stage', function () {
           ctx.n = 1
           throw new Error('some')
         },
-      } as StageConfig<{ n?: number }>)
+      })
       st.execute({}, function (err, ctx) {
         expect(ctx?.n).toEqual(1)
         expect(err).toBeUndefined()
@@ -160,7 +160,7 @@ describe('Stage', function () {
   })
 
   it('runs within stage', function (done) {
-    var s = new Stage(function (this: { someCode: number }, ctx, done) {
+    var s = new Stage<{ someCode: number }>(function (this: { someCode: number }, ctx, done) {
       expect(this.someCode).toEqual(100)
       done()
     })
