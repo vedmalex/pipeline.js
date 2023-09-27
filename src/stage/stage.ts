@@ -19,7 +19,7 @@ import { execute_ensure } from './utils/execute_ensure'
 import { execute_rescue } from './utils/execute_rescue'
 import { execute_validate } from './utils/execute_validate'
 
-export class Stage<R, C extends StageConfig<R>> implements AnyStage<R> {
+export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyStage<R> {
   public get config(): C {
     return this._config as C
   }
