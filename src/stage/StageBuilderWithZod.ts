@@ -19,6 +19,7 @@ export interface BuilderParams {
   _stage: unknown
   _input: unknown
   _output: unknown
+  _usage: {}
 }
 
 export type AnyStageConfig = StageConfig<any>
@@ -41,6 +42,7 @@ export function createBuilder<TStage extends Stage<any>>(
   _stage: TStage
   _input: UnsetMarker
   _output: UnsetMarker
+  _usage: {}
 }> {
   return {
     _def: _def as BuilderDef<TStage>,
@@ -141,7 +143,7 @@ export type inferParser<TParser extends Parser> = TParser extends ParserZod<infe
 
 type ErrorMessage<TMessage extends string> = TMessage
 
-// должен быть Stage
+type InferKeys<T> = T extends object ? keyof T : never
 
 export interface Builder<TParams extends BuilderParams> {
   /**
@@ -157,14 +159,17 @@ export interface Builder<TParams extends BuilderParams> {
           : $Parser
         : ErrorMessage<'All input parsers did not resolve to an object'>
       : ErrorMessage<'All input parsers did not resolve to an object'>,
-  ): Builder<{
+  ): Omit<Builder<{
     _stage: TParams['_stage']
     _input: OverwriteIfDefined<
       TParams['_input'],
       inferParser<$Parser>['in']
     >
     _output: TParams['_output']
-  }>
+    _usage: TParams['_usage'] & {
+      input: true
+    }
+  }>,  InferKeys<TParams['_usage']> | 'input'>
   /**
    * output of stage
    * @param schema only object allowed
@@ -178,49 +183,73 @@ export interface Builder<TParams extends BuilderParams> {
           : $Parser
         : ErrorMessage<'All input parsers did not resolve to an object'>
       : ErrorMessage<'All input parsers did not resolve to an object'>,
-  ): Builder<{
+  ): Omit<Builder<{
     _stage: TParams['_stage']
     _input: TParams['_input']
     _output: OverwriteIfDefined<
       TParams['_output'],
       inferParser<$Parser>['in']
     >
-  }>
-  run<$Input = TParams['_input']>(fn: CustomRun<$Input>): Builder<{
+    _usage: TParams['_usage'] & {
+      output: true
+    }
+  }>, InferKeys<TParams['_usage']> | 'ouput'>
+  run<$Input = TParams['_input']>(fn: CustomRun<$Input>): Omit<Builder<{
     _stage: TParams['_stage']
     _input: TParams['_input']
     _output: TParams['_output']
-  }>
-  name(name: string): Builder<{
+    _usage: TParams['_usage'] & {
+      run: true
+    }
+  }>, InferKeys<TParams['_usage']> | 'run'>
+  name(name: string): Omit<Builder<{
     _stage: TParams['_stage']
     _input: TParams['_input']
     _output: TParams['_output']
-  }>
-  rescue(rescue: Rescue<TParams['_input']>): Builder<{
+    _usage: TParams['_usage'] & {
+      name: true
+    }
+  }>,InferKeys<TParams['_usage']> | 'name'>
+  rescue(rescue: Rescue<TParams['_input']>): Omit<Builder<{
     _stage: TParams['_stage']
     _input: TParams['_input']
     _output: TParams['_output']
-  }>
-  ensure(ensure: Ensure<TParams['_input']>): Builder<{
+    _usage: TParams['_usage'] & {
+      rescue: true
+    }
+  }>,InferKeys<TParams['_usage']> |  'rescue'>
+  ensure(ensure: Ensure<TParams['_input']>): Omit<Builder<{
     _stage: TParams['_stage']
     _input: TParams['_input']
     _output: TParams['_output']
-  }>
-  validate(fn: ValidateFn<TParams['_input']>): Builder<{
+    _usage: TParams['_usage'] & {
+      ensure: true
+    }
+  }>, InferKeys<TParams['_usage']> | 'ensure'>
+  validate(fn: ValidateFn<TParams['_input']>): Omit<Builder<{
     _stage: TParams['_stage']
     _input: TParams['_input']
     _output: TParams['_output']
-  }>
-  compile(fn: Compile<TParams['_input']>): Builder<{
+    _usage: TParams['_usage'] & {
+      validate: true
+    }
+  }>, InferKeys<TParams['_usage']> | 'validate'>
+  compile(fn: Compile<TParams['_input']>): Omit<Builder<{
     _stage: TParams['_stage']
     _input: TParams['_input']
     _output: TParams['_output']
-  }>
-  precompile(fn: Precompile<TParams['_input'], TParams['_stage']>): Builder<{
+    _usage: TParams['_usage'] & {
+      compile: true
+    }
+  }>,InferKeys<TParams['_usage']> | 'compile'>
+  precompile(fn: Precompile<TParams['_input'], TParams['_stage']>): Omit<Builder<{
     _stage: TParams['_stage']
     _input: TParams['_input']
     _output: TParams['_output']
-  }>
+    _usage: TParams['_usage'] & {
+      precompile: true
+    }
+  }>,InferKeys<TParams['_usage']> | 'precompile'>
   _def: BuilderDef<TParams['_stage']>
 }
 
@@ -259,7 +288,7 @@ export type Precompile<$P1, TStage> = (
 ) => void
 
 createBuilder()
-  .input(z.number())
+  .input(z.object({}))
   .name('stage')
   .rescue(function (err, ctx) {
     ctx
