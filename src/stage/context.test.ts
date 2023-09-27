@@ -1,5 +1,5 @@
 import 'jest'
-import { z } from 'zod'
+import z from 'zod'
 import { Context } from './Context'
 import { ExtendStageObjectWith } from './types'
 

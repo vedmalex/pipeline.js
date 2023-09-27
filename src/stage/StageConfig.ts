@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 import { CompileFunction, EnsureFunction, Precompile, Rescue, RunPipelineFunction, ValidateFunction } from './types'
 
 export interface StageConfig<R> {

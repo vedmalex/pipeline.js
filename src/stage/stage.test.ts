@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 import 'jest'
 import { Stage } from './stage'
 import { StageConfig } from './StageConfig'
