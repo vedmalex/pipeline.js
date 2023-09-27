@@ -2,7 +2,8 @@ import { z } from 'zod'
 import { ComplexError, CreateError } from './errors'
 import { Stage } from './stage'
 import { StageConfig } from './StageConfig'
-import { CallbackFunction, isRunPipelineFunction, StageRun, UnsetMarker } from './types'
+import { CallbackFunction, isRunPipelineFunction, StageObject, StageRun, UnsetMarker } from './types'
+
 
 /**
  * @internal
@@ -35,7 +36,6 @@ export type InferConfig<TStage> = TStage extends Stage<any, infer $TConfig> ? $T
 export type inferContext<TStage> = TStage extends Stage<infer $Input, any> ? $Input : UnsetMarker
 
 export function createBuilder<TStage extends Stage<any>>(
-  stage: TStage,
   _def: Partial<BuilderDef<TStage>> = {},
 ): Builder<{
   _stage: TStage
@@ -45,13 +45,13 @@ export function createBuilder<TStage extends Stage<any>>(
   return {
     _def: _def as BuilderDef<TStage>,
     input(schema) {
-      return createBuilder(stage, {
+      return createBuilder({
         ..._def,
         inputs: schema,
       }) as any
     },
     output(schema) {
-      return createBuilder(stage, {
+      return createBuilder({
         ..._def,
         outputs: schema,
       }) as any
@@ -65,7 +65,7 @@ export function createBuilder<TStage extends Stage<any>>(
       } else {
         throw CreateError('run should be a `RunPipelineFunction`')
       }
-      return createBuilder(stage, {
+      return createBuilder({
         ..._def,
       }) as any
     },
@@ -74,7 +74,7 @@ export function createBuilder<TStage extends Stage<any>>(
         _def.cfg = {} as InferConfig<TStage>
       }
       _def.cfg.name = name
-      return createBuilder(stage, {
+      return createBuilder({
         ..._def,
       }) as any
     },
@@ -83,7 +83,7 @@ export function createBuilder<TStage extends Stage<any>>(
         _def.cfg = {} as InferConfig<TStage>
       }
       _def.cfg.rescue = rescue as any
-      return createBuilder(stage, {
+      return createBuilder({
         ..._def,
       }) as any
     },
@@ -92,7 +92,7 @@ export function createBuilder<TStage extends Stage<any>>(
         _def.cfg = {} as InferConfig<TStage>
       }
       _def.cfg.ensure = ensure as any
-      return createBuilder(stage, {
+      return createBuilder({
         ..._def,
       }) as any
     },
@@ -101,7 +101,7 @@ export function createBuilder<TStage extends Stage<any>>(
         _def.cfg = {} as InferConfig<TStage>
       }
       _def.cfg.ensure = ensure as any
-      return createBuilder(stage, {
+      return createBuilder({
         ..._def,
       }) as any
     },
@@ -110,7 +110,7 @@ export function createBuilder<TStage extends Stage<any>>(
         _def.cfg = {} as InferConfig<TStage>
       }
       _def.cfg.compile = fn as any
-      return createBuilder(stage, {
+      return createBuilder({
         ..._def,
       }) as any
     },
@@ -119,7 +119,7 @@ export function createBuilder<TStage extends Stage<any>>(
         _def.cfg = {} as InferConfig<TStage>
       }
       _def.cfg.precompile = fn as any
-      return createBuilder(stage, {
+      return createBuilder({
         ..._def,
       }) as any
     },
@@ -225,40 +225,40 @@ export interface Builder<TParams extends BuilderParams> {
 }
 
 export type CustomRun<$P1> = (
-  this: $P1 | undefined,
+  this: $P1 extends StageObject ? $P1 : never,
   p1?: ComplexError | $P1 | undefined,
   p2?: $P1 | undefined,
   p3?: CallbackFunction<$P1> | undefined,
 ) => Promise<$P1> | $P1 | void
 
 export type Rescue<$P1> = (
-  this: $P1 | null,
+  this: $P1 extends StageObject ? $P1 : never,
   p1?: Error | $P1 | undefined,
   p2?: $P1 | undefined,
   p3?: CallbackFunction<$P1> | undefined,
 ) => Promise<$P1> | $P1 | void
 
 export type Ensure<$P1> = (
-  p1?: $P1 | undefined,
+  p1?: $P1 extends StageObject ? $P1 : never,
   p2?: CallbackFunction<$P1> | undefined,
 ) => Promise<$P1> | $P1 | void
 
 export type ValidateFn<$P1> = (
-  this: $P1 | null,
+  this: $P1 extends StageObject ? $P1 : never,
   p1?: $P1 | undefined,
   p2?: CallbackFunction<boolean> | undefined,
 ) => Promise<boolean> | boolean | void
 
 export type Compile<TStage> = (
-  this: TStage,
+  this: TStage extends Stage<infer $P, any> ? StageRun<$P> : never,
   rebuild?: boolean,
-) => TStage extends Stage<infer $P, any> ? StageRun<$P> : UnsetMarker
+) => TStage extends Stage<infer $P, any> ? StageRun<$P> : never
 
 export type Precompile<$P1, TStage> = (
   this: TStage extends Stage<$P1> ? TStage : never,
 ) => void
 
-createBuilder(new Stage())
+createBuilder()
   .input(z.number())
   .name('stage')
   .rescue(function (err, ctx) {
