@@ -4,7 +4,7 @@ import { RunPipelineFunction } from './RunPipelineFunction'
 /**
  * хранимая часть конфига
  */
-export type AllowedStageStored<R, C> =
-  | C
-  | RunPipelineFunction<R>
-  | AnyStage<R>
+export type AllowedStageStored<Input, Output, Config> =
+  | Config
+  | RunPipelineFunction<Input, Output>
+  | AnyStage<Input, Output>

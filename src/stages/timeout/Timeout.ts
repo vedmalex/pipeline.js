@@ -2,11 +2,12 @@ import { AllowedStage, run_or_execute, Stage, StageRun } from '../../stage'
 import { getTimeoutConfig } from './getTimeoutConfig'
 import { TimeoutConfig } from './TimeoutConfig'
 
-export class Timeout<R, C extends TimeoutConfig<R> = TimeoutConfig<R>> extends Stage<R, C> {
-  constructor(config?: AllowedStage<R, C>) {
+export class Timeout<Input, Output, Config extends TimeoutConfig<Input, Output> = TimeoutConfig<Input, Output>>
+  extends Stage<Input, Output, Config> {
+  constructor(config?: AllowedStage<Input, Output, Config>) {
     super()
     if (config) {
-      this._config = getTimeoutConfig(config) as C
+      this._config = getTimeoutConfig(config) as Config
     }
   }
 
@@ -18,8 +19,8 @@ export class Timeout<R, C extends TimeoutConfig<R> = TimeoutConfig<R>> extends S
     return '[pipeline Timeout]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<R> {
-    let run: StageRun<R> = (err, ctx, done) => {
+  override compile(rebuild: boolean = false): StageRun<Input, Output> {
+    let run: StageRun<Input, Output> = (err, ctx, done) => {
       let to: any
       let localDone: typeof done = (err, retCtx) => {
         if (to) {
@@ -56,7 +57,7 @@ export class Timeout<R, C extends TimeoutConfig<R> = TimeoutConfig<R>> extends S
       }
     }
 
-    this.run = run as StageRun<R>
+    this.run = run as StageRun<Input, Output>
 
     return super.compile(rebuild)
   }

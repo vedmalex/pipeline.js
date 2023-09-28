@@ -2,8 +2,9 @@ import { AllowedStage, execute_validate, run_or_execute, Stage, StageRun } from 
 import { getIfElseConfig } from './getIfElseConfig'
 import { IfElseConfig } from './IfElseConfig'
 
-export class IfElse<R, C extends IfElseConfig<R> = IfElseConfig<R>> extends Stage<R, C> {
-  constructor(config?: AllowedStage<R, C>) {
+export class IfElse<Input, Output, Config extends IfElseConfig<Input, Output> = IfElseConfig<Input, Output>>
+  extends Stage<Input, Output, Config> {
+  constructor(config?: AllowedStage<Input, Output, Config>) {
     super()
     if (config) {
       this._config = getIfElseConfig(config)
@@ -18,8 +19,8 @@ export class IfElse<R, C extends IfElseConfig<R> = IfElseConfig<R>> extends Stag
     return '[pipeline IfElse]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<R> {
-    let run: StageRun<R> = (err, context, done) => {
+  override compile(rebuild: boolean = false): StageRun<Input, Output> {
+    let run: StageRun<Input, Output> = (err, context, done) => {
       if (typeof this.config.condition == 'function') {
         execute_validate(this.config.condition, context, (err, condition) => {
           if (condition) {
@@ -48,12 +49,12 @@ export class IfElse<R, C extends IfElseConfig<R> = IfElseConfig<R>> extends Stag
         } else if (this.config.failed) {
           run_or_execute(this.config.failed, err, context, done)
         } else {
-          done(err, context)
+          done(err, context as unknown as Output)
         }
       }
     }
 
-    this.run = run as StageRun<R>
+    this.run = run as StageRun<Input, Output>
 
     return super.compile(rebuild)
   }

@@ -1,3 +1,3 @@
-export type SplitFunction<R, T> =
-  | ((ctx: R) => T)
-  | ((ctx: R) => T)
+export type SplitFunction<Input, T> =
+  | ((ctx: Input) => T)
+  | ((ctx: Input) => T)

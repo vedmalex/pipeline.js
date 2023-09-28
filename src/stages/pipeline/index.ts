@@ -1,4 +1,4 @@
 export * from './AllowedPipeline'
 export * from './getPipelineConfig'
-export * from './Pipeline'
+export * from './pipeline'
 export * from './PipelineConfig'

@@ -8,12 +8,12 @@ import {
 } from '../../stage'
 import { ParallelConfig } from './ParallelConfig'
 
-export function getParallelConfig<R, T, C extends ParallelConfig<R, T>>(
-  config: AllowedStage<R, C>,
-): C {
-  const res = getStageConfig<R, ParallelConfig<R, T>>(config)
+export function getParallelConfig<Input, Output, T, Config extends ParallelConfig<Input, Output, T>>(
+  config: AllowedStage<Input, Output, Config>,
+): Config {
+  const res = getStageConfig<Input, Output, ParallelConfig<Input, Output, T>>(config)
   if (isAnyStage(res) || isRunPipelineFunction(res)) {
-    return { stage: res } as C
+    return { stage: res } as Config
   } else if (typeof config == 'object' && !isAnyStage(config)) {
     const r = res
     if (config.run && config.stage) {
@@ -32,8 +32,8 @@ export function getParallelConfig<R, T, C extends ParallelConfig<R, T>>(
       r.stage = config.run
     }
   } else if (typeof config == 'function' && res.run) {
-    res.stage = res.run as RunPipelineFunction<R>
+    res.stage = res.run as RunPipelineFunction<Input, Output>
     delete res.run
   }
-  return res as C
+  return res as Config
 }

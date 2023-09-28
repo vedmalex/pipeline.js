@@ -26,8 +26,14 @@ import { PipelineConfig } from './PipelineConfig'
  * @param {Object} config configuration object
  */
 
-export class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>> extends Stage<R, C> {
-  constructor(config?: PipelineConfig<R> | AllowedStage<R, C> | Array<AnyStage<R> | RunPipelineFunction<R>>) {
+export class Pipeline<Input, Output, Config extends PipelineConfig<Input, Output> = PipelineConfig<Input, Output>>
+  extends Stage<Input, Output, Config> {
+  constructor(
+    config?:
+      | PipelineConfig<Input, Output>
+      | AllowedStage<Input, Output, Config>
+      | Array<AnyStage<Input, Output> | RunPipelineFunction<Input, Output>>,
+  ) {
     super()
     if (config) {
       this._config = getPipelineConfig(config)
@@ -45,12 +51,12 @@ export class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>> extend
   }
 
   public addStage(_stage: unknown) {
-    let stage: AnyStage<R> | RunPipelineFunction<R> | undefined
-    if (isRunPipelineFunction<R>(_stage)) {
+    let stage: AnyStage<Input, Output> | RunPipelineFunction<Input, Output> | undefined
+    if (isRunPipelineFunction<Input, Output>(_stage)) {
       stage = _stage
     } else {
       if (typeof _stage === 'object' && _stage !== null) {
-        if (isAnyStage<R>(_stage)) {
+        if (isAnyStage<Input, Output>(_stage)) {
           stage = _stage
         } else {
           stage = new Stage(_stage)
@@ -63,35 +69,35 @@ export class Pipeline<R, C extends PipelineConfig<R> = PipelineConfig<R>> extend
     }
   }
 
-  override compile(rebuild: boolean = false): StageRun<R> {
-    let run: StageRun<R> = (err, context, done) => {
+  override compile(rebuild: boolean = false): StageRun<Input, Output> {
+    let run: StageRun<Input, Output> = (err, context, done) => {
       let i = -1
       // sequential run;
-      let next = async (err: unknown, ctx: R) => {
+      let next = async (err: unknown, ctx: Input) => {
         if (err) {
           return done(err)
         }
         while (++i < this.config.stages.length) {
           ;[err, ctx] = await run_or_execute_async(this.config.stages[i], err, ctx ?? context)
           if (err) {
-            ;[err, ctx] = await this.rescue_async(err, ctx)
+            ;[err, ctx] = await this.rescue_async(err, ctx) as [unknown, Input]
             if (err) {
               return done(err)
             }
           }
         }
-        done(undefined, ctx)
+        done(undefined, ctx as unknown as Output)
       }
 
       if (this.config.stages.length === 0) {
-        done(undefined, context)
+        done(undefined, context as unknown as Output)
       } else {
         next(err, context)
       }
     }
 
     if (this.config.stages.length > 0) {
-      this.run = run as StageRun<R>
+      this.run = run as StageRun<Input, Output>
     } else {
       this.run = empty_run
     }

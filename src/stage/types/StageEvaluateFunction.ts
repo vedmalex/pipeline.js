@@ -1,7 +1,7 @@
 import { is_async_function } from './is_async_function'
 
-export type StageEvaluateFunction<R> = (ctx: R) => boolean
+export type StageEvaluateFunction<Input> = (ctx: Input) => boolean
 
-export function isEvaluateFunction<R>(inp: any): inp is StageEvaluateFunction<R> {
+export function isEvaluateFunction<Input>(inp: any): inp is StageEvaluateFunction<Input> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 1
 }

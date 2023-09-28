@@ -32,6 +32,8 @@ Stage {
 }
 `;
 
+exports[`stage input validation 1`] = `[ComplexError]`;
+
 exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
 Stage {
   "_config": {

@@ -110,17 +110,18 @@ describe('stage', () => {
     })
   })
 
-  it('input validation', () => {
+  it('input validation', (done) => {
     const st = new Stage({
       run: () => {},
       input: z.object({
         name: z.string({ required_error: 'should be an object with a name property' }),
       }),
-    } as StageConfig<any>)
+    } as StageConfig<any, any>)
 
     st.execute({ fullname: 1 } as unknown as { name: string }, (err, res) => {
       expect(err).not.toBeUndefined()
       expect(err).toMatchSnapshot()
+      done()
     })
   })
 

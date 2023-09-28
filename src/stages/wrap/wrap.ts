@@ -3,14 +3,15 @@ import { getWrapConfig } from './getWrapConfig'
 import { WrapConfig } from './WrapConfig'
 
 export class Wrap<
-  R,
+  Input,
+  Output,
   T,
-  C extends WrapConfig<R, T> = WrapConfig<R, T>,
-> extends Stage<R, C> {
-  constructor(config?: AllowedStage<R, C>) {
+  Config extends WrapConfig<Input, Output, T> = WrapConfig<Input, Output, T>,
+> extends Stage<Input, Output, Config> {
+  constructor(config?: AllowedStage<Input, Output, Config>) {
     super()
     if (config) {
-      this._config = getWrapConfig<R, T, C>(config)
+      this._config = getWrapConfig<Input, Output, T, Config>(config)
     }
   }
 
@@ -22,16 +23,16 @@ export class Wrap<
     return '[pipeline Wrap]'
   }
 
-  override compile(rebuild: boolean = false): StageRun<R> {
-    let run: StageRun<R> = (err, context, done) => {
+  override compile(rebuild: boolean = false): StageRun<Input, Output> {
+    let run: StageRun<Input, Output> = (err, context, done) => {
       const ctx = this.prepare(context)
       if (this.config.stage) {
         run_or_execute(this.config.stage, err, ctx, (err, retCtx) => {
           if (!err) {
             const result = this.finalize(context, retCtx ?? ctx)
-            done(undefined, result ? result : context)
+            done(undefined, result ? result : context as unknown as Output)
           } else {
-            done(err, context)
+            done(err, context as unknown as Output)
           }
         })
       }
@@ -41,20 +42,20 @@ export class Wrap<
 
     return super.compile(rebuild)
   }
-  protected prepare(ctx: R): T {
+  protected prepare(ctx: Input): T {
     if (this.config.prepare) {
       return this.config.prepare(ctx) ?? ctx as unknown as T
     } else {
       return ctx as unknown as T
     }
   }
-  protected finalize(ctx: R, retCtx: T): R | void {
+  protected finalize(ctx: Input, retCtx: unknown): Output | void {
     // by default the main context will be used to return;
     if (this.config.finalize) {
       return this.config.finalize(ctx, retCtx)
     } else {
       // so we do nothing here
-      return ctx
+      return ctx as unknown as Output
     }
   }
 }

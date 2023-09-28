@@ -16,11 +16,12 @@ import { MultiWaySwitchStatic } from './MultiWaySwitchStatic'
 import { MultWaySwitchConfig } from './MultWaySwitchConfig'
 
 export class MultiWaySwitch<
-  R,
+  Input,
+  Output,
   T,
-  C extends MultWaySwitchConfig<R, T> = MultWaySwitchConfig<R, T>,
-> extends Stage<R, C> {
-  constructor(config?: AllowedMWS<R, T, C>) {
+  Config extends MultWaySwitchConfig<Input, Output, T> = MultWaySwitchConfig<Input, Output, T>,
+> extends Stage<Input, Output, Config> {
+  constructor(config?: AllowedMWS<Input, Output, T, Config>) {
     super()
     if (config) {
       this._config = getMultWaySwitchConfig(config)
@@ -35,15 +36,15 @@ export class MultiWaySwitch<
     return '[pipeline MultWaySwitch]'
   }
 
-  protected combine(ctx: R, retCtx: T): R {
+  protected combine(ctx: Input, retCtx: T): Output {
     if (this.config.combine) {
       return this.config.combine(ctx, retCtx)
     } else {
-      return ctx
+      return ctx as unknown as Output
     }
   }
 
-  protected combineCase(item: MultiWaySwitchCase<R, T>, ctx: R, retCtx: T): R {
+  protected combineCase(item: MultiWaySwitchCase<Input, Output, T>, ctx: Input, retCtx: T): Output {
     if (item.combine) {
       return item.combine(ctx, retCtx)
     } else {
@@ -51,15 +52,15 @@ export class MultiWaySwitch<
     }
   }
 
-  protected split(ctx: unknown): unknown {
+  protected split(ctx: Input): unknown {
     if (this.config.split) {
-      return this.config.split(ctx as R) ?? ctx
+      return this.config.split(ctx) ?? ctx
     } else {
       return ctx
     }
   }
-
-  protected splitCase(item: unknown, ctx: unknown): any {
+  // TODO: проверить как работает
+  protected splitCase(item: unknown, ctx: Input): any {
     if (typeof item === 'object' && item !== null && 'split' in item && typeof item.split === 'function') {
       return item.split(ctx)
     } else {
@@ -67,36 +68,36 @@ export class MultiWaySwitch<
     }
   }
 
-  override compile(rebuild: boolean = false): StageRun<R> {
+  override compile(rebuild: boolean = false): StageRun<Input, Output> {
     let i
-    let statics: Array<MultiWaySwitchStatic<R, T>> = []
-    let dynamics: Array<MultiWaySwitchDynamic<R, T>> = []
+    let statics: Array<MultiWaySwitchStatic<Input, Output, T>> = []
+    let dynamics: Array<MultiWaySwitchDynamic<Input, Output, T>> = []
 
     // Apply to each stage own environment: evaluate, split, combine
     for (i = 0; i < this.config?.cases?.length; i++) {
-      let caseItem: MultiWaySwitchCase<R, T>
+      let caseItem: MultiWaySwitchCase<Input, Output, T>
       caseItem = this.config.cases[i]
 
       if (caseItem instanceof Function) {
         caseItem = {
           stage: new Stage(caseItem),
           evaluate: true,
-        } as MultiWaySwitchStatic<R, T>
+        } as MultiWaySwitchStatic<Input, Output, T>
       }
 
       if (isAnyStage(caseItem)) {
         caseItem = {
           stage: caseItem,
           evaluate: true,
-        } as MultiWaySwitchCase<R, T>
+        } as MultiWaySwitchCase<Input, Output, T>
       }
 
       if (caseItem.stage) {
         if (caseItem.stage instanceof Function) {
           caseItem.stage = caseItem.stage
         }
-        if (!isAnyStage<R>(caseItem.stage) && typeof caseItem.stage == 'object') {
-          caseItem.stage = new Stage<R, StageConfig<R>>(caseItem.stage)
+        if (!isAnyStage<Input, Output>(caseItem.stage) && typeof caseItem.stage == 'object') {
+          caseItem.stage = new Stage<Input, Output, StageConfig<Input, Output>>(caseItem.stage)
         }
 
         if (!(caseItem.split instanceof Function)) {
@@ -112,19 +113,19 @@ export class MultiWaySwitch<
         }
         if (typeof caseItem.evaluate === 'function') {
           caseItem.evaluate
-          dynamics.push(caseItem as MultiWaySwitchDynamic<R, T>)
+          dynamics.push(caseItem as MultiWaySwitchDynamic<Input, Output, T>)
         } else if (typeof caseItem.evaluate === 'boolean' && caseItem.evaluate) {
-          statics.push(caseItem as MultiWaySwitchStatic<R, T>)
+          statics.push(caseItem as MultiWaySwitchStatic<Input, Output, T>)
         }
       }
     }
 
-    let run: StageRun<R> = (err, ctx, done) => {
-      let actuals: Array<MultiWaySwitchCase<R, T>> = []
+    let run: StageRun<Input, Output> = (err, ctx, done) => {
+      let actuals: Array<MultiWaySwitchCase<Input, Output, T>> = []
       actuals.push.apply(actuals, statics)
 
       for (let i = 0; i < dynamics.length; i++) {
-        if (dynamics[i].evaluate(ctx as R)) {
+        if (dynamics[i].evaluate(ctx)) {
           actuals.push(dynamics[i])
         }
       }
@@ -138,7 +139,7 @@ export class MultiWaySwitch<
         return (err: unknown, retCtx: T) => {
           iter++
           let cur = actuals[index]
-          let res: Possible<R> = null
+          let res: Possible<Output> = null
           if (err) {
             if (!hasError) {
               hasError = true
@@ -149,7 +150,7 @@ export class MultiWaySwitch<
           }
 
           if (iter >= actuals.length) {
-            return done(hasError ? CreateError(errors) : undefined, res ?? ctx)
+            return done(hasError ? CreateError(errors) : undefined, res ?? ctx as unknown as Output)
           }
         }
       }
@@ -164,7 +165,7 @@ export class MultiWaySwitch<
       }
 
       if (actuals.length === 0) {
-        return done(err, ctx)
+        return done(err, ctx as unknown as Output)
       }
     }
 

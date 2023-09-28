@@ -1,9 +1,9 @@
 import { AllowedStageStored, StageConfig } from '../../stage'
 
-export interface WrapConfig<R, T> extends StageConfig<R> {
-  stage: AllowedStageStored<R, StageConfig<R>>
-  prepare?: (ctx: R) => T
+export interface WrapConfig<Input, Output, T> extends StageConfig<Input, Output> {
+  stage: AllowedStageStored<Input, Output, StageConfig<Input, Output>>
+  prepare?: (ctx: Input) => T
   finalize?:
-    | ((ctx: R, retCtx: T) => R)
-    | ((ctx: R, retCtx: T) => void)
+    | ((ctx: Input, retCtx: unknown) => Output)
+    | ((ctx: Input | Output, retCtx: unknown) => void)
 }

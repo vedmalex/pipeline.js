@@ -2,16 +2,16 @@ import { isAnyStage } from '../getStageConfig'
 import { CallbackFunction } from '../types'
 import { execute_callback } from './execute_callback'
 
-export function run_or_execute<R>(
+export function run_or_execute<Input, Output>(
   stage: unknown,
   err: unknown,
-  context: R,
-  _done: CallbackFunction<R>,
+  context: Input,
+  _done: CallbackFunction<Output>,
 ): void {
-  const done: CallbackFunction<R> = (err, ctx) => {
-    _done(err, ctx ?? context)
+  const done: CallbackFunction<Output> = (err, ctx) => {
+    _done(err, ctx ?? context as unknown as Output)
   }
-  if (isAnyStage<R>(stage)) {
+  if (isAnyStage<Input, Output>(stage)) {
     stage.execute(err, context, done)
   } else {
     if (typeof stage === 'function') {
@@ -20,14 +20,14 @@ export function run_or_execute<R>(
   }
 }
 
-export function run_or_execute_async<R>(
+export function run_or_execute_async<Input, Output>(
   stage: unknown,
   err: unknown,
-  context: R,
-): Promise<[unknown, R]> {
+  context: Input,
+): Promise<[unknown, Output]> {
   return new Promise(resolve => {
-    run_or_execute<R>(stage, err, context, (err, ctx) => {
-      resolve([err, ctx ?? context])
+    run_or_execute<Input, Output>(stage, err, context, (err, ctx) => {
+      resolve([err, ctx ?? context as unknown as Output])
     })
   })
 }

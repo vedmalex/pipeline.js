@@ -21,14 +21,15 @@ import { ParallelConfig } from './ParallelConfig'
  */
 
 export class Sequential<
-  R,
+  Input,
+  Output,
   T,
-  C extends ParallelConfig<R, T> = ParallelConfig<R, T>,
-> extends Stage<R, C> {
-  constructor(config?: AllowedStage<R, C>) {
+  Config extends ParallelConfig<Input, Output, T> = ParallelConfig<Input, Output, T>,
+> extends Stage<Input, Output, Config> {
+  constructor(config?: AllowedStage<Input, Output, Config>) {
     super()
     if (config) {
-      this._config = getParallelConfig<R, T, C>(config)
+      this._config = getParallelConfig<Input, Output, T, Config>(config)
     }
   }
 
@@ -43,9 +44,9 @@ export class Sequential<
     return this._config.name ?? this._config.stage?.name ?? ''
   }
 
-  override compile(rebuild: boolean = false): StageRun<R> {
+  override compile(rebuild: boolean = false): StageRun<Input, Output> {
     if (this.config.stage) {
-      var run: StageRun<R> = (err, ctx, done) => {
+      var run: StageRun<Input, Output> = (err, ctx, done) => {
         var iter = -1
         var children = this.split ? this.split(ctx) : [ctx as unknown as T]
         var len = children ? children.length : 0
@@ -60,7 +61,10 @@ export class Sequential<
             if (err) {
               // TODO: refactor it
               // для всех сложных параметров должен быть свой собственный rescue, а не один на всех
-              ;[err, retCtx] = await this.rescue_async(err, children[iter] as unknown as R) as unknown as [unknown, T]
+              ;[err, retCtx] = await this.rescue_async(err, children[iter] as unknown as Output) as unknown as [
+                unknown,
+                T,
+              ]
               if (err) {
                 return done(err)
               }
@@ -75,32 +79,32 @@ export class Sequential<
         }
 
         if (len === 0) {
-          return done(err, ctx)
+          return done(err, ctx as unknown as Output)
         } else {
           next(err)
         }
       }
 
-      this.run = run as StageRun<R>
+      this.run = run as StageRun<Input, Output>
     } else {
       this.run = empty_run
     }
 
     return super.compile(rebuild)
   }
-  protected split(ctx: R): Array<T> {
+  protected split(ctx: Input): Array<T> {
     return this._config.split
       ? this._config.split(ctx) ?? [ctx as unknown as T]
       : [ctx as unknown as T]
   }
 
-  protected combine(ctx: R, children: Array<T>): R {
-    let res: R
+  protected combine(ctx: Input, children: Array<T>): Output {
+    let res: Output
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
-      res = c ?? ctx
+      res = c ?? ctx as unknown as Output
     } else {
-      res = ctx
+      res = ctx as unknown as Output
     }
     return res
   }

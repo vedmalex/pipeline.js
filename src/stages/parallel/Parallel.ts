@@ -22,14 +22,15 @@ import { ParallelError } from './ParallelError'
  */
 
 export class Parallel<
-  R,
+  Input,
+  Output,
   T,
-  C extends ParallelConfig<R, T> = ParallelConfig<R, T>,
-> extends Stage<R, C> {
-  constructor(config?: AllowedStage<R, C>) {
+  Config extends ParallelConfig<Input, Output, T> = ParallelConfig<Input, Output, T>,
+> extends Stage<Input, Output, Config> {
+  constructor(config?: AllowedStage<Input, Output, Config>) {
     super()
     if (config) {
-      this._config = getParallelConfig<R, T, C>(config)
+      this._config = getParallelConfig<Input, Output, T, Config>(config)
     }
   }
 
@@ -44,9 +45,9 @@ export class Parallel<
     return this._config.name ?? this._config.stage?.name ?? ''
   }
 
-  override compile(rebuild: boolean = false): StageRun<R> {
+  override compile(rebuild: boolean = false): StageRun<Input, Output> {
     if (this.config.stage) {
-      var run: StageRun<R> = (err, ctx, done) => {
+      var run: StageRun<Input, Output> = (err, ctx, done) => {
         var children = this.split(ctx)
         var len = children ? children.length : 0
         let errors: Array<Error>
@@ -75,19 +76,29 @@ export class Parallel<
         }
 
         if (len === 0) {
-          return done(err, ctx)
+          return done(err, ctx as unknown as Output)
         } else {
           let result: Array<Promise<[unknown, T]>> = []
           for (let i = 0; i < children.length; i++) {
             result.push(build(i) as Promise<[unknown, T]>)
           }
-          Promise.all(result).then(res => {
-            let result = this.combine(ctx, res.map(r => r[1]))
+
+
+          Promise.allSettled(result).then(res => {
+            const mapRes : Array<T> = []
+            res.forEach(r => {
+              if (r.status === 'fulfilled') {
+                mapRes.push(r.value[1])
+              } else {
+                errors.push(r.reason)
+              }
+            })
+            let result = this.combine(ctx, mapRes )
             done(CreateError(errors), result)
           })
         }
       }
-      this.run = run as StageRun<R>
+      this.run = run as StageRun<Input, Output>
     } else {
       this.run = empty_run
     }
@@ -95,17 +106,17 @@ export class Parallel<
     return super.compile(rebuild)
   }
 
-  protected split(ctx: R): Array<T> {
+  protected split(ctx: Input): Array<T> {
     return this._config.split ? this._config.split(ctx) ?? [ctx] : [ctx as unknown as T]
   }
 
-  protected combine(ctx: R, children: Array<T>): R {
-    let res: R
+  protected combine(ctx: Input, children: Array<T>): Output {
+    let res: Output
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
-      res = c ?? ctx
+      res = c ?? ctx as unknown as Output
     } else {
-      res = ctx
+      res = ctx as unknown as Output
     }
     return res
   }

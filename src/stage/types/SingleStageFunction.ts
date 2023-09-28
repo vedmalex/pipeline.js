@@ -1,25 +1,27 @@
 import { CallbackFunction } from './CallbackFunction'
 import { is_async_function } from './is_async_function'
 
-export type SingleStage2Function<R> = (
-  ctx: R,
-  callback: CallbackFunction<R>,
+export type SingleStage2Function<Input, Output> = (
+  ctx: Input,
+  callback: CallbackFunction<Output>,
 ) => void
 
-export function isSingleStageFunction2<R>(inp?: unknown): inp is SingleStage2Function<R> {
+export function isSingleStageFunction2<Input, Output>(inp?: unknown): inp is SingleStage2Function<Input, Output> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 2
 }
 
-export type SingleStage3Function<R> = (
+export type SingleStage3Function<Input, Output> = (
   err: unknown,
-  ctx: R,
-  callback: CallbackFunction<R>,
+  ctx: Input,
+  callback: CallbackFunction<Output>,
 ) => void
-export function isSingleStage3Function<R>(inp?: unknown): inp is SingleStage3Function<R> {
+export function isSingleStage3Function<Input, Output>(inp?: unknown): inp is SingleStage3Function<Input, Output> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 3
 }
 
-export function isSingleStageFunction<R>(inp?: unknown): inp is SingleStageFunction<R> {
-  return isSingleStage3Function<R>(inp) || isSingleStageFunction2<R>(inp)
+export function isSingleStageFunction<Input, Output>(inp?: unknown): inp is SingleStageFunction<Input, Output> {
+  return isSingleStage3Function<Input, Output>(inp) || isSingleStageFunction2<Input, Output>(inp)
 }
-export type SingleStageFunction<R> = SingleStage2Function<R> | SingleStage3Function<R>
+export type SingleStageFunction<Input, Output> =
+  | SingleStage2Function<Input, Output>
+  | SingleStage3Function<Input, Output>

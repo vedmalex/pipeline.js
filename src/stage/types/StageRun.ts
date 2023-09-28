@@ -1,7 +1,7 @@
 import { CallbackFunction } from './CallbackFunction'
 
-export type StageRun<R> = (
+export type StageRun<Input, Output> = (
   err: unknown,
-  context: R,
-  callback: CallbackFunction<R>,
+  context: Input,
+  callback: CallbackFunction<Output>,
 ) => void

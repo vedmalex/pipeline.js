@@ -18,34 +18,34 @@ import {
 import { run_callback_once } from './run_callback_once'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
-export function execute_callback<R>(
-  this: AnyStage<R> | void,
+export function execute_callback<Input, Output>(
+  this: AnyStage<Input, Output> | void,
   err: unknown,
   run: unknown,
-  context: R,
-  _done: CallbackFunction<R>,
+  context: Input,
+  _done: CallbackFunction<Output>,
 ) {
   const done = run_callback_once(_done)
-  if (isStageCallbackFunction<R>(run)) {
+  if (isStageCallbackFunction<Input, Output>(run)) {
     switch (run.length) {
       // this is the context of the run function
       case 0:
-        if (isCallback0Async<R>(run)) {
+        if (isCallback0Async<Input, Output>(run)) {
           try {
             const res = run.call(context)
-            res.then(res => done(undefined, res ?? context)).catch(err => done(err))
+            res.then(res => done(undefined, res ?? context as unknown as Output)).catch(err => done(err))
           } catch (err) {
             process_error(err, done)
           }
-        } else if (isCallback0Sync<R>(run)) {
+        } else if (isCallback0Sync<Input, Output>(run)) {
           try {
-            const res = run.apply(context) as R | Promise<R> | Thenable<R>
+            const res = run.apply(context) as Output | Promise<Output> | Thenable<Output>
             if (res instanceof Promise) {
-              res.then(r => done(undefined, r ?? context)).catch(err => done(err))
+              res.then(r => done(undefined, r ?? context as unknown as Output)).catch(err => done(err))
             } else if (is_thenable(res)) {
-              res.then(r => done(undefined, r ?? context)).catch(err => done(err))
+              res.then(r => done(undefined, r ?? context as unknown as Output)).catch(err => done(err))
             } else {
-              done(undefined, res ?? context)
+              done(undefined, res ?? context as unknown as Output)
             }
           } catch (err) {
             process_error(err, done)
@@ -53,7 +53,7 @@ export function execute_callback<R>(
         }
         break
       case 1:
-        if (isCallback1Async<R>(run)) {
+        if (isCallback1Async<Input, Output>(run)) {
           try {
             run
               .call(this, context)
@@ -62,13 +62,13 @@ export function execute_callback<R>(
           } catch (err) {
             process_error(err, done)
           }
-        } else if (isCallback1Sync<R>(run)) {
+        } else if (isCallback1Sync<Input, Output>(run)) {
           try {
             const res = run.call(this, context)
             if (res instanceof Promise) {
-              res.then(r => done(undefined, r ?? context)).catch(err => done(err))
-            } else if (is_thenable<R>(res)) {
-              res.then(r => done(undefined, r ?? context)).catch(err => done(err))
+              res.then(r => done(undefined, r ?? context as unknown as Output)).catch(err => done(err))
+            } else if (is_thenable<Output>(res)) {
+              res.then(r => done(undefined, r ?? context as unknown as Output)).catch(err => done(err))
             } else {
               done(undefined, res)
             }
@@ -80,7 +80,7 @@ export function execute_callback<R>(
         }
         break
       case 2:
-        if (isCallback2Async<R>(run)) {
+        if (isCallback2Async<Input, Output>(run)) {
           try {
             run
               .call(this, err, context)
@@ -90,7 +90,7 @@ export function execute_callback<R>(
             process_error(err, done)
           }
         } else if (isCallback2Callback(run)) {
-          const _run: CustomRun2Callback<R> = run
+          const _run: CustomRun2Callback<Input, Output> = run
           try {
             _run.call(this, context, done)
           } catch (err) {
@@ -101,8 +101,8 @@ export function execute_callback<R>(
         }
         break
       case 3:
-        if (isCallback3Callback<R>(run)) {
-          const _run: CustomRun3Callback<R> = run
+        if (isCallback3Callback<Input, Output>(run)) {
+          const _run: CustomRun3Callback<Input, Output> = run
           try {
             _run.call(this, err, context, done)
           } catch (err) {

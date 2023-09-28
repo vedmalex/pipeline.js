@@ -2,7 +2,9 @@ import { isAnyStage } from '../getStageConfig'
 import { StageConfig } from '../StageConfig'
 import { AllowedStage } from './AllowedStage'
 
-export function getNameFrom<R, C extends StageConfig<R>>(config: AllowedStage<R, C>): string {
+export function getNameFrom<Input, Output, Config extends StageConfig<Input, Output>>(
+  config: AllowedStage<Input, Output, Config>,
+): string {
   if (typeof config === 'string') {
     return config
   }

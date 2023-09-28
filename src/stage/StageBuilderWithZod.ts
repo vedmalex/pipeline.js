@@ -38,7 +38,7 @@ export type InferParams<TParams extends BuilderParams, Usage extends keyof Stage
   _usage: TParams['_usage'] & Pick<StageBuilder<TParams>, Usage>
 }
 
-export type AnyStageConfig = StageConfig<any>
+export type AnyStageConfig = StageConfig<any, any>
 
 export type BuilderDef<TStage> = {
   stage: TStage
@@ -47,13 +47,13 @@ export type BuilderDef<TStage> = {
   cfg: InferConfig<TStage>
 }
 
-export type InferConfig<TStage> = TStage extends Stage<any, infer $TConfig> ? $TConfig
-  : TStage extends Stage<infer $Input, any> ? StageConfig<$Input>
+export type InferConfig<TStage> = TStage extends Stage<any, any, infer $TConfig> ? $TConfig
+  : TStage extends Stage<infer $Input, infer $Output, any> ? StageConfig<$Input, $Output>
   : {}
 
 export type InferContext<TStage> = TStage extends Stage<infer $Input, any> ? $Input : UnsetMarker
 
-export function stage<TStage extends Stage<any>>(
+export function stage<TStage extends Stage<any, any>>(
   _def: Partial<BuilderDef<TStage>> = {},
 ): StageBuilder<{
   _stage: TStage
@@ -232,7 +232,7 @@ export interface StageBuilder<TParams extends BuilderParams> {
   >
   build(): Stage<
     TParams['_output'] extends UnsetMarker ? TParams['_input'] : TParams['_output'],
-    StageConfig<TParams['_output'] extends UnsetMarker ? TParams['_input'] : TParams['_output']>
+    StageConfig<TParams['_input'], TParams['_output']>
   >
   _def: BuilderDef<TParams['_stage']>
 }
@@ -263,12 +263,12 @@ export type ValidateFn<$P1> = (
 ) => Promise<boolean> | boolean | void
 
 export type Compile<TStage> = (
-  this: TStage extends Stage<infer $P, any> ? StageRun<$P> : never,
+  this: TStage extends Stage<infer $In, infer $Out> ? StageRun<$In, $Out> : never,
   rebuild?: boolean,
-) => TStage extends Stage<infer $P, any> ? StageRun<$P> : never
+) => TStage extends Stage<infer $In, infer $Out> ? StageRun<$In, $Out> : never
 
-export type Precompile<$P1, TStage> = (
-  this: TStage extends Stage<$P1> ? TStage : never,
+export type Precompile<$P1, $P2, TStage> = (
+  this: TStage extends Stage<$P1, $P2> ? TStage : never,
 ) => void
 
 // const st = createBuilder()

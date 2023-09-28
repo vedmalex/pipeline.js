@@ -1,12 +1,12 @@
 import { AllowedStage, CreateError, getStageConfig, isAnyStage } from '../../stage'
 import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 
-export function getRetryOnErrorConfig<R, T, C extends RetryOnErrorConfig<R, T>>(
-  config: AllowedStage<R, C>,
-): C {
+export function getRetryOnErrorConfig<Input, Output, T, Config extends RetryOnErrorConfig<Input, Output, T>>(
+  config: AllowedStage<Input, Output, Config>,
+): Config {
   const res = getStageConfig(config)
   if (isAnyStage(res)) {
-    return { stage: res } as C
+    return { stage: res } as Config
   } else if (typeof config == 'object' && !isAnyStage(config)) {
     if (config.run && config.stage) {
       throw CreateError("don't use run and stage both")

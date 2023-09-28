@@ -178,7 +178,7 @@ describe('Parallel', function () {
     var ctx = Context.ensure({
       some: [1, 2, 3, 4, 5, 6, 7],
     })
-    var stage = new Parallel<CTX, SubCTX>({
+    var stage = new Parallel({
       stage: stage0,
       split: function (ctx) {
         var res: Array<SubCTX> = []

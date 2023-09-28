@@ -1,5 +1,5 @@
 import { CallbackFunction } from '../types'
 
-export function empty_run<R>(err: unknown, context: R, done: CallbackFunction<R>) {
-  done(err, context)
+export function empty_run<Input, Output>(err: unknown, context: Input, done: CallbackFunction<Output>) {
+  done(err, context as unknown as Output)
 }

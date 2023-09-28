@@ -1,7 +1,7 @@
 import { AnyStage, RunPipelineFunction, StageConfig, ValidateFunction } from '../../stage'
 
-export interface IfElseConfig<R> extends StageConfig<R> {
-  condition?: boolean | ValidateFunction<R>
-  success?: AnyStage<R> | RunPipelineFunction<R>
-  failed?: AnyStage<R> | RunPipelineFunction<R>
+export interface IfElseConfig<Input, Output> extends StageConfig<Input, Output> {
+  condition?: boolean | ValidateFunction<Input, Output>
+  success?: AnyStage<Input, Output> | RunPipelineFunction<Input, Output>
+  failed?: AnyStage<Input, Output> | RunPipelineFunction<Input, Output>
 }

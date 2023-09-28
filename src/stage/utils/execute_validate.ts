@@ -9,7 +9,11 @@ import {
   ValidateFunction1Async,
 } from '../types'
 
-export function execute_validate<R>(validate: ValidateFunction<R>, context: R, done: CallbackFunction<boolean>) {
+export function execute_validate<Input, Output>(
+  validate: ValidateFunction<Input, Output>,
+  context: Input,
+  done: CallbackFunction<boolean>,
+) {
   switch (validate.length) {
     case 1:
       if (isValidateFunction1Async(validate)) {
@@ -28,7 +32,7 @@ export function execute_validate<R>(validate: ValidateFunction<R>, context: R, d
         }
       } else if (isValidateFunction1Sync(validate)) {
         try {
-          const res = validate(context) as unknown as ValidateFunction1Async<R>
+          const res = validate(context) as unknown as ValidateFunction1Async<Input, Output>
           if (res instanceof Promise) {
             res.then(res => done(undefined, res)).catch(err => done(err))
           } else if (is_thenable<boolean>(res)) {

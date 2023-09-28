@@ -5,33 +5,34 @@ import { MultiWaySwitchCase } from './MultiWaySwitchCase'
 import { MultWaySwitchConfig } from './MultWaySwitchConfig'
 
 export function getMultWaySwitchConfig<
-  R,
+  Input,
+  Output,
   T,
-  C extends MultWaySwitchConfig<R, T>,
->(config: AllowedMWS<R, T, C>): C {
+  Config extends MultWaySwitchConfig<Input, Output, T>,
+>(config: AllowedMWS<Input, Output, T, Config>): Config {
   if (Array.isArray(config)) {
     return {
       cases: config.map(item => {
-        let res: MultiWaySwitchCase<R, T>
-        if (isRunPipelineFunction<R>(item)) {
+        let res: MultiWaySwitchCase<Input, Output, T>
+        if (isRunPipelineFunction<Input, Output>(item)) {
           res = { stage: item, evaluate: true }
         } else if (isAnyStage(item)) {
           res = {
             stage: item,
             evaluate: true,
           }
-        } else if (isMultiWaySwitch<R, T>(item)) {
+        } else if (isMultiWaySwitch<Input, Output, T>(item)) {
           res = item
         } else {
           throw CreateError(new Error('not suitable type for array in pipelin'))
         }
         return res
       }),
-    } as C
+    } as Config
   } else {
     const res = getStageConfig(config)
     if (isAnyStage(res)) {
-      return { cases: [{ stage: res, evaluate: true }] } as C
+      return { cases: [{ stage: res, evaluate: true }] } as Config
     } else if (typeof config == 'object' && !isAnyStage(config)) {
       if (config?.run && config.cases && config.cases.length > 0) {
         throw CreateError(new Error(" don't use run and stage both "))
@@ -55,6 +56,6 @@ export function getMultWaySwitchConfig<
     if (typeof res.cases == 'undefined') {
       res.cases = []
     }
-    return res as C
+    return res as Config
   }
 }

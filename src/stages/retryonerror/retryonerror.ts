@@ -1,16 +1,26 @@
-import { AllowedStage, AnyStage, ComplexError, Context, run_or_execute, Stage, StageRun } from '../../stage'
+import {
+  AllowedStage,
+  AnyStage,
+  CallbackFunction,
+  ComplexError,
+  Context,
+  run_or_execute,
+  Stage,
+  StageRun,
+} from '../../stage'
 import { getRetryOnErrorConfig } from './getRetryOnErrorConfig'
 import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 
 export class RetryOnError<
-  R,
+  Input,
+  Output,
   T,
-  C extends RetryOnErrorConfig<R, T> = RetryOnErrorConfig<R, T>,
-> extends Stage<R, C> implements AnyStage<R> {
-  constructor(config?: AllowedStage<R, C>) {
+  Config extends RetryOnErrorConfig<Input, Output, T> = RetryOnErrorConfig<Input, Output, T>,
+> extends Stage<Input, Output, Config> implements AnyStage<Input, Output> {
+  constructor(config?: AllowedStage<Input, Output, Config>) {
     super()
     if (config) {
-      this._config = getRetryOnErrorConfig<R, T, C>(config)
+      this._config = getRetryOnErrorConfig<Input, Output, T, Config>(config)
     }
   }
 
@@ -22,7 +32,7 @@ export class RetryOnError<
     return '[pipeline RetryOnError]'
   }
 
-  protected backupContext(ctx: R): T {
+  protected backupContext(ctx: Input): T {
     if (this.config.backup) {
       return this.config.backup(ctx)
     } else {
@@ -34,7 +44,7 @@ export class RetryOnError<
     }
   }
 
-  protected restoreContext(ctx: R, backup: T): R {
+  protected restoreContext(ctx: Input, backup: T): Input {
     if (this.config.restore) {
       return this.config.restore(ctx, backup)
     } else {
@@ -45,13 +55,13 @@ export class RetryOnError<
         }
         return ctx
       } else {
-        return backup as unknown as R
+        return backup as unknown as Input
       }
     }
   }
-
-  override compile(rebuild: boolean = false): StageRun<R> {
-    let run: StageRun<R> = (err, ctx, done) => {
+  // TODO:
+  override compile(rebuild: boolean = false): StageRun<Input, Output> {
+    let run: StageRun<Input, Output> = (err, ctx, done) => {
       /// ловить ошибки
       // backup context object to overwrite if needed
       let backup = this.backupContext(ctx)
@@ -70,21 +80,21 @@ export class RetryOnError<
       }
       let iter = -1
 
-      let next: typeof done = (err, _ctx) => {
+      let next = (err: unknown, _ctx: Input) => {
         iter++
         if (reachEnd(err, iter)) {
-          return done(err, _ctx ?? ctx)
+          return done(err, (_ctx ?? ctx) as unknown as Output)
         } else {
           // clean changes of existing before values.
           // may be will need to clear at all and rewrite ? i don't know yet.
           const res = this.restoreContext(_ctx ?? ctx, backup)
-          run_or_execute(this.config.stage, err, res ?? ctx, next)
+          run_or_execute(this.config.stage, err, res ?? ctx, next as unknown as CallbackFunction<Output>)
         }
       }
-      run_or_execute(this.config.stage, err, ctx, next)
+      run_or_execute(this.config.stage, err, ctx, next as unknown as CallbackFunction<Output>)
     }
 
-    this.run = run as StageRun<R>
+    this.run = run as StageRun<Input, Output>
 
     return super.compile(rebuild)
   }

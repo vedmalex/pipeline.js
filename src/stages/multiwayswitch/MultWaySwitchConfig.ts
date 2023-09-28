@@ -5,8 +5,8 @@ import { SplitFunction } from './SplitFunction'
 
 // пересмотреть!!!!
 
-export interface MultWaySwitchConfig<R, T> extends StageConfig<R> {
-  cases: Array<MultiWaySwitchCase<R, T>>
-  split?: SplitFunction<R, T>
-  combine?: CombineFunction<R, T>
+export interface MultWaySwitchConfig<Input, Output, T> extends StageConfig<Input, Output> {
+  cases: Array<MultiWaySwitchCase<Input, Output, T>>
+  split?: SplitFunction<Input, T>
+  combine?: CombineFunction<Input, Output, T>
 }

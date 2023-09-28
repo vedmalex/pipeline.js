@@ -6,7 +6,7 @@ export const ContextSymbol = Symbol('Context')
 export const OriginalObject = Symbol('OriginalObject')
 export const ProxySymbol = Symbol('Handler')
 export interface ContextProxy<T> {
-  fork<C extends T>(config: Partial<C>): ProxyType<T & C>
+  fork<Config extends T>(config: Partial<Config>): ProxyType<T & Config>
   // addChild(child: object): unknown
   get(path: keyof T): any
   // addSubtree(lctx: object): unknown
@@ -61,9 +61,9 @@ export const RESERVED = {
  *  The **Context** itself
  *  @param {Object} config The object that is the source for the **Context**.
  */
-export class Context<T extends StageObject> implements ContextProxy<T> {
-  public static ensure<T>(_config?: T): ProxyType<T> {
-    if (Context.isProxy<T>(_config)) {
+export class Context<Input extends StageObject> implements ContextProxy<Input> {
+  public static ensure<Input>(_config?: Input): ProxyType<Input> {
+    if (Context.isProxy<Input>(_config)) {
       return _config
     } else {
       if (typeof _config === 'object' && _config !== null) {
@@ -74,18 +74,18 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
     }
   }
 
-  public static create<T>(input?: unknown): ProxyType<T> {
-    return new Context(input ?? {}) as unknown as ProxyType<T>
+  public static create<Input>(input?: unknown): ProxyType<Input> {
+    return new Context(input ?? {}) as unknown as ProxyType<Input>
   }
 
-  public static isProxy<T>(obj?: unknown): obj is ProxyType<T> {
+  public static isProxy<Input>(obj?: unknown): obj is ProxyType<Input> {
     return typeof obj == 'object' && obj !== null ? obj[ContextSymbol] : false
   }
 
-  protected ctx: T extends StageObject ? T : never
+  protected ctx: Input extends StageObject ? Input : never
   protected proxy: any
-  protected __parent!: ProxyType<T>
-  protected __root!: ProxyType<T>
+  protected __parent!: ProxyType<Input>
+  protected __root!: ProxyType<Input>
   protected __stack?: string[]
   protected id: number;
   [OriginalObject]?: true
@@ -93,12 +93,12 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
     return this.ctx
   }
 
-  protected constructor(config: T extends StageObject ? T : never) {
+  protected constructor(config: Input extends StageObject ? Input : never) {
     this.ctx = config
     this.id = count++
     allContexts[this.id] = this
     const res = new Proxy(this, {
-      get(target: Context<T>, key: string | symbol | number, _proxy: any): any {
+      get(target: Context<Input>, key: string | symbol | number, _proxy: any): any {
         if (key == ContextSymbol) {
           return true
         }
@@ -126,7 +126,7 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
           }
         }
       },
-      set(target: Context<T>, key: keyof typeof RESERVED | string | symbol | number, value): boolean {
+      set(target: Context<Input>, key: keyof typeof RESERVED | string | symbol | number, value): boolean {
         if (!(key in RESERVED)) {
           target.ctx[key] = value
           return true
@@ -141,14 +141,14 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
           return true
         }
       },
-      deleteProperty(target: Context<T>, key: string | symbol) {
+      deleteProperty(target: Context<Input>, key: string | symbol) {
         if (!(key in RESERVED)) {
           return delete target.ctx[key]
         } else {
           return false
         }
       },
-      has(target: Context<T>, key: string | symbol) {
+      has(target: Context<Input>, key: string | symbol) {
         if (!(key in RESERVED)) {
           if (target.__parent) {
             return key in target.ctx || key in target.__parent
@@ -159,7 +159,7 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
           return false
         }
       },
-      ownKeys(target: Context<T>) {
+      ownKeys(target: Context<Input>) {
         if (target.__parent) {
           return [...Reflect.ownKeys(target.ctx), ...Reflect.ownKeys(target.__parent)]
         } else {
@@ -179,20 +179,15 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
    * @param {Object|Context} [config] new properties that must exists in new fork
    * @retrun {Context}
    */
-  fork<C>(ctx?: Partial<C>): ProxyType<T & C> {
-    var child = Context.ensure(ctx)
+  fork<Child extends Input>(ctx?: Partial<Child>): ProxyType<Input & Child> {
+    var child = Context.ensure<Child>(ctx as Child)
     this.addChild(child)
-    return child as ProxyType<T & C>
+    return child as ProxyType<Input & Child>
   }
 
-  protected addChild<R extends StageObject>(child: unknown): unknown {
-    if (Context.isProxy<R>(child)) {
-      if (!this.hasChild(child)) {
-        child.setParent(this.proxy)
-      }
-      return child
-    } else {
-      return child
+  protected addChild<Child extends Input>(child: ProxyType<Child>) {
+    if (!this.hasChild(child)) {
+      child.setParent(this.proxy)
     }
   }
 
@@ -201,7 +196,7 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
    * @param path String path to context object that need to be a Context instance
    * @return {Context} | {Primitive type}
    */
-  get(path: keyof T): any {
+  get(path: keyof Input): any {
     var root = get(this.ctx, path) as any
     if (root instanceof Object) {
       var result = root
@@ -218,7 +213,7 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
   }
 
   protected addSubtree(lctx: object): unknown {
-    if (Context.isProxy<T>(lctx)) {
+    if (Context.isProxy<Input>(lctx)) {
       if (!this.hasSubtree(lctx)) {
         lctx.setRoot(this.proxy)
       }
@@ -239,10 +234,10 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
   getRoot() {
     return this.__root
   }
-  setParent(parent: ProxyType<T>) {
+  setParent(parent: ProxyType<Input>) {
     this.__parent = parent
   }
-  setRoot(root: ProxyType<T>) {
+  setRoot(root: ProxyType<Input>) {
     this.__root = root
   }
   /**
@@ -252,14 +247,14 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
    * @return {Boolean}
    */
   hasChild(ctx: unknown): boolean {
-    if (Context.isProxy<T>(ctx) && ctx.__parent) {
+    if (Context.isProxy<Input>(ctx) && ctx.__parent) {
       return ctx.__parent == this.proxy || this.proxy == ctx
     } else {
       return false
     }
   }
   protected hasSubtree(ctx: unknown): boolean {
-    if (Context.isProxy<T>(ctx) && ctx.__root) {
+    if (Context.isProxy<Input>(ctx) && ctx.__root) {
       return ctx.__root == this.proxy || this.proxy == ctx
     } else {
       return false
@@ -272,8 +267,8 @@ export class Context<T extends StageObject> implements ContextProxy<T> {
    * @param {Boolean} [clean]  `true` it need to clean object from referenced Types except Function and raw Object(js hash)
    * @return {Object}
    */
-  toObject(): T {
-    const obj = {} as T
+  toObject(): Input {
+    const obj = {} as Input
     defaultsDeep(obj, this.ctx)
     if (this.__parent) {
       // TODO: взять весь объект по всей структуре дерева

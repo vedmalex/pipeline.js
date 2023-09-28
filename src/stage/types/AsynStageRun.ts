@@ -1,1 +1,1 @@
-export type AsyncStageRun<R> = (err: unknown, context: unknown) => Promise<R>
+export type AsyncStageRun<Input, Output> = (err: unknown, context: unknown) => Promise<Output>

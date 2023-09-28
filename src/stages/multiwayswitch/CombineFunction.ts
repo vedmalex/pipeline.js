@@ -1,1 +1,1 @@
-export type CombineFunction<R, T> = (ctx: R, children: T) => R
+export type CombineFunction<Input, Output, T> = (ctx: Input, children: T) => Output

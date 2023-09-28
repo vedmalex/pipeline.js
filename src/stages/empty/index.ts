@@ -1,2 +1,2 @@
-export * from './Empty'
+export * from './empty'
 export * from './getEmptyConfig'

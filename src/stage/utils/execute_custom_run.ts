@@ -17,13 +17,13 @@ import {
 import { run_callback_once } from './run_callback_once'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
-export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> {
-  return function (this: AnyStage<R>, err, context, _done) {
+export function execute_custom_run<Input, Output>(run: RunPipelineFunction<Input, Output>): StageRun<Input, Output> {
+  return function (this: AnyStage<Input, Output>, err, context, _done) {
     const done = run_callback_once(_done)
     switch (run.length) {
       // this is the context of the run function
       case 0:
-        if (isCustomRun0Async<R>(run)) {
+        if (isCustomRun0Async<Input, Output>(run)) {
           try {
             run
               .apply(context)
@@ -32,12 +32,12 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
           } catch (err) {
             process_error(err, done)
           }
-        } else if (isCustomRun0Sync<R>(run)) {
+        } else if (isCustomRun0Sync<Input, Output>(run)) {
           try {
             const res = run.apply(context)
             if (res instanceof Promise) {
               res.then(r => done(undefined, r)).catch(err => done(err))
-            } else if (is_thenable<R>(res)) {
+            } else if (is_thenable<Output>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
               done(undefined, res)
@@ -48,7 +48,7 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
         }
         break
       case 1:
-        if (isCustomRun1Async<R>(run)) {
+        if (isCustomRun1Async<Input, Output>(run)) {
           try {
             run
               .call(this, context)
@@ -57,12 +57,12 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
           } catch (err) {
             process_error(err, done)
           }
-        } else if (isCustomRun1Sync<R>(run)) {
+        } else if (isCustomRun1Sync<Input, Output>(run)) {
           try {
             const res = run.call(this, context)
             if (res instanceof Promise) {
               res.then(r => done(undefined, r)).catch(err => done(err))
-            } else if (is_thenable<R>(res)) {
+            } else if (is_thenable<Output>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
               done(undefined, res)
@@ -75,7 +75,7 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
         }
         break
       case 2:
-        if (isCustomRun2Async<R>(run)) {
+        if (isCustomRun2Async<Input, Output>(run)) {
           try {
             run
               .call(this, err, context)
@@ -84,8 +84,8 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
           } catch (err) {
             process_error(err, done)
           }
-        } else if (isCustomRun2Callback<R>(run)) {
-          const _run: CustomRun2Callback<R> = run
+        } else if (isCustomRun2Callback<Input, Output>(run)) {
+          const _run: CustomRun2Callback<Input, Output> = run
           try {
             _run.call(this, context, done)
           } catch (err) {
@@ -96,8 +96,8 @@ export function execute_custom_run<R>(run: RunPipelineFunction<R>): StageRun<R> 
         }
         break
       case 3:
-        if (isCustomRun3Callback<R>(run)) {
-          const _run: CustomRun3Callback<R> = run
+        if (isCustomRun3Callback<Input, Output>(run)) {
+          const _run: CustomRun3Callback<Input, Output> = run
           try {
             _run.call(this, err, context, done)
           } catch (err) {

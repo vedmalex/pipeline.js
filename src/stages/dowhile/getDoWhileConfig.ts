@@ -1,10 +1,10 @@
 import { AnyStage, CreateError, isAnyStage, SingleStageFunction } from '../../stage'
 import { DoWhileConfig } from './DoWhileConfig'
 
-export function getDoWhileConfig<R, T, C extends DoWhileConfig<R, T>>(
-  _config: AnyStage<R> | C | SingleStageFunction<R>,
-): C {
-  let config: C = {} as C
+export function getDoWhileConfig<Input, Output, T, Config extends DoWhileConfig<Input, Output, T>>(
+  _config: AnyStage<Input, Output> | Config | SingleStageFunction<Input, Output>,
+): Config {
+  let config: Config = {} as Config
   if (isAnyStage(_config)) {
     config.stage = _config
   } else if (typeof _config == 'function') {

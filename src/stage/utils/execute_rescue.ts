@@ -9,10 +9,10 @@ import {
   Rescue,
 } from '../types'
 
-export function execute_rescue<R>(
-  rescue: Rescue<R>,
+export function execute_rescue(
+  rescue: Rescue,
   err: Error,
-  context: R,
+  context: unknown,
   done: (err?: unknown) => void,
 ) {
   switch (rescue.length) {
@@ -92,11 +92,11 @@ export function execute_rescue<R>(
   }
 }
 
-export function execute_rescue_async<R>(
-  rescue: Rescue<R>,
+export function execute_rescue_async(
+  rescue: Rescue,
   err: Error,
-  context: R,
-): Promise<[unknown, R]> {
+  context: unknown,
+): Promise<[unknown, unknown]> {
   return new Promise(resolve => {
     execute_rescue(rescue, err, context, err => resolve([err, context]))
   })

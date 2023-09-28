@@ -2,77 +2,81 @@ import { AnyStage } from './AnyStage'
 import { CallbackFunction } from './CallbackFunction'
 import { is_async_function } from './is_async_function'
 
-export type CustomRun0SyncVoid<R> = (this: R) => void
+export type CustomRun0SyncVoid<Input, Output> = (this: Input & Output) => void
 
-export type CustomRun0Sync<R> = (this: R) => R
+export type CustomRun0Sync<Input, Output> = (this: Input) => Output
 
-export type CustomRun0Async<R> = (this: R) => Promise<R>
+export type CustomRun0Async<Input, Output> = (this: Input) => Promise<Output>
 
-export type CustomRun1Sync<R> = (this: AnyStage<R>, ctx: R) => R
+export type CustomRun1Sync<Input, Output> = (this: AnyStage<Input, Output>, ctx: Input) => Output
 
-export type CustomRun1Async<R> = (
-  this: AnyStage<R>,
-  ctx: R,
-) => Promise<R>
+export type CustomRun1Async<Input, Output> = (
+  this: AnyStage<Input, Output>,
+  ctx: Input,
+) => Promise<Output>
 
-export type CustomRun2Async<R> = (
-  this: AnyStage<R>,
+export type CustomRun2Async<Input, Output> = (
+  this: AnyStage<Input, Output>,
   err: any,
-  ctx: R,
-) => Promise<R>
+  ctx: Input,
+) => Promise<Output>
 
-export type CustomRun2Callback<R> = (
-  this: AnyStage<R> | void,
-  ctx: R,
-  done: CallbackFunction<R>,
+export type CustomRun2Callback<Input, Output> = (
+  this: AnyStage<Input, Output> | void,
+  ctx: Input,
+  done: CallbackFunction<Output>,
 ) => void
 
-export type CustomRun3Callback<R> = (
-  this: AnyStage<R> | void,
+export type CustomRun3Callback<Input, Output> = (
+  this: AnyStage<Input, Output> | void,
   err: any,
-  ctx: R,
-  done: CallbackFunction<R>,
+  ctx: Input,
+  done: CallbackFunction<Output>,
 ) => void
 
-export type RunPipelineFunction<R> =
-  | CustomRun0SyncVoid<R>
-  | CustomRun0Sync<R>
-  | CustomRun0Async<R>
-  | CustomRun1Async<R>
-  | CustomRun1Sync<R>
-  | CustomRun2Callback<R>
-  | CustomRun2Async<R>
-  | CustomRun3Callback<R>
+export type RunPipelineFunction<Input, Output> =
+  | CustomRun0SyncVoid<Input, Output>
+  | CustomRun0Sync<Input, Output>
+  | CustomRun0Async<Input, Output>
+  | CustomRun1Async<Input, Output>
+  | CustomRun1Sync<Input, Output>
+  | CustomRun2Callback<Input, Output>
+  | CustomRun2Async<Input, Output>
+  | CustomRun3Callback<Input, Output>
 
-export function isCustomRun0Sync<R>(inp: unknown): inp is CustomRun0Sync<R> {
+export function isCustomRun0SyncVoid<Input, Output>(inp: unknown): inp is CustomRun0SyncVoid<Input, Output> {
   return !is_async_function(inp) && typeof inp === 'function' && inp.length === 0
 }
-export function isCustomRun0Async<R>(inp: unknown): inp is CustomRun0Async<R> {
+export function isCustomRun0Sync<Input, Output>(inp: unknown): inp is CustomRun0Sync<Input, Output> {
+  return !is_async_function(inp) && typeof inp === 'function' && inp.length === 0
+}
+export function isCustomRun0Async<Input, Output>(inp: unknown): inp is CustomRun0Async<Input, Output> {
   return is_async_function(inp) && typeof inp === 'function' && inp.length === 0
 }
-export function isCustomRun1Async<R>(inp: unknown): inp is CustomRun1Async<R> {
+export function isCustomRun1Async<Input, Output>(inp: unknown): inp is CustomRun1Async<Input, Output> {
   return is_async_function(inp) && typeof inp === 'function' && inp.length === 1
 }
-export function isCustomRun1Sync<R>(inp: unknown): inp is CustomRun1Sync<R> {
+export function isCustomRun1Sync<Input, Output>(inp: unknown): inp is CustomRun1Sync<Input, Output> {
   return !is_async_function(inp) && typeof inp === 'function' && inp.length === 1
 }
-export function isCustomRun2Callback<R>(inp: unknown): inp is CustomRun2Callback<R> {
+export function isCustomRun2Callback<Input, Output>(inp: unknown): inp is CustomRun2Callback<Input, Output> {
   return !is_async_function(inp) && typeof inp === 'function' && inp.length === 2
 }
-export function isCustomRun2Async<R>(inp: unknown): inp is CustomRun2Async<R> {
+export function isCustomRun2Async<Input, Output>(inp: unknown): inp is CustomRun2Async<Input, Output> {
   return is_async_function(inp) && typeof inp === 'function' && inp.length === 2
 }
-export function isCustomRun3Callback<R>(inp: unknown): inp is CustomRun3Callback<R> {
+export function isCustomRun3Callback<Input, Output>(inp: unknown): inp is CustomRun3Callback<Input, Output> {
   return !is_async_function(inp) && typeof inp === 'function' && inp.length === 3
 }
 
-export function isRunPipelineFunction<R>(inp: unknown): inp is RunPipelineFunction<R> {
+export function isRunPipelineFunction<Input, Output>(inp: unknown): inp is RunPipelineFunction<Input, Output> {
   return (
     isCustomRun0Async(inp)
     || isCustomRun1Async(inp)
     || isCustomRun1Sync(inp)
     || isCustomRun2Async(inp)
     || isCustomRun0Sync(inp)
+    || isCustomRun0SyncVoid(inp)
     || isCustomRun2Callback(inp)
     || isCustomRun3Callback(inp)
   )
