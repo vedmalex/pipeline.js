@@ -172,32 +172,6 @@ describe('Pipeline', function () {
     done()
   })
 
-  it('execute must call compile and ensure', function (done) {
-    let ensure = 0
-    let compile = 0
-
-    let pipe = new Pipeline({
-      precompile: () => {
-        compile++
-      },
-      ensure: function (ctx, callback) {
-        ensure++
-        callback()
-      },
-    } as any)
-    pipe.addStage(
-      new Stage(function (err, context, done) {
-        done()
-      }),
-    )
-
-    pipe.execute({}, (err, ctx) => {
-      expect(ensure).toEqual(1)
-      expect(compile).toEqual(1)
-      done()
-    })
-  })
-
   it('executes pipes in pipes', function (done) {
     type CTX = { item: number }
     var pipe = new Pipeline<CTX>()

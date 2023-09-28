@@ -55,16 +55,6 @@ describe('stage', () => {
     expect(s).toMatchSnapshot('lambda stage')
   })
 
-  it('creates throws when both parameters validate and schema are passed', () => {
-    expect(() =>
-      new Stage({
-        run: () => {},
-        schema: {},
-        validate: {},
-      } as any)
-    ).toThrow()
-  })
-
   it('intialize using schema and validate separately', () => {
     expect(() =>
       new Stage<{ name: string }>({
@@ -75,18 +65,58 @@ describe('stage', () => {
     expect(() =>
       new Stage({
         run: () => {},
-        schema: z.object({}).passthrough(),
+        input: z.object({}).passthrough(),
       })
     ).not.toThrow()
   })
 
-  it('validate using schema', () => {
+  it('output validation', (done) => {
     const st = new Stage<{ name: string }>({
-      run: () => {},
-      schema: z.object({
+      run: ctx => {
+        ctx.lastname = 'Vedmedenko'
+      },
+      input: z.object({
         name: z.string({ required_error: 'should be an object with a name property' }),
       }),
+      output: z.object({
+        lastname: z.string({ required_error: 'should be an object with a name property' }),
+      }),
+    } as StageConfig<any>)
+
+    st.execute({ name: 'Alex' }, (err, res) => {
+      expect(err).toBeUndefined()
+      expect(res).toMatchObject({ name: 'Alex', lastname: 'Vedmedenko' })
+      done()
     })
+  })
+
+    it('output validation 1', (done) => {
+    const st = new Stage<{ name: string }>({
+      run: ctx => {
+        ctx.lasname = 'Vedmedenko'
+      },
+      input: z.object({
+        name: z.string({ required_error: 'should be an object with a name property' }),
+      }),
+      output: z.object({
+        lastname: z.string({ required_error: 'should be an object with a name property' }),
+      }),
+    } as StageConfig<any>)
+
+    st.execute({ name: 'Alex' }, (err, res) => {
+      expect(err).not.toBeUndefined()
+      expect(res).toMatchObject({ name: 'Alex', lasname: 'Vedmedenko' })
+      done()
+    })
+  })
+
+  it('input validation', () => {
+    const st = new Stage({
+      run: () => {},
+      input: z.object({
+        name: z.string({ required_error: 'should be an object with a name property' }),
+      }),
+    } as StageConfig<any>)
 
     st.execute({ fullname: 1 } as unknown as { name: string }, (err, res) => {
       expect(err).not.toBeUndefined()

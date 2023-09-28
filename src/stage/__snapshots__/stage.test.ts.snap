@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Bun Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`stage create named: names stage 1`] = `
 Stage {
@@ -10,18 +10,7 @@ Stage {
 }
 `;
 
-exports[`stage create with Config: config stage 1`] = `
-Stage {
-  "_config": {
-    "name": "",
-    "run": [Function],
-  },
-  "run": undefined,
-  [Symbol(stage)]: true,
-}
-`;
-
-exports[`stage create with Lambda 2: lambda stage 1`] = `
+exports[`stage create with function: function stage 1`] = `
 Stage {
   "_config": {
     "name": "",
@@ -43,17 +32,6 @@ Stage {
 }
 `;
 
-exports[`stage create with function: function stage 1`] = `
-Stage {
-  "_config": {
-    "name": "",
-    "run": [Function],
-  },
-  "run": undefined,
-  [Symbol(stage)]: true,
-}
-`;
-
 exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
 Stage {
   "_config": {
@@ -65,4 +43,24 @@ Stage {
 }
 `;
 
-exports[`stage validate using schema 1`] = `[ComplexError]`;
+exports[`stage create with Lambda 2: lambda stage 1`] = `
+Stage {
+  "_config": {
+    "name": "",
+    "run": [Function],
+  },
+  "run": undefined,
+  [Symbol(stage)]: true,
+}
+`;
+
+exports[`stage create with Config: config stage 1`] = `
+Stage {
+  "_config": {
+    "name": "",
+    "run": [Function],
+  },
+  "run": undefined,
+  [Symbol(stage)]: true,
+}
+`;

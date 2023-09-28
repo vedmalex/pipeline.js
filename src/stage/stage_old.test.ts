@@ -1,6 +1,7 @@
 import 'jest'
 import { Context } from './Context'
 import { Stage } from './stage'
+import { RunPipelineFunction } from './types'
 
 describe('Stage', function () {
   describe('sync', function () {
@@ -160,10 +161,10 @@ describe('Stage', function () {
   })
 
   it('runs within stage', function (done) {
-    var s = new Stage<{ someCode: number }>(function (this: { someCode: number }, ctx, done) {
+    var s = new Stage<{ someCode?: number }>(function (this: { someCode: number }, ctx, done) {
       expect(this.someCode).toEqual(100)
       done()
-    })
+    } as RunPipelineFunction<any>)
     ;(s as any).someCode = 100
     s.execute({}, function (err, ctx) {
       expect(err).toBeUndefined()
@@ -258,37 +259,6 @@ describe('Stage', function () {
   })
 
   // it('prepare and finalize context')
-
-  it('ensureContext', function (done) {
-    debugger
-    var stage = new Stage<{ done: number }>(function (ctx) {
-      ctx.done = 1
-    })
-    var ensure = 0
-    stage.config.ensure = function (ctx, callback) {
-      ensure++
-      callback(null, ctx)
-    }
-    stage.execute({ done: -1 }, function (err, ctx) {
-      expect(ensure).toEqual(1)
-      expect(ctx?.done).toEqual(1)
-      done()
-    })
-  })
-
-  it('must run ensureContext if there is no run function', function (done) {
-    debugger
-    var stage = new Stage()
-    var ensure = 0
-    stage.config.ensure = function (ctx, callback) {
-      ensure++
-      callback(undefined, ctx)
-    }
-    stage.execute({}, (err, context) => {
-      expect(ensure).toEqual(1)
-      done()
-    })
-  })
 
   it('accept callback', function (done) {
     var stage = new Stage(function (err, context, done) {

@@ -138,17 +138,30 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
           }
         }
       }
+      const successRescue = (ret: R) => {
+        if (this._config.output) {
+          this.validate(this._config.output, ret ?? context, (err_, ctx) => {
+            if (err_) {
+              this.rescue(err_, ctx ?? context, fail, successRescue)
+            } else {
+              back(err, ctx ?? context)
+            }
+          })
+        } else {
+          success(ret)
+        }
+      }
       const success = (ret: R) => back(undefined, ret ?? context)
       const fail = (err: unknown) => back(err, context)
 
       const callback = (err?, _ctx?: R) => {
         if (err) {
-          this.rescue(err, _ctx ?? context, fail, success)
+          this.rescue(err, _ctx ?? context, fail, successRescue)
         } else {
           if (this._config.output) {
             this.validate(this._config.output, _ctx ?? context, (err_, ctx) => {
-              if (err) {
-                this.rescue(err_, ctx ?? context, fail, success)
+              if (err_) {
+                this.rescue(err_, ctx ?? context, fail, successRescue)
               } else {
                 back(err, ctx ?? context)
               }
@@ -160,7 +173,7 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
       }
 
       if (err && this._config.run && !can_fix_error(this._config.run)) {
-        this.rescue(err, context, fail, success)
+        this.rescue(err, context, fail, successRescue)
       } else {
         if (this._config.input) {
           this.validate(this._config.input, context, (err_, ctx) => {
