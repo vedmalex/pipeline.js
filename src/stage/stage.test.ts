@@ -70,7 +70,7 @@ describe('stage', () => {
     ).not.toThrow()
   })
 
-  it('output validation', (done) => {
+  it('output validation', done => {
     const st = new Stage<{ name: string }>({
       run: ctx => {
         ctx.lastname = 'Vedmedenko'
@@ -90,7 +90,7 @@ describe('stage', () => {
     })
   })
 
-    it('output validation 1', (done) => {
+  it('output validation 1', done => {
     const st = new Stage<{ name: string }>({
       run: ctx => {
         ctx.lasname = 'Vedmedenko'
