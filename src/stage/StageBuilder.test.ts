@@ -2,23 +2,22 @@ import 'jest'
 import { z } from 'zod'
 import { stage } from './StageBuilderWithZod'
 
-
-describe("stageBuilder", () => {
+describe('stageBuilder', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
   // исправить работу с Stage<any> похоже что TStage не нужен
   it('run', done => {
     const st = stage()
       .input(z.object({ name: z.string().optional() }))
       .output(z.object({ name: z.string() }))
-      .run((ctx) => {
+      .run(ctx => {
         if (ctx) {
           ctx.name = 'name'
         }
       }).build()
 
-    st.execute({name:''}, (err, res) => {
+    st.execute({ name: '' }, (err, res) => {
       expect(err).toBeUndefined()
-      expect(res).toMatchObject({name: 'name'})
+      expect(res).toMatchObject({ name: 'name' })
       done()
     })
   })

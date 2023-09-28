@@ -1,4 +1,4 @@
-import {z } from 'zod'
+import { z } from 'zod'
 import { ComplexError, CreateError } from './errors'
 import { Stage } from './stage'
 import { StageConfig } from './StageConfig'
@@ -63,32 +63,32 @@ export function stage<TStage extends Stage<any>>(
 }> {
   return {
     _def: _def as BuilderDef<TStage>,
-    input(schema) {
+    input(input) {
       if (!_def.cfg) {
         _def.cfg = {} as InferConfig<TStage>
       }
-      _def.cfg.schema = schema
+      _def.cfg.input = input
       return stage({
         ..._def,
-        inputs: schema,
+        inputs: input,
       }) as any
     },
-    output(schema) {
+    output(output) {
       if (!_def.cfg) {
         _def.cfg = {} as InferConfig<TStage>
       }
-      _def.cfg.schema = schema
+      _def.cfg.output = output
       return stage({
         ..._def,
-        outputs: schema,
+        outputs: output,
       }) as any
     },
-    run(fn) {
+    run(run) {
       if (!_def.cfg) {
         _def.cfg = {} as InferConfig<TStage>
       }
-      if (fn && isRunPipelineFunction(fn)) {
-        _def.cfg.run = fn as any
+      if (run && isRunPipelineFunction(run)) {
+        _def.cfg.run = run as any
       } else {
         throw CreateError('run should be a `RunPipelineFunction`')
       }
@@ -114,45 +114,20 @@ export function stage<TStage extends Stage<any>>(
         ..._def,
       }) as any
     },
-    ensure(ensure) {
+    compile(compile) {
       if (!_def.cfg) {
         _def.cfg = {} as InferConfig<TStage>
       }
-      _def.cfg.ensure = ensure as any
-      return stage({
-        ..._def,
-      }) as any
-    },
-    validate(ensure) {
-      if (!_def.cfg) {
-        _def.cfg = {} as InferConfig<TStage>
-      }
-      _def.cfg.ensure = ensure as any
-      return stage({
-        ..._def,
-      }) as any
-    },
-    compile(fn) {
-      if (!_def.cfg) {
-        _def.cfg = {} as InferConfig<TStage>
-      }
-      _def.cfg.compile = fn as any
-      return stage({
-        ..._def,
-      }) as any
-    },
-    precompile(fn) {
-      if (!_def.cfg) {
-        _def.cfg = {} as InferConfig<TStage>
-      }
-      _def.cfg.precompile = fn as any
+      _def.cfg.compile = compile as any
       return stage({
         ..._def,
       }) as any
     },
     build() {
-      return new Stage<InferContext<TStage>, InferConfig<TStage>>((_def as BuilderDef<TStage>).cfg as InferConfig<TStage>) as any
-    }
+      return new Stage<InferContext<TStage>, InferConfig<TStage>>(
+        (_def as BuilderDef<TStage>).cfg as InferConfig<TStage>,
+      ) as any
+    },
   }
 }
 
@@ -249,31 +224,16 @@ export interface StageBuilder<TParams extends BuilderParams> {
     >,
     InferKeys<TParams['_usage']> | 'rescue'
   >
-  ensure(ensure: Ensure<TParams['_input']>): Omit<
-    StageBuilder<
-      InferParams<TParams, 'ensure'>
-    >,
-    InferKeys<TParams['_usage']> | 'ensure'
-  >
-  validate(fn: ValidateFn<TParams['_input']>): Omit<
-    StageBuilder<
-      InferParams<TParams, 'validate'>
-    >,
-    InferKeys<TParams['_usage']> | 'validate'
-  >
   compile(fn: Compile<TParams['_input']>): Omit<
     StageBuilder<
       InferParams<TParams, 'compile'>
     >,
     InferKeys<TParams['_usage']> | 'compile'
   >
-  precompile(fn: Precompile<TParams['_input'], TParams['_stage']>): Omit<
-    StageBuilder<
-      InferParams<TParams, 'precompile'>
-    >,
-    InferKeys<TParams['_usage']> | 'precompile'
+  build(): Stage<
+    TParams['_output'] extends UnsetMarker ? TParams['_input'] : TParams['_output'],
+    StageConfig<TParams['_output'] extends UnsetMarker ? TParams['_input'] : TParams['_output']>
   >
-  build(): Stage<TParams['_output'] extends UnsetMarker ? TParams['_input'] : TParams['_output'], StageConfig<TParams['_output'] extends UnsetMarker ? TParams['_input'] : TParams['_output']>>
   _def: BuilderDef<TParams['_stage']>
 }
 

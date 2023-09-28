@@ -1,23 +1,14 @@
+import { z } from 'zod'
+
+import { fromZodError } from 'zod-validation-error'
 import { Context, OriginalObject } from './Context'
 import { can_fix_error, ComplexError, CreateError } from './errors'
 import { getStageConfig, isAnyStage, StageSymbol } from './getStageConfig'
 import { StageConfig } from './StageConfig'
-import {
-  AllowedStage,
-  AnyStage,
-  CallbackFunction,
-  EnsureFunction,
-  isStageRun,
-  Possible,
-  RunPipelineFunction,
-  StageRun,
-  ValidateFunction,
-} from './types'
+import { AllowedStage, AnyStage, CallbackFunction, isStageRun, Possible, RunPipelineFunction, StageRun } from './types'
 import { execute_callback } from './utils/execute_callback'
 import { execute_custom_run } from './utils/execute_custom_run'
-import { execute_ensure } from './utils/execute_ensure'
 import { execute_rescue } from './utils/execute_rescue'
-import { execute_validate } from './utils/execute_validate'
 
 export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyStage<R> {
   public get config(): C {
@@ -116,6 +107,7 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
     if (isProxible) {
       context[OriginalObject] = true
     }
+    // выполнить валидацию результата сразу же перед вызовом последнего значения
     if (!__callback) {
       return new Promise<R>((res, rej) => {
         this.execute(err, context, (err, ctx) => {
@@ -153,19 +145,25 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
         if (err) {
           this.rescue(err, _ctx ?? context, fail, success)
         } else {
-          back(err, _ctx ?? context)
+          if (this._config.output) {
+            this.validate(this._config.output, _ctx ?? context, (err_, ctx) => {
+              if (err) {
+                this.rescue(err_, ctx ?? context, fail, success)
+              } else {
+                back(err, ctx ?? context)
+              }
+            })
+          } else {
+            back(err, _ctx ?? context)
+          }
         }
       }
 
       if (err && this._config.run && !can_fix_error(this._config.run)) {
         this.rescue(err, context, fail, success)
       } else {
-        if (this.config.ensure) {
-          this.ensure(this.config.ensure, context, (err_, ctx) => {
-            this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
-          })
-        } else if (this._config.validate) {
-          this.validate(this._config.validate, context, (err_, ctx) => {
+        if (this._config.input) {
+          this.validate(this._config.input, context, (err_, ctx) => {
             this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
           })
         } else {
@@ -227,9 +225,6 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
    */
   protected compile(rebuild: boolean = false): StageRun<R> {
     let res: StageRun<R>
-    if (this.config.precompile) {
-      this.config.precompile.apply(this)
-    }
     if (this.config.compile) {
       res = this.config.compile.call(this, rebuild)
     } else if (!this.run || rebuild) {
@@ -300,29 +295,17 @@ export class Stage<R, C extends StageConfig<R> = StageConfig<R>> implements AnyS
   }
 
   protected validate(
-    validate: ValidateFunction<R>,
+    validate: z.ZodType<R>,
     context: R,
     callback: CallbackFunction<R>,
   ) {
-    execute_validate(validate, context, (err, result) => {
-      if (err) {
-        callback(err, context)
-      } else {
-        if (result) {
-          if ('boolean' === typeof result) {
-            callback(undefined, context)
-          } else if (Array.isArray(result)) {
-            callback(CreateError(result))
-          }
+    validate.safeParseAsync(context)
+      .then(result => {
+        if (!result.success) {
+          callback(CreateError(fromZodError(result?.error)), context)
         } else {
-          callback(CreateError(this.reportName + ' reports: T is invalid'))
+          callback(undefined, context)
         }
-      }
-    })
-  }
-  protected ensure(ensure: EnsureFunction<R>, context: R, callback: CallbackFunction<R>) {
-    execute_ensure(ensure, context, (err, result) => {
-      callback(err, result ?? context)
-    })
+      })
   }
 }

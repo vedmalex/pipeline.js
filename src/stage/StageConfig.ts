@@ -1,13 +1,11 @@
-import z from 'zod'
-import { CompileFunction, EnsureFunction, Precompile, Rescue, RunPipelineFunction, ValidateFunction } from './types'
+import { z } from 'zod'
+import { CompileFunction, Rescue, RunPipelineFunction } from './types'
 
 export interface StageConfig<R> {
   run?: RunPipelineFunction<R>
   name?: string
+  input?: z.ZodType<R>
+  output?: z.ZodType<R>
   rescue?: Rescue<R>
-  schema?: z.ZodType<R>
-  ensure?: EnsureFunction<R>
-  validate?: ValidateFunction<R>
   compile?: CompileFunction<R>
-  precompile?: Precompile<R>
 }

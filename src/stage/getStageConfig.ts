@@ -1,15 +1,5 @@
-import { fromZodError } from 'zod-validation-error'
-import { CreateError } from './errors'
 import { StageConfig } from './StageConfig'
-import {
-  AllowedStage,
-  AnyStage,
-  getNameFrom,
-  isEnsureFunction,
-  isRescue,
-  isRunPipelineFunction,
-  isValidateFunction,
-} from './types'
+import { AllowedStage, AnyStage, getNameFrom, isRescue, isRunPipelineFunction } from './types'
 
 export const StageSymbol = Symbol('stage')
 
@@ -42,37 +32,14 @@ export function getStageConfig<R, C extends StageConfig<R>>(
     if (isRunPipelineFunction(config.run)) {
       result.run = config.run
     }
-    if (config.validate && config.schema) {
-      throw CreateError('use only one `validate` or `schema`')
-    }
-    if (config.ensure && config.schema) {
-      throw CreateError('use only one `ensure` or `schema`')
-    }
-    if (config.ensure && config.validate) {
-      throw CreateError('use only one `ensure` or `validate`')
-    }
-    if (isValidateFunction(config.validate)) {
-      result.validate = config.validate
-    }
-    if (isEnsureFunction(config.ensure)) {
-      result.ensure = config.ensure
-    }
     if (config.compile) {
       result.compile = config.compile
     }
-    if (config.precompile) {
-      result.precompile = config.precompile
+    if (config.input) {
+      result.input = config.input
     }
-    if (config.schema) {
-      result.schema = config.schema
-      result.validate = (ctx: unknown): boolean => {
-        const pr = result.schema?.safeParse(ctx)
-        if (!pr?.success) {
-          throw CreateError(fromZodError(pr?.error!))
-        } else {
-          return true
-        }
-      }
+    if (config.output) {
+      result.output = config.output
     }
     if (!config.name) {
       result.name = getNameFrom<R, C>(config)
