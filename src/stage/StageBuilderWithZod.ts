@@ -128,6 +128,9 @@ export function stage<TStage extends Stage<any, any>>(
         (_def as BuilderDef<TStage>).cfg as InferConfig<TStage>,
       ) as any
     },
+    config() {
+      return (_def as BuilderDef<TStage>).cfg as InferConfig<TStage>
+    },
   }
 }
 
@@ -234,7 +237,8 @@ export interface StageBuilder<TParams extends BuilderParams> {
     TParams['_input'] extends UnsetMarker ? TParams['_output'] : TParams['_input'],
     TParams['_output'] extends UnsetMarker ? TParams['_input'] : TParams['_output'],
     StageConfig<TParams['_input'], TParams['_output']>
-  >
+    >
+  config(): StageConfig<TParams['_input'], TParams['_output']>
   _def: BuilderDef<TParams['_stage']>
 }
 
