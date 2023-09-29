@@ -4,7 +4,7 @@ import { Thenable } from './is_thenable'
 
 export type ValidateFunction0Sync<Output> = (this: Output) => boolean
 
-export function isValidateFunction0Sync< Output>(inp: unknown): inp is ValidateFunction0Sync<Output> {
+export function isValidateFunction0Sync<Output>(inp: unknown): inp is ValidateFunction0Sync<Output> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 0
 }
 
@@ -31,7 +31,7 @@ export type ValidateFunction2Sync<Output> = (
   callback: CallbackFunction<boolean, boolean>,
 ) => void
 
-export function isValidateFunction2Sync<Output>(inp: unknown): inp is ValidateFunction2Sync< Output> {
+export function isValidateFunction2Sync<Output>(inp: unknown): inp is ValidateFunction2Sync<Output> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 2
 }
 

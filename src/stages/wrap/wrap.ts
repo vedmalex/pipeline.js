@@ -34,9 +34,9 @@ export class Wrap<
           makeCallback((err, retCtx) => {
             if (!err) {
               const result = this.finalize(context, retCtx ?? ctx)
-              done(makeCallbackArgs(undefined, result ? result : context as unknown as Output))
+              done(makeCallbackArgs(undefined, result ?? context))
             } else {
-              done(makeCallbackArgs(err, context as unknown as Output))
+              done(makeCallbackArgs(err, context))
             }
           }),
         )

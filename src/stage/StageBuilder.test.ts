@@ -1,7 +1,7 @@
 import 'jest'
 import { z } from 'zod'
 import { stage } from './StageBuilderWithZod'
-import { ExtractCallbackType, makeCallback } from './types'
+import { makeCallbackArgs } from './types'
 
 describe('stageBuilder', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
@@ -17,11 +17,11 @@ describe('stageBuilder', () => {
       })
       .build()
 
-    st.execute({}, makeCallback((err, res) => {
+    st.execute({}, (err, res) => {
       expect(err).toBeUndefined()
       expect(res).toMatchObject({ name: 'name' })
       done()
-    }))
+    })
   })
   it('create named', () => {
     const s = stage()
@@ -47,10 +47,9 @@ describe('stageBuilder', () => {
       .run((err, ctx, done) => {
         if (!err && ctx && done) {
           ctx.name = 'run the stage'
-
-          done(undefined, ctx as ExtractCallbackType<typeof done>)
+          done(makeCallbackArgs(undefined, ctx))
         } else if (done) {
-          done(err)
+          done(makeCallbackArgs(err))
         }
       }).build()
     expect(s).toMatchSnapshot('lambda stage')
@@ -112,13 +111,14 @@ describe('stageBuilder', () => {
 
   it('create with Config', () => {
     const s = stage()
+      .input(z.object({name: z.string()}))
       .run((err, ctx, done) => {
         if (done) {
           if (!err && ctx) {
             ctx.name = 'run the stage'
-            done(undefined, ctx)
+            done(makeCallbackArgs(undefined, ctx))
           } else {
-            done(err)
+            done(makeCallbackArgs(err))
           }
         }
       })

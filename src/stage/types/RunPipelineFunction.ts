@@ -1,5 +1,5 @@
 import { AnyStage } from './AnyStage'
-import { CallbackFunction } from './CallbackFunction'
+import { CallbackFunction, LegacyCallback } from './CallbackFunction'
 import { is_async_function } from './is_async_function'
 
 export type CustomRun0SyncVoid<Input, Output> = (this: Input & Output) => void
@@ -25,6 +25,13 @@ export type CustomRun2Callback<Input, Output> = (
   this: AnyStage<Input, Output> | void,
   ctx: Input,
   done: CallbackFunction<Input, Output>,
+) => void
+
+export type CustomRun3CallbackLegacy<Input, Output> = (
+  this: AnyStage<Input, Output> | void,
+  err: any,
+  ctx: Input,
+  done: LegacyCallback<Output>,
 ) => void
 
 export type CustomRun3Callback<Input, Output> = (

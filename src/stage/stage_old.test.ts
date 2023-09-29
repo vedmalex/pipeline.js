@@ -287,7 +287,7 @@ describe('Stage', function () {
     var ctx = Context.ensure({})
     stage.execute(ctx, function (err, context) {
       expect(ctx).toEqual(context)
-      expect(/Error\: STG\: reports\: run is not a function/.test(err.payload[0].toString())).toBeTruthy()
+      expect(/Error\: STG\: reports\: run is not a function/.test(err?.payload[0].toString())).toBeTruthy()
       done()
     })
   })

@@ -44,10 +44,10 @@ describe('stage', () => {
   })
 
   it('create with Lambda 3', () => {
-    const s = new Stage<{ name: string }>((err, ctx, done) => {
+    const s = new Stage((err, ctx, done) => {
       if (!err) {
         ctx.name = 'run the stage'
-        done(undefined, ctx)
+        done()
       } else {
         done(err)
       }
@@ -91,7 +91,7 @@ describe('stage', () => {
   })
 
   it('output validation 1', done => {
-    const st = new Stage<{ name: string }>({
+    const st = new Stage({
       run: ctx => {
         ctx.lasname = 'Vedmedenko'
       },
@@ -101,7 +101,7 @@ describe('stage', () => {
       output: z.object({
         lastname: z.string({ required_error: 'should be an object with a name property' }),
       }),
-    } as StageConfig<any>)
+    })
 
     st.execute({ name: 'Alex' }, (err, res) => {
       expect(err).not.toBeUndefined()

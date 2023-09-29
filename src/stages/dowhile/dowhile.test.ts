@@ -126,8 +126,8 @@ describe('DoWhile', function () {
       some: [1, 2, 3, 4, 5, 6, 7],
     } satisfies CTX
     var len = ctx.some.length
-    var stage = new DoWhile<CTX, SubCTX>({
-      stage: new Stage<SubCTX>({
+    var stage = new DoWhile<CTX, CTX, SubCTX>({
+      stage: new Stage<SubCTX, SubCTX>({
         run: function (ctx: SubCTX, done) {
           ctx.iter += 1
           if (ctx.iter === 4) {

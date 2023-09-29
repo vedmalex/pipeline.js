@@ -15,7 +15,7 @@ export function execute_rescue<Input, Output>(
   rescue: Rescue,
   err: Error,
   context: unknown,
-  done: CallbackFunction<Input, Output>
+  done: CallbackFunction<Input, Output>,
 ) {
   switch (rescue.length) {
     case 1:
@@ -81,7 +81,7 @@ export function execute_rescue<Input, Output>(
     case 3:
       if (isRescue3Callback(rescue)) {
         try {
-          //@ts-ignore
+          // @ts-ignore
           rescue.call(null, err, context, done)
         } catch (err) {
           process_error(err, done)

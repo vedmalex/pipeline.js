@@ -113,7 +113,7 @@ export function execute_callback<Input, Output>(
         break
       case 3:
         if (isCallback3Callback<Input, Output>(run)) {
-          const _run: CustomRun3Callback<Input, Output> = run
+          const _run: CustomRun3Callback<Input, Output> = run as CustomRun3Callback<Input, Output>
           try {
             _run.call(this, err, context, done)
           } catch (err) {

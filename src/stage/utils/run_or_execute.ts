@@ -12,7 +12,7 @@ export function run_or_execute<Input, Output>(
     _done(makeCallbackArgs(err, ctx ?? context as unknown as Output))
   })
   if (isAnyStage<Input, Output>(stage)) {
-    stage.execute(err, context, done)
+    stage.exec(err, context, done)
   } else {
     if (typeof stage === 'function') {
       execute_callback(err, stage, context, done)

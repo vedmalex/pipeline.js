@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { ComplexError, CreateError } from './errors'
 import { Stage } from './stage'
 import { StageConfig } from './StageConfig'
-import { CallbackFunction, isRunPipelineFunction, StageObject, StageRun, UnsetMarker } from './types'
+import { CallbackFunction, isRunPipelineFunction, LegacyCallback, StageObject, StageRun, UnsetMarker } from './types'
 
 /**
  * @internal
@@ -254,7 +254,14 @@ export type CustomRun<$P1, $P2> = (
   this: $P1 extends StageObject ? $P1 : never,
   p1?: ComplexError | $P1 | undefined,
   p2?: $P1 | undefined,
-  p3?: CallbackFunction<$P1,$P2> | undefined,
+  p3?: CallbackFunction<$P1, $P2> | undefined,
+) => Promise<$P2> | $P2 | void
+
+export type CustomRunLegacy<$P1, $P2> = (
+  this: $P1 extends StageObject ? $P1 : never,
+  p1?: ComplexError | $P1 | undefined,
+  p2?: $P1 | undefined,
+  p3?: LegacyCallback<$P2> | undefined,
 ) => Promise<$P2> | $P2 | void
 
 export type Rescue<$P1> = (
@@ -264,15 +271,33 @@ export type Rescue<$P1> = (
   p3?: CallbackFunction<$P1, $P1> | undefined,
 ) => Promise<$P1> | $P1 | void
 
+export type RescueLegacy<$P1> = (
+  this: $P1 extends StageObject ? $P1 : never,
+  p1?: Error | $P1 | undefined,
+  p2?: $P1 | undefined,
+  p3?: LegacyCallback<$P1> | undefined,
+) => Promise<$P1> | $P1 | void
+
 export type Ensure<$P1> = (
   p1?: $P1 extends StageObject ? $P1 : never,
-  p2?: CallbackFunction<$P1,$P1> | undefined,
+  p2?: CallbackFunction<$P1, $P1> | undefined,
+) => Promise<$P1> | $P1 | void
+
+export type EnsureLeacgy<$P1> = (
+  p1?: $P1 extends StageObject ? $P1 : never,
+  p2?: LegacyCallback<$P1> | undefined,
 ) => Promise<$P1> | $P1 | void
 
 export type ValidateFn<$P1> = (
   this: $P1 extends StageObject ? $P1 : never,
   p1?: $P1 | undefined,
   p2?: CallbackFunction<boolean, boolean> | undefined,
+) => Promise<boolean> | boolean | void
+
+export type ValidateFnLegacy<$P1> = (
+  this: $P1 extends StageObject ? $P1 : never,
+  p1?: $P1 | undefined,
+  p2?: LegacyCallback<boolean> | undefined,
 ) => Promise<boolean> | boolean | void
 
 export type Compile<TStage> = (
