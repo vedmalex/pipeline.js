@@ -5,6 +5,7 @@ import {
   ComplexError,
   Context,
   run_or_execute,
+  run_or_execute_async,
   Stage,
   StageRun,
 } from '../../stage'
@@ -59,17 +60,17 @@ export class RetryOnError<
       }
     }
   }
-  // TODO:
+  // TODO: использовать цикл while~
   override compile(rebuild: boolean = false): StageRun<Input, Output> {
-    let run: StageRun<Input, Output> = (err, ctx, done) => {
+    let run: StageRun<Input, Output> = (err, context, done) => {
       /// ловить ошибки
       // backup context object to overwrite if needed
-      let backup = this.backupContext(ctx)
+      let backup = this.backupContext(context)
 
       const reachEnd = (err: unknown, iter: number) => {
         if (err) {
           if (this.config.retry instanceof Function) {
-            return !this.config.retry(err as ComplexError, ctx, iter)
+            return !this.config.retry(err as ComplexError, context, iter)
           } else {
             // number
             return iter > (this.config.retry ?? 1)
@@ -78,20 +79,19 @@ export class RetryOnError<
           return true
         }
       }
-      let iter = -1
+      let iter = 0
 
-      let next = (err: unknown, _ctx: Input) => {
-        iter++
-        if (reachEnd(err, iter)) {
-          return done(err, (_ctx ?? ctx) as unknown as Output)
-        } else {
+      let next = async (err: unknown) => {
+        let retCtx = context as unknown as Output
+        do {
           // clean changes of existing before values.
           // may be will need to clear at all and rewrite ? i don't know yet.
-          const res = this.restoreContext(_ctx ?? ctx, backup)
-          run_or_execute(this.config.stage, err, res ?? ctx, next as unknown as CallbackFunction<Output>)
-        }
+          const res = iter === 0 ? context: this.restoreContext(context, backup) as Input
+          ;[err, retCtx] = await run_or_execute_async(this.config.stage, err, res ?? context)
+        } while (!reachEnd(err, iter++))
+        return done(err, retCtx)
       }
-      run_or_execute(this.config.stage, err, ctx, next as unknown as CallbackFunction<Output>)
+      next(err)
     }
 
     this.run = run as StageRun<Input, Output>

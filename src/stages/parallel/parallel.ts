@@ -83,9 +83,8 @@ export class Parallel<
             result.push(build(i) as Promise<[unknown, T]>)
           }
 
-
           Promise.allSettled(result).then(res => {
-            const mapRes : Array<T> = []
+            const mapRes: Array<T> = []
             res.forEach(r => {
               if (r.status === 'fulfilled') {
                 mapRes.push(r.value[1])
@@ -93,7 +92,7 @@ export class Parallel<
                 errors.push(r.reason)
               }
             })
-            let result = this.combine(ctx, mapRes )
+            let result = this.combine(ctx, mapRes)
             done(CreateError(errors), result)
           })
         }

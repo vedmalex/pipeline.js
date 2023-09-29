@@ -53,7 +53,7 @@ export class DoWhile<
 
       const next = async (err: unknown) => {
         iter++
-        let retCtx: Output
+        let retCtx = context as unknown as Output
         while (!this.reachEnd(err, context, iter)) {
           ;[err, retCtx] = await run_or_execute_async(this.config.stage, err, this.split(context, iter))
           if (err) {
@@ -65,7 +65,7 @@ export class DoWhile<
           iter++
         }
 
-        done(err, context as unknown as Output)
+        done(err, retCtx)
       }
 
       next(err)

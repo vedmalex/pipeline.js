@@ -6,7 +6,7 @@ describe('RetryOnError', function () {
     type CTX = {
       works: boolean
     }
-    var st = new RetryOnError<CTX, CTX>({
+    var st = new RetryOnError({
       run: function (ctx) {
         ctx.works = true
       },
@@ -18,7 +18,7 @@ describe('RetryOnError', function () {
     })
   })
 
-  it('works in throw', function () {
+  it('works in throw', function (done) {
     var st = new RetryOnError({
       run: function (ctx) {
         ctx.works = true
@@ -27,6 +27,7 @@ describe('RetryOnError', function () {
     })
     st.execute({}, function (err, ctx) {
       expect(err).not.toBeUndefined()
+      done()
     })
   })
 

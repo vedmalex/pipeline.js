@@ -110,7 +110,7 @@ describe('stage', () => {
     })
   })
 
-  it('input validation', (done) => {
+  it('input validation', done => {
     const st = new Stage({
       run: () => {},
       input: z.object({
