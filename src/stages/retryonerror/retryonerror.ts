@@ -1,10 +1,8 @@
 import {
   AllowedStage,
   AnyStage,
-  CallbackFunction,
   ComplexError,
   Context,
-  run_or_execute,
   run_or_execute_async,
   Stage,
   StageRun,
@@ -60,7 +58,6 @@ export class RetryOnError<
       }
     }
   }
-  // TODO: использовать цикл while~
   override compile(rebuild: boolean = false): StageRun<Input, Output> {
     let run: StageRun<Input, Output> = (err, context, done) => {
       /// ловить ошибки
@@ -86,7 +83,7 @@ export class RetryOnError<
         do {
           // clean changes of existing before values.
           // may be will need to clear at all and rewrite ? i don't know yet.
-          const res = iter === 0 ? context: this.restoreContext(context, backup) as Input
+          const res = iter === 0 ? context : this.restoreContext(context, backup) as Input
           ;[err, retCtx] = await run_or_execute_async(this.config.stage, err, res ?? context)
         } while (!reachEnd(err, iter++))
         return done(err, retCtx)

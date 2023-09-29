@@ -1,5 +1,5 @@
 import 'jest'
-import { z } from 'zod'
+import { string, z } from 'zod'
 import { stage } from './StageBuilderWithZod'
 
 describe('stageBuilder', () => {
@@ -13,116 +13,118 @@ describe('stageBuilder', () => {
         if (ctx) {
           ctx.name = 'name'
         }
-      }).build()
+      })
+      .build()
 
-    st.execute({ name: '' }, (err, res) => {
+    st.execute({}, (err, res) => {
       expect(err).toBeUndefined()
       expect(res).toMatchObject({ name: 'name' })
       done()
     })
   })
-  // it('create named', () => {
+  it('create named', () => {
+    const s = stage()
+      .name('names stage').build()
+    expect(s).not.toBeNull()
+    expect(s).toMatchSnapshot('names stage')
+  })
+  it('create with function', () => {
+    const s = stage()
+      .input(z.object({name: z.string().optional()}))
+      .run(function () {
+        this.name = 'run this Stage'
+      }).build()
 
-  //   const s = stage<Person>()
-  //     .name('names stage').build()
-  //   expect(s).not.toBeNull()
-  //   expect(s).toMatchSnapshot('names stage')
-  // })
-  // it('create with function', () => {
-  //   const s = stage<Person>().run(function(this: { name?: string }) {
-  //     this.name = 'run this Stage'
-  //   }).build()
-  //   expect(s).not.toBeNull()
-  //   expect(s).toMatchSnapshot('function stage')
-  // })
+    expect(s).not.toBeNull()
+    expect(s).toMatchSnapshot('function stage')
+  })
 
-  // it('create with Lambda 3', () => {
-  //   const s = stage<Person>().run((err, ctx, done) => {
-  //     if (!err) {
-  //       ctx.name = 'run the stage'
-  //       done(undefined, ctx)
-  //     } else {
-  //       done(err)
-  //     }
-  //   }).build()
-  //   expect(s).toMatchSnapshot('lambda stage')
-  // })
+  it('create with Lambda 3', () => {
+    const s = stage()
+      .input(z.object({name: z.string().optional()}))
+      .run((err, ctx, done) => {
+      if (!err && ctx && done) {
+        ctx.name = 'run the stage'
+        done(undefined, ctx)
+      } else if(done){
+        done(err)
+      }
+    }).build()
+    expect(s).toMatchSnapshot('lambda stage')
+  })
 
-  // it('creates throws when both parameters validate and schema are passed', () => {
-  //   expect(
-  //     () =>
-  //       stage()
-  //         .run(() => { })
-  //         .schema(z.object({}))
-  //         .validate(() => false)
-  //     .build()
-  //   ).toThrow()
-  // })
+  it('intialize using schema and validate separately', () => {
+    expect(
+      () =>
+        stage()
+          .input(z.object({name:z.string()}))
+          .run(() => { })
+        .build()
+    ).not.toThrow()
+    expect(
+      () =>
+        stage()
+          .run(() => { })
+          .input(z.object({}).passthrough())
+      .build(),
+    ).not.toThrow()
+  })
 
-  // it('intialize using schema and validate separately', () => {
-  //   expect(
-  //     () =>
-  //       stage<Person>()
-  //         .run(() => { })
-  //         .validate((_ctx) => true,
-  //       ).build()
-  //   ).not.toThrow()
-  //   expect(
-  //     () =>
-  //       stage<Person>()
-  //         .run(() => { })
-  //         .schema(z.object({}).passthrough())
-  //     .build(),
-  //   ).not.toThrow()
-  // })
+  it('validate using schema', (done) => {
+    const st = stage()
+          .run(() => { })
+      .input(z.object({}).passthrough())
+      .output(z.object({name:z.string()}))
+      .build()
 
-  // it('validate using schema', () => {
-  //   const st = stage<Person>()
-  //         .run(() => { })
-  //     .schema(z.object({}).passthrough())
-  //     .build()
+    st.execute({ fullname: 1 }, (err, res) => {
+      expect(err).not.toBeUndefined()
+      expect(err).toMatchSnapshot()
+      done()
+    })
+  })
 
-  //   st.execute({ fullname: 1 } as unknown as { name: string }, (err, res) => {
-  //     expect(err).not.toBeUndefined()
-  //     expect(err).toMatchSnapshot()
-  //   })
-  // })
+  it('initialize other stuff sucessfully', () => {
+    let st = stage()
+      .name('stage')
+      .run(() => { })
+      .rescue(()=>{})
+      .build()
 
-  // it('initialize other stuff sucessfully', () => {
-  //   let st = stage()
-  //     .name('stage')
-  //     .run(() => { })
-  //     .ensure(() => { })
-  //     .rescue(()=>{})
-  //     .build()
+    expect(st.name).toBe('stage')
+    expect(st.reportName).toBe(`STG:${st.name}`)
+    expect(st).toMatchSnapshot('schema stage 1')
+  })
+  it('create with Lambda 2', () => {
+    const s = stage()
+      .input(z.object({name: z.string()}))
+      .output(z.object({name: z.string()}))
+      .run((err, ctx) => {
+        if (!err && ctx) {
+          ctx.name = 'run the stage'
+          return Promise.resolve(ctx)
+        } else {
+          return Promise.reject(err)
+        }
+    })
+    expect(s).toMatchSnapshot('lambda stage')
+  })
 
-  //   expect(st.name).toBe('stage')
-  //   expect(st.reportName).toBe(`STG:${st.name}`)
-  //   expect(st).toMatchSnapshot('schema stage 1')
-  // })
-  // it('create with Lambda 2', () => {
-  //   const s = new Stage((err, ctx) => {
-  //     if (!err) {
-  //       ctx.name = 'run the stage'
-  //       return Promise.resolve(ctx)
-  //     } else {
-  //       return Promise.reject(err)
-  //     }
-  //   })
-  //   expect(s).toMatchSnapshot('lambda stage')
-  // })
-
-  // it('create with Config', () => {
-  //   const s = new Stage<{ name: string }>((err, ctx, done) => {
-  //     if (!err) {
-  //       ctx.name = 'run the stage'
-  //       done(undefined, ctx)
-  //     } else {
-  //       done(err)
-  //     }
-  //   })
-  //   expect(s).toMatchSnapshot('config stage')
-  // })
+  it('create with Config', () => {
+    const s = stage()
+      .input(z.object({name:z.string()}))
+      .run((err, ctx, done) => {
+        if (done) {
+          if (!err && ctx) {
+            ctx.name = 'run the stage'
+            done(undefined, ctx)
+          } else {
+            done(err)
+          }
+        }
+    })
+    expect(s).toMatchSnapshot('config stage')
+  })
 
   // it('use Precompile to run everything', () => {
   //   type CTX = {

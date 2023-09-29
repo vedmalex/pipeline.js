@@ -231,6 +231,7 @@ export interface StageBuilder<TParams extends BuilderParams> {
     InferKeys<TParams['_usage']> | 'compile'
   >
   build(): Stage<
+    TParams['_input'] extends UnsetMarker ? TParams['_output'] : TParams['_input'],
     TParams['_output'] extends UnsetMarker ? TParams['_input'] : TParams['_output'],
     StageConfig<TParams['_input'], TParams['_output']>
   >
