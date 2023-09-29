@@ -30,6 +30,15 @@ export interface BuilderParams {
   _usage: {}
 }
 
+export type ExtractInput<TParams extends BuilderParams> = TParams['_input'] extends UnsetMarker
+  ? TParams['_output'] extends UnsetMarker ? any : TParams['_output']
+  : TParams['_input']
+
+export type ExtractOutput<TParams extends BuilderParams> = TParams['_output'] extends UnsetMarker
+  ? TParams['_input'] extends UnsetMarker ? any : TParams['_input']
+  : TParams['_output']
+
+
 // упрощает работу с chain
 export type InferParams<TParams extends BuilderParams, Usage extends keyof StageBuilder<TParams>> = {
   _stage: TParams['_stage']
@@ -209,7 +218,9 @@ export interface StageBuilder<TParams extends BuilderParams> {
     >,
     InferKeys<TParams['_usage']> | 'ouput'
   >
-  run<$Input = TParams['_input']>(fn: CustomRun<$Input>): Omit<
+  run<$Input = ExtractInput<TParams>, $Output = ExtractOutput<TParams>>(
+    fn: CustomRun<$Input, $Output>,
+  ): Omit<
     StageBuilder<
       InferParams<TParams, 'run'>
     >,
@@ -234,20 +245,20 @@ export interface StageBuilder<TParams extends BuilderParams> {
     InferKeys<TParams['_usage']> | 'compile'
   >
   build(): Stage<
-    TParams['_input'] extends UnsetMarker ? TParams['_output'] : TParams['_input'],
-    TParams['_output'] extends UnsetMarker ? TParams['_input'] : TParams['_output'],
-    StageConfig<TParams['_input'], TParams['_output']>
-    >
-  config(): StageConfig<TParams['_input'], TParams['_output']>
+    ExtractInput<TParams>,
+    ExtractOutput<TParams>,
+    StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  >
+  config(): StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   _def: BuilderDef<TParams['_stage']>
 }
 
-export type CustomRun<$P1> = (
+export type CustomRun<$P1, $P2> = (
   this: $P1 extends StageObject ? $P1 : never,
   p1?: ComplexError | $P1 | undefined,
   p2?: $P1 | undefined,
-  p3?: CallbackFunction<$P1> | undefined,
-) => Promise<$P1> | $P1 | void
+  p3?: CallbackFunction<$P2> | undefined,
+) => Promise<$P2> | $P2 | void
 
 export type Rescue<$P1> = (
   this: $P1 extends StageObject ? $P1 : never,
@@ -271,10 +282,6 @@ export type Compile<TStage> = (
   this: TStage extends Stage<infer $In, infer $Out> ? StageRun<$In, $Out> : never,
   rebuild?: boolean,
 ) => TStage extends Stage<infer $In, infer $Out> ? StageRun<$In, $Out> : never
-
-export type Precompile<$P1, $P2, TStage> = (
-  this: TStage extends Stage<$P1, $P2> ? TStage : never,
-) => void
 
 // const st = createBuilder()
 //   .input(z.object({ name: z.string() }))

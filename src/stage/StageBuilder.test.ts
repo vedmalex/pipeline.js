@@ -1,6 +1,7 @@
 import 'jest'
-import { string, z } from 'zod'
+import { z } from 'zod'
 import { stage } from './StageBuilderWithZod'
+import { ExtractCallbackType } from './types'
 
 describe('stageBuilder', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
@@ -30,8 +31,8 @@ describe('stageBuilder', () => {
   })
   it('create with function', () => {
     const s = stage()
-      .input(z.object({name: z.string().optional()}))
-      .run(function () {
+      .input(z.object({ name: z.string().optional() }))
+      .run(function (this) {
         this.name = 'run this Stage'
       }).build()
 
@@ -41,40 +42,40 @@ describe('stageBuilder', () => {
 
   it('create with Lambda 3', () => {
     const s = stage()
-      .input(z.object({name: z.string().optional()}))
+      .input(z.object({ name: z.string().optional() }))
+      .output(z.object({ name: z.string() }))
       .run((err, ctx, done) => {
-      if (!err && ctx && done) {
-        ctx.name = 'run the stage'
-        done(undefined, ctx)
-      } else if(done){
-        done(err)
-      }
-    }).build()
+        if (!err && ctx && done) {
+          ctx.name = 'run the stage'
+
+          done(undefined, ctx as ExtractCallbackType<typeof done>)
+        } else if (done) {
+          done(err)
+        }
+      }).build()
     expect(s).toMatchSnapshot('lambda stage')
   })
 
   it('intialize using schema and validate separately', () => {
-    expect(
-      () =>
-        stage()
-          .input(z.object({name:z.string()}))
-          .run(() => { })
+    expect(() =>
+      stage()
+        .input(z.object({ name: z.string() }))
+        .run(() => {})
         .build()
     ).not.toThrow()
-    expect(
-      () =>
-        stage()
-          .run(() => { })
-          .input(z.object({}).passthrough())
-      .build(),
+    expect(() =>
+      stage()
+        .run(() => {})
+        .input(z.object({}).passthrough())
+        .build()
     ).not.toThrow()
   })
 
-  it('validate using schema', (done) => {
+  it('validate using schema', done => {
     const st = stage()
-          .run(() => { })
+      .run(() => {})
       .input(z.object({}).passthrough())
-      .output(z.object({name:z.string()}))
+      .output(z.object({ name: z.string() }))
       .build()
 
     st.execute({ fullname: 1 }, (err, res) => {
@@ -87,8 +88,8 @@ describe('stageBuilder', () => {
   it('initialize other stuff sucessfully', () => {
     let st = stage()
       .name('stage')
-      .run(() => { })
-      .rescue(()=>{})
+      .run(() => {})
+      .rescue(() => {})
       .build()
 
     expect(st.name).toBe('stage')
@@ -97,8 +98,7 @@ describe('stageBuilder', () => {
   })
   it('create with Lambda 2', () => {
     const s = stage()
-      .input(z.object({name: z.string()}))
-      .output(z.object({name: z.string()}))
+      .input(z.object({ name: z.string() }))
       .run((err, ctx) => {
         if (!err && ctx) {
           ctx.name = 'run the stage'
@@ -106,13 +106,12 @@ describe('stageBuilder', () => {
         } else {
           return Promise.reject(err)
         }
-    })
+      })
     expect(s).toMatchSnapshot('lambda stage')
   })
 
   it('create with Config', () => {
     const s = stage()
-      .input(z.object({name:z.string()}))
       .run((err, ctx, done) => {
         if (done) {
           if (!err && ctx) {
@@ -122,7 +121,7 @@ describe('stageBuilder', () => {
             done(err)
           }
         }
-    })
+      })
     expect(s).toMatchSnapshot('config stage')
   })
 
