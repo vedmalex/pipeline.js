@@ -1,18 +1,20 @@
-import { CreateError, ERROR, process_error } from '../errors'
+import { ERROR, process_error } from '../errors'
 import {
   CallbackFunction,
   is_thenable,
   isValidateFunction1Async,
   isValidateFunction1Sync,
   isValidateFunction2Sync,
+  makeCallback,
+  makeCallbackArgs,
   ValidateFunction,
   ValidateFunction1Async,
 } from '../types'
 
-export function execute_validate<Input, Output>(
-  validate: ValidateFunction<Input, Output>,
+export function execute_validate<Input>(
+  validate: ValidateFunction<Input>,
   context: Input,
-  done: CallbackFunction<boolean>,
+  done: CallbackFunction<boolean, boolean>,
 ) {
   switch (validate.length) {
     case 1:
@@ -21,60 +23,63 @@ export function execute_validate<Input, Output>(
           validate(context)
             .then(res => {
               if (typeof res == 'boolean') {
-                done(undefined, res)
+                done(makeCallbackArgs(undefined, res))
               } else {
-                done(res)
+                done(makeCallbackArgs(res))
               }
             })
-            .catch(err => done(err))
+            .catch(err => done(makeCallbackArgs(err)))
         } catch (err) {
           process_error(err, done)
         }
       } else if (isValidateFunction1Sync(validate)) {
         try {
-          const res = validate(context) as unknown as ValidateFunction1Async<Input, Output>
+          const res = validate(context) as unknown as ValidateFunction1Async<Input>
           if (res instanceof Promise) {
-            res.then(res => done(undefined, res)).catch(err => done(err))
+            res.then(res => done(makeCallbackArgs(undefined, res))).catch(err => done(makeCallbackArgs(err)))
           } else if (is_thenable<boolean>(res)) {
-            res.then(res => done(undefined, res)).catch(err => done(err))
+            res.then(res => done(makeCallbackArgs(undefined, res))).catch(err => done(makeCallbackArgs(err)))
           } else if (typeof res == 'boolean') {
             if (res) {
-              done(undefined, res)
+              done(makeCallbackArgs(undefined, res))
             } else {
-              done(CreateError(ERROR.invalid_context))
+              done(makeCallbackArgs(ERROR.invalid_context))
             }
           } else {
             if (typeof res === 'object' && res) {
-              done(res as Error)
+              done(makeCallbackArgs(res))
             } else {
-              done(new Error(String(res)))
+              done(makeCallbackArgs(res))
             }
           }
         } catch (err) {
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(makeCallbackArgs(ERROR.signature))
       }
       break
     case 2:
-      if (isValidateFunction2Sync(validate)) {
+      if (isValidateFunction2Sync<Input>(validate)) {
         try {
-          validate(context, (err, res) => {
-            if (err) {
-              done(CreateError(err), res)
-            } else {
-              done(err, res)
-            }
-          })
+          validate(
+            context,
+            makeCallback((err, res) => {
+              if (err) {
+                done(makeCallbackArgs(err, res))
+              } else {
+                done(makeCallbackArgs(err, res))
+              }
+            }),
+          )
         } catch (err) {
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(makeCallbackArgs(ERROR.signature))
       }
       break
     default:
-      done(CreateError(ERROR.signature))
+      done(makeCallbackArgs(ERROR.signature))
   }
 }

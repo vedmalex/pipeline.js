@@ -1,19 +1,21 @@
-import { CreateError, ERROR, process_error } from '../errors'
+import { ERROR, process_error } from '../errors'
 import {
+  CallbackFunction,
   is_thenable,
   isRescue1ASync,
   isRescue1Sync,
   isRescue2ASync,
   isRescue2Sync,
   isRescue3Callback,
+  makeCallbackArgs,
   Rescue,
 } from '../types'
 
-export function execute_rescue(
+export function execute_rescue<Input, Output>(
   rescue: Rescue,
   err: Error,
   context: unknown,
-  done: (err?: unknown) => void,
+  done: CallbackFunction<Input, Output>
 ) {
   switch (rescue.length) {
     case 1:
@@ -21,8 +23,8 @@ export function execute_rescue(
         try {
           rescue
             .call(context, err)
-            .then(_ => done(undefined))
-            .catch(err => done(err))
+            .then(_ => done(makeCallbackArgs()))
+            .catch(err => done(makeCallbackArgs(err)))
         } catch (err) {
           process_error(err, done)
         }
@@ -31,17 +33,17 @@ export function execute_rescue(
           // if error is not handled, then it will be thrown
           const res = rescue.call(context, err)
           if (res instanceof Promise) {
-            res.then(_ => done()).catch(err => done(err))
+            res.then(_ => done(makeCallbackArgs())).catch(err => done(makeCallbackArgs(err)))
           } else if (is_thenable(res)) {
-            res.then(_ => done()).catch(err => done(err))
+            res.then(_ => done(makeCallbackArgs())).catch(err => done(makeCallbackArgs(err)))
           } else {
-            done()
+            done(makeCallbackArgs())
           }
         } catch (err) {
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(makeCallbackArgs(ERROR.signature))
       }
       break
     case 2:
@@ -49,8 +51,8 @@ export function execute_rescue(
         try {
           rescue
             .call(null, err, context)
-            .then(_ => done())
-            .catch(err => done(err))
+            .then(_ => done(makeCallbackArgs()))
+            .catch(err => done(makeCallbackArgs(err)))
         } catch (err) {
           process_error(err, done)
         }
@@ -59,36 +61,37 @@ export function execute_rescue(
           // if error is not handled, then it will be thrown
           const res = rescue.call(null, err, context)
           if (res instanceof Promise) {
-            res.then(_ => done()).catch(err => done(err))
+            res.then(_ => done(makeCallbackArgs())).catch(err => done(makeCallbackArgs(err)))
           } else if (is_thenable(res)) {
-            res.then(_ => done()).catch(err => done(err))
+            res.then(_ => done(makeCallbackArgs())).catch(err => done(makeCallbackArgs(err)))
           } else {
             if (Boolean(res)) {
               process_error(res, done)
             } else {
-              done()
+              done(makeCallbackArgs())
             }
           }
         } catch (err) {
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(makeCallbackArgs(ERROR.signature))
       }
       break
     case 3:
       if (isRescue3Callback(rescue)) {
         try {
+          //@ts-ignore
           rescue.call(null, err, context, done)
         } catch (err) {
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(makeCallbackArgs(ERROR.signature))
       }
       break
     default:
-      done(CreateError(ERROR.signature))
+      done(makeCallbackArgs(ERROR.signature))
   }
 }
 

@@ -1,7 +1,7 @@
 import 'jest'
 import { z } from 'zod'
 import { stage } from './StageBuilderWithZod'
-import { ExtractCallbackType } from './types'
+import { ExtractCallbackType, makeCallback } from './types'
 
 describe('stageBuilder', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
@@ -17,11 +17,11 @@ describe('stageBuilder', () => {
       })
       .build()
 
-    st.execute({}, (err, res) => {
+    st.execute({}, makeCallback((err, res) => {
       expect(err).toBeUndefined()
       expect(res).toMatchObject({ name: 'name' })
       done()
-    })
+    }))
   })
   it('create named', () => {
     const s = stage()

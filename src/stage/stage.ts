@@ -5,7 +5,18 @@ import { Context, OriginalObject } from './Context'
 import { can_fix_error, ComplexError, CreateError } from './errors'
 import { getStageConfig, isAnyStage, StageSymbol } from './getStageConfig'
 import { StageConfig } from './StageConfig'
-import { AllowedStage, AnyStage, CallbackFunction, isStageRun, Possible, RunPipelineFunction, StageRun } from './types'
+import {
+  AllowedStage,
+  AnyStage,
+  CallbackFunction,
+  isStageRun,
+  LegacyCallback,
+  makeCallback,
+  makeCallbackArgs,
+  Possible,
+  RunPipelineFunction,
+  StageRun,
+} from './types'
 import { execute_callback } from './utils/execute_callback'
 import { execute_custom_run } from './utils/execute_custom_run'
 import { execute_rescue } from './utils/execute_rescue'
@@ -56,8 +67,8 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
   // может быть вызван как Promise
   // сделать все дубликаты и проверки методов для работы с промисами
   public execute(context: Input): Promise<Output>
-  public execute(context: Input, callback: CallbackFunction<Output>): void
-  public execute(err: unknown, context: Input, callback: CallbackFunction<Output>): void
+  public execute(context: Input, callback: LegacyCallback<Output>): void
+  public execute(err: unknown, context: Input, callback: LegacyCallback<Output>): void
   public execute(
     _err?: unknown,
     _context?: unknown,
@@ -66,7 +77,7 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
     // discover arguments
     let err: Possible<ComplexError>
     let not_ensured_context: Input
-    let __callback: Possible<CallbackFunction<Output>> = undefined
+    let __callback: Possible<LegacyCallback<Output>> = undefined
 
     if (arguments.length == 1) {
       not_ensured_context = _err as Input
@@ -76,7 +87,7 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
         // callback
         not_ensured_context = _err as Input
         err = undefined
-        __callback = _context as CallbackFunction<Output>
+        __callback = _context as LegacyCallback<Output>
       } else {
         // promise
         err = _err as ComplexError
@@ -86,7 +97,7 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
       // callback
       err = _err as ComplexError
       not_ensured_context = _context as Input
-      __callback = _callback as CallbackFunction<Output>
+      __callback = _callback as LegacyCallback<Output>
     }
 
     if (!this.run) {
@@ -112,80 +123,100 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
     // выполнить валидацию результата сразу же перед вызовом последнего значения
     if (!__callback) {
       return new Promise<Output>((res, rej) => {
-        this.execute(err, context, (err, ctx) => {
-          if (err) {
-            rej(err)
-          } else {
-            if (input_is_context) {
-              res(ctx ?? context as unknown as Output)
+        this.execute(
+          err,
+          context,
+          (err, ctx) => {
+            if (err) {
+              rej(err)
             } else {
-              if (Context.isProxy(ctx)) {
-                res(ctx.original as Output)
+              if (input_is_context) {
+                res(ctx ?? context as unknown as Output)
               } else {
-                res(ctx as unknown as Output)
+                if (Context.isProxy(ctx)) {
+                  res(ctx.original as Output)
+                } else {
+                  res(ctx as unknown as Output)
+                }
               }
             }
-          }
-        })
+          },
+        )
       })
     } else {
-      const back = (err, _ctx) => {
+      const back = makeCallback((err, _ctx) => {
         if (input_is_context) {
-          __callback?.(err, _ctx)
+          __callback?.(err, _ctx as unknown as Output)
         } else {
           if (Context.isProxy<Output>(_ctx)) {
             __callback?.(err, _ctx.original)
           } else {
-            __callback?.(err, _ctx)
+            __callback?.(err, _ctx as Output)
           }
         }
-      }
+      })
       const successRescue = (ret: unknown) => {
         if (this._config.output) {
-          this.validate(this._config.output, ret ?? context, (err_, ctx) => {
-            if (err_) {
-              this.rescue(err_, ctx ?? context, fail, successRescue)
-            } else {
-              back(err, ctx ?? context as unknown as Output)
-            }
-          })
+          this.validate(
+            this._config.output,
+            ret ?? context,
+            makeCallback((err_, ctx) => {
+              if (err_) {
+                this.rescue(err_, ctx ?? context, fail, successRescue)
+              } else {
+                back(makeCallbackArgs(err, ctx ?? context as unknown as Output))
+              }
+            }),
+          )
         } else {
           success(ret)
         }
       }
-      const success = (ret: unknown) => back(undefined, ret ?? context)
-      const fail = (err: unknown) => back(err, context as unknown as Output)
+      const success = (ret: unknown) => back(makeCallbackArgs(undefined, ret ?? context))
+      const fail = (err: unknown) => back(makeCallbackArgs(err, context as unknown as Output))
 
-      const callback = (err?, _ctx?: Output) => {
+      const callback = makeCallback((err?, _ctx?: Output) => {
         if (err) {
           this.rescue(err, _ctx ?? context, fail, successRescue)
         } else {
           if (this._config.output) {
-            this.validate(this._config.output, _ctx ?? context, (err_, ctx) => {
-              if (err_) {
-                this.rescue(err_, ctx ?? context, fail, successRescue)
-              } else {
-                back(err, ctx ?? context as unknown as Output)
-              }
-            })
+            this.validate(
+              this._config.output,
+              _ctx ?? context,
+              makeCallback((err_, ctx) => {
+                if (err_) {
+                  this.rescue(err_, ctx ?? context, fail, successRescue)
+                } else {
+                  back(makeCallbackArgs(err, ctx ?? context as unknown as Output))
+                }
+              }),
+            )
           } else {
-            back(err, _ctx ?? context as unknown as Output)
+            back(makeCallbackArgs(err, _ctx ?? context as unknown as Output))
           }
         }
-      }
+      })
 
       if (err && this._config.run && !can_fix_error(this._config.run)) {
         this.rescue(err, context, fail, successRescue)
       } else {
         if (this._config.input) {
-          this.validate(this._config.input, context, (err_, ctx) => {
-            this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
-          })
+          this.validate<Input>(
+            this._config.input,
+            context,
+            makeCallback((err_, ctx) => {
+              this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
+            }),
+          )
         } else {
           stageToRun(undefined, context, callback)
         }
       }
     }
+  }
+  // new API for execution
+  public exec(context: Input, callback: CallbackFunction<Input, Output>): void{
+
   }
 
   protected runStageMethod(
@@ -194,14 +225,19 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
     ctx: Input | undefined,
     context: Input,
     stageToRun: StageRun<any, Output>,
-    callback: CallbackFunction<Output>,
+    callback: CallbackFunction<Input, Output>,
   ) {
     if (err || err_) {
       if (this.config.run && !can_fix_error(this.config.run)) {
-        this.rescue(CreateError([err, err_] as Array<Error>), ctx ?? context, callback, rescuedContext => {
-          // ошибка обработана все хорошо, продолжаем
-          stageToRun(undefined, rescuedContext, callback)
-        })
+        this.rescue(
+          CreateError([err, err_] as Array<Error>),
+          ctx ?? context,
+          err => callback(makeCallbackArgs(err)),
+          rescuedContext => {
+            // ошибка обработана все хорошо, продолжаем
+            stageToRun(undefined, rescuedContext, callback)
+          },
+        )
       } else {
         // обработка ошибок может происходить внутри функции
         stageToRun(CreateError([err, err_] as Array<Error>), ctx ?? context, callback)
@@ -211,16 +247,16 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
     }
   }
 
-  protected stage(err: unknown, context: Input, callback: CallbackFunction<Output>) {
+  protected stage(err: unknown, context: Input, callback: CallbackFunction<Input, Output>) {
     const back = callback
-    const sucess = (ret: unknown) => back(undefined, (ret ?? context) as Output)
-    const fail = (err: unknown) => back(err, context as unknown as Output)
+    const sucess = (ret: unknown) => back(makeCallbackArgs(undefined, (ret ?? context) as Output))
+    const fail = (err: unknown) => back(makeCallbackArgs(err, context as unknown as Output))
     if (this._config.run) {
       if (context) {
         ;(execute_callback<Input, Output>).call(this, err, this._config.run, context, callback)
       } else {
         // возвращаем управление
-        callback(err)
+        callback(makeCallbackArgs(err))
       }
     } else {
       const retErr: Array<any> = [this.reportName + ' reports: run is not a function']
@@ -264,27 +300,27 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
     fail: (err: unknown) => void,
     success: (ctx: unknown) => void,
   ) {
-    let err: Possible<ComplexError>
+    let err: Possible<Error>
 
     if (_err) {
       if (!(_err instanceof Error)) {
-        err = CreateError(_err)
+        err = _err as Error
       } else {
-        err = CreateError(_err)
+        err = _err
       }
     } else {
       err = null
     }
 
     if (err && this._config.rescue) {
-      execute_rescue(this._config.rescue, err, context, _err => {
+      execute_rescue(this._config.rescue, err, context, makeCallback(_err => {
         // здесь может быть исправлена ошибка, и контекст передается дальше на выполнение
         if (_err) {
           fail(_err)
         } else {
           success(context)
         }
-      })
+      }))
     } else {
       // отправить ошибку дальше
       // окончателная ошибка и выходим из выполнения
@@ -312,14 +348,14 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
   protected validate<T>(
     validate: z.ZodType<T>,
     context: unknown,
-    callback: CallbackFunction<T>,
+    callback: CallbackFunction<Input, T>,
   ) {
     validate.safeParseAsync(context)
       .then(result => {
         if (!result.success) {
-          callback(CreateError(fromZodError(result?.error)), context as T)
+          callback(makeCallbackArgs(fromZodError(result?.error), context as T))
         } else {
-          callback(undefined, context as T)
+          callback(makeCallbackArgs(undefined, context as T))
         }
       })
   }

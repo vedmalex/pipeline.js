@@ -1,4 +1,13 @@
-import { AllowedStage, AnyStage, ComplexError, Context, run_or_execute_async, Stage, StageRun } from '../../stage'
+import {
+  AllowedStage,
+  AnyStage,
+  ComplexError,
+  Context,
+  makeCallbackArgs,
+  run_or_execute_async,
+  Stage,
+  StageRun,
+} from '../../stage'
 import { getRetryOnErrorConfig } from './getRetryOnErrorConfig'
 import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 
@@ -78,7 +87,7 @@ export class RetryOnError<
           const res = iter === 0 ? context : this.restoreContext(context, backup) as Input
           ;[err, retCtx] = await run_or_execute_async(this.config.stage, err, res ?? context)
         } while (!reachEnd(err, iter++))
-        return done(err, retCtx)
+        return done(makeCallbackArgs(err, retCtx))
       }
       next(err)
     }

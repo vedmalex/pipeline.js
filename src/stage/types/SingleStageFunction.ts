@@ -3,7 +3,7 @@ import { is_async_function } from './is_async_function'
 
 export type SingleStage2Function<Input, Output> = (
   ctx: Input,
-  callback: CallbackFunction<Output>,
+  callback: CallbackFunction<Input, Output>,
 ) => void
 
 export function isSingleStageFunction2<Input, Output>(inp?: unknown): inp is SingleStage2Function<Input, Output> {
@@ -13,7 +13,7 @@ export function isSingleStageFunction2<Input, Output>(inp?: unknown): inp is Sin
 export type SingleStage3Function<Input, Output> = (
   err: unknown,
   ctx: Input,
-  callback: CallbackFunction<Output>,
+  callback: CallbackFunction<Input, Output>,
 ) => void
 export function isSingleStage3Function<Input, Output>(inp?: unknown): inp is SingleStage3Function<Input, Output> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 3

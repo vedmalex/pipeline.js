@@ -2,58 +2,59 @@ import { CallbackFunction } from './CallbackFunction'
 import { is_async_function } from './is_async_function'
 import { Thenable } from './is_thenable'
 
-export type ValidateFunction0Sync<Input, Output> = (this: Output) => boolean
+export type ValidateFunction0Sync<Output> = (this: Output) => boolean
 
-export function isValidateFunction0Sync<Input, Output>(inp: unknown): inp is ValidateFunction0Sync<Input, Output> {
+export function isValidateFunction0Sync< Output>(inp: unknown): inp is ValidateFunction0Sync<Output> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 0
 }
 
-export type ValidateFunction1Sync<Input, Output> = (this: void, ctx: Output) => boolean
-export function isValidateFunction1Sync<Input, Output>(inp: unknown): inp is ValidateFunction1Sync<Input, Output> {
+export type ValidateFunction1Sync<Output> = (this: void, ctx: Output) => boolean
+export function isValidateFunction1Sync<Output>(inp: unknown): inp is ValidateFunction1Sync<Output> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 1
 }
 
-export type ValidateFunction1Async<Input, Output> = (this: void, ctx: Output) => Promise<boolean>
-export function isValidateFunction1Async<Input, Output>(inp: unknown): inp is ValidateFunction1Async<Input, Output> {
+export type ValidateFunction1Async<Output> = (this: void, ctx: Output) => Promise<boolean>
+export function isValidateFunction1Async<Output>(inp: unknown): inp is ValidateFunction1Async<Output> {
   return is_async_function(inp) && typeof inp == 'function' && inp.length == 1
 }
 
-export type ValidateFunction1Thenable<Input, Output> = (this: void, ctx: Output) => Thenable<boolean>
-export function isValidateFunction1Thenable<Input, Output>(
+export type ValidateFunction1Thenable<Output> = (this: void, ctx: Output) => Thenable<boolean>
+export function isValidateFunction1Thenable<Output>(
   inp: unknown,
-): inp is ValidateFunction1Thenable<Input, Output> {
+): inp is ValidateFunction1Thenable<Output> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 1
 }
 
-export type ValidateFunction2Sync<Input, Output> = (
+export type ValidateFunction2Sync<Output> = (
   this: void,
   ctx: Output,
-  callback: CallbackFunction<boolean>,
+  callback: CallbackFunction<boolean, boolean>,
 ) => void
-export function isValidateFunction2Sync<Input, Output>(inp: unknown): inp is ValidateFunction2Sync<Input, Output> {
+
+export function isValidateFunction2Sync<Output>(inp: unknown): inp is ValidateFunction2Sync< Output> {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 2
 }
 
-export type ValidateFunction<Input, Output> =
+export type ValidateFunction<Output> =
   // will throw error
-  | ValidateFunction0Sync<Input, Output>
-  | ValidateFunction1Sync<Input, Output>
+  | ValidateFunction0Sync<Output>
+  | ValidateFunction1Sync<Output>
   // will reject with error
-  | ValidateFunction1Async<Input, Output>
-  | ValidateFunction1Thenable<Input, Output>
+  | ValidateFunction1Async<Output>
+  | ValidateFunction1Thenable<Output>
   // will return error in callback
-  | ValidateFunction2Sync<Input, Output>
+  | ValidateFunction2Sync<Output>
 
-export function isValidateFunction<Input, Output>(inp: unknown): inp is ValidateFunction<Input, Output> {
+export function isValidateFunction<Output>(inp: unknown): inp is ValidateFunction<Output> {
   return (
-    isValidateFunction0Sync<Input, Output>(inp)
-    || isValidateFunction1Sync<Input, Output>(inp)
-    || isValidateFunction1Async<Input, Output>(inp)
-    || isValidateFunction1Thenable<Input, Output>(inp)
-    || isValidateFunction2Sync<Input, Output>(inp)
+    isValidateFunction0Sync<Output>(inp)
+    || isValidateFunction1Sync<Output>(inp)
+    || isValidateFunction1Async<Output>(inp)
+    || isValidateFunction1Thenable<Output>(inp)
+    || isValidateFunction2Sync<Output>(inp)
   )
 }
 
-export type ValidateSync<Input, Output> = (ctx: Output) => Output
-export type ValidateAsync<Input, Output> = (ctx: Output) => Promise<Output>
-export type ValidateCallback<Input, Output> = (ctx: Output, done: CallbackFunction<Output>) => void
+export type ValidateSync<Output> = (ctx: Output) => Output
+export type ValidateAsync<Output> = (ctx: Output) => Promise<Output>
+export type ValidateCallback<Output> = (ctx: Output, done: CallbackFunction<Output, Output>) => void

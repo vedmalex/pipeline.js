@@ -254,25 +254,25 @@ export type CustomRun<$P1, $P2> = (
   this: $P1 extends StageObject ? $P1 : never,
   p1?: ComplexError | $P1 | undefined,
   p2?: $P1 | undefined,
-  p3?: CallbackFunction<$P2> | undefined,
+  p3?: CallbackFunction<$P1,$P2> | undefined,
 ) => Promise<$P2> | $P2 | void
 
 export type Rescue<$P1> = (
   this: $P1 extends StageObject ? $P1 : never,
   p1?: Error | $P1 | undefined,
   p2?: $P1 | undefined,
-  p3?: CallbackFunction<$P1> | undefined,
+  p3?: CallbackFunction<$P1, $P1> | undefined,
 ) => Promise<$P1> | $P1 | void
 
 export type Ensure<$P1> = (
   p1?: $P1 extends StageObject ? $P1 : never,
-  p2?: CallbackFunction<$P1> | undefined,
+  p2?: CallbackFunction<$P1,$P1> | undefined,
 ) => Promise<$P1> | $P1 | void
 
 export type ValidateFn<$P1> = (
   this: $P1 extends StageObject ? $P1 : never,
   p1?: $P1 | undefined,
-  p2?: CallbackFunction<boolean> | undefined,
+  p2?: CallbackFunction<boolean, boolean> | undefined,
 ) => Promise<boolean> | boolean | void
 
 export type Compile<TStage> = (

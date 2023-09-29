@@ -1,5 +1,5 @@
-import { CallbackFunction } from '../types'
+import { CallbackFunction, makeCallbackArgs } from '../types'
 
-export function empty_run<Input, Output>(err: unknown, context: Input, done: CallbackFunction<Output>) {
-  done(err, context as unknown as Output)
+export function empty_run<Input, Output>(err: unknown, context: Input, done: CallbackFunction<Input, Output>) {
+  done(makeCallbackArgs(err, context as unknown as Output))
 }

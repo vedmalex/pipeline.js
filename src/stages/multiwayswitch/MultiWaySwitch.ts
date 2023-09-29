@@ -1,7 +1,8 @@
 import {
   CallbackFunction,
-  CreateError,
   isAnyStage,
+  makeCallback,
+  makeCallbackArgs,
   Possible,
   run_or_execute,
   Stage,
@@ -136,7 +137,7 @@ export class MultiWaySwitch<
       let hasError = false
 
       let next = (index: number) => {
-        return (err: unknown, retCtx: T) => {
+        return makeCallback((err: unknown, retCtx: T) => {
           iter++
           let cur = actuals[index]
           let res: Possible<Output> = null
@@ -150,22 +151,23 @@ export class MultiWaySwitch<
           }
 
           if (iter >= actuals.length) {
-            return done(hasError ? CreateError(errors) : undefined, res ?? ctx as unknown as Output)
+            return done(makeCallbackArgs(hasError ? errors : undefined, res ?? ctx as unknown as Output))
           }
-        }
+        })
       }
+
       let stg
       let lctx
       for (i = 0; i < actuals.length; i++) {
         stg = actuals[i]
         lctx = this.splitCase(stg, ctx)
 
-        run_or_execute(stg.stage, err, lctx, next(i) as CallbackFunction<T>)
+        run_or_execute(stg.stage, err, lctx, next(i) as CallbackFunction<Input, T>)
         // не хватает явной передачи контекста
       }
 
       if (actuals.length === 0) {
-        return done(err, ctx as unknown as Output)
+        return done(makeCallbackArgs(err, ctx as unknown as Output))
       }
     }
 

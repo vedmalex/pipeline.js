@@ -70,13 +70,13 @@ describe('DoWhile', function () {
   })
   it('run stage', function (done) {
     type CTX = { iter: number }
-    var stage0 = new Stage<CTX>((err, ctx, done) => {
+    var stage0 = new Stage<CTX, CTX>((err, ctx, done) => {
       if (typeof ctx == 'object' && ctx) {
         ctx.iter++
       }
       done(err)
     })
-    var stage = new DoWhile<CTX, CTX>({
+    var stage = new DoWhile<CTX, CTX, CTX>({
       stage: stage0,
       reachEnd: function (err, ctx, iter) {
         return !!err || iter == 10
@@ -85,11 +85,7 @@ describe('DoWhile', function () {
     stage.execute({
       iter: -1,
     }, function (err, context) {
-      if (context) {
-        expect(context.iter).toEqual(9)
-      } else {
-        throw new Error('nonsense')
-      }
+      expect(context.iter).toEqual(9)
       done()
     })
   })

@@ -1,17 +1,17 @@
 import { CreateError } from '../errors'
-import { CallbackFunction } from '../types'
+import { CallbackFunction, makeCallback, makeCallbackArgs } from '../types'
 
-export function run_callback_once<Input, Output>(wrapee: CallbackFunction<Output>): CallbackFunction<Output> {
+export function run_callback_once<Input, Output>(wrapee: CallbackFunction<Input, Output>): CallbackFunction<Input, Output> {
   let done_call = 0
-  const c: CallbackFunction<Output> = function (err, ctx) {
+  const c: CallbackFunction<Input, Output> = makeCallback<Input, Output>((err, ctx) => {
     if (done_call == 0) {
       done_call += 1
-      wrapee(err, ctx)
+      wrapee(makeCallbackArgs(err, ctx))
     } else if (err) {
       throw err
     } else {
-      throw CreateError([ctx, 'callback called more than once'])
+      throw CreateError('callback called more than once')
     }
-  }
+  })
   return c
 }

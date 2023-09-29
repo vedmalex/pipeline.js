@@ -1,4 +1,4 @@
-import { AllowedStage, run_or_execute, Stage, StageRun } from '../../stage'
+import { AllowedStage, makeCallback, makeCallbackArgs, run_or_execute, Stage, StageRun } from '../../stage'
 import { getWrapConfig } from './getWrapConfig'
 import { WrapConfig } from './WrapConfig'
 
@@ -27,14 +27,19 @@ export class Wrap<
     let run: StageRun<Input, Output> = (err, context, done) => {
       const ctx = this.prepare(context)
       if (this.config.stage) {
-        run_or_execute(this.config.stage, err, ctx, (err, retCtx) => {
-          if (!err) {
-            const result = this.finalize(context, retCtx ?? ctx)
-            done(undefined, result ? result : context as unknown as Output)
-          } else {
-            done(err, context as unknown as Output)
-          }
-        })
+        run_or_execute(
+          this.config.stage,
+          err,
+          ctx,
+          makeCallback((err, retCtx) => {
+            if (!err) {
+              const result = this.finalize(context, retCtx ?? ctx)
+              done(makeCallbackArgs(undefined, result ? result : context as unknown as Output))
+            } else {
+              done(makeCallbackArgs(err, context as unknown as Output))
+            }
+          }),
+        )
       }
     }
 

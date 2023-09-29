@@ -3,5 +3,5 @@ import { CallbackFunction } from './CallbackFunction'
 export type StageRun<Input, Output> = (
   err: unknown,
   context: Input,
-  callback: CallbackFunction<Output>,
+  callback: CallbackFunction<Input, Output>,
 ) => void

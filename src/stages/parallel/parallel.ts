@@ -1,4 +1,4 @@
-import { AllowedStage, CreateError, empty_run, run_or_execute, Stage, StageRun } from '../../stage'
+import { AllowedStage, empty_run, makeCallback, makeCallbackArgs, run_or_execute, Stage, StageRun } from '../../stage'
 import { getParallelConfig } from './getParallelConfig'
 import { ParallelConfig } from './ParallelConfig'
 import { ParallelError } from './ParallelError'
@@ -54,29 +54,34 @@ export class Parallel<
         let hasError = false
         const build = (i: number) => {
           return new Promise(resolve => {
-            run_or_execute(this.config.stage, err, children[i], (err, res) => {
-              if (err) {
-                if (!hasError) {
-                  hasError = true
-                  errors = []
+            run_or_execute(
+              this.config.stage,
+              err,
+              children[i],
+              makeCallback((err, res) => {
+                if (err) {
+                  if (!hasError) {
+                    hasError = true
+                    errors = []
+                  }
+                  const error = new ParallelError({
+                    stage: this.name,
+                    index: i,
+                    err: err,
+                    ctx: children[i],
+                  })
+                  if (error) {
+                    errors.push(error)
+                  }
                 }
-                const error = new ParallelError({
-                  stage: this.name,
-                  index: i,
-                  err: err,
-                  ctx: children[i],
-                })
-                if (error) {
-                  errors.push(error)
-                }
-              }
-              resolve([err, res] as [unknown, T])
-            })
+                resolve([err, res] as [unknown, T])
+              }),
+            )
           })
         }
 
         if (len === 0) {
-          return done(err, ctx as unknown as Output)
+          return done(makeCallbackArgs(err, ctx as unknown as Output))
         } else {
           let result: Array<Promise<[unknown, T]>> = []
           for (let i = 0; i < children.length; i++) {
@@ -93,7 +98,7 @@ export class Parallel<
               }
             })
             let result = this.combine(ctx, mapRes)
-            done(CreateError(errors), result)
+            done(makeCallbackArgs(errors, result))
           })
         }
       }

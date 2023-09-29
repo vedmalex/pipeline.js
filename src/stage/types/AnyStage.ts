@@ -8,6 +8,6 @@ export interface AnyStage<Input, Output> {
   execute(
     _err?: unknown,
     _context?: Input,
-    _callback?: CallbackFunction<Output>,
+    _callback?: CallbackFunction<Input, Output>,
   ): void | Promise<Output>
 }

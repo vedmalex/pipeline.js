@@ -1,4 +1,4 @@
-import { AnyStage, run_or_execute_async, SingleStageFunction, Stage, StageRun } from '../../stage'
+import { AnyStage, makeCallbackArgs, run_or_execute_async, SingleStageFunction, Stage, StageRun } from '../../stage'
 import { DoWhileConfig } from './DoWhileConfig'
 import { getDoWhileConfig } from './getDoWhileConfig'
 
@@ -59,13 +59,13 @@ export class DoWhile<
           if (err) {
             ;[err, context] = (await this.rescue_async(err, retCtx)) as [unknown, Input]
             if (err) {
-              return done(err)
+              return done(makeCallbackArgs(err))
             }
           }
           iter++
         }
 
-        done(err, retCtx)
+        done(makeCallbackArgs(err, retCtx))
       }
 
       next(err)

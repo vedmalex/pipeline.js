@@ -1,4 +1,4 @@
-import { AllowedStage, run_or_execute, Stage, StageRun } from '../../stage'
+import { AllowedStage, makeCallback, makeCallbackArgs, run_or_execute, Stage, StageRun } from '../../stage'
 import { getTimeoutConfig } from './getTimeoutConfig'
 import { TimeoutConfig } from './TimeoutConfig'
 
@@ -22,13 +22,13 @@ export class Timeout<Input, Output, Config extends TimeoutConfig<Input, Output> 
   override compile(rebuild: boolean = false): StageRun<Input, Output> {
     let run: StageRun<Input, Output> = (err, ctx, done) => {
       let to: any
-      let localDone: typeof done = (err, retCtx) => {
+      let localDone: typeof done = makeCallback((err, retCtx) => {
         if (to) {
           clearTimeout(to)
           to = null
-          return done(err, retCtx)
+          return done(makeCallbackArgs(err, retCtx))
         }
-      }
+      })
       let waitFor: number | undefined
 
       if (this.config.timeout instanceof Function) {

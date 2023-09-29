@@ -1,4 +1,4 @@
-import { CreateError, ERROR, process_error } from '../errors'
+import { ERROR, process_error } from '../errors'
 import {
   AnyStage,
   CustomRun2Callback,
@@ -11,6 +11,7 @@ import {
   isCustomRun2Async,
   isCustomRun2Callback,
   isCustomRun3Callback,
+  makeCallbackArgs,
   RunPipelineFunction,
   StageRun,
 } from '../types'
@@ -27,8 +28,8 @@ export function execute_custom_run<Input, Output>(run: RunPipelineFunction<Input
           try {
             run
               .apply(context)
-              .then(res => done(undefined, res))
-              .catch(err => done(err))
+              .then(res => done(makeCallbackArgs(undefined, res)))
+              .catch(err => done(makeCallbackArgs(err)))
           } catch (err) {
             process_error(err, done)
           }
@@ -36,11 +37,11 @@ export function execute_custom_run<Input, Output>(run: RunPipelineFunction<Input
           try {
             const res = run.apply(context)
             if (res instanceof Promise) {
-              res.then(r => done(undefined, r)).catch(err => done(err))
+              res.then(r => done(makeCallbackArgs(undefined, r))).catch(err => done(makeCallbackArgs(err)))
             } else if (is_thenable<Output>(res)) {
-              res.then(r => done(undefined, r)).catch(err => done(err))
+              res.then(r => done(makeCallbackArgs(undefined, r))).catch(err => done(makeCallbackArgs(err)))
             } else {
-              done(undefined, res)
+              done(makeCallbackArgs(undefined, res))
             }
           } catch (err) {
             process_error(err, done)
@@ -52,8 +53,8 @@ export function execute_custom_run<Input, Output>(run: RunPipelineFunction<Input
           try {
             run
               .call(this, context)
-              .then(ctx => done(undefined, ctx))
-              .catch(err => done(err))
+              .then(ctx => done(makeCallbackArgs(undefined, ctx)))
+              .catch(err => done(makeCallbackArgs(err)))
           } catch (err) {
             process_error(err, done)
           }
@@ -61,17 +62,17 @@ export function execute_custom_run<Input, Output>(run: RunPipelineFunction<Input
           try {
             const res = run.call(this, context)
             if (res instanceof Promise) {
-              res.then(r => done(undefined, r)).catch(err => done(err))
+              res.then(r => done(makeCallbackArgs(undefined, r))).catch(err => done(makeCallbackArgs(err)))
             } else if (is_thenable<Output>(res)) {
-              res.then(r => done(undefined, r)).catch(err => done(err))
+              res.then(r => done(makeCallbackArgs(undefined, r))).catch(err => done(makeCallbackArgs(err)))
             } else {
-              done(undefined, res)
+              done(makeCallbackArgs(undefined, res))
             }
           } catch (err) {
             process_error(err, done)
           }
         } else {
-          done(CreateError(ERROR.signature))
+          done(makeCallbackArgs(ERROR.signature))
         }
         break
       case 2:
@@ -79,8 +80,8 @@ export function execute_custom_run<Input, Output>(run: RunPipelineFunction<Input
           try {
             run
               .call(this, err, context)
-              .then(ctx => done(undefined, ctx))
-              .catch(err => done(err))
+              .then(ctx => done(makeCallbackArgs(undefined, ctx)))
+              .catch(err => done(makeCallbackArgs(err)))
           } catch (err) {
             process_error(err, done)
           }
@@ -92,7 +93,7 @@ export function execute_custom_run<Input, Output>(run: RunPipelineFunction<Input
             process_error(err, done)
           }
         } else {
-          done(CreateError(ERROR.signature))
+          done(makeCallbackArgs(ERROR.signature))
         }
         break
       case 3:
@@ -104,11 +105,11 @@ export function execute_custom_run<Input, Output>(run: RunPipelineFunction<Input
             process_error(err, done)
           }
         } else {
-          done(CreateError(ERROR.signature))
+          done(makeCallbackArgs(ERROR.signature))
         }
         break
       default:
-        done(CreateError(ERROR.signature))
+        done(makeCallbackArgs(ERROR.signature))
     }
   }
 }

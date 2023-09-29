@@ -9,7 +9,7 @@ export type Rescue2ASync = (this: null, err: Error, ctx: unknown) => Promise<voi
 
 export type Rescue2Sync = (this: null, err: Error, ctx: unknown) => unknown
 
-export type Rescue3Callback = (this: null, err: Error, ctx: unknown, done: CallbackFunction<unknown>) => void
+export type Rescue3Callback = (this: null, err: Error, ctx: unknown, done: CallbackFunction<unknown, unknown>) => void
 
 export function isRescue1Sync(inp: unknown): inp is Rescue1Sync {
   return !is_async_function(inp) && typeof inp == 'function' && inp.length == 1

@@ -1,4 +1,4 @@
-import { AllowedStage, empty_run, run_or_execute_async, Stage, StageRun } from '../../stage'
+import { AllowedStage, empty_run, makeCallbackArgs, run_or_execute_async, Stage, StageRun } from '../../stage'
 import { getParallelConfig } from './getParallelConfig'
 import { ParallelConfig } from './ParallelConfig'
 
@@ -53,7 +53,7 @@ export class Sequential<
 
         const next = async (err: unknown) => {
           if (err) {
-            return done(err)
+            return done(makeCallbackArgs(err))
           }
           let retCtx: T
           while (++iter < len) {
@@ -66,7 +66,7 @@ export class Sequential<
                 T,
               ]
               if (err) {
-                return done(err)
+                return done(makeCallbackArgs(err))
               }
             }
             if (retCtx) {
@@ -75,11 +75,11 @@ export class Sequential<
           }
 
           let result = this.combine(ctx, children)
-          return done(undefined, result)
+          return done(makeCallbackArgs(undefined, result))
         }
 
         if (len === 0) {
-          return done(err, ctx as unknown as Output)
+          return done(makeCallbackArgs(err, ctx as unknown as Output))
         } else {
           next(err)
         }

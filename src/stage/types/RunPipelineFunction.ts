@@ -24,14 +24,14 @@ export type CustomRun2Async<Input, Output> = (
 export type CustomRun2Callback<Input, Output> = (
   this: AnyStage<Input, Output> | void,
   ctx: Input,
-  done: CallbackFunction<Output>,
+  done: CallbackFunction<Input, Output>,
 ) => void
 
 export type CustomRun3Callback<Input, Output> = (
   this: AnyStage<Input, Output> | void,
   err: any,
   ctx: Input,
-  done: CallbackFunction<Output>,
+  done: CallbackFunction<Input, Output>,
 ) => void
 
 export type RunPipelineFunction<Input, Output> =
