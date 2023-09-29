@@ -24,7 +24,6 @@ export type Employee = OverwriteIfDefined<{ name: UnsetMarker }, Person>
 export type EmployeeSimpl = Merge<Person, Merge<{ empno: number }, { empno: UnsetMarker }>>
 
 export interface BuilderParams {
-  _stage: unknown
   _input: unknown
   _output: unknown
   _usage: {}
@@ -38,10 +37,8 @@ export type ExtractOutput<TParams extends BuilderParams> = TParams['_output'] ex
   ? TParams['_input'] extends UnsetMarker ? any : TParams['_input']
   : TParams['_output']
 
-
 // упрощает работу с chain
 export type InferParams<TParams extends BuilderParams, Usage extends keyof StageBuilder<TParams>> = {
-  _stage: TParams['_stage']
   _input: TParams['_input']
   _output: TParams['_output']
   _usage: TParams['_usage'] & Pick<StageBuilder<TParams>, Usage>
@@ -250,7 +247,7 @@ export interface StageBuilder<TParams extends BuilderParams> {
     StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   >
   config(): StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
-  _def: BuilderDef<TParams['_stage']>
+  _def: BuilderDef<Stage<ExtractInput<TParams>, ExtractOutput<TParams>>>
 }
 
 export type CustomRun<$P1, $P2> = (
