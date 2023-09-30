@@ -7,7 +7,7 @@ describe('RetryOnError', function () {
       works: boolean
     }
     var st = new RetryOnError({
-      run: function (ctx) {
+      stage: function (ctx) {
         ctx.works = true
       },
     })
@@ -20,7 +20,7 @@ describe('RetryOnError', function () {
 
   it('works in throw', function (done) {
     var st = new RetryOnError({
-      run: function (ctx) {
+      stage: function (ctx) {
         ctx.works = true
         throw new Error()
       },
@@ -34,7 +34,7 @@ describe('RetryOnError', function () {
   it('retry works once by default', function (done) {
     var iter = 0
     var st = new RetryOnError<{ works: boolean }, {}>({
-      run: function (ctx) {
+      stage: function (ctx) {
         ctx.works = true
         if (iter == 0) {
           iter++
@@ -53,7 +53,7 @@ describe('RetryOnError', function () {
   it('retry use custom restore and backup', function (done) {
     var iter = -1
     var st = new RetryOnError<{ works: boolean; backup: number; restore: number }, { works: boolean }>({
-      run: function (ctx) {
+      stage: function (ctx) {
         ctx.works = true
         if (iter++ < 3) {
           throw new Error('error')
@@ -96,7 +96,7 @@ describe('RetryOnError', function () {
         }
         ctx.rescue = true
       },
-      run: function (ctx) {
+      stage: function (ctx) {
         count += 1
         ctx.works = true
         throw new Error('error')
@@ -118,7 +118,7 @@ describe('RetryOnError', function () {
       retry: function (err, ctx, iter) {
         return (err?.payload[0] as Error).message === 'error'
       },
-      run: function (ctx) {
+      stage: function (ctx) {
         if (iter == 0) {
           iter++
           throw new Error('error')
@@ -138,7 +138,7 @@ describe('RetryOnError', function () {
     var iter = 0
     var st = new RetryOnError<{ works: boolean }, {}>({
       retry: 1,
-      run: function (ctx) {
+      stage: function (ctx) {
         if (iter == 0) {
           iter++
           throw new Error('error')

@@ -17,8 +17,10 @@ describe('Timeout', function () {
   })
 
   it('works', function (done) {
-    var to = new Timeout(function (err, ctx, done) {
-      done()
+    var to = new Timeout({
+      stage: function (err, ctx, done) {
+        done()
+      },
     })
     to.execute({}, function (err, ctx) {
       done()

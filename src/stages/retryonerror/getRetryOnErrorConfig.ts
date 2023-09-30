@@ -1,4 +1,4 @@
-import { AllowedStage, CreateError, getStageConfig, isAnyStage } from '../../stage'
+import { AllowedStage, getStageConfig, isAnyStage } from '../../stage'
 import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 
 export function getRetryOnErrorConfig<Input, Output, T, Config extends RetryOnErrorConfig<Input, Output, T>>(
@@ -8,12 +8,6 @@ export function getRetryOnErrorConfig<Input, Output, T, Config extends RetryOnEr
   if (isAnyStage(res)) {
     return { stage: res } as Config
   } else if (typeof config == 'object' && !isAnyStage(config)) {
-    if (config.run && config.stage) {
-      throw CreateError("don't use run and stage both")
-    }
-    if (config.run) {
-      res.stage = config.run
-    }
     if (config.stage) {
       res.stage = config.stage
     }
@@ -32,9 +26,6 @@ export function getRetryOnErrorConfig<Input, Output, T, Config extends RetryOnEr
     if (!res.retry) {
       res.retry = 1
     }
-  } else if (typeof config == 'function' && res.run) {
-    res.stage = res.run
-    delete res.run
   }
   return res
 }

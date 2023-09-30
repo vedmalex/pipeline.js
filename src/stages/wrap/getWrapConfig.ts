@@ -1,4 +1,4 @@
-import { AllowedStage, CreateError, getStageConfig, isAnyStage, RunPipelineFunction } from '../../stage'
+import { AllowedStage, getStageConfig, isAnyStage } from '../../stage'
 import { WrapConfig } from './WrapConfig'
 
 export function getWrapConfig<Input, Output, T, Config extends WrapConfig<Input, Output, T>>(
@@ -8,12 +8,6 @@ export function getWrapConfig<Input, Output, T, Config extends WrapConfig<Input,
   if (isAnyStage<Input, Output>(res)) {
     return { stage: res } as Config
   } else if (typeof config == 'object' && !isAnyStage<Input, Output>(config)) {
-    if (config.run && config.stage) {
-      throw CreateError("don't use run and stage both")
-    }
-    if (config.run) {
-      res.stage = config.run as RunPipelineFunction<Input, Output>
-    }
     if (config.stage) {
       res.stage = config.stage
     }

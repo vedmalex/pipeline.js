@@ -1,4 +1,4 @@
-import { AnyStage, CreateError, isAnyStage, SingleStageFunction } from '../../stage'
+import { AnyStage, isAnyStage, SingleStageFunction } from '../../stage'
 import { DoWhileConfig } from './DoWhileConfig'
 
 export function getDoWhileConfig<Input, Output, T, Config extends DoWhileConfig<Input, Output, T>>(
@@ -10,10 +10,6 @@ export function getDoWhileConfig<Input, Output, T, Config extends DoWhileConfig<
   } else if (typeof _config == 'function') {
     config.stage = _config
   } else {
-    if (_config?.run && _config?.stage) {
-      throw CreateError('use or run or stage, not both')
-    }
-
     if (_config?.stage) {
       config.stage = _config.stage
     }

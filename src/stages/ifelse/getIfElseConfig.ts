@@ -1,4 +1,4 @@
-import { AllowedStage, CreateError, empty_run, getStageConfig, isAnyStage, RunPipelineFunction } from '../../stage'
+import { AllowedStage, empty_run, getStageConfig, isAnyStage, RunPipelineFunction } from '../../stage'
 import { IfElseConfig } from './IfElseConfig'
 
 export function getIfElseConfig<Input, Output, Config extends IfElseConfig<Input, Output>>(
@@ -8,12 +8,6 @@ export function getIfElseConfig<Input, Output, Config extends IfElseConfig<Input
   if (isAnyStage(res)) {
     return { success: res } as Config
   } else if (typeof config == 'object' && !isAnyStage(config)) {
-    if (config.run && config.success) {
-      throw CreateError("don't use run and stage both")
-    }
-    if (config.run) {
-      res.success = config.run
-    }
     if (config.success) {
       res.success = config.success
     }
@@ -27,11 +21,6 @@ export function getIfElseConfig<Input, Output, Config extends IfElseConfig<Input
     } else {
       res.failed = empty_run as RunPipelineFunction<Input, Output>
     }
-  } else if (typeof config == 'function' && res.run) {
-    res.success = res.run
-    res.failed = empty_run as RunPipelineFunction<Input, Output>
-    res.condition = true
-    delete res.run
   } else {
     res.success = empty_run as RunPipelineFunction<Input, Output>
   }

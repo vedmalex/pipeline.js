@@ -33,18 +33,9 @@ export function getPipelineConfig<Input, Output, Config extends PipelineConfig<I
     if (isAnyStage(res)) {
       return { stages: [res] } as Config
     } else if (typeof config == 'object' && !isAnyStage(config)) {
-      if (config.run && config.stages?.length > 0) {
-        throw CreateError(" don't use run and stage both ")
-      }
-      if (config.run) {
-        res.stages = [config.run]
-      }
       if (config.stages) {
         res.stages = config.stages
       }
-    } else if (typeof config == 'function' && res.run) {
-      res.stages = [res.run]
-      delete res.run
     }
     if (!res.stages) {
       res.stages = []
