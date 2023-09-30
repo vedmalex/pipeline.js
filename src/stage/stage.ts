@@ -87,7 +87,7 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
         // callback
         not_ensured_context = _err as Input
         err = undefined
-        __callback =  makeCallback(_context as LegacyCallback<Output>)
+        __callback = makeCallback(_context as LegacyCallback<Output>)
       } else {
         // promise
         err = _err as ComplexError
@@ -104,8 +104,8 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
   }
   // new API for execution
   public exec(context: Input): Promise<Output>
-  public exec(context: Input, callback: CallbackFunction<Input,Output>): void
-  public exec(err: unknown, context: Input, callback: CallbackFunction<Input,Output>): void
+  public exec(context: Input, callback: CallbackFunction<Input, Output>): void
+  public exec(err: unknown, context: Input, callback: CallbackFunction<Input, Output>): void
   public exec(
     _err?: unknown,
     _context?: unknown,
@@ -114,7 +114,7 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
     // discover arguments
     let err: Possible<ComplexError>
     let not_ensured_context: Input
-    let __callback: Possible<CallbackFunction<Input,Output>> = undefined
+    let __callback: Possible<CallbackFunction<Input, Output>> = undefined
 
     if (arguments.length == 1) {
       not_ensured_context = _err as Input
@@ -124,7 +124,7 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
         // callback
         not_ensured_context = _err as Input
         err = undefined
-        __callback = _context as CallbackFunction<Input,Output>
+        __callback = _context as CallbackFunction<Input, Output>
       } else {
         // promise
         err = _err as ComplexError
@@ -134,7 +134,7 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
       // callback
       err = _err as ComplexError
       not_ensured_context = _context as Input
-      __callback = _callback as CallbackFunction<Input,Output>
+      __callback = _callback as CallbackFunction<Input, Output>
     }
 
     if (!this.run) {
@@ -278,7 +278,7 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
 
   protected stage(err: unknown, context: Input, callback: CallbackFunction<Input, Output>) {
     const back = callback
-    const sucess = (ret: unknown) => back(makeCallbackArgs(undefined, (ret ?? context)))
+    const sucess = (ret: unknown) => back(makeCallbackArgs(undefined, ret ?? context))
     const fail = (err: unknown) => back(makeCallbackArgs(err, context))
     if (this._config.run) {
       if (context) {

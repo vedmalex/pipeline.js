@@ -37,7 +37,7 @@ export const makeCallbackArgs = <Input, Output>(
       input: res as Input,
     }
   } else if (res) {
-    result = { result: 'success', output: res as Output}
+    result = { result: 'success', output: res as Output }
   } else {
     result = { result: 'success_empty' }
   }

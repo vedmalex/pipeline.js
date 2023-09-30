@@ -15,7 +15,7 @@ export type Callback0Async<Output> = () => Promise<Output>
 export type Callback1Sync<Input, Output> = (ctx: Input) => Output
 export type Callback1Async<Input, Output> = (ctx: Input) => Promise<Output>
 export type Callback2Async<Input, Output> = (err: unknown, ctx: Input) => Promise<Output>
-export type Callback2Callback<Input, Output> = (ctx: Input, done: CallbackFunction<Input,Output>) => void
+export type Callback2Callback<Input, Output> = (ctx: Input, done: CallbackFunction<Input, Output>) => void
 export type Callback2CallbackLegacy<Input, Output> = (ctx: Input, done: LegacyCallback<Output>) => void
 export type Callback3Callback<Input, Output> = (err: unknown, ctx: Input, done: CallbackFunction<Input, Output>) => void
 export type Callback3CallbackLegacy<Input, Output> = (err: unknown, ctx: Input, done: LegacyCallback<Output>) => void
