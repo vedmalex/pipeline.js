@@ -3,7 +3,6 @@ import {
   AnyStage,
   CustomRun2Callback,
   CustomRun3Callback,
-  is_thenable,
   isCustomRun0Async,
   isCustomRun0Sync,
   isCustomRun1Async,
@@ -38,8 +37,6 @@ export function execute_custom_run<Input, Output>(run: RunPipelineFunction<Input
             const res = run.apply(context)
             if (res instanceof Promise) {
               res.then(r => done(makeCallbackArgs(undefined, r))).catch(err => done(makeCallbackArgs(err)))
-            } else if (is_thenable<Output>(res)) {
-              res.then(r => done(makeCallbackArgs(undefined, r))).catch(err => done(makeCallbackArgs(err)))
             } else {
               done(makeCallbackArgs(undefined, res))
             }
@@ -62,8 +59,6 @@ export function execute_custom_run<Input, Output>(run: RunPipelineFunction<Input
           try {
             const res = run.call(this, context)
             if (res instanceof Promise) {
-              res.then(r => done(makeCallbackArgs(undefined, r))).catch(err => done(makeCallbackArgs(err)))
-            } else if (is_thenable<Output>(res)) {
               res.then(r => done(makeCallbackArgs(undefined, r))).catch(err => done(makeCallbackArgs(err)))
             } else {
               done(makeCallbackArgs(undefined, res))

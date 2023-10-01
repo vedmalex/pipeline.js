@@ -1,7 +1,6 @@
 import { ERROR, process_error } from '../errors'
 import {
   CallbackFunction,
-  is_thenable,
   isRescue1ASync,
   isRescue1Sync,
   isRescue2ASync,
@@ -34,8 +33,6 @@ export function execute_rescue<Input, Output>(
           const res = rescue.call(context, err)
           if (res instanceof Promise) {
             res.then(_ => done(makeCallbackArgs())).catch(err => done(makeCallbackArgs(err)))
-          } else if (is_thenable(res)) {
-            res.then(_ => done(makeCallbackArgs())).catch(err => done(makeCallbackArgs(err)))
           } else {
             done(makeCallbackArgs())
           }
@@ -61,8 +58,6 @@ export function execute_rescue<Input, Output>(
           // if error is not handled, then it will be thrown
           const res = rescue.call(null, err, context)
           if (res instanceof Promise) {
-            res.then(_ => done(makeCallbackArgs())).catch(err => done(makeCallbackArgs(err)))
-          } else if (is_thenable(res)) {
             res.then(_ => done(makeCallbackArgs())).catch(err => done(makeCallbackArgs(err)))
           } else {
             if (Boolean(res)) {

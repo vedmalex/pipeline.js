@@ -1,14 +1,4 @@
-import {
-  AllowedStage,
-  AnyStage,
-  ComplexError,
-  Context,
-  makeCallbackArgs,
-  run_or_execute_async,
-  Stage,
-  StageRun,
-} from '../../stage'
-import { getRetryOnErrorConfig } from './getRetryOnErrorConfig'
+import { AnyStage, ComplexError, Context, makeCallbackArgs, run_or_execute_async, Stage, StageRun } from '../../stage'
 import { RetryOnErrorConfig } from './RetryOnErrorConfig'
 
 export class RetryOnError<
@@ -17,21 +7,6 @@ export class RetryOnError<
   T,
   Config extends RetryOnErrorConfig<Input, Output, T> = RetryOnErrorConfig<Input, Output, T>,
 > extends Stage<Input, Output, Config> implements AnyStage<Input, Output> {
-  constructor(config?: AllowedStage<Input, Output, Config>) {
-    super()
-    if (config) {
-      this._config = getRetryOnErrorConfig<Input, Output, T, Config>(config)
-    }
-  }
-
-  public override get reportName() {
-    return `Templ:${this.config.name ? this.config.name : ''}`
-  }
-
-  public override toString() {
-    return '[pipeline RetryOnError]'
-  }
-
   protected backupContext(ctx: Input): T {
     if (this.config.backup) {
       return this.config.backup(ctx)

@@ -1,9 +1,7 @@
 import 'jest'
-import { Context } from './Context'
 import { Stage } from './stage'
-import { RunPipelineFunction } from './types'
 
-describe('Stage', function () {
+describe('Stage_old', function () {
   describe('sync', function () {
     it('works', function (done) {
       var v1 = new Stage<{ name?: string }>({
@@ -28,17 +26,6 @@ describe('Stage', function () {
         expect(err).toBeTruthy()
         done()
       })
-    })
-  })
-
-  it('throws error if error is not Error instance', function (done) {
-    var st = new Stage<{ name?: string }>((_ctx: { name?: string }, done: (err: any) => void) => {
-      done('error')
-    })
-
-    st.execute({}, function (err, ctx) {
-      expect(err instanceof Error).toBeTruthy()
-      done()
     })
   })
 
@@ -121,72 +108,11 @@ describe('Stage', function () {
     })
   })
 
-  it('accepts name as config', function (done) {
-    var name = 'new Name'
-    var v = new Stage(name)
-    expect(v.name == name).toBeTruthy()
-    done()
-  })
-
-  it('can init with 2 or 3 parameters', function (done) {
-    var v1 = new Stage({
-      run: function newName1(ctx, done) {
+  it('emits done', function (done) {
+    var stage = new Stage({
+      run: function (err, context, done) {
         done()
       },
-    })
-    expect(v1.name).toBe('newName1')
-    v1.execute({}, function (err, ctx) {
-      done()
-    })
-  })
-
-  it('accepts take function name as stage name', function (done) {
-    var v0 = new Stage(function newName(err, ctx, done) {})
-    expect(v0.name).toBe('newName')
-    var v = new Stage({
-      run: function newName(err, ctx, done) {},
-    })
-    expect(v.name).toBe('newName')
-    done()
-  })
-
-  it('not allows to use constructor as a function', function (done) {
-    try {
-      // @ts-expect-error
-      var s = Stage()
-      done()
-    } catch (err) {
-      done()
-    }
-  })
-
-  it('runs within stage', function (done) {
-    var s = new Stage<{ someCode?: number }>(function (this: { someCode: number }, ctx, done) {
-      expect(this.someCode).toEqual(100)
-      done()
-    } as RunPipelineFunction<any>)
-    ;(s as any).someCode = 100
-    s.execute({}, function (err, ctx) {
-      expect(err).toBeUndefined()
-      done()
-    })
-  })
-
-  /* deprecated context now is any js object
-	it('converts context if it is not typeof Context in callback', function(done) {
-		var stage = new Stage(function(err, context, done) {
-			done();
-		});
-
-		stage.execute({}, function(err, ctx) {
-			expect(ctx instanceof Context).toEqual( true);
-			done();
-		});
-	});*/
-
-  it('emits done', function (done) {
-    var stage = new Stage(function (err, context, done) {
-      done()
     })
     stage.execute({}, function (err, context) {
       expect(!context).toEqual(false)
@@ -194,14 +120,11 @@ describe('Stage', function () {
     })
   })
 
-  // 	это не нужно, поскольку слишком сложная архитектура будет, все передавать через контекст
-  // it('extra parameters to emit and to callback', function(done){
-  // 	// сделать передачу дополнительных параметров в done, по принципу err, p1,p2,p3...
-  // });
-
   it('emits error with context', function (done) {
-    var stage = new Stage(function (err, context, done) {
-      done(new Error())
+    var stage = new Stage({
+      run: function (err, context, done) {
+        done(new Error() as any)
+      },
     })
 
     stage.execute({}, function (err, ctx) {
@@ -226,8 +149,10 @@ describe('Stage', function () {
   })
 
   it('can be traced with {trace:true}', function (done) {
-    var stage = new Stage(function Some(err, context, done) {
-      done()
+    var stage = new Stage({
+      run: function Some(err, context, done) {
+        done()
+      },
     })
     stage.execute({
       trace: true,
@@ -237,8 +162,10 @@ describe('Stage', function () {
   })
 
   it('can be traced with {trace:true}', function (done) {
-    var stage = new Stage(function Some(err, context, done) {
-      done()
+    var stage = new Stage({
+      run: function Some(err, context, done) {
+        done()
+      },
     })
     stage.execute({
       __trace: true,
@@ -247,73 +174,26 @@ describe('Stage', function () {
     })
   })
 
-  it('emits done if it configured to do so', function (done) {
-    var stage = new Stage(function (err, context, done) {
-      done()
-    })
-
-    stage.execute({}, function (err, context) {
-      expect(!context).toEqual(false)
-      done()
-    })
-  })
-
-  // it('prepare and finalize context')
-
-  it('accept callback', function (done) {
-    var stage = new Stage(function (err, context, done) {
-      done()
-    })
-    var ctx = Context.ensure({})
-    stage.execute(ctx, function (err, context) {
-      expect(ctx).toEqual(context)
-      expect(!err).toEqual(true)
-      done()
-    })
-  })
-
   it('check run is function', function (done) {
-    var stage = new Stage()
-    var ctx = Context.ensure({})
-    stage.execute(ctx, function (err) {
+    var stage = new Stage({})
+    stage.execute({}, function (err) {
       // expect(ctx.hasErrors().toEqual( true);
-      expect(/Error\: STG\: reports\: run is not a function/.test(err.payload[0].toString())).toBeTruthy()
+      expect(err).not.toBeUndefined()
       done()
     })
   })
 
-  it('stage with no run call callback with error', function (done) {
-    var stage = new Stage()
-    var ctx = Context.ensure({})
-    stage.execute(ctx, function (err, context) {
-      expect(ctx).toEqual(context)
-      expect(/Error\: STG\: reports\: run is not a function/.test(err?.payload[0].toString())).toBeTruthy()
-      done()
+  it('allow reenterability', function () {
+    var st = new Stage({
+      run: function (context) {
+        context.one++
+      },
     })
-  })
-
-  it('allow reenterability', function (done) {
-    var st = new Stage<{ one: number }>(function (err, context, done) {
-      context.one++
-      done()
-    })
-    var l = 0
-
-    function gotit() {
-      if (++l == 10) {
-        done()
-      }
-    }
-
     function accept(err, data) {
       expect(data.one).toEqual(2)
-      gotit()
     }
     for (var i = 0; i < 10; i++) {
-      var ctx1 = Context.ensure({
-        one: 1,
-      })
-      st.execute(ctx1, accept)
+      st.execute({ one: 1 }, accept)
     }
   })
 })

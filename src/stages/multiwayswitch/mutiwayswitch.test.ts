@@ -1,213 +1,125 @@
 import 'jest'
-import { Context, Stage, StageConfigValidator } from '../../stage'
+import { Context, Stage } from '../../stage'
 import { Pipeline } from '../pipeline'
-import { MultiWaySwitch } from './MultiWaySwitch'
+import { MultiWaySwitch } from './multiwayswitch'
 
 describe('MWS', function () {
   it('works', function (done) {
-    var sw = new MultiWaySwitch()
+    var sw = new MultiWaySwitch({ cases: [] })
     expect(sw).toBeInstanceOf(Stage)
     sw.execute({}, function (err, ctx) {
       done()
     })
   })
 
-  it('not allows to use constructor as a function', function (done) {
-    try {
-      var s = eval('MultiWaySwitch()')
-    } catch (err) {
-      done()
-    }
-  })
-
   it('must enter in each pipe works in parallel', function (done) {
     var cnt = 0
-    var pipe0 = new Pipeline<{ p00: boolean; p01: boolean }>([
-      function (err, ctx, done) {
-        if (ctx) {
-          ctx.p00 = true
-        } else {
-          throw new Error('nonsense')
-        }
-        cnt++
-        done()
-      },
-      function (err, ctx, done) {
-        if (ctx) {
-          ctx.p01 = true
-        } else {
-          throw new Error('nonsense')
-        }
-        cnt++
-        done()
-      },
-    ])
-    var pipe1 = new Pipeline<{ p10: boolean; p11: boolean }>([
-      function (err, ctx, done) {
-        if (ctx) {
-          ctx.p10 = true
-        } else {
-          throw new Error('nonsense')
-        }
-        cnt++
-        done()
-      },
-      function (err, ctx, done) {
-        if (ctx) {
-          ctx.p11 = true
-        } else {
-          throw new Error('nonsense')
-        }
-        cnt++
-        done()
-      },
-    ])
-    var pipe2 = new Pipeline<{ p20: boolean; p21: boolean }>({
+    var pipe0 = new Pipeline({
       stages: [
-        function (err, ctx, done) {
-          if (ctx) {
-            ctx.p20 = true
-          } else {
-            throw new Error('nonsense')
-          }
-          cnt++
-          done()
-        },
-        function (err, ctx, done) {
-          if (ctx) {
-            ctx.p21 = true
-          } else {
-            throw new Error('nonsense')
-          }
-          cnt++
-          done()
-        },
+        new Stage({
+          run: function (err, ctx, done) {
+            if (ctx) {
+              ctx.p00 = true
+            } else {
+              throw new Error('nonsense')
+            }
+            cnt++
+            done()
+          },
+        }),
+        new Stage({
+          run: function (err, ctx, done) {
+            if (ctx) {
+              ctx.p01 = true
+            } else {
+              throw new Error('nonsense')
+            }
+            cnt++
+            done()
+          },
+        }),
+      ],
+    })
+    var pipe1 = new Pipeline({
+      stages: [
+        new Stage({
+          run: function (err, ctx, done) {
+            if (ctx) {
+              ctx.p10 = true
+            } else {
+              throw new Error('nonsense')
+            }
+            cnt++
+            done()
+          },
+        }),
+        new Stage({
+          run: function (err, ctx, done) {
+            if (ctx) {
+              ctx.p11 = true
+            } else {
+              throw new Error('nonsense')
+            }
+            cnt++
+            done()
+          },
+        }),
+      ],
+    })
+    var pipe2 = new Pipeline({
+      stages: [
+        new Stage({
+          run: function (err, ctx, done) {
+            if (ctx) {
+              ctx.p20 = true
+            } else {
+              throw new Error('nonsense')
+            }
+            cnt++
+            done()
+          },
+        }),
+        new Stage({
+          run: function (err, ctx, done) {
+            if (ctx) {
+              ctx.p21 = true
+            } else {
+              throw new Error('nonsense')
+            }
+            cnt++
+            done()
+          },
+        }),
       ],
     })
 
-    var sw = new MultiWaySwitch([pipe0, pipe1, pipe2])
+    var sw = new MultiWaySwitch({
+      cases: [
+        {
+          stage: pipe0,
+          evaluate: function () {
+            return true
+          },
+        },
+        {
+          stage: pipe1,
+          evaluate: true,
+        },
+        {
+          stage: pipe2,
+          evaluate: true,
+        },
+      ],
+    })
     sw.execute({}, function (err, ctx) {
       expect(cnt).toEqual(6)
       done()
     })
   })
 
-  it('use trace', function (done) {
-    const ctx = Context.ensure({
-      trace: true,
-    })
-    type CTX = typeof ctx
-    var sw = new MultiWaySwitch<CTX, CTX>({
-      cases: [
-        {
-          stage: function (err, ctx, done) {
-            done()
-          },
-          evaluate: function () {
-            return true
-          },
-          split: function (ctx) {
-            return ctx.fork()
-          },
-        },
-        {
-          stage: {
-            run: function (err, ctx, done) {
-              done()
-            },
-          } as StageConfig<CTX>,
-          evaluate: function () {
-            return true
-          },
-          split: function (ctx) {
-            return ctx.fork()
-          },
-        },
-      ],
-    })
-
-    sw.execute(ctx, function (err, ctx) {
-      done()
-    })
-  })
-
-  it('use defaults condition as object', function (done) {
-    var sw = new MultiWaySwitch({
-      cases: [
-        {
-          stage: function (err, ctx, done) {
-            done()
-          },
-          evaluate: function () {
-            return true
-          },
-        },
-        {
-          stage: {
-            run: function (err, ctx, done) {
-              done()
-            },
-          },
-          evaluate: function () {
-            return true
-          },
-        },
-      ],
-    })
-
-    sw.execute({}, function (err, ctx) {
-      done()
-    })
-  })
-
-  it('must enter in each pipe works in parallel', function (done) {
-    type SubCTX = { cnt: number }
-
-    const ctx = Context.ensure({
-      size: 0,
-    })
-    type CTX = typeof ctx
-
-    var pipe0 = new Pipeline<SubCTX>([
-      function (err, ctx, done) {
-        ctx.cnt = 1
-        done()
-      },
-      function (err, ctx, done) {
-        ctx.cnt += 1
-        done()
-      },
-    ])
-    var pipe1 = new Pipeline<SubCTX>([
-      function (err, ctx, done) {
-        ctx.cnt = 1
-        done()
-      },
-      function (err, ctx, done) {
-        ctx.cnt += 1
-        done()
-      },
-    ])
-
-    var sw = new MultiWaySwitch<CTX, SubCTX>({
-      cases: [pipe0, pipe1],
-      split: function (ctx) {
-        return ctx.fork()
-      },
-      combine: function (ctx, retCtx) {
-        ctx.size += retCtx.cnt
-      },
-    })
-
-    sw.execute(ctx, function (err, ctx) {
-      expect(ctx?.size).toEqual(4)
-      done()
-    })
-  })
-
   it('exception errors for', function (done) {
     type CTX = { cnt: number }
-    var pipe0 = new Pipeline<CTX>([
+    var pipe0 = new Pipeline([
       function (err, ctx, done) {
         ctx.cnt = 1
         done()
@@ -228,7 +140,7 @@ describe('MWS', function () {
       },
     ])
 
-    var sw = new MultiWaySwitch<CTX, CTX>({
+    var sw = new MultiWaySwitch({
       cases: [pipe0, pipe1],
       split: function (ctx) {
         return ctx.fork()
@@ -486,50 +398,53 @@ describe('MWS', function () {
         ctx.size += retCtx.cnt
       },
     })
-    sw.execute(
-      Context.ensure({
-        size: 0,
-      }),
-      function (err, ctx) {
-        expect(ctx?.size).toBe(4)
-        expect(err).toBeUndefined()
-        done()
-      },
-    )
+    sw.execute({
+      size: 0,
+    }, function (err, ctx) {
+      expect(ctx?.size).toBe(4)
+      expect(err).toBeUndefined()
+      done()
+    })
   })
 
   it('individual exception handler work', function (done) {
-    type SubCTX = { cnt: number }
-    type CTX = {
-      size: number
-    }
-    var pipe0 = new Pipeline<SubCTX>([
-      function (err, ctx, done) {
-        ctx.cnt = 1
-        done()
-      },
-      function (err, ctx, done) {
-        ctx.cnt += 1
-        done()
-      },
-    ])
-    var pipe1 = new Pipeline<SubCTX>({
+    var pipe0 = new Pipeline({
+      stages: [
+        new Stage({
+          run: function (err, ctx, done) {
+            ctx.cnt = 1
+            done()
+          },
+        }),
+        new Stage({
+          run: function (err, ctx, done) {
+            ctx.cnt += 1
+            done()
+          },
+        }),
+      ],
+    })
+    var pipe1 = new Pipeline({
       rescue: function (err) {
         return false
       },
       stages: [
-        function (err, ctx, done) {
-          ctx.cnt = 1
-          done()
-        },
-        function (err, ctx, done) {
-          ctx.cnt += 1
-          done(new Error())
-        },
+        new Stage({
+          run: function (err, ctx, done) {
+            ctx.cnt = 1
+            done()
+          },
+        }),
+        new Stage({
+          run: function (err, ctx, done) {
+            ctx.cnt += 1
+            done(new Error())
+          },
+        }),
       ],
     })
 
-    var sw = new MultiWaySwitch<CTX, SubCTX>({
+    var sw = new MultiWaySwitch({
       cases: [
         pipe0,
         {
@@ -558,8 +473,8 @@ describe('MWS', function () {
   })
 
   it('empty split run combine', function (done) {
-    var stage0 = new Stage(function (ctx) {})
-    var stage = new MultiWaySwitch<{ combine: boolean }, {}>({
+    var stage0 = new Stage({ run: function (ctx) {} })
+    var stage = new MultiWaySwitch({
       cases: [stage0],
       split: function (ctx) {
         return []
@@ -580,14 +495,18 @@ describe('MWS', function () {
       cases: [
         {
           evaluate: false,
-          stage: new Stage(function (err, ctx, done) {
-            done()
+          stage: new Stage({
+            run: function (err, ctx, done) {
+              done()
+            },
           }),
         },
         {
           evaluate: false,
-          stage: new Stage(function (err, ctx, done) {
-            done()
+          stage: new Stage({
+            run: function (err, ctx, done) {
+              done()
+            },
           }),
         },
       ],
@@ -603,15 +522,19 @@ describe('MWS', function () {
       cases: [
         {
           evaluate: false,
-          stage: new Stage(function (err, ctx, done) {
-            done()
+          stage: new Stage({
+            run: function (err, ctx, done) {
+              done()
+            },
           }),
         },
         {
           evaluate: true,
-          stage: function (err, ctx, done) {
-            done()
-          },
+          stage: new Stage({
+            run: function (err, ctx, done) {
+              done()
+            },
+          }),
         },
       ],
     })

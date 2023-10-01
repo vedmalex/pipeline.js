@@ -1,5 +1,4 @@
-import { AllowedStage, makeCallback, makeCallbackArgs, run_or_execute, Stage, StageRun } from '../../stage'
-import { getWrapConfig } from './getWrapConfig'
+import { makeCallback, makeCallbackArgs, run_or_execute, Stage, StageRun } from '../../stage'
 import { WrapConfig } from './WrapConfig'
 
 export class Wrap<
@@ -8,21 +7,6 @@ export class Wrap<
   T,
   Config extends WrapConfig<Input, Output, T> = WrapConfig<Input, Output, T>,
 > extends Stage<Input, Output, Config> {
-  constructor(config?: AllowedStage<Input, Output, Config>) {
-    super()
-    if (config) {
-      this._config = getWrapConfig<Input, Output, T, Config>(config)
-    }
-  }
-
-  public override get reportName() {
-    return `Wrap:${this.config.name ? this.config.name : ''}`
-  }
-
-  public override toString() {
-    return '[pipeline Wrap]'
-  }
-
   override compile(rebuild: boolean = false): StageRun<Input, Output> {
     let run: StageRun<Input, Output> = (err, context, done) => {
       const ctx = this.prepare(context)
@@ -49,7 +33,11 @@ export class Wrap<
   }
   protected prepare(ctx: Input): T {
     if (this.config.prepare) {
-      return this.config.prepare(ctx) ?? ctx as unknown as T
+      const ret = this.config.prepare(ctx)
+      if (!ret) {
+        throw new Error('prepare MUST return value')
+      }
+      return ret
     } else {
       return ctx as unknown as T
     }
@@ -57,7 +45,11 @@ export class Wrap<
   protected finalize(ctx: Input, retCtx: unknown): Output | void {
     // by default the main context will be used to return;
     if (this.config.finalize) {
-      return this.config.finalize(ctx, retCtx)
+      const ret = this.config.finalize(ctx, retCtx)
+      if (!ret) {
+        throw new Error('finalize must return value')
+      }
+      return ret
     } else {
       // so we do nothing here
       return ctx as unknown as Output

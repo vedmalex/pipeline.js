@@ -1,4 +1,3 @@
-export * from './getParallelConfig'
 export * from './parallel'
 export * from './ParallelConfig'
 export * from './ParallelError'

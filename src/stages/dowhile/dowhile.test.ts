@@ -6,28 +6,27 @@ import { DoWhile } from './DoWhile'
 
 describe('DoWhile', function () {
   it('works with default', function (done) {
-    var stage = new DoWhile()
-    expect(stage).toBeInstanceOf(Stage)
+    var stage = new DoWhile({ stage: new Stage({ run: () => {} }) })
     stage.execute({}, (err, context) => {
       expect(err).toBeUndefined()
-      // assert.strictEqual(context instanceof Context, true);
       done()
     })
   })
 
   it('rescue', function (done) {
-    var pipe = new DoWhile()
-    var st = new Stage({
-      run: function (err, ctx, done) {
-        throw new Error('error')
-      },
-      rescue: function (err, conext) {
-        if (err.message !== 'error') {
-          return err
-        }
-      },
+    var pipe = new DoWhile({
+      stage: new Stage({
+        run: function (err, ctx, done) {
+          throw new Error('error')
+        },
+        rescue: function (err, conext) {
+          if (err.message !== 'error') {
+            return err
+          }
+        },
+      }),
     })
-    pipe.config.stage = st
+
     pipe.execute({}, function (err, ctx) {
       expect(err).toBeUndefined()
       done()
@@ -35,27 +34,17 @@ describe('DoWhile', function () {
   })
 
   it('works with config as Stage', function (done) {
-    var stage = new DoWhile(
-      new Stage(function (err, ctx, done) {
-        if (typeof done === 'function') {
-          done()
-        }
+    var stage = new DoWhile({
+      stage: new Stage({
+        run: (err, ctx, done) => {
+          if (typeof done === 'function') {
+            done()
+          }
+        },
       }),
-    )
+    })
     stage.execute({}, function (err, context) {
       expect(err).toBeUndefined()
-      // assert.strictEqual(context instanceof Context, true);
-      done()
-    })
-  })
-
-  it('works with config as Stage', function (done) {
-    var stage = new DoWhile({
-      stage: function (err, ctx, done) {
-        done()
-      },
-    })
-    stage.execute({}, function (err, context) {
       // assert.strictEqual(context instanceof Context, true);
       done()
     })
@@ -69,15 +58,15 @@ describe('DoWhile', function () {
     }
   })
   it('run stage', function (done) {
-    type CTX = { iter: number }
-    var stage0 = new Stage<CTX, CTX>((err, ctx, done) => {
-      if (typeof ctx == 'object' && ctx) {
-        ctx.iter++
-      }
-      done(err)
-    })
-    var stage = new DoWhile<CTX, CTX, CTX>({
-      stage: stage0,
+    var stage = new DoWhile({
+      stage: new Stage({
+        run: (err, ctx, done) => {
+          if (typeof ctx == 'object' && ctx) {
+            ctx.iter++
+          }
+          done(err)
+        },
+      }),
       reachEnd: function (err, ctx, iter) {
         return !!err || iter == 10
       },

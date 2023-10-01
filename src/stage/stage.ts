@@ -3,10 +3,8 @@ import { z } from 'zod'
 import { fromZodError } from 'zod-validation-error'
 import { Context, OriginalObject } from './Context'
 import { can_fix_error, ComplexError, CreateError } from './errors'
-import { getStageConfig, isAnyStage, StageSymbol } from './getStageConfig'
 import { StageConfig } from './StageConfig'
 import {
-  AllowedStage,
   AnyStage,
   CallbackFunction,
   isStageRun,
@@ -16,6 +14,7 @@ import {
   Possible,
   RunPipelineFunction,
   StageRun,
+  StageSymbol,
 } from './types'
 import { execute_callback } from './utils/execute_callback'
 import { execute_custom_run } from './utils/execute_custom_run'
@@ -28,36 +27,14 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
   }
   [StageSymbol]: boolean
   protected _config!: Config
-  constructor()
-  constructor(name: string)
   constructor(config: Config)
-  constructor(runFn: RunPipelineFunction<Input, Output>)
-  constructor(stage: AnyStage<Input, Output>)
-  constructor(config?: AllowedStage<Input, Output, Config>) {
+  constructor(config: unknown) {
     this[StageSymbol] = true
-    if (config) {
-      if (typeof config === 'string') {
-        this._config = { name: config } as Config extends StageConfig<Input, Output> ? Config : never
-      } else {
-        let res = getStageConfig<Input, Output, Config>(config) as Config extends StageConfig<Input, Output> ? Config
-          : never
-        if (isAnyStage<Input, Output>(res)) {
-          this._config = res.config as any
-        } else {
-          this._config = res
-        }
-      }
+    if (typeof config === 'object' && config !== null) {
+      this._config = config as Config
     } else {
-      this._config = {} as Config extends StageConfig<Input, Output> ? Config : never
+      throw new Error('arguments Error')
     }
-  }
-
-  public get reportName() {
-    return `STG:${this._config.name ? this._config.name : ''}`
-  }
-
-  public toString() {
-    return '[pipeline Stage]'
   }
 
   public get name() {
@@ -288,7 +265,7 @@ export class Stage<Input, Output, Config extends StageConfig<Input, Output> = St
         callback(makeCallbackArgs(err))
       }
     } else {
-      const retErr: Array<any> = [this.reportName + ' reports: run is not a function']
+      const retErr: Array<any> = [new Error('reports: run is not a function')]
       if (err) {
         retErr.push(err)
       }

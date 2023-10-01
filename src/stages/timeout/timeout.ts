@@ -1,24 +1,8 @@
-import { AllowedStage, makeCallback, makeCallbackArgs, run_or_execute, Stage, StageRun } from '../../stage'
-import { getTimeoutConfig } from './getTimeoutConfig'
+import { makeCallback, makeCallbackArgs, run_or_execute, Stage, StageRun } from '../../stage'
 import { TimeoutConfig } from './TimeoutConfig'
 
 export class Timeout<Input, Output, Config extends TimeoutConfig<Input, Output> = TimeoutConfig<Input, Output>>
   extends Stage<Input, Output, Config> {
-  constructor(config?: AllowedStage<Input, Output, Config>) {
-    super()
-    if (config) {
-      this._config = getTimeoutConfig(config) as Config
-    }
-  }
-
-  public override get reportName() {
-    return `Templ:${this.config.name ? this.config.name : ''}`
-  }
-
-  public override toString() {
-    return '[pipeline Timeout]'
-  }
-
   override compile(rebuild: boolean = false): StageRun<Input, Output> {
     let run: StageRun<Input, Output> = (err, ctx, done) => {
       let to: any

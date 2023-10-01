@@ -1,6 +1,6 @@
 import 'jest'
 import { Stage } from '../../stage'
-import { Timeout } from './Timeout'
+import { Timeout } from './timeout'
 
 describe('Timeout', function () {
   it('not used without construction', function (done) {
@@ -8,19 +8,21 @@ describe('Timeout', function () {
     done()
   })
 
-  it('not can be used  without confg', function (done) {
+  it('not can be used without confg', function (done) {
     expect(() => {
-      new Timeout()
+      new Timeout({})
     }).not.toThrow()
-    expect(new Timeout()).toBeInstanceOf(Stage)
+    expect(new Timeout({})).toBeInstanceOf(Stage)
     done()
   })
 
   it('works', function (done) {
     var to = new Timeout({
-      stage: function (err, ctx, done) {
-        done()
-      },
+      stage: new Stage({
+        run: function (err, ctx, done) {
+          done()
+        },
+      }),
     })
     to.execute({}, function (err, ctx) {
       done()
@@ -28,10 +30,12 @@ describe('Timeout', function () {
   })
 
   it('accept stage instances', function (done) {
-    var stg = new Stage(function (err, ctx, done) {
-      done()
+    var stg = new Stage({
+      run: function (err, ctx, done) {
+        done()
+      },
     })
-    var to = new Timeout(stg)
+    var to = new Timeout({ stage: stg })
     to.execute({}, function (err, ctx) {
       done()
     })
@@ -40,10 +44,12 @@ describe('Timeout', function () {
   it('accepts use default overdue', function (done) {
     var to = new Timeout({
       timeout: 100,
-      stage: new Stage(function (err, ctx, done) {
-        setTimeout(function () {
-          done()
-        }, 1000)
+      stage: new Stage({
+        run: function (err, ctx, done) {
+          setTimeout(function () {
+            done()
+          }, 1000)
+        },
       }),
     })
     to.execute({}, function (err, ctx) {
@@ -57,10 +63,12 @@ describe('Timeout', function () {
       timeout: function (ctx) {
         return ctx.to
       },
-      stage: new Stage(function (err, ctx, done) {
-        setTimeout(function () {
-          done()
-        }, 1000)
+      stage: new Stage({
+        run: function (err, ctx, done) {
+          setTimeout(function () {
+            done()
+          }, 1000)
+        },
       }),
     })
     to.execute({
@@ -73,11 +81,15 @@ describe('Timeout', function () {
 
   it('accepts Stages in config', function (done) {
     var to = new Timeout({
-      stage: new Stage(function (err, ctx, done) {
-        done()
+      stage: new Stage({
+        run: function (err, ctx, done) {
+          done()
+        },
       }),
-      overdue: new Stage(function (err, ctx, done) {
-        done()
+      overdue: new Stage({
+        run: function (err, ctx, done) {
+          done()
+        },
       }),
     })
     to.execute({}, function (err, ctx) {

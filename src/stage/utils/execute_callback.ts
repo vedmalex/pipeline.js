@@ -4,7 +4,6 @@ import {
   CallbackFunction,
   CustomRun2Callback,
   CustomRun3Callback,
-  is_thenable,
   isCallback0Async,
   isCallback0Sync,
   isCallback1Async,
@@ -14,7 +13,6 @@ import {
   isCallback3Callback,
   isStageCallbackFunction,
   makeCallbackArgs,
-  Thenable,
 } from '../types'
 import { run_callback_once } from './run_callback_once'
 
@@ -42,12 +40,8 @@ export function execute_callback<Input, Output>(
           }
         } else if (isCallback0Sync<Input, Output>(run)) {
           try {
-            const res = run.apply(context) as Output | Promise<Output> | Thenable<Output>
+            const res = run.apply(context) as Output | Promise<Output>
             if (res instanceof Promise) {
-              res.then(r => done(makeCallbackArgs(undefined, r ?? context as unknown as Output))).catch(err =>
-                done(makeCallbackArgs(err))
-              )
-            } else if (is_thenable(res)) {
               res.then(r => done(makeCallbackArgs(undefined, r ?? context as unknown as Output))).catch(err =>
                 done(makeCallbackArgs(err))
               )
@@ -73,10 +67,6 @@ export function execute_callback<Input, Output>(
           try {
             const res = run.call(this, context)
             if (res instanceof Promise) {
-              res.then(r => done(makeCallbackArgs(undefined, r ?? context as unknown as Output))).catch(err =>
-                done(makeCallbackArgs(err))
-              )
-            } else if (is_thenable<Output>(res)) {
               res.then(r => done(makeCallbackArgs(undefined, r ?? context as unknown as Output))).catch(err =>
                 done(makeCallbackArgs(err))
               )

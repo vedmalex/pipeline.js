@@ -4,38 +4,32 @@ import { IfElse } from './Ifelse'
 
 describe('if->else', function () {
   it('simple works', function (done) {
-    var stage = new IfElse()
+    var stage = new IfElse({})
     expect(stage).toBeInstanceOf(Stage)
     stage.execute({}, function (err, context) {
       // assert.strictEqual(context instanceof Context, true);
       done()
     })
   })
-  it('not allows to use constructor as a function', function (done) {
-    try {
-      var s = eval('IfElse()')
-    } catch (err) {
-      done()
-    }
-  })
 
   it('simple works sucess', function (done) {
-    var s0 = new Stage<{ done: boolean }>(function (err, ctx, done) {
-      if (ctx) {
-        ctx.done = true
-      } else {
-        throw new Error('nonsense')
-      }
-      done()
-    })
     var stage = new IfElse({
       condition: ctx => {
         return true
       },
-      success: s0,
-      failed: new Stage(),
+      success: new Stage({
+        run: function (err, ctx, done) {
+          if (ctx) {
+            ctx.done = true
+          } else {
+            throw new Error('nonsense')
+          }
+          done()
+        },
+      }),
+      failed: new Stage({}),
     })
-    stage.execute<{ done?: boolean }>({}, function (err, context) {
+    stage.execute({}, function (err, context) {
       expect(context?.done).toBeTruthy()
       done()
     })
@@ -51,22 +45,24 @@ describe('if->else', function () {
         return true
       },
       success: s0,
-      failed: new Stage(),
+      failed: new Stage({}),
     })
-    stage.execute<{ done?: boolean }>({}, function (err, context) {
-      expect(context?.done).toBeTruthy()
+    stage.execute({}, function (err, context) {
+      expect(context.done).toBeTruthy()
       done()
     })
   })
 
   it('simple works failed', function (done) {
-    var s0 = new Stage<{ done?: boolean }>(function (err, ctx, done) {
-      if (ctx) {
-        ctx.done = true
-      } else {
-        throw new Error('nonsense')
-      }
-      done()
+    var s0 = new Stage({
+      run: function (err, ctx, done) {
+        if (ctx) {
+          ctx.done = true
+        } else {
+          throw new Error('nonsense')
+        }
+        done()
+      },
     })
 
     var stage = new IfElse({
@@ -74,10 +70,10 @@ describe('if->else', function () {
         return false
       },
       failed: s0,
-      success: new Stage(),
+      success: new Stage({}),
     })
 
-    stage.execute<{ done?: boolean }>({}, function (err, context) {
+    stage.execute({}, function (err, context) {
       expect(context?.done).toBeTruthy()
       done()
     })
@@ -94,10 +90,10 @@ describe('if->else', function () {
         return false
       },
       failed: s0,
-      success: new Stage(),
+      success: new Stage({}),
     })
 
-    stage.execute<{ done?: boolean }>({}, function (err, context) {
+    stage.execute({}, function (err, context) {
       expect(context?.done).toBeTruthy()
       done()
     })

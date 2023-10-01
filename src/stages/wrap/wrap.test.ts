@@ -5,35 +5,26 @@ import { Wrap } from './wrap'
 
 describe('Wrap', function () {
   it('works', function (done) {
-    type CTX = {
-      FullName: string
-      Retry: number
-    }
-    type WrapCTX = {
-      name: string
-      count: number
-    }
     var ctx = {
       FullName: 'NEO',
       Retry: 1,
-    } satisfies CTX
+    }
 
-    var st1 = new Stage<CTX>({
-      run: function (ctx) {
-        ctx.count++
-        ctx.name = 'borrow'
-      },
-    })
-    var wr = new Wrap<CTX, WrapCTX>({
-      stage: st1,
-      prepare: function (ctx: CTX) {
+    var wr = new Wrap({
+      stage: new Stage({
+        run: function (ctx) {
+          ctx.count++
+          ctx.name = 'borrow'
+        },
+      }),
+      prepare: function (ctx) {
         var retCtx = {
           name: ctx.FullName,
           count: ctx.Retry,
         }
         return retCtx
       },
-      finalize: function (ctx: CTX, retCtx: WrapCTX) {
+      finalize: function (ctx, retCtx) {
         ctx.Retry = retCtx.count
         return ctx
       },
@@ -50,10 +41,7 @@ describe('Wrap', function () {
   it('prepare context -> moved to Wrap', function (done) {
     type CTX = { iteration: number; iter: number }
     type SubCTX = { iteration: number }
-    var stage0 = new Stage(function (ctx: SubCTX) {
-      ctx.iteration += 1
-    })
-    var stage = new Wrap<CTX, SubCTX>({
+    var stage = new Wrap({
       prepare: function (ctx) {
         return {
           iteration: ctx.iter,
@@ -61,9 +49,14 @@ describe('Wrap', function () {
       },
       finalize: function (ctx, retCtx) {
         ctx.iter = retCtx.iteration
+        return ctx
       },
-      stage: new DoWhile<SubCTX, SubCTX>({
-        stage: stage0,
+      stage: new DoWhile({
+        stage: new Stage({
+          run: function (ctx: SubCTX) {
+            ctx.iteration += 1
+          },
+        }),
         split: function (ctx, iter) {
           return ctx
         },
@@ -81,16 +74,7 @@ describe('Wrap', function () {
     })
   })
   it('prepare context -> moved to Wrap with fork', function (done) {
-    type Ctx = {
-      iter: number
-    }
-    type InternalCtx = {
-      iteration: number
-    }
-    var stage0 = new Stage<InternalCtx>(function (ctx: InternalCtx) {
-      ctx.iteration += 1
-    })
-    var stage = new Wrap<Ctx, InternalCtx>({
+    var stage = new Wrap({
       prepare: function (ctx) {
         return ctx.fork({
           iteration: ctx.iter,
@@ -99,16 +83,21 @@ describe('Wrap', function () {
       finalize: function (ctx, retCtx) {
         ctx.iter = retCtx.iteration
         expect(retCtx.iteration).toBe(10)
+        return ctx
       },
-      stage: new DoWhile<InternalCtx, InternalCtx>({
-        stage: stage0,
+      stage: new DoWhile({
+        stage: new Stage({
+          run: function (ctx) {
+            ctx.iteration += 1
+          },
+        }),
         split: function (ctx, iter) {
           return ctx
         },
         reachEnd: function (err, ctx, iter) {
           return !!err || iter == 10
         },
-      } as DoWhileConfig<InternalCtx, InternalCtx>),
+      }),
     })
 
     stage.execute({

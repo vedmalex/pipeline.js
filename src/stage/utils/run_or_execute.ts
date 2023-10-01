@@ -1,5 +1,4 @@
-import { isAnyStage } from '../getStageConfig'
-import { CallbackFunction, makeCallback, makeCallbackArgs } from '../types'
+import { CallbackFunction, isAnyStage, makeCallback, makeCallbackArgs } from '../types'
 import { execute_callback } from './execute_callback'
 
 export function run_or_execute<Input, Output>(

@@ -1,7 +1,7 @@
-import { AllowedStageStored, Config } from '../../stage'
+import { AnyStage, Config } from '../../stage'
 
 export interface DoWhileConfig<Input, Output, T> extends Config<Input, Output> {
-  stage: AllowedStageStored<Input, Output, Config<Input, Output>>
-  split?: (ctx: Output, iter: number) => T
-  reachEnd?: (err: unknown, ctx: Input, iter: number) => unknown
+  stage: AnyStage<Input, Output>
+  split?: (ctx: Input, iter: number) => T
+  reachEnd?: (err: unknown, ctx: Input, iter: number) => boolean
 }

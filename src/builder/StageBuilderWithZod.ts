@@ -2,7 +2,17 @@ import { z } from 'zod'
 import { ComplexError, CreateError } from '../stage/errors'
 import { Stage } from '../stage/stage'
 import { Config, StageConfig } from '../stage/StageConfig'
-import { CallbackFunction, isRunPipelineFunction, LegacyCallback, StageObject, StageRun, UnsetMarker } from '../stage/types'
+import {
+  CallbackFunction,
+  isRunPipelineFunction,
+  LegacyCallback,
+  StageObject,
+  StageRun,
+  UnsetMarker,
+} from '../stage/types'
+
+// TODO: проверять если нет rescue тогда параметры функции должны !!! включать обработку ошибок !!!
+// TODO: если в списке параметров есть обработка ошибок то не нужно включать rescue
 
 /**
  * @internal
@@ -35,8 +45,8 @@ export type StageType =
   | 'sequential'
   | 'empty'
 
-  export type GetStage<T extends StageType, TParams extends BuilderParams> =
-  T extends 'stage' ? StageBuilder<TParams> : never
+export type GetStage<T extends StageType, TParams extends BuilderParams> = T extends 'stage' ? StageBuilder<TParams>
+  : never
 
 export interface BuilderParams {
   _type: unknown
@@ -349,7 +359,7 @@ export interface Builder<TParams extends BuilderParams> {
 
 export interface StageBuilder<TParams extends BuilderParams> extends Builder<TParams> {
   _def: BuilderDef<StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
-    /**
+  /**
    * input for stage
    * @param schema only object allowed
    */

@@ -1,11 +1,11 @@
 import 'jest'
 import { Stage } from '../../stage'
 import { Wrap } from '../wrap/wrap'
-import { Sequential } from './Sequential'
+import { Sequential } from './sequential'
 
 describe('Sequential', function () {
-  it('works with default', function (done) {
-    var stage = new Sequential()
+  it('works', function (done) {
+    var stage = new Sequential({ stage: new Stage({ run: () => {} }) })
     expect(stage).toBeInstanceOf(Sequential)
     stage.execute({}, function (err, context) {
       expect(err).toBeUndefined()
@@ -40,40 +40,13 @@ describe('Sequential', function () {
     })
   })
 
-  it('works with config as Stage', function (done) {
-    var stage = new Sequential(
-      new Stage(function (err, ctx, done) {
-        done()
-      }),
-    )
-    stage.execute({}, function (err, context) {
-      // assert.strictEqual(context instanceof Context, true);
-      done()
-    })
-  })
-
-  it('not allows to use constructor as a function', function (done) {
-    try {
-      // @ts-expect-error
-      var s = Sequential()
-    } catch (err) {
-      done()
-    }
-  })
-
   it('run stage', function (done) {
-    type CTX = {
-      iter: number
-      split?: Array<SplitCTX>
-    }
-    type SplitCTX = {
-      iter: number
-    }
-    var stage0 = new Stage<SplitCTX>(function (ctx) {
-      ctx.iter++
-    })
-    var stage = new Sequential<CTX, SplitCTX>({
-      stage: stage0,
+    var stage = new Sequential({
+      stage: new Stage({
+        run: function (ctx) {
+          ctx.iter++
+        },
+      }),
       split: function (ctx) {
         ctx.split = [0, 0, 0, 0, 0].map(function (i) {
           return {
@@ -97,8 +70,8 @@ describe('Sequential', function () {
   })
 
   it('empty split not run combine', function (done) {
-    var stage0 = new Stage(function (ctx) {})
-    var stage = new Sequential<{ combine: boolean }, {}>({
+    var stage0 = new Stage({ run: function (ctx) {} })
+    var stage = new Sequential({
       stage: stage0,
       split: function (ctx) {
         return []
@@ -115,22 +88,22 @@ describe('Sequential', function () {
   })
 
   it('prepare context -> moved to Wrap', function (done) {
-    type SubCTX = { iteration: number }
-    type CTX = { iter: number; split?: Array<SubCTX> }
-    type SubSubCTX = { iter: number; split?: Array<SubCTX>; iteration: number }
-    var stage0 = new Stage(function (ctx: SubCTX) {
-      ctx.iteration++
+    var stage0 = new Stage({
+      run: function (ctx) {
+        ctx.iteration++
+      },
     })
-    var stage = new Wrap<CTX, SubCTX>({
-      prepare: function (ctx: CTX) {
+    var stage = new Wrap({
+      prepare: function (ctx) {
         return {
           iteration: ctx.iter,
         }
       },
-      finalize: function (ctx: CTX, retCtx: SubCTX) {
+      finalize: function (ctx, retCtx) {
         ctx.iter = retCtx.iteration
+        return ctx
       },
-      stage: new Sequential<SubSubCTX, SubCTX>({
+      stage: new Sequential({
         stage: stage0,
         split: function (ctx) {
           ctx.split = [0, 0, 0, 0, 0].map(function (i) {
@@ -156,7 +129,6 @@ describe('Sequential', function () {
       expect(err).toBeUndefined()
       expect(context).not.toBeUndefined()
       expect(context?.iter).toEqual(5)
-      // @ts-expect-error
       expect(context?.iteration).toBeUndefined()
       done()
     })

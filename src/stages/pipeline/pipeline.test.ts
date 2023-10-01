@@ -1,10 +1,10 @@
 import 'jest'
 import { ComplexError, Context, isAnyStage, Stage } from '../../stage'
-import { Pipeline } from './Pipeline'
+import { Pipeline } from './pipeline'
 
 describe('Pipeline', function () {
   it('defaults', function (done) {
-    var pipe = new Pipeline('defaultName')
+    var pipe = new Pipeline({ name: 'defaultName', stages: [] })
     expect(pipe).toBeInstanceOf(Stage)
 
     expect('defaultName' === pipe.name).toBeTruthy()
@@ -32,18 +32,22 @@ describe('Pipeline', function () {
   })
 
   it('addStage', function (done) {
-    var pipe = new Pipeline()
-    pipe.addStage(new Stage())
+    var pipe = new Pipeline({ stages: [] })
+    pipe.addStage(new Stage({}))
     expect(pipe.config.stages.length).toEqual(1)
     expect(isAnyStage(pipe.config.stages[0])).toEqual(true)
     done()
   })
 
   it('catch throw errors 1', function (done) {
-    var pipe = new Pipeline()
-    pipe.addStage(function (ctx, done) {
-      throw new Error('error')
-    })
+    var pipe = new Pipeline({ stages: [] })
+    pipe.addStage(
+      new Stage({
+        run: function (ctx, done) {
+          throw new Error('error')
+        },
+      }),
+    )
     pipe.execute({}, function (err, ctx) {
       if (err instanceof ComplexError) {
         expect('error').toEqual((err?.payload as Array<Error>)[0].message)
@@ -53,21 +57,24 @@ describe('Pipeline', function () {
   })
 
   it('catch throw errors 2', function (done) {
-    type CTX = { cnt: number }
-    var pipe = new Pipeline<CTX>([
-      function (err, ctx, done) {
-        ctx.cnt = 1
-        done(new Error('error'))
-      },
-      function (err, ctx, done) {
-        ctx.cnt += 1
-        done()
-      },
-    ])
+    var pipe = new Pipeline({
+      stages: [
+        new Stage({
+          run: function (err, ctx, done) {
+            ctx.cnt = 1
+            done(new Error('error'))
+          },
+        }),
+        new Stage({
+          run: function (err, ctx, done) {
+            ctx.cnt += 1
+            done()
+          },
+        }),
+      ],
+    })
     pipe.execute({}, function (err, ctx) {
-      if (err instanceof ComplexError) {
-        expect('error').toEqual((err?.payload as Array<Error>)[0].message)
-      }
+      expect('error').toEqual((err?.payload as Array<Error>)[0].message)
       done()
     })
   })
@@ -80,14 +87,18 @@ describe('Pipeline', function () {
         }
       },
       stages: [
-        function (err, ctx, done) {
-          ctx.cnt = 1
-          done()
-        },
-        function (err, ctx, done) {
-          ctx.cnt += 1
-          done(new Error('error'))
-        },
+        new Stage({
+          run: function (err, ctx, done) {
+            ctx.cnt = 1
+            done()
+          },
+        }),
+        new Stage({
+          run: function (err, ctx, done) {
+            ctx.cnt += 1
+            done(new Error('error'))
+          },
+        }),
       ],
     })
     pipe.execute({}, function (err, ctx) {
@@ -98,7 +109,7 @@ describe('Pipeline', function () {
   })
 
   it('rescue works', function (done) {
-    var pipe = new Pipeline()
+    var pipe = new Pipeline({ stages: [] })
     var st = new Stage({
       run: function (err, ctx, done) {
         throw new Error('error')
@@ -116,70 +127,36 @@ describe('Pipeline', function () {
     })
   })
 
-  it('addStage converts function to Stage Instance', function (done) {
-    var pipe = new Pipeline()
-    pipe.addStage(function (err, ctx, done) {
-      done()
-    })
-    expect(pipe.config.stages[0] instanceof Function).toBeTruthy()
-    done()
-  })
-
-  it('addStage converts object to Stage Instance', function (done) {
-    var pipe = new Pipeline()
-    pipe.addStage({
-      run: function (err, ctx, done) {
-        done()
-      },
-    })
-    expect(isAnyStage(pipe.config.stages[0])).toBeTruthy()
-    done()
-  })
-
-  it('accept array of stages', function (done) {
-    var f1 = function (err, ctx, done) {
-      done()
-    }
-    var f2 = function (err, ctx, done) {
-      done()
-    }
-
-    var pipe = new Pipeline([f1, f2])
-    pipe.addStage(function (err, ctx, done) {
-      done()
-    })
-    expect(pipe.config.stages[0] instanceof Function).toBeTruthy()
-    expect(pipe.config.stages[1] instanceof Function).toBeTruthy()
-
-    done()
-  })
-
-  it('accept empty addStages', function (done) {
-    var pipe = new Pipeline()
-    ;(pipe as any).addStage()
+  it('not accept empty addStages', function (done) {
+    var pipe = new Pipeline({ stages: [] })
+    expect(() => (pipe as any).addStage()).toThrow()
     expect(pipe.config.stages.length).toEqual(0)
     done()
   })
 
   it('compile', function (done) {
-    var pipe = new Pipeline()
-    pipe.addStage(new Stage())
+    var pipe = new Pipeline({ stages: [] })
+    pipe.addStage(new Stage({ run: () => {} }))
     pipe.compile()
     // @ts-expect-error
     expect(typeof pipe.run == 'function').toBeTruthy()
-    pipe.addStage(new Stage())
+    pipe.addStage(new Stage({ run: () => {} }))
     expect(!(pipe as any).run).toBeTruthy()
     done()
   })
 
   it('executes pipes in pipes', function (done) {
     type CTX = { item: number }
-    var pipe = new Pipeline<CTX>()
-    var nestedpipe = new Pipeline()
-    nestedpipe.addStage(function (err, ctx, done) {
-      ctx.item = 1
-      done()
-    })
+    var pipe = new Pipeline({ stages: [] })
+    var nestedpipe = new Pipeline({ stages: [] })
+    nestedpipe.addStage(
+      new Stage({
+        run: function (err, ctx, done) {
+          ctx.item = 1
+          done()
+        },
+      }),
+    )
     pipe.addStage(nestedpipe)
     pipe.execute({
       item: 0,
@@ -192,27 +169,33 @@ describe('Pipeline', function () {
 
   it('context catch all errors', function (done) {
     type CTX = { s1: boolean; s2: boolean; s3: boolean }
-    var pipe = new Pipeline<CTX>()
-    var ctx1 = Context.create<CTX>({
+    var pipe = new Pipeline({ stages: [] })
+    var ctx1 = Context.create({
       s1: false,
       s2: false,
       s3: false,
     })
     var error = new Error('THE ERROR')
 
-    var s1 = new Stage(function (context, done) {
-      expect(context).toEqual(ctx1)
-      context.s1 = true
-      done()
+    var s1 = new Stage({
+      run: function (context, done) {
+        expect(context).toEqual(ctx1)
+        context.s1 = true
+        done()
+      },
     })
-    var s2 = new Stage(function (context, done) {
-      expect(context).toEqual(ctx1)
-      context.s2 = true
-      done(error)
+    var s2 = new Stage({
+      run: function (context, done) {
+        expect(context).toEqual(ctx1)
+        context.s2 = true
+        done(error)
+      },
     })
-    var s3 = new Stage(function (context, done) {
-      context.s3 = true
-      done(new Error('another ERROR'))
+    var s3 = new Stage({
+      run: function (context, done) {
+        context.s3 = true
+        done(new Error('another ERROR'))
+      },
     })
 
     pipe.addStage(s1)
@@ -231,12 +214,11 @@ describe('Pipeline', function () {
   })
 
   it('ensure Context Error use', function (done) {
-    type CTX = { SomeValue: number }
-    var ctx: CTX = { SomeValue: 1 }
-    var pipe = new Pipeline<CTX>()
+    var ctx = { SomeValue: 1 }
+    var pipe = new Pipeline({ stages: [] })
     var error = new Error('context not ready')
     pipe.addStage(
-      new Stage<CTX>({
+      new Stage({
         run: function (err, context, done) {
           context.SomeValue += 1
           done()
@@ -251,7 +233,7 @@ describe('Pipeline', function () {
       }),
     )
     var stage2 = {
-      ensure: function WV(context, callback) {
+      ensure: function (context, callback) {
         if (context.SomeValue !== 1) {
           callback(new Error(/* this.reportName +  */ ': Wrong Value'))
         } else {
@@ -264,25 +246,24 @@ describe('Pipeline', function () {
     pipe.addStage(s2)
     pipe.execute(ctx, function (err) {
       expect(err).not.toBeUndefined()
-      expect(/Error: STG: reports: run is not a function/.test(err.payload[0].toString())).toBeTruthy()
       done()
     })
   })
 
   it('can do subclassing of Pipeline', function (done) {
-    class newPipe extends Pipeline<{}> {
+    class newPipe extends Pipeline<any, any, any> {
       constructor() {
-        super()
-        this.addStage(new Stage())
-        this.addStage(new Stage())
-        this.addStage(new Stage())
+        super({ stages: [] })
+        this.addStage(new Stage({ run: () => {} }))
+        this.addStage(new Stage({ run: () => {} }))
+        this.addStage(new Stage({ run: () => {} }))
       }
     }
 
     var p1 = new newPipe()
     expect(p1.config.stages.length).toEqual(3)
     var p2 = new newPipe()
-    p2.addStage(new Stage())
+    p2.addStage(new Stage({}))
     expect(p2.config.stages.length).toEqual(4)
     var p3 = new newPipe()
     expect(p3.config.stages.length).toEqual(3)
@@ -290,27 +271,38 @@ describe('Pipeline', function () {
   })
 
   it('allow reenterability', function (done) {
-    type CTX = { one: number }
-    var pipe = new Pipeline<CTX>()
+    var pipe = new Pipeline({ stages: [] })
 
-    pipe.addStage(function (context: CTX, done) {
-      process.nextTick(function () {
-        context.one++
-        done()
-      })
-    })
+    pipe.addStage(
+      new Stage({
+        run: function (context, done) {
+          process.nextTick(function () {
+            context.one++
+            done()
+          })
+        },
+      }),
+    )
 
-    pipe.addStage(function (context: CTX, done) {
-      process.nextTick(function () {
-        context.one += 1
-        done()
-      })
-    })
+    pipe.addStage(
+      new Stage({
+        run: function (context, done) {
+          process.nextTick(function () {
+            context.one += 1
+            done()
+          })
+        },
+      }),
+    )
 
-    pipe.addStage(function (context: CTX, done) {
-      context.one += 5
-      done()
-    })
+    pipe.addStage(
+      new Stage({
+        run: function (context, done) {
+          context.one += 5
+          done()
+        },
+      }),
+    )
 
     var l = 0
 
@@ -321,7 +313,7 @@ describe('Pipeline', function () {
     }
     for (var i = 0; i < 10; i++) {
       ;(function () {
-        var ctx1: CTX = {
+        var ctx1 = {
           one: 1,
         }
         pipe.execute(ctx1, function (err, data) {

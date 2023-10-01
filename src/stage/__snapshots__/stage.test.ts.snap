@@ -1,19 +1,8 @@
-// Bun Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`stage create named: names stage 1`] = `
+exports[`Stage_NEW create with Config: config stage 1`] = `
 Stage {
   "_config": {
-    "name": "name",
-  },
-  "run": undefined,
-  [Symbol(stage)]: true,
-}
-`;
-
-exports[`stage create with function: function stage 1`] = `
-Stage {
-  "_config": {
-    "name": "",
     "run": [Function],
   },
   "run": undefined,
@@ -21,10 +10,9 @@ Stage {
 }
 `;
 
-exports[`stage create with Lambda 3: lambda stage 1`] = `
+exports[`Stage_NEW create with Lambda 2: lambda stage 1`] = `
 Stage {
   "_config": {
-    "name": "",
     "run": [Function],
   },
   "run": undefined,
@@ -32,12 +20,32 @@ Stage {
 }
 `;
 
-exports[`stage input validation 1`] = `[ComplexError]`;
-
-exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
+exports[`Stage_NEW create with Lambda 3: lambda stage 1`] = `
 Stage {
   "_config": {
+    "run": [Function],
+  },
+  "run": undefined,
+  [Symbol(stage)]: true,
+}
+`;
+
+exports[`Stage_NEW create with function: function stage 1`] = `
+Stage {
+  "_config": {
+    "run": [Function],
+  },
+  "run": undefined,
+  [Symbol(stage)]: true,
+}
+`;
+
+exports[`Stage_NEW initialize other stuff sucessfully: schema stage 1 1`] = `
+Stage {
+  "_config": {
+    "ensure": [Function],
     "name": "stage",
+    "rescue": [Function],
     "run": [Function],
   },
   "run": undefined,
@@ -45,24 +53,4 @@ Stage {
 }
 `;
 
-exports[`stage create with Lambda 2: lambda stage 1`] = `
-Stage {
-  "_config": {
-    "name": "",
-    "run": [Function],
-  },
-  "run": undefined,
-  [Symbol(stage)]: true,
-}
-`;
-
-exports[`stage create with Config: config stage 1`] = `
-Stage {
-  "_config": {
-    "name": "",
-    "run": [Function],
-  },
-  "run": undefined,
-  [Symbol(stage)]: true,
-}
-`;
+exports[`Stage_NEW input validation 1`] = `[ComplexError]`;

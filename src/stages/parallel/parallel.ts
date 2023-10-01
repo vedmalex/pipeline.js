@@ -1,5 +1,4 @@
-import { AllowedStage, empty_run, makeCallback, makeCallbackArgs, run_or_execute, Stage, StageRun } from '../../stage'
-import { getParallelConfig } from './getParallelConfig'
+import { empty_run, makeCallback, makeCallbackArgs, run_or_execute, Stage, StageRun } from '../../stage'
 import { ParallelConfig } from './ParallelConfig'
 import { ParallelError } from './ParallelError'
 
@@ -27,20 +26,6 @@ export class Parallel<
   T,
   Config extends ParallelConfig<Input, Output, T> = ParallelConfig<Input, Output, T>,
 > extends Stage<Input, Output, Config> {
-  constructor(config?: AllowedStage<Input, Output, Config>) {
-    super()
-    if (config) {
-      this._config = getParallelConfig<Input, Output, T, Config>(config)
-    }
-  }
-
-  public override get reportName() {
-    return `PLL:${this.config.name ? this.config.name : ''}`
-  }
-  public override toString() {
-    return '[pipeline Pipeline]'
-  }
-
   public override get name(): string {
     return this._config.name ?? this._config.stage?.name ?? ''
   }
@@ -49,7 +34,7 @@ export class Parallel<
     if (this.config.stage) {
       var run: StageRun<Input, Output> = (err, ctx, done) => {
         var children = this.split(ctx)
-        var len = children ? children.length : 0
+        var len = children.length
         let errors: Array<Error>
         let hasError = false
         const build = (i: number) => {
@@ -111,14 +96,20 @@ export class Parallel<
   }
 
   protected split(ctx: Input): Array<T> {
-    return this._config.split ? this._config.split(ctx) ?? [ctx] : [ctx as unknown as T]
+    if (this._config.split) {
+      let res = this._config.split(ctx)
+      if (!res) throw new Error('split MUST return value')
+      if (!Array.isArray(res)) throw new Error('split MUST return Array')
+      return res
+    }
+    return [ctx as unknown as T]
   }
 
   protected combine(ctx: Input, children: Array<T>): Output {
     let res: Output
     if (this.config.combine) {
-      let c = this.config.combine(ctx, children)
-      res = c ?? ctx as unknown as Output
+      res = this.config.combine(ctx, children)
+      if(!res) throw new Error('combine MUST return value')
     } else {
       res = ctx as unknown as Output
     }

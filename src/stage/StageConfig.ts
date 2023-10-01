@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { CompileFunction, Rescue, RunPipelineFunction } from './types'
 
+// включить тип для вычисления параметра
 export interface Config<Input, Output> {
   name?: string
   input?: z.ZodType<Input>

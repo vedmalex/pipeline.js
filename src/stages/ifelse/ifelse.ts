@@ -1,32 +1,8 @@
-import {
-  AllowedStage,
-  execute_validate,
-  makeCallback,
-  makeCallbackArgs,
-  run_or_execute,
-  Stage,
-  StageRun,
-} from '../../stage'
-import { getIfElseConfig } from './getIfElseConfig'
+import { execute_validate, makeCallback, run_or_execute, Stage, StageRun } from '../../stage'
 import { IfElseConfig } from './IfElseConfig'
 
 export class IfElse<Input, Output, Config extends IfElseConfig<Input, Output> = IfElseConfig<Input, Output>>
   extends Stage<Input, Output, Config> {
-  constructor(config?: AllowedStage<Input, Output, Config>) {
-    super()
-    if (config) {
-      this._config = getIfElseConfig(config)
-    }
-  }
-
-  public override get reportName() {
-    return `Templ:${this.config.name ? this.config.name : ''}`
-  }
-
-  public override toString() {
-    return '[pipeline IfElse]'
-  }
-
   override compile(rebuild: boolean = false): StageRun<Input, Output> {
     let run: StageRun<Input, Output> = (err, context, done) => {
       if (typeof this.config.condition == 'function') {
@@ -45,24 +21,6 @@ export class IfElse<Input, Output, Config extends IfElseConfig<Input, Output> = 
             }
           }),
         )
-      } else if (typeof this.config.condition == 'boolean') {
-        if (this.config.condition) {
-          if (this.config.success) {
-            run_or_execute(this.config.success, err, context, done)
-          }
-        } else {
-          if (this.config.failed) {
-            run_or_execute(this.config.failed, err, context, done)
-          }
-        }
-      } else {
-        if (this.config.success) {
-          run_or_execute(this.config.success, err, context, done)
-        } else if (this.config.failed) {
-          run_or_execute(this.config.failed, err, context, done)
-        } else {
-          done(makeCallbackArgs(err, context as unknown as Output))
-        }
       }
     }
 

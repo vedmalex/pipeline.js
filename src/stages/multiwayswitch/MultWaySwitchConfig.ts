@@ -1,12 +1,6 @@
-import { StageConfig } from '../../stage'
-import { CombineFunction } from './CombineFunction'
+import { Config } from '../../stage'
 import { MultiWaySwitchCase } from './MultiWaySwitchCase'
-import { SplitFunction } from './SplitFunction'
 
-// пересмотреть!!!!
-
-export interface MultWaySwitchConfig<Input, Output, T> extends StageConfig<Input, Output> {
-  cases: Array<MultiWaySwitchCase<Input, Output, T>>
-  split?: SplitFunction<Input, T>
-  combine?: CombineFunction<Input, Output, T>
+export interface MultWaySwitchConfig<Input, Output> extends Config<Input, Output> {
+  cases: Array<MultiWaySwitchCase<Input, Output, any, any>>
 }
