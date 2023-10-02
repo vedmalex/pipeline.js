@@ -20,14 +20,6 @@ export function isCallbackArgs<Input, Output>(inp: unknown): inp is CallbackArgs
 }
 
 export function makeCallbackArgs<Input, Output>(
-  err: undefined,
-  res: Output,
-): CallbackArgs<Input, Output>
-export function makeCallbackArgs<Input, Output>(
-  err: Error,
-  res: Input,
-): CallbackArgs<Input, Output>
-export function makeCallbackArgs<Input, Output>(
   err: Error | undefined,
   res?: Output,
 ): CallbackArgs<Input, Output> {
@@ -52,15 +44,12 @@ export function makeCallbackArgs<Input, Output>(
 
 export function makeCallback<Input, Output>(fn: LegacyCallback<Output>): CallbackFunction<Input, Output> {
   return function (args) {
-    if (!isCallbackArgs(args)) {
-      args = makeCallbackArgs(...arguments)
-    }
     switch (true) {
       case args.result === 'success':
         fn(undefined, args.output)
         break
       case args.result === 'success_empty':
-        ;(fn as LegacyCallback)()
+        fn(undefined, undefined)
         break
       case args.result === 'failure':
         fn(args.reason, args.input as unknown as Output)
@@ -69,17 +58,9 @@ export function makeCallback<Input, Output>(fn: LegacyCallback<Output>): Callbac
 }
 
 export function makeLegacyCallback<Input, Output>(callback: CallbackFunction<Input, Output>) {
-  return (err: unknown, res: Output) => {
-    if (isCallbackArgs<Input, Output>(err)) {
-      callback(err)
-    } else {
-      callback(makeCallbackArgs(err, res))
-    }
+  return (err: Error | undefined, res: Output) => {
+    callback(makeCallbackArgs(err, res))
   }
 }
 
 export type CallbackFunction<Input, Output> = (args: CallbackArgs<Input, Output>) => void
-
-export function isCallbackFunction<Input, Output>(inp?: unknown): inp is CallbackFunction<Input, Output> {
-  return typeof inp === 'function' && !is_async_function(inp) && inp.length == 1
-}

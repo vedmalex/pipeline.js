@@ -46,7 +46,7 @@ describe('rescueBuilder', () => {
       )
       .rescue((err, input) => {
         if (err?.message === 'error') {
-          return input
+          return { name: input ?? 'name', full: 'full' }
         }
         throw err
       })

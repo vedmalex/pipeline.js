@@ -2,15 +2,15 @@ import { z } from 'zod'
 
 import { fromZodError } from 'zod-validation-error'
 import { BaseStageConfig, Run, RunConfig, validatorRun } from './StageConfig'
-import { AnyStage, makeCallbackArgs } from './types'
+import { makeCallbackArgs } from './types'
 
 export class AbstractStage<
   Input,
   Output,
   TConfig extends BaseStageConfig<Input, Output> = BaseStageConfig<Input, Output>,
-> implements AnyStage<Input, Output> {
+> {
   private _config: BaseStageConfig<Input, Output> & RunConfig<Input, Output>
-  protected get config(): TConfig {
+  get config(): TConfig {
     return this._config as unknown as TConfig
   }
   protected set config(config: TConfig) {
@@ -25,7 +25,7 @@ export class AbstractStage<
   constructor(config: BaseStageConfig<Input, Output> & RunConfig<Input, Output>) {
     if (typeof config === 'object' && config !== null) {
       this._config = config
-      this._config.run.bind(this)
+      this._config.run = this._config.run.bind(this)
     } else {
       throw new Error('arguments Error')
     }

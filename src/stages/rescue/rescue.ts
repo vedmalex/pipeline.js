@@ -21,7 +21,6 @@ export class Rescue<
 > extends AbstractStage<Input, Output, Config> {
   constructor(cfg: Config) {
     super({ ...cfg, run: process })
-    this.run == this.run.bind(this)
-    this.config = validatorRescueConfig(cfg).parse(this.config) as unknown as Config
+    this.config = validatorRescueConfig(this.config).parse(this.config) as unknown as Config
   }
 }

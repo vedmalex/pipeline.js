@@ -1,4 +1,3 @@
-export * from './AnyStage'
 export * from './CallbackFunction'
 export * from './StageEvaluateFunction'
 export * from './StageRun'
