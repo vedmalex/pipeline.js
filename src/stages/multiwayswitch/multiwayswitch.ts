@@ -32,7 +32,9 @@ export class MultiWaySwitch<
           } else {
             if (cur.config.combine) {
               res = cur.config.combine(ctx, retCtx)
-              if(!res) throw new Error('combine MUST return value')
+              if (!res) {
+                throw new Error('combine MUST return value')
+              }
             }
           }
 

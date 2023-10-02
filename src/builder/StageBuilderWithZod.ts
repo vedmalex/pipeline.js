@@ -1,15 +1,9 @@
 import { z } from 'zod'
-import { ComplexError, CreateError } from '../stage/errors'
 import { Stage } from '../stage/stage'
-import { Config, StageConfig } from '../stage/StageConfig'
-import {
-  CallbackFunction,
-  isRunPipelineFunction,
-  LegacyCallback,
-  StageObject,
-  StageRun,
-  UnsetMarker,
-} from '../stage/types'
+import { BaseStageConfig, Run, StageConfig } from '../stage/StageConfig'
+import { AnyStage, UnsetMarker } from '../stage/types'
+import { Rescue } from '../stages/rescue'
+import { RescueConfig, RescueRun } from '../stages/rescue/RescueConfig'
 
 // TODO: проверять если нет rescue тогда параметры функции должны !!! включать обработку ошибок !!!
 // TODO: если в списке параметров есть обработка ошибок то не нужно включать rescue
@@ -36,6 +30,7 @@ export type EmployeeSimpl = Merge<Person, Merge<{ empno: number }, { empno: Unse
 export type StageType =
   | 'stage'
   | 'wrap'
+  | 'rescue'
   | 'timeout'
   | 'retry'
   | 'ifelse'
@@ -45,7 +40,10 @@ export type StageType =
   | 'sequential'
   | 'empty'
 
-export type GetStage<T extends StageType, TParams extends BuilderParams> = T extends 'stage' ? StageBuilder<TParams>
+export type GetStage<T extends StageType, TParams> = TParams extends BuilderParams
+  ? T extends 'stage' ? StageBuilder<TParams>
+  : T extends 'rescue' ? RescueBuilder<TParams>
+  : never
   : never
 
 export interface BuilderParams {
@@ -53,27 +51,39 @@ export interface BuilderParams {
   _input: unknown
   _output: unknown
   _usage: {}
+  // stage
+  _run: unknown
+  // rescue
+  _stage: unknown
 }
 
-export type ExtractInput<TParams extends BuilderParams> = TParams['_input'] extends UnsetMarker
-  ? TParams['_output'] extends UnsetMarker ? any : TParams['_output']
+export type ExtractInput<TParams> = TParams extends BuilderParams
+  ? TParams['_input'] extends UnsetMarker ? TParams['_output'] extends UnsetMarker ? any : TParams['_output']
   : TParams['_input']
+  : never
 
-export type ExtractOutput<TParams extends BuilderParams> = TParams['_output'] extends UnsetMarker
-  ? TParams['_input'] extends UnsetMarker ? any : TParams['_input']
+export type ExtractOutput<TParams> = TParams extends BuilderParams
+  ? TParams['_output'] extends UnsetMarker ? TParams['_input'] extends UnsetMarker ? any : TParams['_input']
   : TParams['_output']
+  : never
 
 // упрощает работу с chain
-export type InferParams<TParams extends BuilderParams, Usage extends keyof StageBuilder<TParams>> = {
-  _type: TParams['_type']
-  _input: TParams['_input']
-  _output: TParams['_output']
-  _usage: TParams['_usage'] & Pick<StageBuilder<TParams>, Usage>
-}
+export type InferParams<
+  TParams extends BuilderParams,
+  TBuilder extends Builder<TParams>,
+  Usage extends keyof TBuilder,
+> = {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _usage: TParams['_usage'] & Pick<TBuilder, Usage>
+    _run: TParams['_run']
+    _stage: TParams['_stage']
+  }
 
 export type AnyStageConfig = StageConfig<any, any>
 
-export interface BuilderDef<TConfig extends Config<any, any>> {
+export interface BuilderDef<TConfig extends BaseStageConfig<any, any>> {
   type: StageType
   inputs: Parser
   outputs: Parser
@@ -83,19 +93,26 @@ export interface BuilderDef<TConfig extends Config<any, any>> {
 export interface StageDef<TConfig extends StageConfig<any, any>> extends BuilderDef<TConfig> {
 }
 
+export interface RescueDef<TConfig extends RescueConfig<any, any>> extends BuilderDef<TConfig> {
+  stage: AnyStage<any, any>
+  rescue: RescueRun<any, any>
+}
+
 export type InferConfig<TStage> = TStage extends Stage<any, any, infer $TConfig> ? $TConfig
   : TStage extends Stage<infer $Input, infer $Output, any> ? StageConfig<$Input, $Output>
   : {}
 
 export type InferContext<TStage> = TStage extends Stage<infer $Input, any> ? $Input : UnsetMarker
 
-export function builder<TConfig extends Config<any, any>>(
+export function builder<TConfig extends BaseStageConfig<any, any>>(
   _def: Partial<BuilderDef<TConfig>> = {},
 ): Builder<{
   _type: UnsetMarker
   _input: UnsetMarker
   _output: UnsetMarker
   _usage: {}
+  _run: UnsetMarker
+  _stage: UnsetMarker
 }> {
   return {
     _def: _def as BuilderDef<TConfig>,
@@ -105,9 +122,14 @@ export function builder<TConfig extends Config<any, any>>(
       }
       /// сделать передачу типа
       _def.type = input
-      return builder({
-        ..._def,
-      }) as any
+      switch (true) {
+        case input === 'stage':
+          return stage(_def as any) as any
+        case input === 'rescue':
+          return rescue(_def as any) as any
+        default:
+          throw new Error('not implemented')
+      }
     },
     input(input) {
       if (!_def.cfg) {
@@ -129,33 +151,6 @@ export function builder<TConfig extends Config<any, any>>(
         outputs: output,
       }) as any
     },
-    name(name) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.name = name
-      return builder({
-        ..._def,
-      }) as any
-    },
-    rescue(rescue) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.rescue = rescue as any
-      return builder({
-        ..._def,
-      }) as any
-    },
-    compile(compile) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.compile = compile as any
-      return builder({
-        ..._def,
-      }) as any
-    },
   }
 }
 
@@ -166,18 +161,13 @@ export function stage<TConfig extends StageConfig<any, any>>(
   _input: UnsetMarker
   _output: UnsetMarker
   _usage: {}
+  _run: UnsetMarker
+  _stage: UnsetMarker
 }> {
   return {
     _def: _def as BuilderDef<TConfig>,
-    type(input) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      /// сделать передачу типа
-      _def.type = input
-      return stage({
-        ..._def,
-      }) as any
+    type() {
+      throw new Error('not implemented')
     },
     input(input) {
       if (!_def.cfg) {
@@ -203,38 +193,7 @@ export function stage<TConfig extends StageConfig<any, any>>(
       if (!_def.cfg) {
         _def.cfg = {} as TConfig
       }
-      if (run && isRunPipelineFunction(run)) {
-        _def.cfg.run = run as any
-      } else {
-        throw CreateError('run should be a `RunPipelineFunction`')
-      }
-      return stage({
-        ..._def,
-      }) as any
-    },
-    name(name) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.name = name
-      return stage({
-        ..._def,
-      }) as any
-    },
-    rescue(rescue) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.rescue = rescue as any
-      return stage({
-        ..._def,
-      }) as any
-    },
-    compile(compile) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.compile = compile as any
+      _def.cfg.run = run as any
       return stage({
         ..._def,
       }) as any
@@ -244,6 +203,83 @@ export function stage<TConfig extends StageConfig<any, any>>(
         _def.cfg = {} as TConfig
       }
       return new Stage(_def.cfg) as any
+    },
+    config() {
+      if (!_def.cfg) {
+        _def.cfg = {} as TConfig
+      }
+      return _def.cfg
+    },
+  }
+}
+
+export function rescue<TConfig extends RescueConfig<any, any>>(
+  _def: Partial<RescueDef<TConfig>> = {},
+): RescueBuilder<{
+  _type: UnsetMarker
+  _input: UnsetMarker
+  _output: UnsetMarker
+  _run:UnsetMarker
+  _stage: UnsetMarker
+  _usage: {}
+}> {
+  return {
+    _def: _def as BuilderDef<TConfig>,
+    type(input) {
+      if (!_def.cfg) {
+        _def.cfg = {} as TConfig
+      }
+      /// сделать передачу типа
+      _def.type = input
+      return rescue({
+        ..._def,
+      }) as any
+    },
+    input(input) {
+      if (!_def.cfg) {
+        _def.cfg = {} as TConfig
+      }
+      _def.cfg.input = input
+      return rescue({
+        ..._def,
+        inputs: input,
+      }) as any
+    },
+    output(output) {
+      if (!_def.cfg) {
+        _def.cfg = {} as TConfig
+      }
+      _def.cfg.output = output
+      return rescue({
+        ..._def,
+        outputs: output,
+      }) as any
+    },
+    stage(stage) {
+      if (!_def.cfg) {
+        _def.cfg = {} as TConfig
+      }
+      _def.cfg.stage = stage
+      return rescue({
+        ..._def,
+        stage: stage,
+      }) as any
+    },
+    rescue(fn) {
+      if (!_def.cfg) {
+        _def.cfg = {} as TConfig
+      }
+      _def.cfg.rescue = fn
+      return rescue({
+        ..._def,
+        rescue: fn,
+      }) as any
+    },
+    build() {
+      if (!_def.cfg) {
+        _def.cfg = {} as TConfig
+      }
+      return new Rescue(_def.cfg) as any
     },
     config() {
       if (!_def.cfg) {
@@ -290,13 +326,14 @@ type SchemaType<
   : ErrorMessage<'All input parsers did not resolve to an object'>
 
 export interface Builder<TParams extends BuilderParams> {
-  _def: BuilderDef<Config<ExtractInput<TParams>, ExtractOutput<TParams>>>
+  _def: BuilderDef<BaseStageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
   // TODO: сделать чтобы после вводв type, показывался правильный тип
   // Get
   type<T extends StageType>(type: T): Omit<
-    GetStage<T, InferParams<TParams, 'type'>>,
+    GetStage<T, InferParams<TParams, Builder<TParams>, 'type'>>,
     InferKeys<TParams['_usage']> | 'type'
   >
+
   /**
    * input for stage
    * @param schema only object allowed
@@ -306,7 +343,7 @@ export interface Builder<TParams extends BuilderParams> {
   ): Omit<
     Builder<
       Merge<
-        InferParams<TParams, 'input'>,
+        InferParams<TParams, Builder<TParams>, 'input'>,
         {
           _input: OverwriteIfDefined<
             TParams['_input'],
@@ -317,6 +354,7 @@ export interface Builder<TParams extends BuilderParams> {
     >,
     InferKeys<TParams['_usage']> | 'input'
   >
+
   /**
    * output of stage
    * @param schema only object allowed
@@ -326,7 +364,7 @@ export interface Builder<TParams extends BuilderParams> {
   ): Omit<
     Builder<
       Merge<
-        InferParams<TParams, 'output'>,
+        InferParams<TParams, Builder<TParams>, 'output'>,
         {
           _output: OverwriteIfDefined<
             TParams['_output'],
@@ -336,24 +374,6 @@ export interface Builder<TParams extends BuilderParams> {
       >
     >,
     InferKeys<TParams['_usage']> | 'ouput'
-  >
-  name(name: string): Omit<
-    Builder<
-      InferParams<TParams, 'name'>
-    >,
-    InferKeys<TParams['_usage']> | 'name'
-  >
-  rescue(rescue: Rescue<TParams['_input']>): Omit<
-    Builder<
-      InferParams<TParams, 'rescue'>
-    >,
-    InferKeys<TParams['_usage']> | 'rescue'
-  >
-  compile(fn: Compile<TParams['_input']>): Omit<
-    Builder<
-      InferParams<TParams, 'compile'>
-    >,
-    InferKeys<TParams['_usage']> | 'compile'
   >
 }
 
@@ -368,7 +388,7 @@ export interface StageBuilder<TParams extends BuilderParams> extends Builder<TPa
   ): Omit<
     StageBuilder<
       Merge<
-        InferParams<TParams, 'input'>,
+        InferParams<TParams, Builder<TParams>, 'input'>,
         {
           _input: OverwriteIfDefined<
             TParams['_input'],
@@ -388,7 +408,7 @@ export interface StageBuilder<TParams extends BuilderParams> extends Builder<TPa
   ): Omit<
     StageBuilder<
       Merge<
-        InferParams<TParams, 'output'>,
+        InferParams<TParams, Builder<TParams>, 'output'>,
         {
           _output: OverwriteIfDefined<
             TParams['_output'],
@@ -399,32 +419,16 @@ export interface StageBuilder<TParams extends BuilderParams> extends Builder<TPa
     >,
     InferKeys<TParams['_usage']> | 'ouput'
   >
-  name(name: string): Omit<
-    StageBuilder<
-      InferParams<TParams, 'name'>
-    >,
-    InferKeys<TParams['_usage']> | 'name'
-  >
-  rescue(rescue: Rescue<TParams['_input']>): Omit<
-    StageBuilder<
-      InferParams<TParams, 'rescue'>
-    >,
-    InferKeys<TParams['_usage']> | 'rescue'
-  >
-  compile(fn: Compile<TParams['_input']>): Omit<
-    StageBuilder<
-      InferParams<TParams, 'compile'>
-    >,
-    InferKeys<TParams['_usage']> | 'compile'
-  >
+  // где-то теряется тип Params
   run(
-    fn: CustomRun<ExtractInput<TParams>, ExtractOutput<TParams>>,
-  ): Omit<
-    StageBuilder<
-      InferParams<TParams, 'run'>
-    >,
-    InferKeys<TParams['_usage']> | 'run'
-  >
+    fn: Run<ExtractInput<TParams>, ExtractOutput<TParams>>,
+  ): TParams extends BuilderParams ? Omit<
+      StageBuilder<
+        InferParams<TParams, StageBuilder<TParams>, 'run'>
+      >,
+      InferKeys<TParams['_usage']> | 'run'
+    >
+    : never
   build(): Stage<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
@@ -433,89 +437,70 @@ export interface StageBuilder<TParams extends BuilderParams> extends Builder<TPa
   config(): StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
 }
 
-export type CustomRunInput<$P1> = {
-  input: $P1
+export interface RescueBuilder<TParams extends BuilderParams> extends Builder<TParams> {
+  _def: BuilderDef<RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
+  /**
+   * input for stage
+   * @param schema only object allowed
+   */
+  /**
+   * input for stage
+   * @param schema only object allowed
+   */
+  input<$Parser extends Parser>(
+    schema: SchemaType<TParams, $Parser, '_input', 'in'>,
+  ): Omit<
+    RescueBuilder<
+      Merge<
+        InferParams<TParams, Builder<TParams>, 'input'>,
+        {
+          _input: OverwriteIfDefined<
+            TParams['_input'],
+            inferParser<$Parser>['in']
+          >
+        }
+      >
+    >,
+    InferKeys<TParams['_usage']> | 'input'
+  >
+  /**
+   * output of stage
+   * @param schema only object allowed
+   */
+  output<$Parser extends Parser>(
+    schema: SchemaType<TParams, $Parser, '_output', 'out'>,
+  ): Omit<
+    RescueBuilder<
+      Merge<
+        InferParams<TParams, Builder<TParams>, 'output'>,
+        {
+          _output: OverwriteIfDefined<
+            TParams['_output'],
+            inferParser<$Parser>['in']
+          >
+        }
+      >
+    >,
+    InferKeys<TParams['_usage']> | 'ouput'
+  >
+  build(): Rescue<
+    ExtractInput<TParams>,
+    ExtractOutput<TParams>,
+    RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  >
+  stage(stage: AnyStage<ExtractInput<TParams>, ExtractOutput<TParams>>): TParams extends BuilderParams ? Omit<
+      RescueBuilder<
+        InferParams<TParams, RescueBuilder<TParams>, 'stage'>
+      >,
+      InferKeys<TParams['_usage']> | 'stage'
+    >
+    : never
+  rescue(rescue: RescueRun<ExtractInput<TParams>, ExtractOutput<TParams>>): TParams extends BuilderParams ? Omit<
+      RescueBuilder<
+        InferParams<TParams, RescueBuilder<TParams>, 'rescue'>
+      >,
+      InferKeys<TParams['_usage']> | 'rescue'
+    >
+    : never
+  config(): RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
 }
-
-export type MaybePromise<TType> = Promise<TType> | TType
-
-export type CustomRun<$P1, $P2> = (
-  arg: CustomRunInput<$P1>,
-) => MaybePromise<$P2>
-
-export type CustomRunLegacy<$P1, $P2> = (
-  this: $P1 extends StageObject ? $P1 : never,
-  p1?: ComplexError | $P1 | undefined,
-  p2?: $P1 | undefined,
-  p3?: LegacyCallback<$P2> | undefined,
-) => Promise<$P2> | $P2 | void
-
-export type Rescue<$P1> = (
-  this: $P1 extends StageObject ? $P1 : never,
-  p1?: Error | $P1 | undefined,
-  p2?: $P1 | undefined,
-  p3?: CallbackFunction<$P1, $P1> | undefined,
-) => Promise<$P1> | $P1 | void
-
-export type RescueLegacy<$P1> = (
-  this: $P1 extends StageObject ? $P1 : never,
-  p1?: Error | $P1 | undefined,
-  p2?: $P1 | undefined,
-  p3?: LegacyCallback<$P1> | undefined,
-) => Promise<$P1> | $P1 | void
-
-export type Ensure<$P1> = (
-  p1?: $P1 extends StageObject ? $P1 : never,
-  p2?: CallbackFunction<$P1, $P1> | undefined,
-) => Promise<$P1> | $P1 | void
-
-export type EnsureLeacgy<$P1> = (
-  p1?: $P1 extends StageObject ? $P1 : never,
-  p2?: LegacyCallback<$P1> | undefined,
-) => Promise<$P1> | $P1 | void
-
-export type ValidateFn<$P1> = (
-  this: $P1 extends StageObject ? $P1 : never,
-  p1?: $P1 | undefined,
-  p2?: CallbackFunction<boolean, boolean> | undefined,
-) => Promise<boolean> | boolean | void
-
-export type ValidateFnLegacy<$P1> = (
-  this: $P1 extends StageObject ? $P1 : never,
-  p1?: $P1 | undefined,
-  p2?: LegacyCallback<boolean> | undefined,
-) => Promise<boolean> | boolean | void
-
-export type Compile<TStage> = (
-  this: TStage extends Stage<infer $In, infer $Out> ? StageRun<$In, $Out> : never,
-  rebuild?: boolean,
-) => TStage extends Stage<infer $In, infer $Out> ? StageRun<$In, $Out> : never
-
-// const st = createBuilder()
-//   .input(z.object({ name: z.string() }))
-//   .output(z.object({ full: z.string() }))
-//   .name('stage')
-//   .rescue(function (err, ctx) {
-//   })
-//   .ensure((ctx, done) => {
-//     return ctx ?? ctx
-//   })
-//   .run(function () {
-//     this
-//   })
-//   .build()
-
-// const st2 = createBuilder()
-// .input(z.object({ name: z.string() }))
-// .output(z.object({ full: z.string() }))
-// .name('stage')
-// .rescue(function (err, ctx) {
-// })
-// .ensure((ctx, done) => {
-//   return ctx ?? ctx
-// })
-// .run(function () {
-//   this
-// })
-
-// st2.build()

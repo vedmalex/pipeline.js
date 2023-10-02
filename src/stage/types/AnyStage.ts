@@ -1,21 +1,17 @@
-import { CallbackFunction, LegacyCallback } from './CallbackFunction'
-export const StageSymbol = Symbol('stage')
+import { z, ZodSchema } from 'zod'
+import { RunConfig, StageConfig, validatorRun } from '../StageConfig'
 
+export const StageSymbol = Symbol('stage')
 export interface AnyStage<Input, Output> {
-  get config(): unknown
-  get name(): string
-  execute(
-    _err?: unknown,
-    _context?: Input,
-    _callback?: LegacyCallback<Output>,
-  ): void | Promise<Output>
   exec(
-    _err?: unknown,
-    _context?: Input,
-    _callback?: CallbackFunction<Input, Output>,
-  ): void | Promise<Output>
+    context: Input,
+  ): Promise<Output>
 }
 
-export function isAnyStage<Input, Output>(obj: unknown): obj is AnyStage<Input, Output> {
-  return typeof obj === 'object' && obj !== null && StageSymbol in obj
+export function validateAnyStage<Input, Output>(config: StageConfig<Input, Output> & RunConfig<Input, Output>) {
+  const input: ZodSchema = config?.input ? config.input : z.any()
+  const output: ZodSchema = config?.output ? config.output : z.any()
+  return z.object({
+    exec: validatorRun(input, output),
+  }).passthrough()
 }

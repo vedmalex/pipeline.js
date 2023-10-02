@@ -98,8 +98,12 @@ export class Parallel<
   protected split(ctx: Input): Array<T> {
     if (this._config.split) {
       let res = this._config.split(ctx)
-      if (!res) throw new Error('split MUST return value')
-      if (!Array.isArray(res)) throw new Error('split MUST return Array')
+      if (!res) {
+        throw new Error('split MUST return value')
+      }
+      if (!Array.isArray(res)) {
+        throw new Error('split MUST return Array')
+      }
       return res
     }
     return [ctx as unknown as T]
@@ -109,7 +113,9 @@ export class Parallel<
     let res: Output
     if (this.config.combine) {
       res = this.config.combine(ctx, children)
-      if(!res) throw new Error('combine MUST return value')
+      if (!res) {
+        throw new Error('combine MUST return value')
+      }
     } else {
       res = ctx as unknown as Output
     }

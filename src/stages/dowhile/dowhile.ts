@@ -19,7 +19,9 @@ export class DoWhile<
   protected split(ctx: Input, iter: number): T {
     if (this.config.split) {
       let res = this.config.split(ctx, iter)
-      if (!res) throw new Error('split MUST return value')
+      if (!res) {
+        throw new Error('split MUST return value')
+      }
       return res
     } else {
       return ctx as unknown as T
