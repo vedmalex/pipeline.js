@@ -204,7 +204,9 @@ export function rescue<TConfig extends RescueConfig<any, any>>(
   _output: UnsetMarker
   _run: UnsetMarker
   _stage: UnsetMarker
-  _usage: {}
+  _usage: {
+    _build: 1
+  }
 }> {
   return {
     _def: _def as BuilderDef<TConfig>,
@@ -289,10 +291,6 @@ export interface Builder<TParams extends BuilderParams> {
 
 export interface StageBuilder<TParams extends BuilderParams> extends Builder<TParams> {
   _def: BuilderDef<StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
-  /**
-   * input for stage
-   * @param schema only object allowed
-   */
   input<$Parser extends Parser>(
     schema: SchemaType<TParams, $Parser, '_input', 'in'>,
   ): Omit<
@@ -309,10 +307,6 @@ export interface StageBuilder<TParams extends BuilderParams> extends Builder<TPa
     >,
     Exclude<InferKeys<TParams['_usage']> | 'input', 'output' | 'run'>
   >
-  /**
-   * output of stage
-   * @param schema only object allowed
-   */
   output<$Parser extends Parser>(
     schema: SchemaType<TParams, $Parser, '_output', 'out'>,
   ): Omit<
@@ -358,14 +352,6 @@ export type ExtractStageOutput<TStage extends AbstractStage<any, any>> = TStage 
 
 export interface RescueBuilder<TParams extends BuilderParams> extends Builder<TParams> {
   _def: BuilderDef<RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
-  /**
-   * input for stage
-   * @param schema only object allowed
-   */
-  /**
-   * input for stage
-   * @param schema only object allowed
-   */
   build(): Rescue<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
