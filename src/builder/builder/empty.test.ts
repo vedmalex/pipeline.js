@@ -6,18 +6,8 @@ describe('rescueBuilder', () => {
   // исправить работу с Stage<any> похоже что TStage не нужен
   it('run', async () => {
     const wrapee = builder()
-      .type('stage')
-      .input(z.string().optional())
-      .output(z.object({ name: z.string(), full: z.string() }))
-      .run(async name => {
-        if (name === 'name') {
-          throw new Error('error')
-        }
-        return {
-          name: name ? name : 'undefined',
-          full: 'full',
-        }
-      }).build()
+      .type('empty')
+      .build()
 
     const st = builder()
       .type('wrap')

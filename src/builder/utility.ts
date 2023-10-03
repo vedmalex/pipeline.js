@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BuilderParams, RescueBuilder, StageBuilder, StageType, WrapBuilder } from './types'
+import { BuilderParams, EmptyBuilder, RescueBuilder, StageBuilder, StageType, WrapBuilder } from './types'
 
 import { Stage, StageConfig, UnsetMarker } from '../stage'
 import { AbstractStage } from '../stage/AbstractStage'
@@ -28,16 +28,32 @@ export type GetStage<T extends StageType, TParams> = TParams extends BuilderPara
   ? T extends 'stage' ? StageBuilder<TParams>
   : T extends 'rescue' ? RescueBuilder<TParams>
   : T extends 'wrap' ? WrapBuilder<TParams>
+  : T extends 'empty' ? EmptyBuilder
   : never
   : never
+
 export type ExtractInput<TParams> = TParams extends BuilderParams
   ? TParams['_input'] extends UnsetMarker ? TParams['_output'] extends UnsetMarker ? any : TParams['_output']
   : TParams['_input']
-  : never
+  : UnsetMarker
+
 export type ExtractOutput<TParams> = TParams extends BuilderParams
   ? TParams['_output'] extends UnsetMarker ? TParams['_input'] extends UnsetMarker ? any : TParams['_input']
   : TParams['_output']
-  : never
+  : UnsetMarker
+
+export type ExtractWrapeeInput<TParams> = TParams extends BuilderParams
+  ? TParams['_wrapee_input'] extends UnsetMarker
+    ? TParams['_wrapee_output'] extends UnsetMarker ? any : TParams['_wrapee_output']
+  : TParams['_wrapee_input']
+  : ExtractInput<TParams>
+
+export type ExtractWrapeeOutput<TParams> = TParams extends BuilderParams
+  ? TParams['_wrapee_output'] extends UnsetMarker
+    ? TParams['_wrapee_input'] extends UnsetMarker ? any : TParams['_wrapee_input']
+  : TParams['_wrapee_output']
+  : ExtractOutput<TParams>
+
 // упрощает работу с chain
 
 export type InferParams<
@@ -59,7 +75,6 @@ export type ParserZod<TInput, TParsedInput> = {
   _output: TParsedInput
 }
 export type ErrorMessage<TMessage extends string> = TMessage
-export type InferKeys<T> = T extends object ? keyof T : never
 // берет тип на основании трёх параметров
 //
 export type SchemaType<
@@ -87,8 +102,11 @@ export type inferParser<TParser extends Parser> = TParser extends ParserZod<infe
     out: $TOut
   }
   : UnsetMarker
+
 export type ExtractStage<TStage> = TStage extends AbstractStage<any, any> ? TStage
-  : never
+  : UnsetMarker
+
 export type ExtractStageInput<TStage> = TStage extends AbstractStage<infer $Input, any> ? $Input
-  : never
-export type ExtractStageOutput<TStage> = TStage extends AbstractStage<any, infer $Output> ? $Output : never
+  : UnsetMarker
+
+export type ExtractStageOutput<TStage> = TStage extends AbstractStage<any, infer $Output> ? $Output : UnsetMarker

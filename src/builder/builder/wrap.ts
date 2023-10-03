@@ -11,9 +11,7 @@ export function wrap<TConfig extends WrapConfig<any, any, any, any>>(
   _output: UnsetMarker
   _run: UnsetMarker
   _stage: UnsetMarker
-  _usage: {
-    _build: 1
-  }
+  _usage: {}
   _wrapee_input: UnsetMarker
   _wrapee_output: UnsetMarker
 }> {

@@ -13,9 +13,7 @@ export function rescue<TConfig extends RescueConfig<any, any>>(
   _stage: UnsetMarker
   _wrapee_input: UnsetMarker
   _wrapee_output: UnsetMarker
-  _usage: {
-    _build: 1
-  }
+  _usage: {}
 }> {
   return {
     _def: _def as BuilderDef<TConfig>,

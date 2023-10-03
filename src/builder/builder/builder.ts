@@ -11,11 +11,7 @@ export function builder<TConfig extends BaseStageConfig<any, any>>(
   _type: UnsetMarker
   _input: UnsetMarker
   _output: UnsetMarker
-  _usage: {
-    output: 1
-    run: 1
-    build: 1
-  }
+  _usage: {}
   _run: UnsetMarker
   _stage: UnsetMarker
   _wrapee_input: UnsetMarker
