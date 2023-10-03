@@ -71,7 +71,7 @@ export type ExtractOutput<TParams> = TParams extends BuilderParams
 // упрощает работу с chain
 export type InferParams<
   TParams extends BuilderParams,
-  TBuilder extends Builder<TParams>,
+  TBuilder,
   Usage extends keyof TBuilder,
 > = {
   _type: TParams['_type']
@@ -155,9 +155,6 @@ export function stage<TConfig extends StageConfig<any, any>>(
 }> {
   return {
     _def: _def as BuilderDef<TConfig>,
-    type() {
-      throw new Error('not implemented')
-    },
     input(input) {
       if (!_def.cfg) {
         _def.cfg = {} as TConfig
@@ -210,9 +207,6 @@ export function rescue<TConfig extends RescueConfig<any, any>>(
 }> {
   return {
     _def: _def as BuilderDef<TConfig>,
-    type(input) {
-      throw new Error('not implemented')
-    },
     stage(stage) {
       if (!_def.cfg) {
         _def.cfg = {} as TConfig
@@ -230,8 +224,10 @@ export function rescue<TConfig extends RescueConfig<any, any>>(
       if (_def.cfg.stage) {
         _def.cfg.input = _def.cfg.stage.config.input
         _def.cfg.output = _def.cfg.stage.config.output
+      } else {
+        throw new Error('define stage before use of rescue')
       }
-      _def.cfg.rescue = fn as any
+      _def.cfg.rescue = fn
       return rescue({
         ..._def,
         rescue: fn as any,
@@ -289,7 +285,7 @@ export interface Builder<TParams extends BuilderParams> {
   >
 }
 
-export interface StageBuilder<TParams extends BuilderParams> extends Builder<TParams> {
+export interface StageBuilder<TParams extends BuilderParams> {
   _def: BuilderDef<StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
   input<$Parser extends Parser>(
     schema: SchemaType<TParams, $Parser, '_input', 'in'>,
@@ -350,7 +346,7 @@ export type ExtractStageInput<TStage extends AbstractStage<any, any>> = TStage e
 export type ExtractStageOutput<TStage extends AbstractStage<any, any>> = TStage extends
   AbstractStage<any, infer $Output> ? $Output : never
 
-export interface RescueBuilder<TParams extends BuilderParams> extends Builder<TParams> {
+export interface RescueBuilder<TParams extends BuilderParams> {
   _def: BuilderDef<RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
   build(): Rescue<
     ExtractInput<TParams>,

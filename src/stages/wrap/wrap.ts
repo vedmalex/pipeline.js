@@ -4,8 +4,9 @@ import { WrapConfig } from './WrapConfig'
 export class Wrap<
   Input,
   Output,
-  T,
-  Config extends WrapConfig<Input, Output, T> = WrapConfig<Input, Output, T>,
+  IInput,
+  IOutput,
+  Config extends WrapConfig<Input, Output, IInput, IOutput> = WrapConfig<Input, Output, IInput, IOutput>,
 > extends Stage<Input, Output, Config> {
   override compile(rebuild: boolean = false): StageRun<Input, Output> {
     let run: StageRun<Input, Output> = (err, context, done) => {
