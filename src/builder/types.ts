@@ -1,6 +1,7 @@
 import { AbstractStage } from '../stage/AbstractStage'
 import { Stage } from '../stage/stage'
 import { BaseStageConfig, Run, StageConfig } from '../stage/StageConfig'
+import { Wrap, WrapConfig, WrapFinalize, WrapPrepare } from '../stages'
 import { Rescue } from '../stages/rescue'
 import { RescueConfig, RescueRun } from '../stages/rescue/RescueConfig'
 import { Merge } from './utility'
@@ -37,8 +38,11 @@ export interface BuilderParams {
   _usage: {}
   // stage
   _run: unknown
-  // rescue
+  // rescue/wrap
   _stage: unknown
+  // wrap
+  _wrapee_input: unknown
+  _wrapee_output: unknown
 }
 
 export type AnyStageConfig = StageConfig<any, any>
@@ -58,8 +62,16 @@ export interface RescueDef<TConfig extends RescueConfig<any, any>> extends Build
   rescue: RescueRun<any, any>
 }
 
+export interface WrapDef<TConfig extends WrapConfig<any, any, any, any>> extends BuilderDef<TConfig> {
+  stage: AbstractStage<any, any>
+  prepare?: WrapPrepare<any, any>
+  finalize?: WrapFinalize<any, any, any>
+}
+
 export interface Builder<TParams extends BuilderParams> {
-  _def: BuilderDef<BaseStageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
+  _def: BuilderDef<
+    BaseStageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  >
   type<T extends StageType>(type: T): Omit<
     GetStage<T, InferParams<TParams, Builder<TParams>, 'type'>>,
     InferKeys<TParams['_usage']> | 'type'
@@ -148,10 +160,97 @@ export interface RescueBuilder<TParams extends BuilderParams> {
     >,
     InferKeys<TParams['_usage']> | 'stage'
   >
-  rescue(rescue: RescueRun<ExtractInput<TParams>, ExtractOutput<TParams>>): Omit<
+  rescue(
+    rescue: RescueRun<ExtractInput<TParams>, ExtractOutput<TParams>>,
+  ): Omit<
     RescueBuilder<
       InferParams<TParams, RescueBuilder<TParams>, 'rescue'>
     >,
     Exclude<InferKeys<TParams['_usage']> | 'rescue', 'build'>
+  >
+}
+
+export interface WrapBuilder<TParams extends BuilderParams> {
+  _def: BuilderDef<
+    WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
+  >
+  build(): Wrap<
+    ExtractInput<TParams>,
+    ExtractOutput<TParams>,
+    TParams['_wrapee_input'],
+    TParams['_wrapee_output'],
+    WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
+  >
+  input<$Parser extends Parser>(
+    schema: SchemaType<TParams, $Parser, '_input', 'in'>,
+  ): Omit<
+    WrapBuilder<
+      Merge<
+        InferParams<TParams, WrapBuilder<TParams>, 'input'>,
+        {
+          _input: OverwriteIfDefined<
+            TParams['_input'],
+            inferParser<$Parser>['in']
+          >
+        }
+      >
+    >,
+    Exclude<InferKeys<TParams['_usage']> | 'input', 'output' | 'stage'>
+  >
+  output<$Parser extends Parser>(
+    schema: SchemaType<TParams, $Parser, '_output', 'out'>,
+  ): Omit<
+    WrapBuilder<
+      Merge<
+        InferParams<TParams, WrapBuilder<TParams>, 'output'>,
+        {
+          _output: OverwriteIfDefined<
+            TParams['_output'],
+            inferParser<$Parser>['in']
+          >
+        }
+      >
+    >,
+    Exclude<InferKeys<TParams['_usage']> | 'ouput', 'stage'>
+  >
+  stage<RStage extends AbstractStage<any, any>>(
+    stage: RStage,
+  ): Omit<
+    WrapBuilder<
+      Merge<
+        InferParams<TParams, WrapBuilder<TParams>, 'stage'>,
+        {
+          _stage: OverwriteIfDefined<
+            TParams['_stage'],
+            ExtractStage<RStage>
+          >
+          _wrapee_input: OverwriteIfDefined<
+            TParams['_wrapee_input'],
+            ExtractStageInput<RStage>
+          >
+          _wrapee_output: OverwriteIfDefined<
+            TParams['_wrapee_output'],
+            ExtractStageOutput<RStage>
+          >
+        }
+      >
+    >,
+    Exclude<InferKeys<TParams['_usage']> | 'input', 'output' | 'build'>
+  >
+  prepare(
+    prepare: WrapPrepare<ExtractInput<TParams>, TParams['_wrapee_input']>,
+  ): Omit<
+    WrapBuilder<
+      InferParams<TParams, WrapBuilder<TParams>, 'prepare'>
+    >,
+    Exclude<InferKeys<TParams['_usage']> | 'prepare', 'output' | 'build'>
+  >
+  finalize(
+    finalize: WrapFinalize<ExtractInput<TParams>, ExtractOutput<TParams>, TParams['_wrapee_output']>,
+  ): Omit<
+    WrapBuilder<
+      InferParams<TParams, WrapBuilder<TParams>, 'finalize'>
+    >,
+    Exclude<InferKeys<TParams['_usage']> | 'finalize', 'build'>
   >
 }

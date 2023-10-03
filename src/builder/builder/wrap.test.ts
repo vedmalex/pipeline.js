@@ -5,10 +5,7 @@ describe('rescueBuilder', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
   // исправить работу с Stage<any> похоже что TStage не нужен
   it('run', async () => {
-    const st = builder()
-      .type('rescue')
-      .stage(
-        builder()
+    const wrapee = builder()
           .type('stage')
           .input(z.string().optional())
           .output(z.object({ name: z.string(), full: z.string() }))
@@ -20,17 +17,25 @@ describe('rescueBuilder', () => {
               name: name ? name : 'undefined',
               full: 'full',
             }
-          }).build(),
-      )
-      .rescue((err, input) => {
-        if (err?.message === 'error') {
-          return { name: input ?? 'name', full: 'full' }
+          }).build()
+
+    const st = builder()
+      .type('wrap')
+      .input(z.object({ city: z.string() }))
+      .output(z.object({ city: z.string(), district: z.string() }))
+      .stage(wrapee)
+      .prepare(input => {
+        return input.city
+      })
+      .finalize((ctx, ret) => {
+        return {
+          ...ctx,
+          district: ret.full
         }
-        throw err
       })
       .build()
 
-    const res = await st.exec('name')
-    expect(res).toMatchObject({ name: 'name', full: 'full' })
+    const res = await st.exec({city: 'NY'})
+    expect(res).toMatchObject({ city: 'NY', district: 'full' })
   })
 })
