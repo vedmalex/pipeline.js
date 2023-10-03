@@ -1,6 +1,6 @@
 import 'jest'
 import { Stage } from '../../stage'
-import { Wrap } from '../wrap/wrap'
+import { Wrap } from '../wrap'
 import { Sequential } from './sequential'
 
 describe('Sequential', function () {

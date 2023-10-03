@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { builder } from './builder'
+import { builder } from '../builder'
 
-describe('rescueBuilder', () => {
+describe('builde', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
   // исправить работу с Stage<any> похоже что TStage не нужен
   it('run', async () => {
@@ -14,7 +14,8 @@ describe('rescueBuilder', () => {
           name: name ? name : 'undefined',
           full: 'full',
         }
-      }).build()
+      })
+      .build()
 
     const res = await st.exec('name')
     expect(res).toMatchObject({ name: 'name', full: 'full' })

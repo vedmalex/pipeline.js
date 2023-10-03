@@ -1,6 +1,6 @@
 import 'jest'
 import z from 'zod'
-import { AbstractStage } from './AbstractStage'
+import { AbstractStage } from '../base'
 
 describe('AbstractStage', () => {
   it('validate input', async () => {

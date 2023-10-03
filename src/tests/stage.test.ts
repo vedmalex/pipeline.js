@@ -1,5 +1,5 @@
+import { builder } from '../builder'
 import { z } from 'zod'
-import { builder } from './builder'
 
 describe('stageBuilder', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
@@ -14,8 +14,7 @@ describe('stageBuilder', () => {
           name: name ? name : 'undefined',
           full: 'full',
         }
-      })
-      .build()
+      }).build()
 
     const res = await st.exec('name')
     expect(res).toMatchObject({ name: 'name', full: 'full' })

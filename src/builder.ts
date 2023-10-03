@@ -1,8 +1,10 @@
-import { BaseStageConfig } from '../../stage/StageConfig'
-import { UnsetMarker } from '../../stage/types'
-import { Builder, BuilderDef } from '../types'
+import { BaseStageConfig, Builder, BuilderDef } from './base'
+import { empty } from './empty'
+import { ifelse } from './ifelse'
 import { rescue } from './rescue'
 import { stage } from './stage'
+import { timeout } from './timeout'
+import { UnsetMarker } from './utility'
 import { wrap } from './wrap'
 
 export function builder<TConfig extends BaseStageConfig<any, any>>(
@@ -11,7 +13,6 @@ export function builder<TConfig extends BaseStageConfig<any, any>>(
   _type: UnsetMarker
   _input: UnsetMarker
   _output: UnsetMarker
-  _usage: {}
   _run: UnsetMarker
   _stage: UnsetMarker
   _wrapee_input: UnsetMarker
@@ -31,6 +32,12 @@ export function builder<TConfig extends BaseStageConfig<any, any>>(
           return rescue(_def as any) as any
         case input === 'wrap':
           return wrap(_def as any) as any
+        case input === 'empty':
+          return empty(_def as any) as any
+        case input === 'timeout':
+          return timeout(_def as any) as any
+        case input === 'ifelse':
+          return ifelse(_def as any) as any
         default:
           throw new Error('not implemented')
       }

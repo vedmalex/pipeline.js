@@ -1,8 +1,14 @@
 import { z } from 'zod'
-import { BuilderParams, EmptyBuilder, RescueBuilder, StageBuilder, StageType, WrapBuilder } from './types'
+import { AbstractStage, BuilderParams } from './base'
+import { EmptyBuilder } from './empty'
+import { IfElseBuilder } from './ifelse'
+import { RescueBuilder } from './rescue'
+import { Stage, StageBuilder, StageConfig } from './stage'
+import { TimeoutBuilder } from './timeout'
+import { WrapBuilder } from './wrap'
 
-import { Stage, StageConfig, UnsetMarker } from '../stage'
-import { AbstractStage } from '../stage/AbstractStage'
+export const unsetMarker = Symbol('unset')
+export type UnsetMarker = typeof unsetMarker
 
 export type Merge<S, D> = Simplify<
   & {
@@ -24,13 +30,13 @@ export type OverwriteIfDefined<TType, TWith> = UnsetMarker extends TType ? TWith
 export type Simplify<TType> = TType extends any[] | Date ? TType : {
   [K in keyof TType]: TType[K]
 }
-export type GetStage<T extends StageType, TParams> = TParams extends BuilderParams
-  ? T extends 'stage' ? StageBuilder<TParams>
+export type GetStage<T extends StageType, TParams extends BuilderParams> = T extends 'stage' ? StageBuilder<TParams>
   : T extends 'rescue' ? RescueBuilder<TParams>
   : T extends 'wrap' ? WrapBuilder<TParams>
   : T extends 'empty' ? EmptyBuilder
-  : never
-  : never
+  : T extends 'timeout' ? TimeoutBuilder<TParams>
+  : T extends 'ifelse' ? IfElseBuilder<TParams>
+  : ErrorMessage<'not implemented'>
 
 export type ExtractInput<TParams> = TParams extends BuilderParams
   ? TParams['_input'] extends UnsetMarker ? TParams['_output'] extends UnsetMarker ? any : TParams['_output']
@@ -58,13 +64,10 @@ export type ExtractWrapeeOutput<TParams> = TParams extends BuilderParams
 
 export type InferParams<
   TParams extends BuilderParams,
-  TBuilder,
-  Usage extends keyof TBuilder,
 > = {
   _type: TParams['_type']
   _input: TParams['_input']
   _output: TParams['_output']
-  _usage: TParams['_usage'] & Pick<TBuilder, Usage>
   _run: TParams['_run']
   _stage: TParams['_stage']
   _wrapee_input: TParams['_wrapee_input']
@@ -110,3 +113,80 @@ export type ExtractStageInput<TStage> = TStage extends AbstractStage<infer $Inpu
   : UnsetMarker
 
 export type ExtractStageOutput<TStage> = TStage extends AbstractStage<any, infer $Output> ? $Output : UnsetMarker
+
+export type StageType = keyof IntelliSence
+
+export type IntelliSence = {
+  'builder': {
+    'all': 'type'
+    'start': 'type'
+    'type': ''
+  }
+  'stage': {
+    'all': 'input' | 'output' | 'run' | 'build'
+    'start': 'input'
+    'input': 'output' | 'run'
+    'output': 'run'
+    'run': 'build'
+  }
+  'rescue': {
+    'all': 'stage' | 'rescue' | 'build'
+    'start': 'stage'
+    'stage': 'rescue'
+    'rescue': 'build'
+  }
+  'wrap': {
+    'all': 'input' | 'output' | 'stage' | 'prepare' | 'finalize' | 'build'
+    'start': 'input'
+    'input': 'output' | 'stage' // output не обязательный если это так, тогда и не нужно finalize
+    'output': 'stage'
+    'stage': 'prepare'
+    'prepare': 'finalize' | 'build'
+    'finalize': 'build'
+  }
+  'empty': {
+    'all': 'build'
+    'start': 'build'
+  }
+  'timeout': {
+    'all': 'stage' | 'timeout' | 'overdue' | 'build'
+    'start': 'stage'
+    'stage': 'timeout' | 'overdue'
+    'timeout': 'overdue' | 'build'
+    'overdue': 'build'
+  }
+  'ifelse': {
+    'all': 'input' | 'output' | 'truthy' | 'falsy' | 'condition' | 'build'
+    'start': 'input'
+    'input': 'output' | 'condition' | 'truthy'
+    'output': 'condition' | 'truthy'
+    'condition': 'truthy'
+    'truthy': 'falsy' | 'build'
+    'falsy': 'build'
+  }
+  'retry': {}
+  'dowhile': {}
+  'multiwayswitch': {}
+  'parallel': {}
+  'sequential': {}
+}
+export type GetIntellisenceFor<Stage extends keyof IntelliSence, State extends keyof IntelliSence[Stage]> =
+  IntelliSence[Stage][State]
+export type PropertiesFor<T extends StageType, kind extends 'all' | 'start'> = T extends 'stage'
+  ? GetIntellisenceFor<'stage', kind>
+  : T extends 'rescue' ? GetIntellisenceFor<'rescue', kind>
+  : T extends 'wrap' ? GetIntellisenceFor<'wrap', kind>
+  : T extends 'emtpy' ? GetIntellisenceFor<'empty', kind>
+  : T extends 'timeout' ? GetIntellisenceFor<'timeout', kind>
+  : T extends 'ifelse' ? GetIntellisenceFor<'ifelse', kind>
+  : ErrorMessage<'not implemented'>
+export type AllPropertiesFor<T extends StageType> = PropertiesFor<T, 'all'>
+export type StartFor<T extends StageType> = PropertiesFor<T, 'start'>
+export type HiddenIntellisenceFor<Stage extends StageType, Property extends keyof IntelliSence[Stage]> = Exclude<
+  AllPropertiesFor<Stage> | Property,
+  GetIntellisenceFor<Stage, Property>
+>
+export type IntellisenseFor<Stage extends StageType, Property extends keyof IntelliSence[Stage], Type> = Omit<
+  Type,
+  HiddenIntellisenceFor<Stage, Property>
+>

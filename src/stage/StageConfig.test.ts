@@ -1,6 +1,8 @@
 import 'jest'
 import z from 'zod'
-import { Run, validatorBaseStageConfig, validatorRunConfig } from './StageConfig'
+import { validatorRunConfig } from '../base'
+import { validatorBaseStageConfig } from '../base'
+import { Run } from '../base'
 
 describe('ValidatorStageConfig', () => {
   it('check input types', () => {
