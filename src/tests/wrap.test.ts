@@ -1,5 +1,5 @@
-import { builder } from '../builder'
 import { z } from 'zod'
+import { builder } from '../builder'
 
 describe('wrapBuilder', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
