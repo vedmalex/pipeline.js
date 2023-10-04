@@ -1,5 +1,5 @@
 import 'jest'
-import { RetryOnError } from './retryonerror'
+import { RetryOnError } from '../../retryonerror'
 
 describe('RetryOnError', function () {
   it('works', function (done) {

@@ -3,20 +3,20 @@ import {
   AbstractStage,
   BaseStageConfig,
   BuilderDef,
-  BuilderParams,
+  TimeoutParams,
   validatorBaseStageConfig,
   validatorRunConfig,
 } from './base'
+import { ERROR } from './errors'
 import {
   ExtractInput,
   ExtractOutput,
   ExtractStageInput,
   ExtractStageOutput,
-  InferParams,
+  InferTimeoutParams,
   IntellisenseFor,
   Merge,
   OverwriteIfDefined,
-  UnsetMarker,
 } from './utility'
 
 function useTimeout(timeout: number) {
@@ -37,7 +37,7 @@ async function processIt<Input, Output>(
     if (this.config.overdue) {
       return this.config.overdue.exec(input)
     } else {
-      throw new Error('operation timeout occured')
+      throw new Error(ERROR.operation_timeout_occured)
     }
   } else {
     return res
@@ -83,7 +83,7 @@ export interface TimeoutDef<TConfig extends TimeoutConfig<any, any>> extends Bui
   timeout: number | GetTimout<any>
 }
 
-export interface TimeoutBuilder<TParams extends BuilderParams> {
+export interface TimeoutBuilder<TParams extends TimeoutParams> {
   _def: BuilderDef<TimeoutConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
   build(): Timeout<
     ExtractInput<TParams>,
@@ -97,8 +97,12 @@ export interface TimeoutBuilder<TParams extends BuilderParams> {
     'stage',
     TimeoutBuilder<
       Merge<
-        InferParams<TParams>,
+        InferTimeoutParams<TParams>,
         {
+          _stage: OverwriteIfDefined<
+            TParams['_stage'],
+            RStage
+          >
           _input: OverwriteIfDefined<
             TParams['_input'],
             ExtractStageInput<RStage>
@@ -117,31 +121,28 @@ export interface TimeoutBuilder<TParams extends BuilderParams> {
     'timeout',
     'overdue',
     TimeoutBuilder<
-      InferParams<TParams>
+      InferTimeoutParams<TParams>
     >
   >
-  timeout(
-    timeout: number | GetTimout<ExtractStageInput<TParams>>,
+  timeout<Timeout extends number | GetTimout<ExtractStageInput<TParams>>>(
+    timeout: Timeout,
   ): IntellisenseFor<
     'stage',
     'input',
     TimeoutBuilder<
-      InferParams<TParams>
+      Merge<
+        InferTimeoutParams<TParams>,
+        {
+          _timeout: OverwriteIfDefined<TParams['_timeout'], Timeout>
+        }
+      >
     >
   >
 }
 
 export function timeout<TConfig extends TimeoutConfig<any, any>>(
   _def: Partial<TimeoutDef<TConfig>> = {},
-): TimeoutBuilder<{
-  _type: UnsetMarker
-  _input: UnsetMarker
-  _output: UnsetMarker
-  _run: UnsetMarker
-  _stage: UnsetMarker
-  _wrapee_input: UnsetMarker
-  _wrapee_output: UnsetMarker
-}> {
+): TimeoutBuilder<InferTimeoutParams<{ _type: 'timeout' }>> {
   return {
     _def: _def as BuilderDef<TConfig>,
     stage(stage) {

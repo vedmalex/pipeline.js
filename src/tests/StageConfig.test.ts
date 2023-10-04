@@ -2,7 +2,7 @@ import 'jest'
 import z from 'zod'
 import { validatorRunConfig } from '../base'
 import { validatorBaseStageConfig } from '../base'
-import { Run } from '../base'
+import { FnRun } from '../base'
 
 describe('ValidatorStageConfig', () => {
   it('check input types', () => {
@@ -26,7 +26,7 @@ describe('ValidateRunConfig', () => {
   const output = z.number()
   type Input = z.infer<typeof input>
   type Output = z.infer<typeof output>
-  type FnRun = Run<Input, Output>
+  type FnRun = FnRun<Input, Output>
   function prepare(fn: FnRun) {
     return validatorRunConfig({
       input,

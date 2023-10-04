@@ -1,18 +1,17 @@
 import {
   ExtractInput,
   ExtractOutput,
-  InferParams,
   inferParser,
+  InferStageParams,
   IntellisenseFor,
   Merge,
   OverwriteIfDefined,
   Parser,
   SchemaType,
-  UnsetMarker,
 } from './utility'
 
-import { BuilderDef, BuilderParams } from './base'
-import { AbstractStage, Run } from './base'
+import { BuilderDef, StageParams } from './base'
+import { AbstractStage, FnRun } from './base'
 
 import { BaseStageConfig } from './base'
 import { RunConfig } from './base'
@@ -34,7 +33,7 @@ export function validatorStageConfig<Input, Output>(config: StageConfig<Input, O
 }
 export interface StageDef<TConfig extends StageConfig<any, any>> extends BuilderDef<TConfig> {
 }
-export interface StageBuilder<TParams extends BuilderParams> {
+export interface StageBuilder<TParams extends StageParams> {
   _def: BuilderDef<StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
   input<$Parser extends Parser>(
     schema: SchemaType<TParams, $Parser, '_input', 'in'>,
@@ -43,7 +42,7 @@ export interface StageBuilder<TParams extends BuilderParams> {
     'input',
     StageBuilder<
       Merge<
-        InferParams<TParams>,
+        InferStageParams<TParams>,
         {
           _input: OverwriteIfDefined<
             TParams['_input'],
@@ -60,7 +59,7 @@ export interface StageBuilder<TParams extends BuilderParams> {
     'output',
     StageBuilder<
       Merge<
-        InferParams<TParams>,
+        InferStageParams<TParams>,
         {
           _output: OverwriteIfDefined<
             TParams['_output'],
@@ -71,13 +70,21 @@ export interface StageBuilder<TParams extends BuilderParams> {
     >
   >
   // где-то теряется тип Params
-  run(
-    fn: Run<ExtractInput<TParams>, ExtractOutput<TParams>>,
+  run<fnRun extends FnRun<ExtractInput<TParams>, ExtractOutput<TParams>>>(
+    fn: fnRun,
   ): IntellisenseFor<
     'stage',
     'run',
     StageBuilder<
-      InferParams<TParams>
+      Merge<
+        InferStageParams<TParams>,
+        {
+          _run: OverwriteIfDefined<
+            TParams['_run'],
+            fnRun
+          >
+        }
+      >
     >
   >
   build(): Stage<
@@ -88,16 +95,7 @@ export interface StageBuilder<TParams extends BuilderParams> {
 }
 export function stage<TConfig extends StageConfig<any, any>>(
   _def: Partial<BuilderDef<TConfig>> = {},
-): StageBuilder<{
-  _type: UnsetMarker
-  _input: UnsetMarker
-  _output: UnsetMarker
-  _usage: {}
-  _run: UnsetMarker
-  _stage: UnsetMarker
-  _wrapee_input: UnsetMarker
-  _wrapee_output: UnsetMarker
-}> {
+): StageBuilder<InferStageParams<{ _type: 'stage' }>> {
   return {
     _def: _def as BuilderDef<TConfig>,
     input(input) {

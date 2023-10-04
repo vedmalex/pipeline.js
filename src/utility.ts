@@ -1,11 +1,17 @@
 import { z } from 'zod'
-import { AbstractStage, BuilderParams } from './base'
-import { EmptyBuilder } from './empty'
-import { IfElseBuilder } from './ifelse'
-import { RescueBuilder } from './rescue'
-import { Stage, StageBuilder, StageConfig } from './stage'
-import { TimeoutBuilder } from './timeout'
-import { WrapBuilder } from './wrap'
+import {
+  AbstractStage,
+  BuilderParams,
+  IfElseParams,
+  RescueParams,
+  RetryOnErrorParams,
+  StageParams,
+  TimeoutParams,
+  WithInputOutputParams,
+  WithInputParams,
+  WrapParams,
+} from './base'
+import { Stage, StageConfig } from './stage'
 
 export const unsetMarker = Symbol('unset')
 export type UnsetMarker = typeof unsetMarker
@@ -30,49 +36,123 @@ export type OverwriteIfDefined<TType, TWith> = UnsetMarker extends TType ? TWith
 export type Simplify<TType> = TType extends any[] | Date ? TType : {
   [K in keyof TType]: TType[K]
 }
-export type GetStage<T extends StageType, TParams extends BuilderParams> = T extends 'stage' ? StageBuilder<TParams>
-  : T extends 'rescue' ? RescueBuilder<TParams>
-  : T extends 'wrap' ? WrapBuilder<TParams>
-  : T extends 'empty' ? EmptyBuilder
-  : T extends 'timeout' ? TimeoutBuilder<TParams>
-  : T extends 'ifelse' ? IfElseBuilder<TParams>
-  : ErrorMessage<'not implemented'>
 
-export type ExtractInput<TParams> = TParams extends BuilderParams
-  ? TParams['_input'] extends UnsetMarker ? TParams['_output'] extends UnsetMarker ? any : TParams['_output']
-  : TParams['_input']
+export type ExtractInput<TParams> = TParams extends WithInputParams ? TParams['_input']
   : UnsetMarker
 
-export type ExtractOutput<TParams> = TParams extends BuilderParams
+export type ExtractOutput<TParams> = TParams extends WithInputOutputParams
   ? TParams['_output'] extends UnsetMarker ? TParams['_input'] extends UnsetMarker ? any : TParams['_input']
   : TParams['_output']
   : UnsetMarker
 
-export type ExtractWrapeeInput<TParams> = TParams extends BuilderParams
-  ? TParams['_wrapee_input'] extends UnsetMarker
-    ? TParams['_wrapee_output'] extends UnsetMarker ? any : TParams['_wrapee_output']
-  : TParams['_wrapee_input']
-  : ExtractInput<TParams>
-
-export type ExtractWrapeeOutput<TParams> = TParams extends BuilderParams
-  ? TParams['_wrapee_output'] extends UnsetMarker
-    ? TParams['_wrapee_input'] extends UnsetMarker ? any : TParams['_wrapee_input']
-  : TParams['_wrapee_output']
-  : ExtractOutput<TParams>
-
 // упрощает работу с chain
 
-export type InferParams<
+export type InferBuilderParams<
   TParams extends BuilderParams,
 > = {
   _type: TParams['_type']
-  _input: TParams['_input']
-  _output: TParams['_output']
-  _run: TParams['_run']
-  _stage: TParams['_stage']
-  _wrapee_input: TParams['_wrapee_input']
-  _wrapee_output: TParams['_wrapee_output']
 }
+
+export type InferStageParams<
+  TParams extends BuilderParams,
+> = TParams extends StageParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _run: TParams['_run']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+    _run: UnsetMarker
+  }
+
+export type InferRescueParams<
+  TParams extends BuilderParams,
+> = TParams extends RescueParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _stage: TParams['_stage']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+    _stage: UnsetMarker
+  }
+
+export type InferWrapParams<
+  TParams extends BuilderParams,
+> = TParams extends WrapParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _stage: TParams['_stage']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+    _stage: UnsetMarker
+  }
+
+export type InferTimeoutParams<
+  TParams extends BuilderParams,
+> = TParams extends TimeoutParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _stage: TParams['_stage']
+    _timeout: TParams['_timeout']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+    _stage: UnsetMarker
+    _timeout: UnsetMarker
+  }
+
+export type InferIfElseParams<
+  TParams extends BuilderParams,
+> = TParams extends IfElseParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _stage: TParams['_stage']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+    _stage: UnsetMarker
+  }
+
+export type InferRetryOnErrorParams<
+  TParams extends BuilderParams,
+> = TParams extends RetryOnErrorParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _stage: TParams['_stage']
+    _retry: TParams['_retry']
+    _backup: TParams['_backup']
+    _restore: TParams['_restore']
+    _storage: TParams['_storage']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+    _stage: UnsetMarker
+    _retry: UnsetMarker
+    _backup: UnsetMarker
+    _restore: UnsetMarker
+    _storage: UnsetMarker
+  }
+
 export type ParserZod<TInput, TParsedInput> = {
   _input: TInput
   _output: TParsedInput
@@ -164,22 +244,40 @@ export type IntelliSence = {
     'truthy': 'falsy' | 'build'
     'falsy': 'build'
   }
-  'retry': {}
-  'dowhile': {}
-  'multiwayswitch': {}
-  'parallel': {}
-  'sequential': {}
+  'retryonerror': {
+    'all': 'stage' | 'retry' | 'backup' | 'restore'
+    'start': 'stage'
+    'stage': 'retry'
+    'retry': 'backup' | 'restore' | 'build'
+    'backup': 'restore'
+    'restore': 'build'
+  }
+  'dowhile': {
+    'start': ''
+  }
+  'multiwayswitch': {
+    'start': ''
+  }
+  'parallel': {
+    'start': ''
+  }
+  'sequential': {
+    'start': ''
+  }
 }
 export type GetIntellisenceFor<Stage extends keyof IntelliSence, State extends keyof IntelliSence[Stage]> =
   IntelliSence[Stage][State]
+
 export type PropertiesFor<T extends StageType, kind extends 'all' | 'start'> = T extends 'stage'
-  ? GetIntellisenceFor<'stage', kind>
-  : T extends 'rescue' ? GetIntellisenceFor<'rescue', kind>
-  : T extends 'wrap' ? GetIntellisenceFor<'wrap', kind>
-  : T extends 'emtpy' ? GetIntellisenceFor<'empty', kind>
-  : T extends 'timeout' ? GetIntellisenceFor<'timeout', kind>
-  : T extends 'ifelse' ? GetIntellisenceFor<'ifelse', kind>
+  ? GetIntellisenceFor<T, kind>
+  : T extends 'rescue' ? GetIntellisenceFor<T, kind>
+  : T extends 'wrap' ? GetIntellisenceFor<T, kind>
+  : T extends 'emtpy' ? GetIntellisenceFor<T, kind>
+  : T extends 'timeout' ? GetIntellisenceFor<T, kind>
+  : T extends 'ifelse' ? GetIntellisenceFor<T, kind>
+  : T extends 'retryonerror' ? GetIntellisenceFor<T, kind>
   : ErrorMessage<'not implemented'>
+
 export type AllPropertiesFor<T extends StageType> = PropertiesFor<T, 'all'>
 export type StartFor<T extends StageType> = PropertiesFor<T, 'start'>
 export type HiddenIntellisenceFor<Stage extends StageType, Property extends keyof IntelliSence[Stage]> = Exclude<

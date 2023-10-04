@@ -4,15 +4,18 @@ import { // включить тип для вычисления параметр
   makeCallbackArgs,
 } from './stage/types'
 
+import { GetStage } from './builder'
+import { ERROR } from './errors'
 import {
-  AllPropertiesFor,
   ExtractInput,
   ExtractOutput,
-  GetStage,
-  InferParams,
+  InferBuilderParams,
+  IntellisenseFor,
+  Merge,
+  OverwriteIfDefined,
   Parser,
   StageType,
-  StartFor,
+  UnsetMarker,
 } from './utility'
 
 // включить тип для вычисления параметра
@@ -22,10 +25,19 @@ export type BaseStageConfig<Input, Output> = {
   output?: z.ZodType<Output>
 }
 
-export type Run<Input, Output> = (input: Input) => Promise<Output> | Output
+export type FnRun<Input, Output> = (input: Input) => Promise<Output> | Output
+
+export type RunDef<Fn extends FnRun<any, any>> = Fn extends FnRun<infer Input, infer Output> ? {
+    _input: Input
+    _output: Output
+  }
+  : {
+    _input: UnsetMarker
+    _output: UnsetMarker
+  }
 
 export type RunConfig<Input, Output> = {
-  run: Run<Input, Output>
+  run: FnRun<Input, Output>
 }
 
 export const validatorBaseStageConfig = z.object({
@@ -62,7 +74,7 @@ export class AbstractStage<
   protected get run() {
     return this._config.run
   }
-  protected set run(run: Run<Input, Output>) {
+  protected set run(run: FnRun<Input, Output>) {
     this._config.run = run
   }
   constructor(config: BaseStageConfig<Input, Output> & RunConfig<Input, Output>) {
@@ -70,7 +82,7 @@ export class AbstractStage<
       this._config = config
       this._config.run = this._config.run.bind(this)
     } else {
-      throw new Error('arguments Error')
+      throw new Error(ERROR.argements_error)
     }
     this.exec = this.exec.bind(this)
   }
@@ -111,15 +123,41 @@ export class AbstractStage<
 
 export interface BuilderParams {
   _type: unknown
+}
+
+export interface WithInputParams {
   _input: unknown
+}
+
+export interface WithInputOutputParams extends WithInputParams {
   _output: unknown
-  // stage
-  _run: unknown
-  // rescue/wrap
+}
+
+export interface WithStageParams {
   _stage: unknown
-  // wrap
-  _wrapee_input: unknown
-  _wrapee_output: unknown
+}
+
+export interface StageParams extends BuilderParams, WithInputOutputParams {
+  _run: unknown
+}
+
+export interface RescueParams extends BuilderParams, WithInputOutputParams, WithStageParams {
+}
+
+export interface WrapParams extends BuilderParams, WithInputOutputParams, WithStageParams {
+}
+
+export interface TimeoutParams extends BuilderParams, WithInputOutputParams, WithStageParams {
+  _timeout: unknown
+}
+export interface IfElseParams extends BuilderParams, WithInputOutputParams, WithStageParams {
+}
+
+export interface RetryOnErrorParams extends BuilderParams, WithInputOutputParams, WithStageParams {
+  _retry: unknown
+  _backup: unknown
+  _restore: unknown
+  _storage: unknown
 }
 
 export interface BuilderDef<TConfig extends BaseStageConfig<any, any>> {
@@ -133,12 +171,20 @@ export interface Builder<TParams extends BuilderParams> {
   _def: BuilderDef<
     BaseStageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   >
-  type<T extends StageType>(type: T): Omit<
-    GetStage<T, InferParams<TParams>>,
-    Exclude<
-      | 'type'
-      | AllPropertiesFor<T>,
-      StartFor<T>
+  type<T extends StageType>(type: T): IntellisenseFor<
+    T,
+    'start',
+    GetStage<
+      T,
+      Merge<
+        InferBuilderParams<TParams>,
+        {
+          _type: OverwriteIfDefined<
+            TParams['_type'],
+            T
+          >
+        }
+      >
     >
   >
 }

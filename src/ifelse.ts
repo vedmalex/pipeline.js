@@ -3,21 +3,20 @@ import {
   AbstractStage,
   BaseStageConfig,
   BuilderDef,
-  BuilderParams,
+  IfElseParams,
   validatorBaseStageConfig,
   validatorRunConfig,
 } from './base'
 import {
   ExtractInput,
   ExtractOutput,
-  InferParams,
+  InferIfElseParams,
   inferParser,
   IntellisenseFor,
   Merge,
   OverwriteIfDefined,
   Parser,
   SchemaType,
-  UnsetMarker,
 } from './utility'
 
 export type IfElseCondition<Input> = (input: Input) => boolean | Promise<boolean>
@@ -67,7 +66,7 @@ export interface IfElseDef<TConfig extends IfElseConfig<any, any>> extends Build
   truthy: AbstractStage<any, any>
   falsy: AbstractStage<any, any>
 }
-export interface IfElseBuilder<TParams extends BuilderParams> {
+export interface IfElseBuilder<TParams extends IfElseParams> {
   _def: BuilderDef<IfElseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
   build(): IfElse<
     ExtractInput<TParams>,
@@ -81,7 +80,7 @@ export interface IfElseBuilder<TParams extends BuilderParams> {
     'input',
     IfElseBuilder<
       Merge<
-        InferParams<TParams>,
+        InferIfElseParams<TParams>,
         {
           _input: OverwriteIfDefined<
             TParams['_input'],
@@ -98,7 +97,7 @@ export interface IfElseBuilder<TParams extends BuilderParams> {
     'output',
     IfElseBuilder<
       Merge<
-        InferParams<TParams>,
+        InferIfElseParams<TParams>,
         {
           _output: OverwriteIfDefined<
             TParams['_output'],
@@ -114,7 +113,7 @@ export interface IfElseBuilder<TParams extends BuilderParams> {
     'ifelse',
     'truthy',
     IfElseBuilder<
-      InferParams<TParams>
+      InferIfElseParams<TParams>
     >
   >
   falsy<RStage extends AbstractStage<ExtractInput<TParams>, ExtractOutput<TParams>>>(
@@ -123,7 +122,7 @@ export interface IfElseBuilder<TParams extends BuilderParams> {
     'ifelse',
     'falsy',
     IfElseBuilder<
-      InferParams<TParams>
+      InferIfElseParams<TParams>
     >
   >
   condition(
@@ -132,21 +131,13 @@ export interface IfElseBuilder<TParams extends BuilderParams> {
     'ifelse',
     'condition',
     IfElseBuilder<
-      InferParams<TParams>
+      InferIfElseParams<TParams>
     >
   >
 }
 export function ifelse<TConfig extends IfElseConfig<any, any>>(
   _def: Partial<IfElseDef<TConfig>> = {},
-): IfElseBuilder<{
-  _type: UnsetMarker
-  _input: UnsetMarker
-  _output: UnsetMarker
-  _run: UnsetMarker
-  _stage: UnsetMarker
-  _wrapee_input: UnsetMarker
-  _wrapee_output: UnsetMarker
-}> {
+): IfElseBuilder<InferIfElseParams<{ _type: 'ifelse' }>> {
   return {
     _def: _def as BuilderDef<TConfig>,
     input(input) {

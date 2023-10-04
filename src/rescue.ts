@@ -3,21 +3,21 @@ import {
   AbstractStage,
   BaseStageConfig,
   BuilderDef,
-  BuilderParams,
+  RescueParams,
   validatorBaseStageConfig,
   validatorRunConfig,
 } from './base'
+import { ERROR } from './errors'
 import {
   ExtractInput,
   ExtractOutput,
   ExtractStage,
   ExtractStageInput,
   ExtractStageOutput,
-  InferParams,
+  InferRescueParams,
   IntellisenseFor,
   Merge,
   OverwriteIfDefined,
-  UnsetMarker,
 } from './utility'
 
 async function processIt<Input, Output>(
@@ -30,7 +30,7 @@ async function processIt<Input, Output>(
   } catch (err) {
     const rescued = await this.config.rescue(err as Error, input)
     if (!rescued) {
-      throw new Error('rescue MUST return value')
+      throw new Error(ERROR.rescue_MUST_return_value)
     }
     return rescued
   }
@@ -60,8 +60,8 @@ export interface RescueConfig<Input, Output> extends BaseStageConfig<Input, Outp
 export function validatorRescueConfig<Input, Output>(
   config: BaseStageConfig<Input, Output>,
 ) {
-  const output: z.ZodSchema = config?.output ? config.output : z.any()
-  const input: z.ZodSchema = config?.input ? config.input : z.any()
+  const output: z.ZodSchema = config.output ? config.output : z.any()
+  const input: z.ZodSchema = config.input ? config.input : z.any()
   return validatorBaseStageConfig
     .merge(validatorRunConfig(config))
     .merge(z.object({
@@ -76,7 +76,7 @@ export interface RescueDef<TConfig extends RescueConfig<any, any>> extends Build
   stage: AbstractStage<any, any>
   rescue: RescueRun<any, any>
 }
-export interface RescueBuilder<TParams extends BuilderParams> {
+export interface RescueBuilder<TParams extends RescueParams> {
   _def: BuilderDef<RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
   build(): Rescue<
     ExtractInput<TParams>,
@@ -90,7 +90,7 @@ export interface RescueBuilder<TParams extends BuilderParams> {
     'stage',
     RescueBuilder<
       Merge<
-        InferParams<TParams>,
+        InferRescueParams<TParams>,
         {
           _stage: OverwriteIfDefined<
             TParams['_stage'],
@@ -114,22 +114,13 @@ export interface RescueBuilder<TParams extends BuilderParams> {
     'rescue',
     'rescue',
     RescueBuilder<
-      InferParams<TParams>
+      InferRescueParams<TParams>
     >
   >
 }
 export function rescue<TConfig extends RescueConfig<any, any>>(
   _def: Partial<RescueDef<TConfig>> = {},
-): RescueBuilder<{
-  _type: UnsetMarker
-  _input: UnsetMarker
-  _output: UnsetMarker
-  _run: UnsetMarker
-  _stage: UnsetMarker
-  _wrapee_input: UnsetMarker
-  _wrapee_output: UnsetMarker
-  _usage: {}
-}> {
+): RescueBuilder<InferRescueParams<{ _type: 'rescue' }>> {
   return {
     _def: _def as BuilderDef<TConfig>,
     stage(stage) {
@@ -150,7 +141,7 @@ export function rescue<TConfig extends RescueConfig<any, any>>(
         _def.cfg.input = _def.cfg.stage.config.input
         _def.cfg.output = _def.cfg.stage.config.output
       } else {
-        throw new Error('define stage before use of rescue')
+        throw new Error(ERROR.define_stage_before_use_of_rescue)
       }
       _def.cfg.rescue = fn
       return rescue({

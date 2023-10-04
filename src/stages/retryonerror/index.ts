@@ -1,2 +1,2 @@
-export * from './retryonerror'
+export * from '../../retryonerror'
 export * from './RetryOnErrorConfig'

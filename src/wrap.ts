@@ -1,23 +1,20 @@
+import { z } from 'zod'
+import { AbstractStage, BuilderDef, validatorBaseStageConfig, validatorRunConfig, WrapParams } from './base'
+import { StageConfig } from './stage'
 import {
   ExtractInput,
   ExtractOutput,
   ExtractStage,
   ExtractStageInput,
   ExtractStageOutput,
-  ExtractWrapeeInput,
-  ExtractWrapeeOutput,
-  InferParams,
   inferParser,
+  InferWrapParams,
   IntellisenseFor,
   Merge,
   OverwriteIfDefined,
   Parser,
   SchemaType,
-  UnsetMarker,
-} from 'src/utility'
-import { z } from 'zod'
-import { AbstractStage, BuilderDef, BuilderParams, validatorBaseStageConfig, validatorRunConfig } from './base'
-import { StageConfig } from './stage'
+} from './utility'
 
 async function processIt<
   Input,
@@ -109,15 +106,15 @@ export interface WrapDef<TConfig extends WrapConfig<any, any, any, any>> extends
   finalize?: WrapFinalize<any, any, any>
 }
 
-export interface WrapBuilder<TParams extends BuilderParams> {
+export interface WrapBuilder<TParams extends WrapParams> {
   _def: BuilderDef<
     WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
   >
   build(): Wrap<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
-    TParams['_wrapee_input'],
-    TParams['_wrapee_output'],
+    ExtractStageInput<TParams['_stage']>,
+    ExtractStageOutput<TParams['_stage']>,
     WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
   >
   input<$Parser extends Parser>(
@@ -127,7 +124,7 @@ export interface WrapBuilder<TParams extends BuilderParams> {
     'input',
     WrapBuilder<
       Merge<
-        InferParams<TParams>,
+        InferWrapParams<TParams>,
         {
           _input: OverwriteIfDefined<
             TParams['_input'],
@@ -144,7 +141,7 @@ export interface WrapBuilder<TParams extends BuilderParams> {
     'output',
     WrapBuilder<
       Merge<
-        InferParams<TParams>,
+        InferWrapParams<TParams>,
         {
           _output: OverwriteIfDefined<
             TParams['_output'],
@@ -161,55 +158,38 @@ export interface WrapBuilder<TParams extends BuilderParams> {
     'stage',
     WrapBuilder<
       Merge<
-        InferParams<TParams>,
+        InferWrapParams<TParams>,
         {
           _stage: OverwriteIfDefined<
             TParams['_stage'],
             ExtractStage<RStage>
-          >
-          _wrapee_input: OverwriteIfDefined<
-            TParams['_wrapee_input'],
-            ExtractStageInput<RStage>
-          >
-          _wrapee_output: OverwriteIfDefined<
-            TParams['_wrapee_output'],
-            ExtractStageOutput<RStage>
           >
         }
       >
     >
   >
   prepare(
-    prepare: WrapPrepare<ExtractInput<TParams>, ExtractWrapeeInput<TParams>>,
+    prepare: WrapPrepare<ExtractInput<TParams>, ExtractStageInput<TParams['_stage']>>,
   ): IntellisenseFor<
     'wrap',
     'prepare',
     WrapBuilder<
-      InferParams<TParams>
+      InferWrapParams<TParams>
     >
   >
   finalize(
-    finalize: WrapFinalize<ExtractInput<TParams>, ExtractOutput<TParams>, ExtractWrapeeOutput<TParams>>,
+    finalize: WrapFinalize<ExtractInput<TParams>, ExtractOutput<TParams>, ExtractStageOutput<TParams['_stage']>>,
   ): IntellisenseFor<
     'wrap',
     'finalize',
     WrapBuilder<
-      InferParams<TParams>
+      InferWrapParams<TParams>
     >
   >
 }
 export function wrap<TConfig extends WrapConfig<any, any, any, any>>(
   _def: Partial<WrapDef<TConfig>> = {},
-): WrapBuilder<{
-  _type: UnsetMarker
-  _input: UnsetMarker
-  _output: UnsetMarker
-  _run: UnsetMarker
-  _stage: UnsetMarker
-  _usage: {}
-  _wrapee_input: UnsetMarker
-  _wrapee_output: UnsetMarker
-}> {
+): WrapBuilder<InferWrapParams<{ _type: 'wrap' }>> {
   return {
     _def: _def as BuilderDef<TConfig>,
     input(input) {

@@ -9,7 +9,7 @@ describe('stageBuilder', () => {
       .type('stage')
       .input(z.string().optional())
       .output(z.object({ name: z.string(), full: z.string() }))
-      .run(async name => {
+      .run(name => {
         return {
           name: name ? name : 'undefined',
           full: 'full',
