@@ -26,8 +26,8 @@ describe('ValidateRunConfig', () => {
   const output = z.number()
   type Input = z.infer<typeof input>
   type Output = z.infer<typeof output>
-  type FnRun = FnRun<Input, Output>
-  function prepare(fn: FnRun) {
+  type Fn = FnRun<Input, Output>
+  function prepare(fn: Fn) {
     return validatorRunConfig({
       input,
       output,

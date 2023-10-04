@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { AbstractStage, BuilderDef, validatorBaseStageConfig, validatorRunConfig, WrapParams } from './base'
 import { StageConfig } from './stage'
 import {
+  ErrorMessage,
   ExtractInput,
   ExtractOutput,
   ExtractStage,
@@ -110,13 +111,17 @@ export interface WrapBuilder<TParams extends WrapParams> {
   _def: BuilderDef<
     WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
   >
-  build(): Wrap<
-    ExtractInput<TParams>,
-    ExtractOutput<TParams>,
-    ExtractStageInput<TParams['_stage']>,
-    ExtractStageOutput<TParams['_stage']>,
-    WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
-  >
+  build<
+    Result extends Wrap<
+      ExtractInput<TParams>,
+      ExtractOutput<TParams>,
+      ExtractStageInput<TParams['_stage']>,
+      ExtractStageOutput<TParams['_stage']>
+    >,
+  >(): TParams['_prepare'] extends true ? TParams['_finalize'] extends true ? Result
+    : ErrorMessage<'prepare MUST have finalize'>
+    : Result
+
   input<$Parser extends Parser>(
     schema: SchemaType<TParams, $Parser, '_input', 'in'>,
   ): IntellisenseFor<
@@ -174,7 +179,15 @@ export interface WrapBuilder<TParams extends WrapParams> {
     'wrap',
     'prepare',
     WrapBuilder<
-      InferWrapParams<TParams>
+      Merge<
+        InferWrapParams<TParams>,
+        {
+          _prepare: OverwriteIfDefined<
+            TParams['_prepare'],
+            true
+          >
+        }
+      >
     >
   >
   finalize(
@@ -183,10 +196,19 @@ export interface WrapBuilder<TParams extends WrapParams> {
     'wrap',
     'finalize',
     WrapBuilder<
-      InferWrapParams<TParams>
+      Merge<
+        InferWrapParams<TParams>,
+        {
+          _finalize: OverwriteIfDefined<
+            TParams['_finalize'],
+            true
+          >
+        }
+      >
     >
   >
 }
+
 export function wrap<TConfig extends WrapConfig<any, any, any, any>>(
   _def: Partial<WrapDef<TConfig>> = {},
 ): WrapBuilder<InferWrapParams<{ _type: 'wrap' }>> {
@@ -196,20 +218,20 @@ export function wrap<TConfig extends WrapConfig<any, any, any, any>>(
       if (!_def.cfg) {
         _def.cfg = {} as TConfig
       }
-      _def.cfg.input = input
+      _def.cfg.input = input as any
       return wrap({
         ..._def,
-        inputs: input,
+        inputs: input as any,
       }) as any
     },
     output(output) {
       if (!_def.cfg) {
         _def.cfg = {} as TConfig
       }
-      _def.cfg.output = output
+      _def.cfg.output = output as any
       return wrap({
         ..._def,
-        outputs: output,
+        outputs: output as any,
       }) as any
     },
     stage(stage) {

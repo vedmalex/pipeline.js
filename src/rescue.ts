@@ -83,7 +83,7 @@ export interface RescueBuilder<TParams extends RescueParams> {
     ExtractOutput<TParams>,
     RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   >
-  stage<RStage extends AbstractStage<ExtractInput<TParams>, ExtractOutput<TParams>>>(
+  stage<RStage extends AbstractStage<any, any>>(
     stage: RStage,
   ): IntellisenseFor<
     'rescue',

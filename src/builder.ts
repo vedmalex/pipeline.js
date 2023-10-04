@@ -1,14 +1,16 @@
 import { BaseStageConfig, Builder, BuilderDef, BuilderParams } from './base'
+import { dowhile, DoWhileBuilder } from './dowhile'
 import { empty, EmptyBuilder } from './empty'
 import { ERROR } from './errors'
 import { ifelse, IfElseBuilder } from './ifelse'
 import { rescue, RescueBuilder } from './rescue'
-import { RetryOnErrorBuilder } from './retryonerror'
+import { retryonerror, RetryOnErrorBuilder } from './retryonerror'
 import { stage, StageBuilder } from './stage'
 import { timeout, TimeoutBuilder } from './timeout'
 import {
   ErrorMessage,
   InferBuilderParams,
+  InferDoWhileParams,
   InferIfElseParams,
   InferRescueParams,
   InferRetryOnErrorParams,
@@ -44,7 +46,9 @@ export function builder<TConfig extends BaseStageConfig<any, any>>(
         case input === 'ifelse':
           return ifelse(_def as any) as any
         case input === 'retryonerror':
-          return ifelse(_def as any) as any
+          return retryonerror(_def as any) as any
+        case input === 'dowhile':
+          return dowhile(_def as any) as any
         default:
           throw new Error(ERROR.not_implemented)
       }
@@ -60,4 +64,5 @@ export type GetStage<T extends StageType, TParams extends BuilderParams> = T ext
   : T extends 'timeout' ? TimeoutBuilder<InferTimeoutParams<TParams>>
   : T extends 'ifelse' ? IfElseBuilder<InferIfElseParams<TParams>>
   : T extends 'retryonerror' ? RetryOnErrorBuilder<InferRetryOnErrorParams<TParams>>
+  : T extends 'dowhile' ? DoWhileBuilder<InferDoWhileParams<TParams>>
   : ErrorMessage<'not implemented'>

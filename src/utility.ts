@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   AbstractStage,
   BuilderParams,
+  DoWhileParams,
   IfElseParams,
   RescueParams,
   RetryOnErrorParams,
@@ -90,12 +91,16 @@ export type InferWrapParams<
     _input: TParams['_input']
     _output: TParams['_output']
     _stage: TParams['_stage']
+    _prepare: TParams['_prepare']
+    _finalize: TParams['_finalize']
   }
   : {
     _type: TParams['_type']
     _input: UnsetMarker
     _output: UnsetMarker
     _stage: UnsetMarker
+    _prepare: UnsetMarker
+    _finalize: UnsetMarker
   }
 
 export type InferTimeoutParams<
@@ -151,6 +156,27 @@ export type InferRetryOnErrorParams<
     _backup: UnsetMarker
     _restore: UnsetMarker
     _storage: UnsetMarker
+  }
+
+export type InferDoWhileParams<
+  TParams extends BuilderParams,
+> = TParams extends DoWhileParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _stage: TParams['_stage']
+    _split: TParams['_split']
+    _combine: TParams['_combine']
+    _reachEnd: TParams['_reachEnd']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+    _stage: UnsetMarker
+    _split: UnsetMarker
+    _combine: UnsetMarker
+    _reachEnd: UnsetMarker
   }
 
 export type ParserZod<TInput, TParsedInput> = {
@@ -253,7 +279,13 @@ export type IntelliSence = {
     'restore': 'build'
   }
   'dowhile': {
-    'start': ''
+    'all': 'input' | 'start' | 'input' | 'stage' | 'split' | 'combine' | 'reachEnd' | 'build'
+    'start': 'input'
+    'input': 'stage'
+    'stage': 'split' | 'reachEnd'
+    'split': 'combine'
+    'combine': 'reachEnd'
+    'reachEnd': 'build'
   }
   'multiwayswitch': {
     'start': ''
@@ -276,6 +308,7 @@ export type PropertiesFor<T extends StageType, kind extends 'all' | 'start'> = T
   : T extends 'timeout' ? GetIntellisenceFor<T, kind>
   : T extends 'ifelse' ? GetIntellisenceFor<T, kind>
   : T extends 'retryonerror' ? GetIntellisenceFor<T, kind>
+  : T extends 'dowhile' ? GetIntellisenceFor<T, kind>
   : ErrorMessage<'not implemented'>
 
 export type AllPropertiesFor<T extends StageType> = PropertiesFor<T, 'all'>

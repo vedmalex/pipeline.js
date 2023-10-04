@@ -19,33 +19,49 @@ import {
   OverwriteIfDefined,
 } from './utility'
 
+function backupIt<Input>(input: Input): string | Input {
+  return (typeof input === 'object' && input !== null) ? JSON.stringify(input) : input
+}
+
+function restoreIt<Input>(input: Input, backup: any): Input {
+  return typeof input === 'object' ? JSON.parse(backup) : backup
+}
+
 async function processIt<Input, Output, Backup>(
   this: RetryOnError<Input, Output, Backup>,
-  input: Input,
+  _input: Input,
 ): Promise<Output> {
+  let input = _input
   const needRetry = async (err: Error | undefined, iter: number) => {
     if (err) {
       if (typeof this.config.retry === 'function') {
         return !await this.config.retry(err, input, iter)
       } else {
-        return iter > (this.config.retry ?? 1)
+        return iter < (this.config.retry ?? 1)
       }
     } else {
       return true
     }
   }
 
-  let err
+  let err = undefined
   let iter = 0
-  let result: Output | undefined = undefined
-  do {
+  let result: any
+  let backup = this.config.backup ? await this.config.backup(input) : backupIt(input) as Backup
+
+  while (iter === 0 || await needRetry(err, iter)) {
+    if (iter > 0) {
+      input = this.config.restore ? await this.config.restore(input, backup) : restoreIt(input, backup)
+    }
     err = undefined
     try {
       result = await this.config.stage.exec(input)
     } catch (_error: any) {
       err = _error
     }
-  } while (await needRetry(err, ++iter))
+    iter++
+  }
+
   if (result) {
     return result
   }
@@ -67,8 +83,9 @@ export class RetryOnError<
 export type ExtractBackup<Fn extends FnBackup<any, any>> = Fn extends FnBackup<any, infer Backup> ? Backup : never
 
 export type FnRetry<Input> = (err: Error | undefined, context: Input, iteration: number) => boolean | Promise<boolean>
-export type FnBackup<Input, Backup> = (ctx: Input) => Backup
-export type FnRestore<Input, Backup> = (ctx: Input, backup: Backup) => Input
+
+export type FnBackup<Input, Backup> = (ctx: Input) => Backup | Promise<Backup>
+export type FnRestore<Input, Backup> = (ctx: Input, backup: Backup) => Input | Promise<Input>
 
 export interface RetryOnErrorConfig<Input, Output, Backup> extends BaseStageConfig<Input, Output> {
   stage: AbstractStage<Input, Output>
@@ -85,11 +102,14 @@ export function validatorRetryOnErrorConfig<Input, Output, Backup>(
     .merge(validatorRunConfig(config))
     .merge(z.object({
       stage: z.instanceof(AbstractStage),
-      retry: z.function(z.tuple([
-        z.instanceof(Error),
-        input,
+      retry: z.union([
+        z.function(z.tuple([
+          z.instanceof(Error),
+          input,
+          z.number(),
+        ])),
         z.number(),
-      ])),
+      ]),
       backup: z.function(z.tuple([input]), z.any()).optional(),
       restore: z.function(z.tuple([input, z.any()]), input).optional(),
     }))
@@ -109,7 +129,7 @@ export interface RetryOnErrorBuilder<TParams extends RetryOnErrorParams> {
     ExtractOutput<TParams>,
     RetryOnErrorConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any>
   >
-  stage<RStage extends AbstractStage<ExtractInput<TParams>, ExtractOutput<TParams>>>(
+  stage<RStage extends AbstractStage<any, any>>(
     stage: RStage,
   ): IntellisenseFor<
     'retryonerror',

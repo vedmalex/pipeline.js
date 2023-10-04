@@ -145,6 +145,8 @@ export interface RescueParams extends BuilderParams, WithInputOutputParams, With
 }
 
 export interface WrapParams extends BuilderParams, WithInputOutputParams, WithStageParams {
+  _prepare: unknown
+  _finalize: unknown
 }
 
 export interface TimeoutParams extends BuilderParams, WithInputOutputParams, WithStageParams {
@@ -158,6 +160,17 @@ export interface RetryOnErrorParams extends BuilderParams, WithInputOutputParams
   _backup: unknown
   _restore: unknown
   _storage: unknown
+}
+
+export interface DoWhileParams extends BuilderParams, WithInputOutputParams, WithStageParams {
+  _split: unknown
+  _combine: unknown
+  _reachEnd: unknown
+}
+
+export interface Params extends BuilderParams, WithInputOutputParams, WithStageParams {
+  _prepare: unknown
+  _finalize: unknown
 }
 
 export interface BuilderDef<TConfig extends BaseStageConfig<any, any>> {
