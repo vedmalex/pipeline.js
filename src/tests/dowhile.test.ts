@@ -26,10 +26,10 @@ describe('wrapBuilder', () => {
           district: input[iter].district,
         }
       })
-      .combine((input, {name, ...rest}, iter) => {
-        const res  = {
+      .combine((input, { name, ...rest }, iter) => {
+        const res = {
           city: name,
-          ...rest
+          ...rest,
         }
         input[iter] = res
         return input
