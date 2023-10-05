@@ -173,6 +173,9 @@ export interface Params extends BuilderParams, WithInputOutputParams, WithStageP
   _finalize: unknown
 }
 
+export interface PipelineParams extends BuilderParams, WithInputOutputParams {
+}
+
 export interface BuilderDef<TConfig extends BaseStageConfig<any, any>> {
   type: StageType
   inputs: Parser

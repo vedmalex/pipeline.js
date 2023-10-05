@@ -18,7 +18,7 @@ describe('wrapBuilder', () => {
 
     const st = builder()
       .type('dowhile')
-      .input(z.array(z.object({ city: z.string(), district: z.string() }).passthrough()))
+      .input(z.array(z.object({ city: z.string(), district: z.string() })))
       .stage(wrapee)
       .split((input, iter) => {
         return {

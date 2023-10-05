@@ -7,8 +7,8 @@ describe('stageBuilder', () => {
   it('run', async () => {
     const falsy = builder()
       .type('stage')
-      .input(z.object({ name: z.string() }).passthrough())
-      .output(z.object({ name: z.string(), success: z.boolean() }).passthrough())
+      .input(z.object({ name: z.string() }))
+      .output(z.object({ name: z.string(), success: z.boolean() }))
       .run(async ({ name }) => {
         return {
           name: name ? name : 'undefined',
@@ -18,8 +18,8 @@ describe('stageBuilder', () => {
 
     const truthy = builder()
       .type('stage')
-      .input(z.object({ name: z.string() }).passthrough())
-      .output(z.object({ name: z.string(), success: z.boolean() }).passthrough())
+      .input(z.object({ name: z.string() }))
+      .output(z.object({ name: z.string(), success: z.boolean() }))
       .run(async ({ name }) => {
         return {
           name: name ? name : 'undefined',
@@ -29,8 +29,8 @@ describe('stageBuilder', () => {
 
     const st = builder()
       .type('ifelse')
-      .input(z.object({ name: z.string() }).passthrough())
-      .output(z.object({ name: z.string(), success: z.boolean() }).passthrough())
+      .input(z.object({ name: z.string() }))
+      .output(z.object({ name: z.string(), success: z.boolean() }))
       .condition(input => input.name === 'Alex')
       .truthy(truthy)
       .falsy(falsy)

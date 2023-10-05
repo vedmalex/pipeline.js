@@ -1,6 +1,6 @@
 import 'jest'
+import { Pipeline } from '../../pipeline'
 import { ComplexError, Context, isAnyStage, Stage } from '../../stage'
-import { Pipeline } from './pipeline'
 
 describe('Pipeline', function () {
   it('defaults', function (done) {

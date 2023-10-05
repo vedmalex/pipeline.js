@@ -4,6 +4,7 @@ import {
   BuilderParams,
   DoWhileParams,
   IfElseParams,
+  PipelineParams,
   RescueParams,
   RetryOnErrorParams,
   StageParams,
@@ -27,8 +28,12 @@ export type Merge<S, D> = Simplify<
       : D[K]
   }
 >
+
+// export type OverwriteIfDefined<TType, TWith> = UnsetMarker extends TType ? TWith
+//   : Simplify<TType & TWith>
+
 export type OverwriteIfDefined<TType, TWith> = UnsetMarker extends TType ? TWith
-  : Simplify<TType & TWith>
+  : TType
 /**
  * @internal
  * @see https://github.com/ianstormtaylor/superstruct/blob/7973400cd04d8ad92bbdc2b6f35acbfb3c934079/src/utils.ts#L323-L325
@@ -179,6 +184,19 @@ export type InferDoWhileParams<
     _reachEnd: UnsetMarker
   }
 
+export type InferPipelineParams<
+  TParams extends BuilderParams,
+> = TParams extends PipelineParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+  }
+
 export type ParserZod<TInput, TParsedInput> = {
   _input: TInput
   _output: TParsedInput
@@ -286,6 +304,11 @@ export type IntelliSence = {
     'split': 'combine'
     'combine': 'reachEnd'
     'reachEnd': 'build'
+  }
+  'pipeline': {
+    'all': 'stage' | 'build'
+    'start': 'stage'
+    'stage': 'build' | 'stage'
   }
   'multiwayswitch': {
     'start': ''
