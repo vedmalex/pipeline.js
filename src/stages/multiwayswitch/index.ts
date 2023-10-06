@@ -1,5 +1,5 @@
+export * from '../../multiwayswitch'
 export * from './CombineFunction'
-export * from './multiwayswitch'
 export * from './MultiWaySwitchCase'
 export * from './MultWaySwitchConfig'
 export * from './SplitFunction'

@@ -31,11 +31,12 @@ describe('pipelineBuilder', () => {
       .stage(
         builder()
           .type('stage')
-          .input(z.object({
-          }).passthrough())
-          .output(z.object({
-            age: z.number(),
-          }).passthrough())
+          .input(z.object({}).passthrough())
+          .output(
+            z.object({
+              age: z.number(),
+            }).passthrough(),
+          )
           .run(input => {
             return {
               ...input,

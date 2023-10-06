@@ -5,7 +5,7 @@ import { // включить тип для вычисления параметр
 } from './stage/types'
 
 import { GetStage } from './builder'
-import { ERROR } from './errors'
+import { ERROR } from './error'
 import {
   ExtractInput,
   ExtractOutput,
@@ -168,12 +168,26 @@ export interface DoWhileParams extends BuilderParams, WithInputOutputParams, Wit
   _reachEnd: unknown
 }
 
+export interface MultiWaySwitchParams extends BuilderParams, WithInputOutputParams {
+  _cases: unknown
+}
+
+export interface MultiWaySwitchCaseParams extends BuilderParams, WithInputOutputParams, WithStageParams {
+  _evaluate: unknown
+}
+
 export interface Params extends BuilderParams, WithInputOutputParams, WithStageParams {
   _prepare: unknown
   _finalize: unknown
 }
 
 export interface PipelineParams extends BuilderParams, WithInputOutputParams {
+}
+
+export interface SequentialParams extends BuilderParams, WithInputOutputParams, WithStageParams {
+  _serial: unknown
+  _split: unknown
+  _combine: unknown
 }
 
 export interface BuilderDef<TConfig extends BaseStageConfig<any, any>> {

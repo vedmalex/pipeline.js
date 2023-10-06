@@ -4,9 +4,12 @@ import {
   BuilderParams,
   DoWhileParams,
   IfElseParams,
+  MultiWaySwitchCaseParams,
+  MultiWaySwitchParams,
   PipelineParams,
   RescueParams,
   RetryOnErrorParams,
+  SequentialParams,
   StageParams,
   TimeoutParams,
   WithInputOutputParams,
@@ -19,7 +22,7 @@ export const unsetMarker = Symbol('unset')
 export type UnsetMarker = typeof unsetMarker
 
 export type Merge<S, D> = Simplify<
-  & {
+  {
     [K in keyof S]: K extends keyof D ? UnsetMarker extends D[K] ? S[K] : D[K]
       : S[K]
   }
@@ -28,9 +31,13 @@ export type Merge<S, D> = Simplify<
       : D[K]
   }
 >
+// type CT = Merge<{name: string, id: string} , {id: string| undefined, region:string}>
 
-// export type OverwriteIfDefined<TType, TWith> = UnsetMarker extends TType ? TWith
-//   : Simplify<TType & TWith>
+export type MergeIfDefined<TType, TWith> = UnsetMarker extends TType ? TWith
+  : Simplify<TType & TWith>
+
+// export type MergeIfDefined<TType, TWith> = UnsetMarker extends TType ? TWith
+//   : Merge<TType, TWith>
 
 export type OverwriteIfDefined<TType, TWith> = UnsetMarker extends TType ? TWith
   : TType
@@ -39,9 +46,11 @@ export type OverwriteIfDefined<TType, TWith> = UnsetMarker extends TType ? TWith
  * @see https://github.com/ianstormtaylor/superstruct/blob/7973400cd04d8ad92bbdc2b6f35acbfb3c934079/src/utils.ts#L323-L325
  */
 
-export type Simplify<TType> = TType extends any[] | Date ? TType : {
+export type Simplify<TType> = {
   [K in keyof TType]: TType[K]
 }
+
+
 
 export type ExtractInput<TParams> = TParams extends WithInputParams ? TParams['_input']
   : UnsetMarker
@@ -197,6 +206,59 @@ export type InferPipelineParams<
     _output: UnsetMarker
   }
 
+export type InferSequentialParams<
+  TParams extends BuilderParams,
+> = TParams extends SequentialParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _stage: TParams['_stage']
+    _split: TParams['_split']
+    _combine: TParams['_combine']
+    _serial: TParams['_serial']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+    _stage: UnsetMarker
+    _split: UnsetMarker
+    _combine: UnsetMarker
+    _serial: UnsetMarker
+  }
+
+export type InferMultiWaySwitchParams<
+  TParams extends BuilderParams,
+> = TParams extends MultiWaySwitchParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _cases: TParams['_cases']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+    _cases: UnsetMarker
+  }
+
+export type InferMultiWaySwitchCaseParams<
+  TParams extends BuilderParams,
+> = TParams extends MultiWaySwitchCaseParams ? {
+    _type: TParams['_type']
+    _input: TParams['_input']
+    _output: TParams['_output']
+    _stage: TParams['_stage']
+    _evaluate: TParams['_evaluate']
+  }
+  : {
+    _type: TParams['_type']
+    _input: UnsetMarker
+    _output: UnsetMarker
+    _stage: UnsetMarker
+    _evaluate: UnsetMarker
+  }
+
 export type ParserZod<TInput, TParsedInput> = {
   _input: TInput
   _output: TParsedInput
@@ -311,13 +373,29 @@ export type IntelliSence = {
     'stage': 'build' | 'stage'
   }
   'multiwayswitch': {
-    'start': ''
+    'all': 'add' | 'build' | 'input' | 'output'
+    'start': 'add'
+    // 'input': 'output'
+    // 'output': 'add'
+    'add': 'add' | 'build'
   }
-  'parallel': {
-    'start': ''
+  'multiwayswitchcase': {
+    'all': 'input' | 'start' | 'input' | 'output' | 'evaluate' | 'stage' | 'split' | 'combine' | 'build'
+    'start': 'stage'
+    'stage': 'evaluate'
+    'evaluate': 'split' | 'build'
+    'split': 'combine'
+    'combine': 'build'
   }
   'sequential': {
-    'start': ''
+    'all': 'input' | 'output' | 'stage' | 'split' | 'combine' | 'build' | 'serial'
+    'start': 'input' | 'serial'
+    'serial': 'input'
+    'input': 'output' | 'stage' // output не обязательный если это так, тогда и не нужно finalize
+    'output': 'stage'
+    'stage': 'split'
+    'split': 'combine' | 'build'
+    'combine': 'build'
   }
 }
 export type GetIntellisenceFor<Stage extends keyof IntelliSence, State extends keyof IntelliSence[Stage]> =
@@ -332,6 +410,9 @@ export type PropertiesFor<T extends StageType, kind extends 'all' | 'start'> = T
   : T extends 'ifelse' ? GetIntellisenceFor<T, kind>
   : T extends 'retryonerror' ? GetIntellisenceFor<T, kind>
   : T extends 'dowhile' ? GetIntellisenceFor<T, kind>
+  : T extends 'sequential' ? GetIntellisenceFor<T, kind>
+  : T extends 'multiwayswitch' ? GetIntellisenceFor<T, kind>
+  : T extends 'multiwayswitchcase' ? GetIntellisenceFor<T, kind>
   : ErrorMessage<'not implemented'>
 
 export type AllPropertiesFor<T extends StageType> = PropertiesFor<T, 'all'>

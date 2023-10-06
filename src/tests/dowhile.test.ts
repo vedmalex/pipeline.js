@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { builder } from '../builder'
 
-describe('wrapBuilder', () => {
+describe('doWhileBuilder', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
   // исправить работу с Stage<any> похоже что TStage не нужен
   it('run', async () => {

@@ -7,7 +7,7 @@ import {
   validatorBaseStageConfig,
   validatorRunConfig,
 } from './base'
-import { ERROR } from './errors'
+import { ERROR } from './error'
 import {
   ExtractInput,
   ExtractOutput,

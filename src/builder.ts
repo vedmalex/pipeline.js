@@ -1,11 +1,13 @@
 import { BaseStageConfig, Builder, BuilderDef, BuilderParams } from './base'
 import { dowhile, DoWhileBuilder } from './dowhile'
 import { empty, EmptyBuilder } from './empty'
-import { ERROR } from './errors'
+import { ERROR } from './error'
 import { ifelse, IfElseBuilder } from './ifelse'
+import { MultiWaySwitchBuilder, MultiWaySwitchCaseBuilder } from './multiwayswitch'
 import { pipeline, PipelineBuilder } from './pipeline'
 import { rescue, RescueBuilder } from './rescue'
 import { retryonerror, RetryOnErrorBuilder } from './retryonerror'
+import { sequential, SequentialBuilder } from './sequential'
 import { stage, StageBuilder } from './stage'
 import { timeout, TimeoutBuilder } from './timeout'
 import {
@@ -13,8 +15,11 @@ import {
   InferBuilderParams,
   InferDoWhileParams,
   InferIfElseParams,
+  InferMultiWaySwitchCaseParams,
+  InferMultiWaySwitchParams,
   InferRescueParams,
   InferRetryOnErrorParams,
+  InferSequentialParams,
   InferStageParams,
   InferTimeoutParams,
   InferWrapParams,
@@ -52,6 +57,8 @@ export function builder<TConfig extends BaseStageConfig<any, any>>(
           return dowhile(_def as any) as any
         case input === 'pipeline':
           return pipeline(_def as any) as any
+        case input === 'sequential':
+          return sequential(_def as any) as any
         default:
           throw new Error(ERROR.not_implemented)
       }
@@ -69,4 +76,7 @@ export type GetStage<T extends StageType, TParams extends BuilderParams> = T ext
   : T extends 'retryonerror' ? RetryOnErrorBuilder<InferRetryOnErrorParams<TParams>>
   : T extends 'dowhile' ? DoWhileBuilder<InferDoWhileParams<TParams>>
   : T extends 'pipeline' ? PipelineBuilder<InferDoWhileParams<TParams>>
+  : T extends 'sequential' ? SequentialBuilder<InferSequentialParams<TParams>>
+  : T extends 'multiwayswitch' ? MultiWaySwitchBuilder<InferMultiWaySwitchParams<TParams>>
+  : T extends 'multiwayswitchcase' ? MultiWaySwitchCaseBuilder<InferMultiWaySwitchCaseParams<TParams>>
   : ErrorMessage<'not implemented'>
