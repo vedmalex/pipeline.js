@@ -1,18 +1,19 @@
 import { z } from 'zod'
 import { builder } from '../builder'
 
-describe('stageBuilder', () => {
+describe('ifelseBuilder', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
   // исправить работу с Stage<any> похоже что TStage не нужен
   it('run', async () => {
     const falsy = builder()
       .type('stage')
       .input(z.object({ name: z.string() }))
-      .output(z.object({ name: z.string(), success: z.boolean() }))
+      .output(z.object({ name: z.string(), success: z.boolean(), fixed: z.boolean() }))
       .run(async ({ name }) => {
         return {
           name: name ? name : 'undefined',
           success: false,
+          fixed: false
         }
       }).build()
 
@@ -29,11 +30,13 @@ describe('stageBuilder', () => {
 
     const st = builder()
       .type('ifelse')
-      .input(z.object({ name: z.string() }))
-      .output(z.object({ name: z.string(), success: z.boolean() }))
-      .condition(input => input.name === 'Alex')
-      .truthy(truthy)
-      .falsy(falsy)
+      .stage(truthy)
+      .if((input) => {
+        const inp = input as {name: string}
+        return inp.name === 'Alex'
+      })
+      // .then(truthy)
+      .else(falsy)
       .build()
 
     const resFalsey = await st.exec({ name: 'name' })

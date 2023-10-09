@@ -2,7 +2,6 @@ import { z } from 'zod'
 import {
   AbstractStage,
   BaseStageConfig,
-  BuilderDef,
   IfElseParams,
   validatorBaseStageConfig,
   validatorRunConfig,
@@ -10,13 +9,15 @@ import {
 import {
   ExtractInput,
   ExtractOutput,
+  ExtractStageInput,
+  ExtractStageOutput,
   InferIfElseParams,
-  inferParser,
   IntellisenseFor,
+  MaySetInput,
+  MaySetOutput,
   Merge,
   OverwriteIfDefined,
-  Parser,
-  SchemaType,
+  UnsetMarker,
 } from './utility'
 
 export type IfElseCondition<Input> = (input: Input) => boolean | Promise<boolean>
@@ -25,11 +26,11 @@ async function processIt<Input, Output>(
   this: IfElse<Input, Output>,
   input: Input,
 ): Promise<Output> {
-  const evaluate = await this.config.condition(input)
+  const evaluate = await this.config.if(input)
   if (evaluate) {
-    return await this.config.truthy.exec(input)
+    return await this.config.then.exec(input)
   } else {
-    return (await this.config.falsy?.exec(input)) ?? input as undefined as Output
+    return (await this.config.else?.exec(input)) ?? input as undefined as Output
   }
 }
 
@@ -42,159 +43,133 @@ export class IfElse<Input, Output, Config extends IfElseConfig<Input, Output> = 
 }
 
 export interface IfElseConfig<Input, Output> extends BaseStageConfig<Input, Output> {
-  condition: IfElseCondition<Input>
-  truthy: AbstractStage<Input, Output>
-  falsy?: AbstractStage<Input, Output>
+  if: IfElseCondition<Input>
+  then: AbstractStage<Input, Output>
+  else?: AbstractStage<Input, Output>
 }
 
 export function validatorIfElseConfig<Input, Output>(
   config: IfElseConfig<Input, Output>,
 ) {
-  const input = config.truthy.config.input ? config.truthy.config.input : z.any()
+  const input = config.then.config.input ? config.then.config.input : z.any()
 
   return validatorBaseStageConfig
     .merge(validatorRunConfig(config))
     .merge(z.object({
-      truthy: z.instanceof(AbstractStage),
-      falsy: z.instanceof(AbstractStage).optional(),
-      condition: z.function(z.tuple([input]), z.union([z.boolean(), z.boolean().promise()])),
+      if: z.function(z.tuple([input]), z.union([z.boolean(), z.boolean().promise()])),
+      then: z.instanceof(AbstractStage),
+      else: z.instanceof(AbstractStage).optional(),
     }))
 }
 
-export interface IfElseDef<TConfig extends IfElseConfig<any, any>> extends BuilderDef<TConfig> {
-  condition: IfElseCondition<any>
-  truthy: AbstractStage<any, any>
-  falsy: AbstractStage<any, any>
-}
 export interface IfElseBuilder<TParams extends IfElseParams> {
-  _def: BuilderDef<IfElseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
+  _def: IfElseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  if(
+    timeout: IfElseCondition<OverwriteIfDefined<ExtractInput<TParams>, unknown>>,
+  ): IntellisenseFor<
+    'ifelse',
+    'if',
+    IfElseBuilder<
+      InferIfElseParams<TParams>
+    >
+  >
+  then<RStage extends AbstractStage<MaySetInput<TParams>, MaySetOutput<TParams>>>(
+    stage: TParams['_stage'] extends UnsetMarker ? RStage : never,
+  ):  TParams['_stage'] extends UnsetMarker ?
+    IntellisenseFor<
+    'ifelse',
+    'then',
+    IfElseBuilder<
+      Merge<
+        InferIfElseParams<TParams>,
+        {
+          _stage: OverwriteIfDefined<
+            TParams['_stage'],
+            ExtractStageInput<RStage>
+          >
+          _input: OverwriteIfDefined<
+            TParams['_input'],
+            ExtractStageInput<RStage>
+          >
+          _output: OverwriteIfDefined<
+            TParams['_output'],
+            ExtractStageOutput<RStage>
+          >
+        }
+      >
+    >
+  > : never
+  stage<RStage extends AbstractStage<MaySetInput<TParams>, MaySetOutput<TParams>>>(
+    stage: TParams['_stage'] extends UnsetMarker ? RStage : never,
+  ):  TParams['_stage'] extends UnsetMarker ? IntellisenseFor<
+    'ifelse',
+    'stage',
+    IfElseBuilder<
+      Merge<
+        InferIfElseParams<TParams>,
+        {
+          _stage: OverwriteIfDefined<
+            TParams['_stage'],
+            ExtractStageInput<RStage>
+          >
+          _input: OverwriteIfDefined<
+            TParams['_input'],
+            ExtractStageInput<RStage>
+          >
+          _output: OverwriteIfDefined<
+            TParams['_output'],
+            ExtractStageOutput<RStage>
+          >
+        }
+      >
+    >
+  > : never
+  else<RStage extends AbstractStage<ExtractInput<TParams>, ExtractOutput<TParams>>>(
+    stage: RStage,
+  ): IntellisenseFor<
+    'ifelse',
+    'else',
+    IfElseBuilder<
+      InferIfElseParams<TParams>
+    >
+  >
   build(): IfElse<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
     IfElseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   >
-  input<$Parser extends Parser>(
-    schema: SchemaType<TParams, $Parser, '_input', 'in'>,
-  ): IntellisenseFor<
-    'ifelse',
-    'input',
-    IfElseBuilder<
-      Merge<
-        InferIfElseParams<TParams>,
-        {
-          _input: OverwriteIfDefined<
-            TParams['_input'],
-            inferParser<$Parser>['in']
-          >
-        }
-      >
-    >
-  >
-  output<$Parser extends Parser>(
-    schema: SchemaType<TParams, $Parser, '_output', 'out'>,
-  ): IntellisenseFor<
-    'ifelse',
-    'output',
-    IfElseBuilder<
-      Merge<
-        InferIfElseParams<TParams>,
-        {
-          _output: OverwriteIfDefined<
-            TParams['_output'],
-            inferParser<$Parser>['in']
-          >
-        }
-      >
-    >
-  >
-  truthy<RStage extends AbstractStage<ExtractInput<TParams>, ExtractOutput<TParams>>>(
-    stage: RStage,
-  ): IntellisenseFor<
-    'ifelse',
-    'truthy',
-    IfElseBuilder<
-      InferIfElseParams<TParams>
-    >
-  >
-  falsy<RStage extends AbstractStage<ExtractInput<TParams>, ExtractOutput<TParams>>>(
-    stage: RStage,
-  ): IntellisenseFor<
-    'ifelse',
-    'falsy',
-    IfElseBuilder<
-      InferIfElseParams<TParams>
-    >
-  >
-  condition(
-    timeout: IfElseCondition<ExtractInput<TParams>>,
-  ): IntellisenseFor<
-    'ifelse',
-    'condition',
-    IfElseBuilder<
-      InferIfElseParams<TParams>
-    >
-  >
 }
-export function ifelse<TConfig extends IfElseConfig<any, any>>(
-  _def: Partial<IfElseDef<TConfig>> = {},
+export function ifelse(
+  _def:IfElseConfig<any, any>  = {} as IfElseConfig<any, any>,
 ): IfElseBuilder<InferIfElseParams<{ _type: 'ifelse' }>> {
   return {
-    _def: _def as BuilderDef<TConfig>,
-    input(input) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.input = input
+    _def,
+    if(condition) {
       return ifelse({
         ..._def,
-        inputs: input,
+        if: condition,
       }) as any
     },
-    output(output) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.output = output
+    stage(stage) {
       return ifelse({
         ..._def,
-        outputs: output,
+        then: stage,
       }) as any
     },
-    truthy(truthy) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.truthy = truthy
+    then(stage) {
       return ifelse({
         ..._def,
-        truthy: truthy,
+        then: stage,
       }) as any
     },
-    falsy(falsy) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.falsy = falsy
+    else(stage) {
       return ifelse({
         ..._def,
-        falsy: falsy,
-      }) as any
-    },
-    condition(condition) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.condition = condition
-      return ifelse({
-        ..._def,
-        condition: condition,
+        else: stage,
       }) as any
     },
     build() {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      return new IfElse(_def.cfg) as any
+      return new IfElse(_def) as any
     },
   }
 }

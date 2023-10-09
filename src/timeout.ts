@@ -2,7 +2,6 @@ import { z } from 'zod'
 import {
   AbstractStage,
   BaseStageConfig,
-  BuilderDef,
   TimeoutParams,
   validatorBaseStageConfig,
   validatorRunConfig,
@@ -77,14 +76,8 @@ export function validatorTimeoutConfig<Input, Output>(
     }))
 }
 
-export interface TimeoutDef<TConfig extends TimeoutConfig<any, any>> extends BuilderDef<TConfig> {
-  stage: AbstractStage<any, any>
-  overdue: AbstractStage<any, any>
-  timeout: number | GetTimout<any>
-}
-
 export interface TimeoutBuilder<TParams extends TimeoutParams> {
-  _def: BuilderDef<TimeoutConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
+  _def: TimeoutConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   build(): Timeout<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
@@ -140,46 +133,31 @@ export interface TimeoutBuilder<TParams extends TimeoutParams> {
   >
 }
 
-export function timeout<TConfig extends TimeoutConfig<any, any>>(
-  _def: Partial<TimeoutDef<TConfig>> = {},
+export function timeout(
+  _def: TimeoutConfig<any, any> = {} as TimeoutConfig<any, any>
 ): TimeoutBuilder<InferTimeoutParams<{ _type: 'timeout' }>> {
   return {
-    _def: _def as BuilderDef<TConfig>,
+    _def,
     stage(stage) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.stage = stage
       return timeout({
         ..._def,
-        stage: stage,
+        stage
       }) as any
     },
-    overdue(stage) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.overdue = stage
+    overdue(overdue) {
       return timeout({
         ..._def,
-        overdue: stage,
-      }) as any
+        overdue,
+      })
     },
     timeout(period) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.timeout = period
       return timeout({
         ..._def,
-        timeout: period,
-      }) as any
+        timeout:period,
+      })
     },
     build() {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      return new Timeout(_def.cfg) as any
+      return new Timeout(_def)
     },
   }
 }

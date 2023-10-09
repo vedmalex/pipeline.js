@@ -2,7 +2,6 @@ import { z } from 'zod'
 import {
   AbstractStage,
   BaseStageConfig,
-  BuilderDef,
   RetryOnErrorParams,
   validatorBaseStageConfig,
   validatorRunConfig,
@@ -115,15 +114,8 @@ export function validatorRetryOnErrorConfig<Input, Output, Backup>(
     }))
 }
 
-export interface RetryOnErrorDef<TConfig extends RetryOnErrorConfig<any, any, any>> extends BuilderDef<TConfig> {
-  stage: AbstractStage<any, any>
-  retry: number | FnRetry<any>
-  backup: (ctx: any) => any
-  restore: (ctx: any, backup: any) => any
-}
-
 export interface RetryOnErrorBuilder<TParams extends RetryOnErrorParams> {
-  _def: BuilderDef<RetryOnErrorConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any>>
+  _def: RetryOnErrorConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any>
   build(): RetryOnError<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
@@ -204,56 +196,37 @@ export interface RetryOnErrorBuilder<TParams extends RetryOnErrorParams> {
     >
   >
 }
-export function retryonerror<TConfig extends RetryOnErrorConfig<any, any, any>>(
-  _def: Partial<RetryOnErrorDef<TConfig>> = {},
+export function retryonerror(
+  _def: RetryOnErrorConfig<any, any, any> = {} as RetryOnErrorConfig<any, any, any>,
 ): RetryOnErrorBuilder<InferRetryOnErrorParams<{ _type: 'retryonerror' }>> {
   return {
-    _def: _def as BuilderDef<TConfig>,
+    _def,
     stage(stage) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.stage = stage
       return retryonerror({
         ..._def,
-        stage: stage,
+        stage,
       }) as any
     },
     retry(retry) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.retry = retry
       return retryonerror({
         ..._def,
-        retry: retry,
+        retry,
       }) as any
     },
     backup(backup) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.backup = backup
       return retryonerror({
         ..._def,
-        backup: backup,
+        backup,
       }) as any
     },
     restore(restore) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.restore = restore
       return retryonerror({
         ..._def,
-        restore: restore,
+        restore,
       }) as any
     },
     build() {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      return new RetryOnError(_def.cfg) as any
+      return new RetryOnError(_def) as any
     },
   }
 }

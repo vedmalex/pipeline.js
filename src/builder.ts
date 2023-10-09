@@ -1,4 +1,4 @@
-import { BaseStageConfig, Builder, BuilderDef, BuilderParams } from './base'
+import { BaseStageConfig, Builder, BuilderParams } from './base'
 import { dowhile, DoWhileBuilder } from './dowhile'
 import { empty, EmptyBuilder } from './empty'
 import { ERROR } from './error'
@@ -29,15 +29,10 @@ import { UnsetMarker } from './utility'
 import { wrap, WrapBuilder } from './wrap'
 
 export function builder<TConfig extends BaseStageConfig<any, any>>(
-  _def: Partial<BuilderDef<TConfig>> = {},
+  _def?: Partial<TConfig>,
 ): Builder<InferBuilderParams<{ _type: UnsetMarker }>> {
   return {
-    _def: _def as BuilderDef<TConfig>,
     type(input) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.type = input
       switch (true) {
         case input === 'stage':
           return stage(_def as any) as any

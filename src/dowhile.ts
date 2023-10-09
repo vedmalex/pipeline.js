@@ -2,7 +2,6 @@ import { z } from 'zod'
 import {
   AbstractStage,
   BaseStageConfig,
-  BuilderDef,
   DoWhileParams,
   validatorBaseStageConfig,
   validatorRunConfig,
@@ -29,12 +28,12 @@ async function processIt<Input, IInput, IOutput>(
   let iter = 0
   let result = input
   do {
-    let _input = this.config.split ? await this.config.split(input, iter) : input as unknown as IInput
-    let _result = await this.config.stage.exec(_input)
+    let _input = this.config.step ? await this.config.step(input, iter) : input as unknown as IInput
+    let _result = await this.config.do.exec(_input)
 
     result = this.config.combine ? await this.config.combine(input, _result, iter) : _result as unknown as Input
     iter += 1
-  } while (!this.config.reachEnd(input, iter))
+  } while (this.config.while(input, iter))
 
   return result
 }
@@ -50,48 +49,39 @@ export class DoWhile<
   }
 }
 
-export type DowhileSplit<Input, IInput> = (input: Input, iter: number) => IInput | Promise<IInput>
+export type DowhileStep<Input, IInput> = (input: Input, iter: number) => IInput | Promise<IInput>
 export type DoWhileCombine<Input, IOutput> = (input: Input, result: IOutput, iter: number) => Input | Promise<Input>
-export type DoWhileReachEnd<Input> = (ctx: Input, iter: number) => boolean | Promise<boolean>
+export type DoWhileCondition<Input> = (ctx: Input, iter: number) => boolean | Promise<boolean>
 
 export interface DoWhileConfig<Input, IInput, IOutput> extends BaseStageConfig<Input, Input> {
-  stage: AbstractStage<IInput, IOutput>
-  split?: DowhileSplit<Input, IInput>
-  combine?: DoWhileCombine<Input, IOutput>
-  reachEnd: DoWhileReachEnd<Input>
+  while: DoWhileCondition<Input>
+  do: AbstractStage<IInput, IOutput>
+  step: DowhileStep<Input, IInput>
+  combine: DoWhileCombine<Input, IOutput>
 }
 
 export function validatorDoWhileConfig<Input, IInput, IOutput>(
   config: DoWhileConfig<Input, IInput, IOutput>,
 ) {
   const input: z.ZodSchema = config?.input ? config.input : z.any()
-  const iinput: z.ZodSchema = config?.stage.config?.input
-    ? config?.stage.config?.input
+  const iinput: z.ZodSchema = config?.do.config?.input
+    ? config?.do.config?.input
     : z.any()
-  const ioutput: z.ZodSchema = config?.stage.config?.output
-    ? config?.stage.config?.output
+  const ioutput: z.ZodSchema = config?.do.config?.output
+    ? config?.do.config?.output
     : z.any()
   return validatorBaseStageConfig
     .merge(validatorRunConfig(config))
     .merge(z.object({
-      stage: z.instanceof(AbstractStage),
-      split: z.function(z.tuple([input, z.number()]), z.union([iinput.promise(), iinput])).optional(),
-      combine: z.function(z.tuple([input, ioutput, z.number()]), z.union([input.promise(), input])).optional(),
-      reachEnd: z.function(z.tuple([input, z.number()]), z.union([z.boolean().promise(), z.boolean()])),
+      while: z.function(z.tuple([input, z.number()]), z.union([z.boolean().promise(), z.boolean()])),
+      do: z.instanceof(AbstractStage),
+      step: z.function(z.tuple([input, z.number()]), z.union([iinput.promise(), iinput])),
+      combine: z.function(z.tuple([input, ioutput, z.number()]), z.union([input.promise(), input])),
     }))
 }
 
-export interface DoWhileDef<TConfig extends DoWhileConfig<any, any, any>> extends BuilderDef<TConfig> {
-  stage: AbstractStage<any, any>
-  split?: DowhileSplit<any, any>
-  combine?: DoWhileCombine<any, any>
-  reachEnd: DoWhileReachEnd<any>
-}
-
 export interface DoWhileBuilder<TParams extends DoWhileParams> {
-  _def: BuilderDef<
-    DoWhileConfig<ExtractInput<TParams>, any, any>
-  >
+  _def: DoWhileConfig<ExtractInput<TParams>, any, any>
   build<
     Result extends DoWhile<
       ExtractInput<TParams>,
@@ -99,7 +89,7 @@ export interface DoWhileBuilder<TParams extends DoWhileParams> {
       ExtractStageOutput<TParams['_stage']>,
       DoWhileConfig<ExtractInput<TParams>, any, any>
     >,
-  >(): TParams['_split'] extends true ? TParams['_combine'] extends true ? Result
+  >(): TParams['_step'] extends true ? TParams['_combine'] extends true ? Result
     : ErrorMessage<'prepare MUST have finalize'>
     : Result
 
@@ -124,11 +114,37 @@ export interface DoWhileBuilder<TParams extends DoWhileParams> {
       >
     >
   >
-  stage<RStage extends AbstractStage<any, any>>(
+  output<$Parser extends Parser>(
+    schema: SchemaType<TParams, $Parser, '_input', 'in'>,
+  ): IntellisenseFor<
+    'dowhile',
+    'input',
+    DoWhileBuilder<
+      Merge<
+        InferDoWhileParams<TParams>,
+        {
+          _output: OverwriteIfDefined<
+            TParams['_output'],
+            inferParser<$Parser>['in']
+          >
+        }
+      >
+    >
+  >
+  while(
+    reachEnd: DoWhileCondition<ExtractInput<TParams>>,
+  ): IntellisenseFor<
+    'dowhile',
+    'while',
+    DoWhileBuilder<
+      InferDoWhileParams<TParams>
+    >
+  >
+  do<RStage extends AbstractStage<any, any>>(
     stage: RStage,
   ): IntellisenseFor<
     'dowhile',
-    'stage',
+    'do',
     DoWhileBuilder<
       Merge<
         InferDoWhileParams<TParams>,
@@ -141,17 +157,17 @@ export interface DoWhileBuilder<TParams extends DoWhileParams> {
       >
     >
   >
-  split(
-    split: DowhileSplit<ExtractInput<TParams>, ExtractStageInput<TParams['_stage']>>,
+  step(
+    split: DowhileStep<ExtractInput<TParams>, ExtractStageInput<TParams['_stage']>>,
   ): IntellisenseFor<
     'dowhile',
-    'split',
+    'step',
     DoWhileBuilder<
       Merge<
         InferDoWhileParams<TParams>,
         {
           _prepare: OverwriteIfDefined<
-            TParams['_split'],
+            TParams['_step'],
             true
           >
         }
@@ -175,85 +191,48 @@ export interface DoWhileBuilder<TParams extends DoWhileParams> {
       >
     >
   >
-  reachEnd(
-    reachEnd: DoWhileReachEnd<ExtractInput<TParams>>,
-  ): IntellisenseFor<
-    'dowhile',
-    'reachEnd',
-    DoWhileBuilder<
-      Merge<
-        InferDoWhileParams<TParams>,
-        {
-          _combine: OverwriteIfDefined<
-            TParams['_reachEnd'],
-            true
-          >
-        }
-      >
-    >
-  >
 }
 
-export function dowhile<TConfig extends DoWhileConfig<any, any, any>>(
-  _def: Partial<DoWhileDef<TConfig>> = {},
+export function dowhile (
+  _def: DoWhileConfig<any, any, any> = {} as DoWhileConfig<any, any, any>,
 ): DoWhileBuilder<InferDoWhileParams<{ _type: 'dowhile' }>> {
   return {
-    _def: _def as BuilderDef<TConfig>,
+    _def,
     input(input) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.input = input as any
       return dowhile({
         ..._def,
-        inputs: input as any,
-      }) as any
+        input
+      })
     },
-    stage(stage) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.stage = stage
+    output(output) {
       return dowhile({
         ..._def,
-        stage: stage,
+        output,
+      })
+    },
+    do(stage) {
+      return dowhile({
+        ..._def,
+        do: stage
       }) as any
     },
     build() {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      return new DoWhile(_def.cfg) as any
+      return new DoWhile(_def) as any
     },
-    split(split) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.split = split as any
+    step(step) {
       return dowhile({
         ..._def,
-        split: split as any,
+        step,
       }) as any
     },
     combine(combine) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.combine = combine as any
       return dowhile({
         ..._def,
-        combine: combine as any,
-      }) as any
+        combine
+      })
     },
-    reachEnd(reachEnd) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.reachEnd = reachEnd as any
-      return dowhile({
-        ..._def,
-        reachEnd: reachEnd as any,
-      }) as any
+    while(condition) {
+      return dowhile({..._def, while: condition})
     },
   }
 }

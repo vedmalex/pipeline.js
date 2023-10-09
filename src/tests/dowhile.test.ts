@@ -18,9 +18,9 @@ describe('doWhileBuilder', () => {
 
     const st = builder()
       .type('dowhile')
-      .input(z.array(z.object({ city: z.string(), district: z.string() })))
-      .stage(wrapee)
-      .split((input, iter) => {
+      .input(z.array(z.object({ city: z.string(), district: z.string() }).passthrough()))
+      .do(wrapee)
+      .step((input, iter) => {
         return {
           name: input[iter].city,
           district: input[iter].district,
@@ -34,8 +34,8 @@ describe('doWhileBuilder', () => {
         input[iter] = res
         return input
       })
-      .reachEnd((input, iter) => {
-        return iter >= input.length
+      .while((input, iter) => {
+        return iter < input.length
       })
       .build()
 

@@ -2,7 +2,7 @@ import z from 'zod'
 import { fromZodError } from 'zod-validation-error'
 import { // включить тип для вычисления параметра
   makeCallbackArgs,
-} from './stage/types'
+} from './CallbackFunction'
 
 import { GetStage } from './builder'
 import { ERROR } from './error'
@@ -47,13 +47,13 @@ export const validatorBaseStageConfig = z.object({
 
 export function validatorRun<Input, Output>(_input?: z.ZodSchema, _output?: z.ZodSchema) {
   const input: z.ZodSchema = _input ? _input : z.any()
-  const output: z.ZodSchema = _output ? _output : z.any()
+  const output: z.ZodSchema = _output ? _output : input
   return z.function(z.tuple([input]), z.union([output.promise(), output]))
 }
 
 export function validatorRunConfig<Input, Output>(config?: BaseStageConfig<Input, Output>) {
   const input: z.ZodSchema = config?.input ? config.input : z.any()
-  const output: z.ZodSchema = config?.output ? config.output : z.any()
+  const output: z.ZodSchema = config?.output ? config.output : input
   return z.object({
     run: validatorRun(input, output),
   })
@@ -153,6 +153,9 @@ export interface TimeoutParams extends BuilderParams, WithInputOutputParams, Wit
   _timeout: unknown
 }
 export interface IfElseParams extends BuilderParams, WithInputOutputParams, WithStageParams {
+  _if: unknown
+  _then: unknown
+  _else: unknown
 }
 
 export interface RetryOnErrorParams extends BuilderParams, WithInputOutputParams, WithStageParams {
@@ -163,9 +166,8 @@ export interface RetryOnErrorParams extends BuilderParams, WithInputOutputParams
 }
 
 export interface DoWhileParams extends BuilderParams, WithInputOutputParams, WithStageParams {
-  _split: unknown
+  _step: unknown
   _combine: unknown
-  _reachEnd: unknown
 }
 
 export interface MultiWaySwitchParams extends BuilderParams, WithInputOutputParams {
@@ -186,21 +188,9 @@ export interface PipelineParams extends BuilderParams, WithInputOutputParams {
 
 export interface SequentialParams extends BuilderParams, WithInputOutputParams, WithStageParams {
   _serial: unknown
-  _split: unknown
-  _combine: unknown
-}
-
-export interface BuilderDef<TConfig extends BaseStageConfig<any, any>> {
-  type: StageType
-  inputs: Parser
-  outputs: Parser
-  cfg: TConfig
 }
 
 export interface Builder<TParams extends BuilderParams> {
-  _def: BuilderDef<
-    BaseStageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
-  >
   type<T extends StageType>(type: T): IntellisenseFor<
     T,
     'start',

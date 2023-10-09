@@ -39,15 +39,14 @@ describe('wrapBuilder', () => {
     expect(res).toMatchObject({ city: 'NY', district: 'full' })
   })
   it('sequential', () => {
-    const build = builder()
     const person = z.object({ name: z.string(), age: z.string() })
     const ages = z.object({ age: z.number() })
 
-    const updateAge = build
+    const updateAge = builder()
       .type('dowhile')
       .input(z.array(ages))
-      .stage(
-        build
+      .do(
+        builder()
           .type('stage')
           .input(ages)
           .output(ages)
@@ -56,11 +55,19 @@ describe('wrapBuilder', () => {
             return input
           })
           .build(),
-      ).reachEnd((input, iter) => {
+      )
+      .step((input, iter) => {
+        return input[iter]
+      })
+      .combine((input, result, iter) => {
+        input[iter] = result
+        return input
+      })
+      .while((input, iter) => {
         return iter <= input.length
       }).build()
 
-    build
+    builder()
       .type('wrap')
       .input(z.array(person))
       .output(z.array(z.number()))

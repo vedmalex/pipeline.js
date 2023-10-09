@@ -2,14 +2,12 @@ import { z } from 'zod'
 import {
   AbstractStage,
   BaseStageConfig,
-  BuilderDef,
   MultiWaySwitchCaseParams,
   MultiWaySwitchParams,
   validatorBaseStageConfig,
   validatorRunConfig,
 } from './base'
 import {
-  ErrorMessage,
   ExtractInput,
   ExtractOutput,
   ExtractStage,
@@ -17,61 +15,11 @@ import {
   ExtractStageOutput,
   InferMultiWaySwitchCaseParams,
   InferMultiWaySwitchParams,
-  inferParser,
-  InferWrapParams,
   IntellisenseFor,
   Merge,
   MergeIfDefined,
   OverwriteIfDefined,
-  Parser,
-  SchemaType,
 } from './utility'
-
-// override compile(rebuild: boolean = false): StageRun<Input, Output> {
-//   let run: StageRun<Input, Output> = (err, ctx, done) => {
-//     let iter = 0
-//     let errors: Array<Error> = []
-//     let hasError = false
-//     let next = (index: number) => {
-//       return makeCallback((err: unknown, retCtx: unknown) => {
-//         iter++
-//         let cur = this.config.cases[index]
-//         let res: Possible<Output> = null
-//         if (err) {
-//           if (!hasError) {
-//             hasError = true
-//           }
-//           errors.push(err as Error)
-//         } else {
-//           if (cur.config.combine) {
-//             res = cur.config.combine(ctx, retCtx)
-//             if (!res) {
-//               throw new Error('combine MUST return value')
-//             }
-//           }
-//         }
-
-//         if (iter >= this.config.cases.length) {
-//           return done(makeCallbackArgs(hasError ? errors : undefined, res ?? ctx as unknown as Output))
-//         }
-//       })
-//     }
-
-//     for (let i = 0; i < this.config.cases.length; i++) {
-//       let stg = this.config.cases[i]
-//       let lctx = stg.config.split?.(ctx) ?? ctx as unknown
-//       run_or_execute(stg.config.stage, err, lctx, next(i) as CallbackFunction<unknown, unknown>)
-//     }
-
-//     if (this.config.cases.length === 0) {
-//       return done(makeCallbackArgs(err, ctx as unknown as Output))
-//     }
-//   }
-
-//   this.run = run
-
-//   return super.compile(rebuild)
-// }
 
 async function processIt<Input, Output>(
   this: MultiWaySwitch<Input, Output>,
@@ -136,19 +84,8 @@ export function validatorMultWaySwitchCaseConfig<Input, Output>(
     }))
 }
 
-export interface MultWaySwitchConfigDef<TConfig extends MultWaySwitchConfig<any, any>> extends BuilderDef<TConfig> {
-  cases: Array<MultiWaySwitchCase<any, any>>
-}
-
-export interface MultiWaySwitchCaseDef<TConfig extends MultiWaySwitchCaseConfig<any, any>> extends BuilderDef<TConfig> {
-  stage: AbstractStage<any, any>
-  evaluate: StageEvaluateFunction<any>
-}
-
 export interface MultiWaySwitchBuilder<TParams extends MultiWaySwitchParams> {
-  _def: BuilderDef<
-    MultWaySwitchConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
-  >
+  _def: MultWaySwitchConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
 
   build<I extends ExtractInput<TParams>, O extends ExtractOutput<TParams>>(): MultiWaySwitch<
     I,
@@ -180,9 +117,7 @@ export interface MultiWaySwitchBuilder<TParams extends MultiWaySwitchParams> {
 }
 
 export interface MultiWaySwitchCaseBuilder<TParams extends MultiWaySwitchCaseParams> {
-  _def: BuilderDef<
-    MultiWaySwitchCaseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
-  >
+  _def: MultiWaySwitchCaseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   build(): MultiWaySwitchCase<
     ExtractInput<TParams>,
     ExtractOutput<TParams>

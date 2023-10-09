@@ -2,7 +2,6 @@ import { z } from 'zod'
 import {
   AbstractStage,
   BaseStageConfig,
-  BuilderDef,
   PipelineParams,
   validatorBaseStageConfig,
   validatorRunConfig,
@@ -54,22 +53,19 @@ export function validatorPipelineConfig<Input, Output>(
     }))
 }
 
-export interface PipelineDef<TConfig extends PipelineConfig<any, any>> extends BuilderDef<TConfig> {
-  stages: Array<AbstractStage<any, any>>
-}
 
 export interface PipelineBuilder<TParams extends PipelineParams> {
-  _def: BuilderDef<PipelineConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
+  _def: PipelineConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   build(): Pipeline<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
     PipelineConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   >
-  stage<RStage extends AbstractStage<any, any>>(
+  addStage<RStage extends AbstractStage<any, any>>(
     stage: RStage,
   ): IntellisenseFor<
     'pipeline',
-    'stage',
+    'addStage',
     PipelineBuilder<
       Merge<
         InferPipelineParams<TParams>,
@@ -85,29 +81,17 @@ export interface PipelineBuilder<TParams extends PipelineParams> {
   >
 }
 
-export function pipeline<TConfig extends PipelineConfig<any, any>>(
-  _def: Partial<PipelineDef<TConfig>> = {},
+export function pipeline(
+  _def: PipelineConfig<any, any> = { stages: [] },
 ): PipelineBuilder<InferPipelineParams<{ _type: 'pipeline' }>> {
   return {
-    _def: _def as BuilderDef<TConfig>,
-    stage(stage) {
-      if (!_def.cfg) {
-        _def.cfg = {} as any
-      }
-      if (_def.cfg && !_def.cfg?.stages) {
-        _def.cfg.stages = [] as any
-      }
-      _def.cfg?.stages.push(stage)
-      return pipeline({
-        ..._def,
-        stages: _def.cfg?.stages,
-      }) as any
+    _def: _def,
+    addStage(stage) {
+      _def.stages.push(stage)
+      return pipeline(_def) as any
     },
     build() {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      return new Pipeline(_def.cfg) as any
+      return new Pipeline(_def) as any
     },
   }
 }

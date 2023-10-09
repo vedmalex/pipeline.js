@@ -2,7 +2,6 @@ import { z } from 'zod'
 import {
   AbstractStage,
   BaseStageConfig,
-  BuilderDef,
   RescueParams,
   validatorBaseStageConfig,
   validatorRunConfig,
@@ -72,12 +71,9 @@ export function validatorRescueConfig<Input, Output>(
       ),
     }))
 }
-export interface RescueDef<TConfig extends RescueConfig<any, any>> extends BuilderDef<TConfig> {
-  stage: AbstractStage<any, any>
-  rescue: RescueRun<any, any>
-}
+
 export interface RescueBuilder<TParams extends RescueParams> {
-  _def: BuilderDef<RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>
+  _def:RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   build(): Rescue<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
@@ -119,41 +115,24 @@ export interface RescueBuilder<TParams extends RescueParams> {
   >
 }
 export function rescue<TConfig extends RescueConfig<any, any>>(
-  _def: Partial<RescueDef<TConfig>> = {},
+  _def: Partial<TConfig> = {},
 ): RescueBuilder<InferRescueParams<{ _type: 'rescue' }>> {
   return {
-    _def: _def as BuilderDef<TConfig>,
+    _def: _def as TConfig,
     stage(stage) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.stage = stage
       return rescue({
         ..._def,
-        stage: stage,
+        stage,
       }) as any
     },
     rescue(fn) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      if (_def.cfg.stage) {
-        _def.cfg.input = _def.cfg.stage.config.input
-        _def.cfg.output = _def.cfg.stage.config.output
-      } else {
-        throw new Error(ERROR.define_stage_before_use_of_rescue)
-      }
-      _def.cfg.rescue = fn
       return rescue({
         ..._def,
         rescue: fn as any,
       }) as any
     },
     build() {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      return new Rescue(_def.cfg) as any
+      return new Rescue(_def as TConfig) as any
     },
   }
 }

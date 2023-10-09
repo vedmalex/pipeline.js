@@ -1,4 +1,4 @@
-import { AbstractStage, BaseStageConfig, BuilderDef } from './base'
+import { AbstractStage, BaseStageConfig } from './base'
 
 export class Empty<Input, TConfig extends BaseStageConfig<Input, Input> = BaseStageConfig<Input, Input>>
   extends AbstractStage<Input, Input, TConfig> {
@@ -7,22 +7,19 @@ export class Empty<Input, TConfig extends BaseStageConfig<Input, Input> = BaseSt
   }
 }
 
-export function empty<TConfig extends BaseStageConfig<any, any>>(
-  _def: Partial<BuilderDef<TConfig>> = {},
+export function empty(
+  _def: BaseStageConfig<any, any> = {},
 ): EmptyBuilder {
   return {
-    _def: _def as BuilderDef<TConfig>,
+    _def,
     build() {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      return new Empty(_def.cfg) as any
+      return new Empty(_def) as any
     },
   }
 }
 
 export interface EmptyBuilder {
-  _def: BuilderDef<BaseStageConfig<any, any>>
+  _def: BaseStageConfig<any, any>
   // где-то теряется тип Params
   build(): Empty<
     any,

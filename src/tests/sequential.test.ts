@@ -4,11 +4,9 @@ import { builder } from '../builder'
 
 describe('sequential', () => {
   it('parallel', async () => {
-    const build = builder()
-    const person = z.object({ name: z.string(), age: z.string() })
-    const ages = z.object({ age: z.number() })
+    const ages = z.object({ age: z.number() }).passthrough()
 
-    const updateAge = build
+    const updateAge = builder()
       .type('stage')
       .input(ages)
       .output(ages)
@@ -18,29 +16,18 @@ describe('sequential', () => {
       })
       .build()
 
-    const st = build
+    const st = builder()
       .type('sequential')
-      .input(z.array(person))
-      .output(z.array(z.number()))
       .stage(updateAge)
-      .split(input => {
-        const res = input.map(item => ({ age: parseInt(item.age, 10) }))
-        return res
-      })
-      .combine((input, ret) => {
-        return ret.map(input => input.age)
-      })
       .build()
 
-    const res = await st.exec([{ name: 'alex', age: '45' }, { name: 'egor', age: '21' }, { name: 'miron', age: '15' }])
-    expect(res).toMatchObject([46,22,16])
+    const res = await st.exec([{ name: 'alex', age: 45 }, { name: 'egor', age: 21 }, { name: 'miron', age: 15 }])
+    expect(res).toMatchObject([{ name: 'alex', age: 46 }, { name: 'egor', age: 22 }, { name: 'miron', age: 16 }])
   })
   it('sequential', async () => {
-    const build = builder()
-    const person = z.object({ name: z.string(), age: z.string() })
-    const ages = z.object({ age: z.number() })
+    const ages = z.object({ age: z.number() }).passthrough()
 
-    const updateAge = build
+    const updateAge = builder()
       .type('stage')
       .input(ages)
       // .output(ages)
@@ -50,22 +37,13 @@ describe('sequential', () => {
       })
       .build()
 
-    const st = build
+    const st = builder()
       .type('sequential')
       .serial()
-      .input(z.array(person))
-      .output(z.array(z.number()))
       .stage(updateAge)
-      .split(input => {
-        const res = input.map(item => ({ age: parseInt(item.age, 10) }))
-        return res
-      })
-      .combine((input, ret) => {
-        return ret.map(input => input.age)
-      })
       .build()
 
-    const res = await st.exec([{ name: 'alex', age: '45' }, { name: 'egor', age: '21' }, { name: 'miron', age: '15' }])
-    expect(res).toMatchObject([46,22,16])
+    const res = await st.exec([{ name: 'alex', age: 45 }, { name: 'egor', age: 21 }, { name: 'miron', age: 15 }])
+    expect(res).toMatchObject([{ name: 'alex', age: 46 }, { name: 'egor', age: 22 }, { name: 'miron', age: 16 }])
   })
 })

@@ -7,7 +7,7 @@ describe('pipelineBuilder', () => {
   it('run', async () => {
     const st = builder()
       .type('pipeline')
-      .stage(
+      .addStage(
         builder()
           .type('stage')
           .input(z.object({})).output(z.object({ name: z.string() })).run(input => {
@@ -16,7 +16,7 @@ describe('pipelineBuilder', () => {
             }
           }).build(),
       )
-      .stage(
+      .addStage(
         builder()
           .type('stage')
           .input(z.object({}).passthrough())
@@ -28,7 +28,7 @@ describe('pipelineBuilder', () => {
             }
           }).build(),
       )
-      .stage(
+      .addStage(
         builder()
           .type('stage')
           .input(z.object({}).passthrough())

@@ -20,9 +20,10 @@ import { Stage, StageConfig } from './stage'
 
 export const unsetMarker = Symbol('unset')
 export type UnsetMarker = typeof unsetMarker
+// export type UnsetMarker = unknown
 
 export type Merge<S, D> = Simplify<
-  {
+  & {
     [K in keyof S]: K extends keyof D ? UnsetMarker extends D[K] ? S[K] : D[K]
       : S[K]
   }
@@ -50,10 +51,11 @@ export type Simplify<TType> = {
   [K in keyof TType]: TType[K]
 }
 
-
-
 export type ExtractInput<TParams> = TParams extends WithInputParams ? TParams['_input']
   : UnsetMarker
+
+export type MaySetInput<TParams> = OverwriteIfDefined<ExtractInput<TParams>, any>
+export type MaySetOutput<TParams> = OverwriteIfDefined<ExtractOutput<TParams>, any>
 
 export type ExtractOutput<TParams> = TParams extends WithInputOutputParams
   ? TParams['_output'] extends UnsetMarker ? TParams['_input'] extends UnsetMarker ? any : TParams['_input']
@@ -138,15 +140,21 @@ export type InferIfElseParams<
   TParams extends BuilderParams,
 > = TParams extends IfElseParams ? {
     _type: TParams['_type']
+    _stage: TParams['_stage']
     _input: TParams['_input']
     _output: TParams['_output']
-    _stage: TParams['_stage']
+    _if: TParams['_if']
+    _then: TParams['_then']
+    _else: TParams['_else']
   }
   : {
     _type: TParams['_type']
+    _stage: UnsetMarker
     _input: UnsetMarker
     _output: UnsetMarker
-    _stage: UnsetMarker
+    _if: UnsetMarker
+    _then: UnsetMarker
+    _else: UnsetMarker
   }
 
 export type InferRetryOnErrorParams<
@@ -179,18 +187,16 @@ export type InferDoWhileParams<
     _input: TParams['_input']
     _output: TParams['_output']
     _stage: TParams['_stage']
-    _split: TParams['_split']
+    _step: TParams['_step']
     _combine: TParams['_combine']
-    _reachEnd: TParams['_reachEnd']
   }
   : {
     _type: TParams['_type']
     _input: UnsetMarker
     _output: UnsetMarker
     _stage: UnsetMarker
-    _split: UnsetMarker
+    _step: UnsetMarker
     _combine: UnsetMarker
-    _reachEnd: UnsetMarker
   }
 
 export type InferPipelineParams<
@@ -213,8 +219,6 @@ export type InferSequentialParams<
     _input: TParams['_input']
     _output: TParams['_output']
     _stage: TParams['_stage']
-    _split: TParams['_split']
-    _combine: TParams['_combine']
     _serial: TParams['_serial']
   }
   : {
@@ -222,8 +226,6 @@ export type InferSequentialParams<
     _input: UnsetMarker
     _output: UnsetMarker
     _stage: UnsetMarker
-    _split: UnsetMarker
-    _combine: UnsetMarker
     _serial: UnsetMarker
   }
 
@@ -280,6 +282,7 @@ export type SchemaType<
     : ErrorMessage<'All input parsers did not resolve to an object'>
   : ErrorMessage<'All input parsers did not resolve to an object'>
 export type Parser = z.ZodTypeAny
+
 export type InferConfig<TStage> = TStage extends Stage<any, any, infer $TConfig> ? $TConfig
   : TStage extends Stage<infer $Input, infer $Output, any> ? StageConfig<$Input, $Output>
   : {}
@@ -302,7 +305,7 @@ export type ExtractStageOutput<TStage> = TStage extends AbstractStage<any, infer
 
 export type StageType = keyof IntelliSence
 
-export type IntelliSence = {
+export type IntelliSence<Exists= ''> = {
   'builder': {
     'all': 'type'
     'start': 'type'
@@ -342,13 +345,12 @@ export type IntelliSence = {
     'overdue': 'build'
   }
   'ifelse': {
-    'all': 'input' | 'output' | 'truthy' | 'falsy' | 'condition' | 'build'
-    'start': 'input'
-    'input': 'output' | 'condition' | 'truthy'
-    'output': 'condition' | 'truthy'
-    'condition': 'truthy'
-    'truthy': 'falsy' | 'build'
-    'falsy': 'build'
+    'all': 'then' | 'stage' | 'else' | 'if' | 'build'
+    'start': 'stage' | 'if'
+    'stage': 'if'
+    'if': Exclude<'then' | 'else', Exists>
+    'then': 'else' | 'build'
+    'else': 'build'
   }
   'retryonerror': {
     'all': 'stage' | 'retry' | 'backup' | 'restore'
@@ -359,24 +361,23 @@ export type IntelliSence = {
     'restore': 'build'
   }
   'dowhile': {
-    'all': 'input' | 'start' | 'input' | 'stage' | 'split' | 'combine' | 'reachEnd' | 'build'
+    'all': 'input' | 'output' | 'start' | 'do' | 'step' | 'combine' | 'while' | 'build'
     'start': 'input'
-    'input': 'stage'
-    'stage': 'split' | 'reachEnd'
-    'split': 'combine'
-    'combine': 'reachEnd'
-    'reachEnd': 'build'
+    'input': 'output' | 'do'
+    'output': 'do'
+    'do': 'step'
+    'step': 'combine'
+    'combine': 'while'
+    'while': 'build'
   }
   'pipeline': {
-    'all': 'stage' | 'build'
-    'start': 'stage'
-    'stage': 'build' | 'stage'
+    'all': 'addStage' | 'build'
+    'start': 'addStage'
+    'addStage': 'build' | 'addStage'
   }
   'multiwayswitch': {
     'all': 'add' | 'build' | 'input' | 'output'
     'start': 'add'
-    // 'input': 'output'
-    // 'output': 'add'
     'add': 'add' | 'build'
   }
   'multiwayswitchcase': {
@@ -388,14 +389,10 @@ export type IntelliSence = {
     'combine': 'build'
   }
   'sequential': {
-    'all': 'input' | 'output' | 'stage' | 'split' | 'combine' | 'build' | 'serial'
-    'start': 'input' | 'serial'
-    'serial': 'input'
-    'input': 'output' | 'stage' // output не обязательный если это так, тогда и не нужно finalize
-    'output': 'stage'
-    'stage': 'split'
-    'split': 'combine' | 'build'
-    'combine': 'build'
+    'all': 'stage' | 'build' | 'serial'
+    'start': 'serial' | 'stage'
+    'serial': 'stage'
+    'stage': 'build'
   }
 }
 export type GetIntellisenceFor<Stage extends keyof IntelliSence, State extends keyof IntelliSence[Stage]> =
@@ -407,7 +404,7 @@ export type PropertiesFor<T extends StageType, kind extends 'all' | 'start'> = T
   : T extends 'wrap' ? GetIntellisenceFor<T, kind>
   : T extends 'emtpy' ? GetIntellisenceFor<T, kind>
   : T extends 'timeout' ? GetIntellisenceFor<T, kind>
-  : T extends 'ifelse' ? GetIntellisenceFor<T, kind>
+  // : T extends 'ifelse' ? GetIntellisenceFor<T, kind>
   : T extends 'retryonerror' ? GetIntellisenceFor<T, kind>
   : T extends 'dowhile' ? GetIntellisenceFor<T, kind>
   : T extends 'sequential' ? GetIntellisenceFor<T, kind>
@@ -416,11 +413,14 @@ export type PropertiesFor<T extends StageType, kind extends 'all' | 'start'> = T
   : ErrorMessage<'not implemented'>
 
 export type AllPropertiesFor<T extends StageType> = PropertiesFor<T, 'all'>
+
 export type StartFor<T extends StageType> = PropertiesFor<T, 'start'>
+
 export type HiddenIntellisenceFor<Stage extends StageType, Property extends keyof IntelliSence[Stage]> = Exclude<
   AllPropertiesFor<Stage> | Property,
   GetIntellisenceFor<Stage, Property>
->
+  >
+
 export type IntellisenseFor<Stage extends StageType, Property extends keyof IntelliSence[Stage], Type> = Omit<
   Type,
   HiddenIntellisenceFor<Stage, Property>

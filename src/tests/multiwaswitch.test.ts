@@ -4,11 +4,10 @@ import { builder } from '../builder'
 
 describe('multiwayswitch', () => {
   it('case', async () => {
-    const build = builder()
-    const stCaseOne = build
+    const stCaseOne = builder()
       .type('multiwayswitchcase')
       .stage(
-        build
+        builder()
           .type('stage')
           .input(z.object({ name: z.string(), id: z.string().optional() }))
           .output(z.object({ name: z.string(), id: z.string() }))
@@ -22,10 +21,10 @@ describe('multiwayswitch', () => {
       .evaluate(item => !item.id)
       .build()
 
-    const stCaseTwo = build
+    const stCaseTwo = builder()
       .type('multiwayswitchcase')
       .stage(
-        build
+        builder()
           .type('stage')
           .input(z.object({
             city: z.string(),
@@ -45,10 +44,10 @@ describe('multiwayswitch', () => {
       .evaluate(item => !item.region)
       .build()
 
-    const sw = build
+    const sw = builder()
       .type('multiwayswitch')
       .add(stCaseOne)
       .add(stCaseTwo)
-      // .build()
+      .build()
   })
 })

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AbstractStage, BuilderDef, validatorBaseStageConfig, validatorRunConfig, WrapParams } from './base'
+import { AbstractStage, validatorBaseStageConfig, validatorRunConfig, WrapParams } from './base'
 import { StageConfig } from './stage'
 import {
   ErrorMessage,
@@ -101,16 +101,8 @@ export function validatorWrapConfig<Input, Output, IInput, IOutput>(
     }))
 }
 
-export interface WrapDef<TConfig extends WrapConfig<any, any, any, any>> extends BuilderDef<TConfig> {
-  stage: AbstractStage<any, any>
-  prepare?: WrapPrepare<any, any>
-  finalize?: WrapFinalize<any, any, any>
-}
-
 export interface WrapBuilder<TParams extends WrapParams> {
-  _def: BuilderDef<
-    WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
-  >
+  _def: WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
   build<
     Result extends Wrap<
       ExtractInput<TParams>,
@@ -209,66 +201,43 @@ export interface WrapBuilder<TParams extends WrapParams> {
   >
 }
 
-export function wrap<TConfig extends WrapConfig<any, any, any, any>>(
-  _def: Partial<WrapDef<TConfig>> = {},
+export function wrap(
+  _def: WrapConfig<any, any, any, any> = {} as WrapConfig<any, any, any, any>,
 ): WrapBuilder<InferWrapParams<{ _type: 'wrap' }>> {
   return {
-    _def: _def as BuilderDef<TConfig>,
+    _def,
     input(input) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.input = input as any
       return wrap({
         ..._def,
-        inputs: input as any,
-      }) as any
+        input,
+      })
     },
     output(output) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.output = output as any
       return wrap({
         ..._def,
-        outputs: output as any,
-      }) as any
+        output,
+      })
     },
     stage(stage) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.stage = stage
       return wrap({
         ..._def,
-        stage: stage,
+        stage,
       }) as any
     },
     build() {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      return new Wrap(_def.cfg) as any
+      return new Wrap(_def) as any
     },
-    prepare(fn) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.prepare = fn as any
+    prepare(prepare) {
       return wrap({
         ..._def,
-        prepare: fn as any,
-      }) as any
+        prepare,
+      })
     },
-    finalize(fn) {
-      if (!_def.cfg) {
-        _def.cfg = {} as TConfig
-      }
-      _def.cfg.finalize = fn as any
+    finalize(finalize) {
       return wrap({
         ..._def,
-        finalize: fn as any,
-      }) as any
+        finalize,
+      })
     },
   }
 }
