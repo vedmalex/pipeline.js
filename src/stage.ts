@@ -32,7 +32,6 @@ export function validatorStageConfig<Input, Output>(config: StageConfig<Input, O
   return validatorBaseStageConfig.merge(validatorRunConfig(config))
 }
 
-
 export interface StageBuilder<TParams extends StageParams> {
   _def: StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   input<$Parser extends Parser>(

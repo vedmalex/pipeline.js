@@ -1,11 +1,5 @@
 import { z } from 'zod'
-import {
-  AbstractStage,
-  BaseStageConfig,
-  TimeoutParams,
-  validatorBaseStageConfig,
-  validatorRunConfig,
-} from './base'
+import { AbstractStage, BaseStageConfig, TimeoutParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import { ERROR } from './error'
 import {
   ExtractInput,
@@ -28,13 +22,13 @@ function useTimeout(timeout: number) {
 
 async function processIt<Input, Output>(
   this: Timeout<Input, Output>,
-  input: Input,
+  { input }: { input: Input },
 ): Promise<Output> {
-  const timeout = typeof this.config.timeout === 'number' ? this.config.timeout : await this.config.timeout(input)
-  const res = await Promise.race([useTimeout(timeout), this.config.stage.exec(input)])
+  const timeout = typeof this.config.timeout === 'number' ? this.config.timeout : await this.config.timeout({ input })
+  const res = await Promise.race([useTimeout(timeout), this.config.stage.exec({ input })])
   if (typeof res === 'boolean') {
     if (this.config.overdue) {
-      return this.config.overdue.exec(input)
+      return this.config.overdue.exec({ input })
     } else {
       throw new Error(ERROR.operation_timeout_occured)
     }
@@ -51,7 +45,7 @@ export class Timeout<Input, Output, Config extends TimeoutConfig<Input, Output> 
   }
 }
 
-export type GetTimout<Input> = (ctx: Input) => Promise<number> | number
+export type GetTimout<Input> = (payload: { input: Input }) => Promise<number> | number
 
 export interface TimeoutConfig<Input, Output> extends BaseStageConfig<Input, Output> {
   timeout: number | GetTimout<Input>
@@ -71,7 +65,15 @@ export function validatorTimeoutConfig<Input, Output>(
       overdue: z.instanceof(AbstractStage).optional(),
       timeout: z.union([
         z.number(),
-        z.function(z.tuple([input]), z.union([z.number(), z.number().promise()])),
+        z.function(
+          z.tuple([z.object({
+            input,
+          })]),
+          z.union([
+            z.number(),
+            z.number().promise(),
+          ]),
+        ),
       ]),
     }))
 }
@@ -134,14 +136,14 @@ export interface TimeoutBuilder<TParams extends TimeoutParams> {
 }
 
 export function timeout(
-  _def: TimeoutConfig<any, any> = {} as TimeoutConfig<any, any>
+  _def: TimeoutConfig<any, any> = {} as TimeoutConfig<any, any>,
 ): TimeoutBuilder<InferTimeoutParams<{ _type: 'timeout' }>> {
   return {
     _def,
     stage(stage) {
       return timeout({
         ..._def,
-        stage
+        stage,
       }) as any
     },
     overdue(overdue) {
@@ -153,7 +155,7 @@ export function timeout(
     timeout(period) {
       return timeout({
         ..._def,
-        timeout:period,
+        timeout: period,
       })
     },
     build() {

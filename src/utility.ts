@@ -305,7 +305,7 @@ export type ExtractStageOutput<TStage> = TStage extends AbstractStage<any, infer
 
 export type StageType = keyof IntelliSence
 
-export type IntelliSence<Exists= ''> = {
+export type IntelliSence<Exists = ''> = {
   'builder': {
     'all': 'type'
     'start': 'type'
@@ -419,7 +419,7 @@ export type StartFor<T extends StageType> = PropertiesFor<T, 'start'>
 export type HiddenIntellisenceFor<Stage extends StageType, Property extends keyof IntelliSence[Stage]> = Exclude<
   AllPropertiesFor<Stage> | Property,
   GetIntellisenceFor<Stage, Property>
-  >
+>
 
 export type IntellisenseFor<Stage extends StageType, Property extends keyof IntelliSence[Stage], Type> = Omit<
   Type,

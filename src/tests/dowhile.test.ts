@@ -9,7 +9,7 @@ describe('doWhileBuilder', () => {
       .type('stage')
       .input(z.object({ name: z.string(), district: z.string(), processed: z.boolean().optional() }))
       .output(z.object({ name: z.string(), district: z.string(), processed: z.boolean() }))
-      .run(async input => {
+      .run(async ({ input }) => {
         return {
           ...input,
           processed: true,
@@ -20,26 +20,27 @@ describe('doWhileBuilder', () => {
       .type('dowhile')
       .input(z.array(z.object({ city: z.string(), district: z.string() }).passthrough()))
       .do(wrapee)
-      .step((input, iter) => {
+      .step(({ input, iteration }) => {
         return {
-          name: input[iter].city,
-          district: input[iter].district,
+          name: input[iteration].city,
+          district: input[iteration].district,
         }
       })
-      .combine((input, { name, ...rest }, iter) => {
+      .combine(({ input, output, result, iteration }) => {
+        const { name, ...rest } = result
         const res = {
           city: name,
           ...rest,
         }
-        input[iter] = res
+        input[iteration] = res
         return input
       })
-      .while((input, iter) => {
-        return iter < input.length
+      .while(({ input, iteration }) => {
+        return iteration < input.length
       })
       .build()
 
-    const res = await st.exec([{ city: 'NY', district: 'full' }])
+    const res = await st.exec({ input: [{ city: 'NY', district: 'full' }] })
     expect(res).toMatchObject([{ city: 'NY', district: 'full', processed: true }])
   })
 })

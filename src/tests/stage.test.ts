@@ -9,14 +9,16 @@ describe('stageBuilder', () => {
       .type('stage')
       .input(z.string().optional())
       .output(z.object({ name: z.string(), full: z.string() }))
-      .run(name => {
+      .run(({ input: name }) => {
         return {
           name: name ? name : 'undefined',
           full: 'full',
         }
       }).build()
 
-    const res = await st.exec('name')
+    const res = await st.exec({ input: 'name' })
     expect(res).toMatchObject({ name: 'name', full: 'full' })
+    const res2 = await st.execute('name')
+    expect(res2).toMatchObject({ name: 'name', full: 'full' })
   })
 })

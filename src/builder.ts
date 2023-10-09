@@ -1,4 +1,4 @@
-import { BaseStageConfig, Builder, BuilderParams } from './base'
+import { Builder, BuilderParams } from './base'
 import { dowhile, DoWhileBuilder } from './dowhile'
 import { empty, EmptyBuilder } from './empty'
 import { ERROR } from './error'
@@ -28,32 +28,30 @@ import {
 import { UnsetMarker } from './utility'
 import { wrap, WrapBuilder } from './wrap'
 
-export function builder<TConfig extends BaseStageConfig<any, any>>(
-  _def?: Partial<TConfig>,
-): Builder<InferBuilderParams<{ _type: UnsetMarker }>> {
+export function builder(): Builder<InferBuilderParams<{ _type: UnsetMarker }>> {
   return {
     type(input) {
       switch (true) {
         case input === 'stage':
-          return stage(_def as any) as any
+          return stage() as any
         case input === 'rescue':
-          return rescue(_def as any) as any
+          return rescue() as any
         case input === 'wrap':
-          return wrap(_def as any) as any
+          return wrap() as any
         case input === 'empty':
-          return empty(_def as any) as any
+          return empty() as any
         case input === 'timeout':
-          return timeout(_def as any) as any
+          return timeout() as any
         case input === 'ifelse':
-          return ifelse(_def as any) as any
+          return ifelse() as any
         case input === 'retryonerror':
-          return retryonerror(_def as any) as any
+          return retryonerror() as any
         case input === 'dowhile':
-          return dowhile(_def as any) as any
+          return dowhile() as any
         case input === 'pipeline':
-          return pipeline(_def as any) as any
+          return pipeline() as any
         case input === 'sequential':
-          return sequential(_def as any) as any
+          return sequential() as any
         default:
           throw new Error(ERROR.not_implemented)
       }

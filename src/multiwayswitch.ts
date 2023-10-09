@@ -23,7 +23,7 @@ import {
 
 async function processIt<Input, Output>(
   this: MultiWaySwitch<Input, Output>,
-  input: Input,
+  { input }: { input: Input },
 ): Promise<Output> {
   return input as any
 }
@@ -79,7 +79,12 @@ export function validatorMultWaySwitchCaseConfig<Input, Output>(
   return validatorBaseStageConfig
     .merge(validatorRunConfig(config))
     .merge(z.object({
-      evaluate: z.function(z.tuple([input]), z.union([z.boolean().promise(), z.boolean()])),
+      evaluate: z.function(
+        z.tuple([z.object({
+          input,
+        })]),
+        z.union([z.boolean().promise(), z.boolean()]),
+      ),
       stage: z.instanceof(AbstractStage),
     }))
 }

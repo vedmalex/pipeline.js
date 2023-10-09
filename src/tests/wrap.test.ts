@@ -9,7 +9,7 @@ describe('wrapBuilder', () => {
       .type('stage')
       .input(z.string().optional())
       .output(z.object({ name: z.string(), full: z.string() }))
-      .run(async name => {
+      .run(async ({ input: name }) => {
         if (name === 'name') {
           throw new Error('error')
         }
@@ -24,18 +24,18 @@ describe('wrapBuilder', () => {
       .input(z.object({ city: z.string() }))
       .output(z.object({ city: z.string(), district: z.string() }))
       .stage(wrapee)
-      .prepare(input => {
+      .prepare(({ input }) => {
         return input.city
       })
-      .finalize((ctx, ret) => {
+      .finalize(({ input, data }) => {
         return {
-          ...ctx,
-          district: ret.full,
+          ...input,
+          district: data.full,
         }
       })
       .build()
 
-    const res = await st.exec({ city: 'NY' })
+    const res = await st.exec({ input: { city: 'NY' } })
     expect(res).toMatchObject({ city: 'NY', district: 'full' })
   })
   it('sequential', () => {
@@ -50,21 +50,21 @@ describe('wrapBuilder', () => {
           .type('stage')
           .input(ages)
           .output(ages)
-          .run(input => {
+          .run(({ input }) => {
             input.age += 1
             return input
           })
           .build(),
       )
-      .step((input, iter) => {
-        return input[iter]
+      .step(({ input, iteration }) => {
+        return input[iteration]
       })
-      .combine((input, result, iter) => {
-        input[iter] = result
+      .combine(({ input, result, iteration }) => {
+        input[iteration] = result
         return input
       })
-      .while((input, iter) => {
-        return iter <= input.length
+      .while(({ input, iteration }) => {
+        return iteration <= input.length
       }).build()
 
     builder()
@@ -72,11 +72,11 @@ describe('wrapBuilder', () => {
       .input(z.array(person))
       .output(z.array(z.number()))
       .stage(updateAge)
-      .prepare(input => {
+      .prepare(({ input }) => {
         return input.map(item => ({ age: parseInt(item.age, 10) }))
       })
-      .finalize((input, ret) => {
-        return ret.map(input => input.age)
+      .finalize(({ input, data }) => {
+        return data.map(input => input.age)
       })
       .build()
   })

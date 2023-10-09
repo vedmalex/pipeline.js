@@ -1,11 +1,5 @@
 import { z } from 'zod'
-import {
-  AbstractStage,
-  BaseStageConfig,
-  PipelineParams,
-  validatorBaseStageConfig,
-  validatorRunConfig,
-} from './base'
+import { AbstractStage, BaseStageConfig, PipelineParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import {
   ExtractInput,
   ExtractOutput,
@@ -19,14 +13,14 @@ import {
 
 async function processIt<Input, Output>(
   this: Pipeline<Input, Output>,
-  _input: Input,
+  payload: { input: Input },
 ): Promise<Output> {
   let iteration = 0
-  let input: any = _input
-  let result: any = _input
+  let input: any = payload.input
+  let result: any = payload.input
 
   while (iteration < this.config.stages.length) {
-    input = result = await this.config.stages[iteration++].exec(input)
+    input = result = await this.config.stages[iteration++].exec({ input })
   }
   return result
 }
@@ -52,7 +46,6 @@ export function validatorPipelineConfig<Input, Output>(
       stages: z.array(z.instanceof(AbstractStage)),
     }))
 }
-
 
 export interface PipelineBuilder<TParams extends PipelineParams> {
   _def: PipelineConfig<ExtractInput<TParams>, ExtractOutput<TParams>>

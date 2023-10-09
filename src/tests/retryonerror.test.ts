@@ -13,7 +13,7 @@ describe('rescueBuilder', () => {
           .type('stage')
           .input(z.string().optional())
           .output(z.object({ name: z.string(), full: z.string() }))
-          .run(async name => {
+          .run(async ({ input: name }) => {
             retries++
             if (name === 'name') {
               throw new Error('error')
@@ -25,16 +25,17 @@ describe('rescueBuilder', () => {
           }).build(),
       )
       .retry(10)
-      .backup(input => {
+      .backup(({ input }) => {
         return JSON.stringify(input)
       })
-      .restore((input, backup) => {
+      .restore(({ input, backup }) => {
         input?.split('')
         return JSON.parse(backup)
       })
       .build()
+
     try {
-      const res = await st.exec('name')
+      const res = await st.execute('name')
       expect(res).toMatchObject({ name: 'name', full: 'full' })
     } catch (err) {
       expect(retries).toBe(10)

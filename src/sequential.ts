@@ -24,12 +24,12 @@ async function sequentialProcessIt<
   >,
 >(
   this: Sequential<Input, Output, Config>,
-  input: Array<Input>,
+  { input }: { input: Array<Input> },
 ): Promise<Array<Output>> {
   let result: Array<Output> = []
   for (let i = 0; i < input.length; i++) {
     const item = input[i]
-    const stageResult = await this.config.stage.exec(item)
+    const stageResult = await this.config.stage.exec({ input: item })
     result.push(stageResult)
   }
   return result
@@ -44,9 +44,9 @@ async function parallelProcessIt<
   >,
 >(
   this: Sequential<Input, Output, Config>,
-  input: Array<Input>,
+  { input }: { input: Array<Input> },
 ): Promise<Array<Output>> {
-  const presult = await Promise.allSettled(input.map(item => this.config.stage.exec(item)))
+  const presult = await Promise.allSettled(input.map(item => this.config.stage.exec({ input: item })))
 
   let errors: Array<any> = []
   let result: Array<Output> = []

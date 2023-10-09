@@ -9,7 +9,7 @@ describe('rescueBuilder', () => {
       .type('stage')
       .input(z.string().optional())
       .output(z.object({ name: z.string(), full: z.string() }))
-      .run(async name => {
+      .run(async ({ input: name }) => {
         if (name === 'name') {
           throw new Error('error')
         }
@@ -22,15 +22,15 @@ describe('rescueBuilder', () => {
     const st = builder()
       .type('rescue')
       .stage(st0)
-      .rescue((err, input) => {
-        if (err?.message === 'error') {
+      .rescue(({ error, input }) => {
+        if (error?.message === 'error') {
           return { name: input ?? 'name', full: 'full' }
         }
-        throw err
+        throw error
       })
       .build()
 
-    const res = await st.exec('name')
+    const res = await st.execute('name')
     expect(res).toMatchObject({ name: 'name', full: 'full' })
   })
 })

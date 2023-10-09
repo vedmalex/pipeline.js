@@ -11,7 +11,7 @@ describe('multiwayswitch', () => {
           .type('stage')
           .input(z.object({ name: z.string(), id: z.string().optional() }))
           .output(z.object({ name: z.string(), id: z.string() }))
-          .run(input => {
+          .run(({ input }) => {
             return {
               ...input,
               id: String(Math.random() * 1000),
@@ -34,7 +34,7 @@ describe('multiwayswitch', () => {
             city: z.string(),
             region: z.string(),
           }))
-          .run(input => {
+          .run(({ input }) => {
             return {
               ...input,
               region: String(Math.random() * 1000),

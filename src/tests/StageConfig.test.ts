@@ -37,43 +37,43 @@ describe('ValidateRunConfig', () => {
       })
   }
   it('valid promise', async () => {
-    const result = prepare(ctx => {
-      return Promise.resolve(ctx.age)
+    const result = prepare(({ input }) => {
+      return Promise.resolve(input.age)
     })
     expect(result.success).toBeTruthy()
     if (result.success) {
-      const res = await result.data.run({ age: 10 })
+      const res = await result.data.run({ input: { age: 10 } })
       expect(res).toBe(10)
     }
   })
   it('valid result', async () => {
-    const result = prepare(ctx => {
-      return ctx.age
+    const result = prepare(({ input }) => {
+      return input.age
     })
     expect(result.success).toBeTruthy()
     if (result.success) {
-      const res = await result.data.run({ age: 10 })
+      const res = await result.data.run({ input: { age: 10 } })
       expect(res).toBe(10)
     }
   })
 
   it('throw on invalid result', async () => {
-    const result = prepare(ctx => {
-      return ctx.age
+    const result = prepare(({ input }) => {
+      return input.age
     })
     expect(result.success).toBeTruthy()
     if (result.success) {
-      expect(() => result.data.run({ age: '10' })).toThrow()
+      expect(() => result.data.run({ input: { age: '10' } })).toThrow()
     }
   })
 
   it('throw on invalid input', async () => {
-    const result = prepare(ctx => {
-      return ctx.age
+    const result = prepare(({ input }) => {
+      return input.age
     })
     expect(result.success).toBeTruthy()
     if (result.success) {
-      expect(() => result.data.run(10)).toThrow()
+      expect(() => result.data.run({ input: 10 })).toThrow()
     }
   })
 })

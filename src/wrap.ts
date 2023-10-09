@@ -30,18 +30,18 @@ async function processIt<
   >,
 >(
   this: Wrap<Input, Output, IInput, IOutput, Config>,
-  input: Input,
+  { input }: { input: Input },
 ): Promise<Output> {
   let prepared: IInput
   if (this.config.prepare) {
-    prepared = await this.config.prepare(input)
+    prepared = await this.config.prepare({ input })
   } else {
     prepared = input as unknown as IInput
   }
-  const stageResult = await this.config.stage.exec(prepared)
+  const stageResult = await this.config.stage.exec({ input: prepared })
   let result: Output
   if (this.config.finalize) {
-    result = await this.config.finalize(input, stageResult)
+    result = await this.config.finalize({ input, data: stageResult })
   } else {
     result = stageResult as unknown as Output
   }
@@ -67,12 +67,11 @@ export class Wrap<
 }
 
 export type WrapPrepare<Input, IInput> = (
-  ctx: Input,
+  payload: { input: Input },
 ) => Promise<IInput> | IInput
 
 export type WrapFinalize<Input, Output, IOutput> = (
-  ctx: Input,
-  retCtx: IOutput,
+  payload: { input: Input; data: IOutput },
 ) => Promise<Output> | Output
 
 export interface WrapConfig<Input, Output, IInput, IOutput> extends StageConfig<Input, Output> {
@@ -96,8 +95,29 @@ export function validatorWrapConfig<Input, Output, IInput, IOutput>(
     .merge(validatorRunConfig(config))
     .merge(z.object({
       stage: z.instanceof(AbstractStage),
-      prepare: z.function(z.tuple([input]), z.union([iinput.promise(), iinput])),
-      finalize: z.function(z.tuple([input, ioutput]), z.union([output.promise(), output])),
+      prepare: z.function(
+        z.tuple([
+          z.object({
+            input,
+          }),
+        ]),
+        z.union([
+          iinput.promise(),
+          iinput,
+        ]),
+      ),
+      finalize: z.function(
+        z.tuple([
+          z.object({
+            input,
+            data: ioutput,
+          }),
+        ]),
+        z.union([
+          output.promise(),
+          output,
+        ]),
+      ),
     }))
 }
 

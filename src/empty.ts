@@ -3,7 +3,7 @@ import { AbstractStage, BaseStageConfig } from './base'
 export class Empty<Input, TConfig extends BaseStageConfig<Input, Input> = BaseStageConfig<Input, Input>>
   extends AbstractStage<Input, Input, TConfig> {
   constructor(config: TConfig) {
-    super({ ...config, run: context => context })
+    super({ ...config, run: ({ input }) => input })
   }
 }
 

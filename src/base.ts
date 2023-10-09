@@ -6,17 +6,7 @@ import { // включить тип для вычисления параметр
 
 import { GetStage } from './builder'
 import { ERROR } from './error'
-import {
-  ExtractInput,
-  ExtractOutput,
-  InferBuilderParams,
-  IntellisenseFor,
-  Merge,
-  OverwriteIfDefined,
-  Parser,
-  StageType,
-  UnsetMarker,
-} from './utility'
+import { InferBuilderParams, IntellisenseFor, Merge, OverwriteIfDefined, StageType, UnsetMarker } from './utility'
 
 // включить тип для вычисления параметра
 
@@ -25,7 +15,7 @@ export type BaseStageConfig<Input, Output> = {
   output?: z.ZodType<Output>
 }
 
-export type FnRun<Input, Output> = (input: Input) => Promise<Output> | Output
+export type FnRun<Input, Output> = (payload: { input: Input }) => Promise<Output> | Output
 
 export type RunDef<Fn extends FnRun<any, any>> = Fn extends FnRun<infer Input, infer Output> ? {
     _input: Input
@@ -48,7 +38,7 @@ export const validatorBaseStageConfig = z.object({
 export function validatorRun<Input, Output>(_input?: z.ZodSchema, _output?: z.ZodSchema) {
   const input: z.ZodSchema = _input ? _input : z.any()
   const output: z.ZodSchema = _output ? _output : input
-  return z.function(z.tuple([input]), z.union([output.promise(), output]))
+  return z.function(z.tuple([z.object({ input })]), z.union([output.promise(), output]))
 }
 
 export function validatorRunConfig<Input, Output>(config?: BaseStageConfig<Input, Output>) {
@@ -89,7 +79,7 @@ export class AbstractStage<
 
   // может быть вызван как Promise
   // сделать все дубликаты и проверки методов для работы с промисами
-  public async exec(input: Input): Promise<Output> {
+  public async exec({ input }: { input: Input }): Promise<Output> {
     if (this._config.input) {
       const validateResult = await this.validate(this._config.input, input)
       if (validateResult.result === 'failure') {
@@ -97,7 +87,7 @@ export class AbstractStage<
       }
     }
 
-    const result = await validatorRun(this.config.input, this.config.output).parse(this._config.run)(input)
+    const result = await validatorRun(this.config.input, this.config.output).parse(this._config.run)({ input })
 
     if (this._config.output) {
       const validateResult = await this.validate(this._config.output, result)
@@ -106,6 +96,10 @@ export class AbstractStage<
       }
     }
     return result
+  }
+
+  public async execute(input: Input) {
+    return this.exec({ input })
   }
 
   protected async validate<T>(

@@ -18,25 +18,25 @@ import {
   OverwriteIfDefined,
 } from './utility'
 
-function backupIt<Input>(input: Input): string | Input {
-  return (typeof input === 'object' && input !== null) ? JSON.stringify(input) : input
+function backupIt<Input>({ input }: { input: Input }): string {
+  return JSON.stringify({ input })
 }
 
-function restoreIt<Input>(input: Input, backup: any): Input {
-  return typeof input === 'object' ? JSON.parse(backup) : backup
+function restoreIt<Input>({ input, backup }: { input: Input; backup: string }): Input {
+  return (JSON.parse(backup) as { input: Input }).input
 }
 
 async function processIt<Input, Output, Backup>(
   this: RetryOnError<Input, Output, Backup>,
-  _input: Input,
+  payload: { input: Input },
 ): Promise<Output> {
-  let input = _input
-  const needRetry = async (err: Error | undefined, iter: number) => {
+  let input = payload.input
+  const needRetry = async (err: Error | undefined, iteration: number) => {
     if (err) {
       if (typeof this.config.retry === 'function') {
-        return !await this.config.retry(err, input, iter)
+        return !await this.config.retry({ error: err, input, iteration })
       } else {
-        return iter < (this.config.retry ?? 1)
+        return iteration < (this.config.retry ?? 1)
       }
     } else {
       return true
@@ -46,15 +46,17 @@ async function processIt<Input, Output, Backup>(
   let err = undefined
   let iter = 0
   let result: any
-  let backup = this.config.backup ? await this.config.backup(input) : backupIt(input) as Backup
+  let backup = this.config.backup ? await this.config.backup({ input }) : backupIt({ input }) as Backup
 
   while (iter === 0 || await needRetry(err, iter)) {
     if (iter > 0) {
-      input = this.config.restore ? await this.config.restore(input, backup) : restoreIt(input, backup)
+      input = this.config.restore
+        ? await this.config.restore({ input, backup })
+        : restoreIt({ input, backup: backup as string })
     }
     err = undefined
     try {
-      result = await this.config.stage.exec(input)
+      result = await this.config.stage.exec({ input })
     } catch (_error: any) {
       err = _error
     }
@@ -70,21 +72,26 @@ async function processIt<Input, Output, Backup>(
 export class RetryOnError<
   Input,
   Output,
-  Backup,
+  Backup = string,
   Config extends RetryOnErrorConfig<Input, Output, Backup> = RetryOnErrorConfig<Input, Output, Backup>,
 > extends AbstractStage<Input, Output, Config> {
   constructor(cfg: Config) {
     super({ ...cfg, run: processIt })
+    if (!this.config.backup) {
+      this.config.backup = backupIt as FnBackup<Input, Backup>
+    }
     this.config = validatorRetryOnErrorConfig(this.config).parse(this.config) as unknown as Config
   }
 }
 
 export type ExtractBackup<Fn extends FnBackup<any, any>> = Fn extends FnBackup<any, infer Backup> ? Backup : never
 
-export type FnRetry<Input> = (err: Error | undefined, context: Input, iteration: number) => boolean | Promise<boolean>
+export type FnRetry<Input> = (
+  payload: { error: Error | undefined; input: Input; iteration: number },
+) => boolean | Promise<boolean>
 
-export type FnBackup<Input, Backup> = (ctx: Input) => Backup | Promise<Backup>
-export type FnRestore<Input, Backup> = (ctx: Input, backup: Backup) => Input | Promise<Input>
+export type FnBackup<Input, Backup> = (payload: { input: Input }) => Backup | Promise<Backup>
+export type FnRestore<Input, Backup> = (payload: { input: Input; backup: Backup }) => Input | Promise<Input>
 
 export interface RetryOnErrorConfig<Input, Output, Backup> extends BaseStageConfig<Input, Output> {
   stage: AbstractStage<Input, Output>
@@ -102,15 +109,37 @@ export function validatorRetryOnErrorConfig<Input, Output, Backup>(
     .merge(z.object({
       stage: z.instanceof(AbstractStage),
       retry: z.union([
-        z.function(z.tuple([
-          z.instanceof(Error),
-          input,
-          z.number(),
-        ])),
+        z.function(
+          z.tuple([
+            z.object({ error: z.instanceof(Error), input, iteration: z.number() }),
+          ]),
+          z.union([
+            z.boolean(),
+            z.boolean().promise(),
+          ]),
+        ),
         z.number(),
       ]),
-      backup: z.function(z.tuple([input]), z.any()).optional(),
-      restore: z.function(z.tuple([input, z.any()]), input).optional(),
+      backup: z.function(
+        z.tuple([
+          z.object({
+            input,
+          }),
+        ]),
+        z.union([z.any(), z.any().promise()]),
+      ).optional(),
+      restore: z.function(
+        z.tuple([
+          z.object({
+            input,
+            backup: z.any(),
+          }),
+        ]),
+        z.union([
+          input,
+          input.promise(),
+        ]),
+      ).optional(),
     }))
 }
 

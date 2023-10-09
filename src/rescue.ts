@@ -1,11 +1,5 @@
 import { z } from 'zod'
-import {
-  AbstractStage,
-  BaseStageConfig,
-  RescueParams,
-  validatorBaseStageConfig,
-  validatorRunConfig,
-} from './base'
+import { AbstractStage, BaseStageConfig, RescueParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import { ERROR } from './error'
 import {
   ExtractInput,
@@ -21,13 +15,13 @@ import {
 
 async function processIt<Input, Output>(
   this: Rescue<Input, Output>,
-  input: Input,
+  { input }: { input: Input },
 ): Promise<Output> {
   try {
-    const result = await this.config.stage.exec(input)
+    const result = await this.config.stage.exec({ input })
     return result
   } catch (err) {
-    const rescued = await this.config.rescue(err as Error, input)
+    const rescued = await this.config.rescue({ error: err as Error, input })
     if (!rescued) {
       throw new Error(ERROR.rescue_MUST_return_value)
     }
@@ -46,10 +40,7 @@ export class Rescue<
   }
 }
 
-export type RescueRun<Input, Output> = (
-  err: Error | undefined,
-  ctx: Input,
-) => Promise<Output> | Output
+export type RescueRun<Input, Output> = (payload: { error?: Error; input: Input }) => Promise<Output> | Output
 
 export interface RescueConfig<Input, Output> extends BaseStageConfig<Input, Output> {
   stage: AbstractStage<Input, Output>
@@ -66,14 +57,17 @@ export function validatorRescueConfig<Input, Output>(
     .merge(z.object({
       stage: z.instanceof(AbstractStage),
       rescue: z.function(
-        z.tuple([z.union([z.instanceof(Error), z.undefined()]), input]),
+        z.tuple([z.object({
+          error: z.union([z.instanceof(Error), z.undefined()]),
+          input,
+        })]),
         z.union([output.promise(), output]),
       ),
     }))
 }
 
 export interface RescueBuilder<TParams extends RescueParams> {
-  _def:RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  _def: RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   build(): Rescue<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,

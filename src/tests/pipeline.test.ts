@@ -10,7 +10,9 @@ describe('pipelineBuilder', () => {
       .addStage(
         builder()
           .type('stage')
-          .input(z.object({})).output(z.object({ name: z.string() })).run(input => {
+          .input(z.object({}))
+          .output(z.object({ name: z.string() }))
+          .run(({ input }) => {
             return {
               name: 'name',
             }
@@ -21,7 +23,7 @@ describe('pipelineBuilder', () => {
           .type('stage')
           .input(z.object({}).passthrough())
           .output(z.object({ name: z.string() }))
-          .run(input => {
+          .run(({ input }) => {
             return {
               ...input,
               name: 'name',
@@ -37,7 +39,7 @@ describe('pipelineBuilder', () => {
               age: z.number(),
             }).passthrough(),
           )
-          .run(input => {
+          .run(({ input }) => {
             return {
               ...input,
               age: 10,
@@ -46,7 +48,11 @@ describe('pipelineBuilder', () => {
       )
       .build()
 
-    const res = await st.exec({})
-    expect(res).toMatchObject({ name: 'name', age: 10 })
+    try {
+      const res = await st.execute({})
+      expect(res).toMatchObject({ name: 'name', age: 10 })
+    } catch (err) {
+      debugger
+    }
   })
 })

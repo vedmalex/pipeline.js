@@ -10,7 +10,7 @@ describe('sequential', () => {
       .type('stage')
       .input(ages)
       .output(ages)
-      .run(input => {
+      .run(({ input }) => {
         input.age += 1
         return input
       })
@@ -21,7 +21,7 @@ describe('sequential', () => {
       .stage(updateAge)
       .build()
 
-    const res = await st.exec([{ name: 'alex', age: 45 }, { name: 'egor', age: 21 }, { name: 'miron', age: 15 }])
+    const res = await st.execute([{ name: 'alex', age: 45 }, { name: 'egor', age: 21 }, { name: 'miron', age: 15 }])
     expect(res).toMatchObject([{ name: 'alex', age: 46 }, { name: 'egor', age: 22 }, { name: 'miron', age: 16 }])
   })
   it('sequential', async () => {
@@ -31,7 +31,7 @@ describe('sequential', () => {
       .type('stage')
       .input(ages)
       // .output(ages)
-      .run(input => {
+      .run(({ input }) => {
         input.age += 1
         return input
       })
@@ -43,7 +43,7 @@ describe('sequential', () => {
       .stage(updateAge)
       .build()
 
-    const res = await st.exec([{ name: 'alex', age: 45 }, { name: 'egor', age: 21 }, { name: 'miron', age: 15 }])
+    const res = await st.execute([{ name: 'alex', age: 45 }, { name: 'egor', age: 21 }, { name: 'miron', age: 15 }])
     expect(res).toMatchObject([{ name: 'alex', age: 46 }, { name: 'egor', age: 22 }, { name: 'miron', age: 16 }])
   })
 })

@@ -1,14 +1,9 @@
 import { z } from 'zod'
-import {
-  AbstractStage,
-  BaseStageConfig,
-  DoWhileParams,
-  validatorBaseStageConfig,
-  validatorRunConfig,
-} from './base'
+import { AbstractStage, BaseStageConfig, DoWhileParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import {
   ErrorMessage,
   ExtractInput,
+  ExtractOutput,
   ExtractStage,
   ExtractStageInput,
   ExtractStageOutput,
@@ -21,27 +16,29 @@ import {
   SchemaType,
 } from './utility'
 
-async function processIt<Input, IInput, IOutput>(
-  this: DoWhile<Input, IInput, IOutput>,
-  input: Input,
-): Promise<Input> {
-  let iter = 0
-  let result = input
-  do {
-    let _input = this.config.step ? await this.config.step(input, iter) : input as unknown as IInput
-    let _result = await this.config.do.exec(_input)
+async function processIt<Input, Output, IInput, IOutput>(
+  this: DoWhile<Input, Output, IInput, IOutput>,
+  { input }: { input: Input },
+): Promise<Output> {
+  let iteration = 0
+  let result = input as unknown as Output
 
-    result = this.config.combine ? await this.config.combine(input, _result, iter) : _result as unknown as Input
-    iter += 1
-  } while (this.config.while(input, iter))
+  do {
+    let _input = this.config.step ? await this.config.step({ input, iteration }) : input as unknown as IInput
+    let _result = await this.config.do.exec({ input: _input })
+
+    result = await this.config.combine({ input, result: _result, output: result, iteration })
+    iteration += 1
+  } while (this.config.while({ input, iteration }))
 
   return result
 }
 export class DoWhile<
   Input,
+  Output,
   IInput,
   IOutput,
-  Config extends DoWhileConfig<Input, IInput, IOutput> = DoWhileConfig<Input, IInput, IOutput>,
+  Config extends DoWhileConfig<Input, Output, IInput, IOutput> = DoWhileConfig<Input, Output, IInput, IOutput>,
 > extends AbstractStage<Input, Input, Config> {
   constructor(cfg: Config) {
     super({ ...cfg, run: processIt })
@@ -49,21 +46,24 @@ export class DoWhile<
   }
 }
 
-export type DowhileStep<Input, IInput> = (input: Input, iter: number) => IInput | Promise<IInput>
-export type DoWhileCombine<Input, IOutput> = (input: Input, result: IOutput, iter: number) => Input | Promise<Input>
-export type DoWhileCondition<Input> = (ctx: Input, iter: number) => boolean | Promise<boolean>
+export type DowhileStep<Input, IInput> = (payload: { input: Input; iteration: number }) => IInput | Promise<IInput>
+export type DoWhileCombine<Input, Output, IOutput> = (
+  payload: { input: Input; output: Output; result: IOutput; iteration: number },
+) => Output | Promise<Output>
+export type DoWhileCondition<Input> = (payload: { input: Input; iteration: number }) => boolean | Promise<boolean>
 
-export interface DoWhileConfig<Input, IInput, IOutput> extends BaseStageConfig<Input, Input> {
+export interface DoWhileConfig<Input, Output, IInput, IOutput> extends BaseStageConfig<Input, Input> {
   while: DoWhileCondition<Input>
   do: AbstractStage<IInput, IOutput>
   step: DowhileStep<Input, IInput>
-  combine: DoWhileCombine<Input, IOutput>
+  combine: DoWhileCombine<Input, Output, IOutput>
 }
 
-export function validatorDoWhileConfig<Input, IInput, IOutput>(
-  config: DoWhileConfig<Input, IInput, IOutput>,
+export function validatorDoWhileConfig<Input, Output, IInput, IOutput>(
+  config: DoWhileConfig<Input, Output, IInput, IOutput>,
 ) {
   const input: z.ZodSchema = config?.input ? config.input : z.any()
+  const output: z.ZodSchema = config?.output ? config.output : z.any()
   const iinput: z.ZodSchema = config?.do.config?.input
     ? config?.do.config?.input
     : z.any()
@@ -73,21 +73,35 @@ export function validatorDoWhileConfig<Input, IInput, IOutput>(
   return validatorBaseStageConfig
     .merge(validatorRunConfig(config))
     .merge(z.object({
-      while: z.function(z.tuple([input, z.number()]), z.union([z.boolean().promise(), z.boolean()])),
+      while: z.function(
+        z.tuple([z.object({
+          input,
+          iteration: z.number(),
+        })]),
+        z.union([z.boolean().promise(), z.boolean()]),
+      ),
       do: z.instanceof(AbstractStage),
-      step: z.function(z.tuple([input, z.number()]), z.union([iinput.promise(), iinput])),
-      combine: z.function(z.tuple([input, ioutput, z.number()]), z.union([input.promise(), input])),
+      step: z.function(z.tuple([z.object({ input, iteration: z.number() })]), z.union([iinput.promise(), iinput])),
+      combine: z.function(
+        z.tuple([z.object({
+          input,
+          output,
+          result: ioutput,
+          iteration: z.number(),
+        })]),
+        z.union([input.promise(), input]),
+      ),
     }))
 }
 
 export interface DoWhileBuilder<TParams extends DoWhileParams> {
-  _def: DoWhileConfig<ExtractInput<TParams>, any, any>
+  _def: DoWhileConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
   build<
     Result extends DoWhile<
       ExtractInput<TParams>,
       ExtractStageInput<TParams['_stage']>,
       ExtractStageOutput<TParams['_stage']>,
-      DoWhileConfig<ExtractInput<TParams>, any, any>
+      DoWhileConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
     >,
   >(): TParams['_step'] extends true ? TParams['_combine'] extends true ? Result
     : ErrorMessage<'prepare MUST have finalize'>
@@ -175,7 +189,7 @@ export interface DoWhileBuilder<TParams extends DoWhileParams> {
     >
   >
   combine(
-    combine: DoWhileCombine<ExtractInput<TParams>, ExtractStageOutput<TParams['_stage']>>,
+    combine: DoWhileCombine<ExtractInput<TParams>, ExtractOutput<TParams>, ExtractStageOutput<TParams['_stage']>>,
   ): IntellisenseFor<
     'dowhile',
     'combine',
@@ -193,15 +207,15 @@ export interface DoWhileBuilder<TParams extends DoWhileParams> {
   >
 }
 
-export function dowhile (
-  _def: DoWhileConfig<any, any, any> = {} as DoWhileConfig<any, any, any>,
+export function dowhile(
+  _def: DoWhileConfig<any, any, any, any> = {} as DoWhileConfig<any, any, any, any>,
 ): DoWhileBuilder<InferDoWhileParams<{ _type: 'dowhile' }>> {
   return {
     _def,
     input(input) {
       return dowhile({
         ..._def,
-        input
+        input,
       })
     },
     output(output) {
@@ -213,7 +227,7 @@ export function dowhile (
     do(stage) {
       return dowhile({
         ..._def,
-        do: stage
+        do: stage,
       }) as any
     },
     build() {
@@ -223,16 +237,16 @@ export function dowhile (
       return dowhile({
         ..._def,
         step,
-      }) as any
+      })
     },
     combine(combine) {
       return dowhile({
         ..._def,
-        combine
+        combine,
       })
     },
     while(condition) {
-      return dowhile({..._def, while: condition})
+      return dowhile({ ..._def, while: condition })
     },
   }
 }

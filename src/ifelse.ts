@@ -1,11 +1,5 @@
 import { z } from 'zod'
-import {
-  AbstractStage,
-  BaseStageConfig,
-  IfElseParams,
-  validatorBaseStageConfig,
-  validatorRunConfig,
-} from './base'
+import { AbstractStage, BaseStageConfig, IfElseParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import {
   ExtractInput,
   ExtractOutput,
@@ -20,17 +14,17 @@ import {
   UnsetMarker,
 } from './utility'
 
-export type IfElseCondition<Input> = (input: Input) => boolean | Promise<boolean>
+export type IfElseCondition<Input> = (payload: { input: Input }) => boolean | Promise<boolean>
 
 async function processIt<Input, Output>(
   this: IfElse<Input, Output>,
-  input: Input,
+  { input }: { input: Input },
 ): Promise<Output> {
-  const evaluate = await this.config.if(input)
+  const evaluate = await this.config.if({ input })
   if (evaluate) {
-    return await this.config.then.exec(input)
+    return await this.config.then.exec({ input })
   } else {
-    return (await this.config.else?.exec(input)) ?? input as undefined as Output
+    return (await this.config.else?.exec({ input })) ?? input as undefined as Output
   }
 }
 
@@ -56,7 +50,12 @@ export function validatorIfElseConfig<Input, Output>(
   return validatorBaseStageConfig
     .merge(validatorRunConfig(config))
     .merge(z.object({
-      if: z.function(z.tuple([input]), z.union([z.boolean(), z.boolean().promise()])),
+      if: z.function(
+        z.tuple([z.object({
+          input,
+        })]),
+        z.union([z.boolean(), z.boolean().promise()]),
+      ),
       then: z.instanceof(AbstractStage),
       else: z.instanceof(AbstractStage).optional(),
     }))
@@ -75,55 +74,56 @@ export interface IfElseBuilder<TParams extends IfElseParams> {
   >
   then<RStage extends AbstractStage<MaySetInput<TParams>, MaySetOutput<TParams>>>(
     stage: TParams['_stage'] extends UnsetMarker ? RStage : never,
-  ):  TParams['_stage'] extends UnsetMarker ?
-    IntellisenseFor<
-    'ifelse',
-    'then',
-    IfElseBuilder<
-      Merge<
-        InferIfElseParams<TParams>,
-        {
-          _stage: OverwriteIfDefined<
-            TParams['_stage'],
-            ExtractStageInput<RStage>
-          >
-          _input: OverwriteIfDefined<
-            TParams['_input'],
-            ExtractStageInput<RStage>
-          >
-          _output: OverwriteIfDefined<
-            TParams['_output'],
-            ExtractStageOutput<RStage>
-          >
-        }
+  ): TParams['_stage'] extends UnsetMarker ? IntellisenseFor<
+      'ifelse',
+      'then',
+      IfElseBuilder<
+        Merge<
+          InferIfElseParams<TParams>,
+          {
+            _stage: OverwriteIfDefined<
+              TParams['_stage'],
+              ExtractStageInput<RStage>
+            >
+            _input: OverwriteIfDefined<
+              TParams['_input'],
+              ExtractStageInput<RStage>
+            >
+            _output: OverwriteIfDefined<
+              TParams['_output'],
+              ExtractStageOutput<RStage>
+            >
+          }
+        >
       >
     >
-  > : never
+    : never
   stage<RStage extends AbstractStage<MaySetInput<TParams>, MaySetOutput<TParams>>>(
     stage: TParams['_stage'] extends UnsetMarker ? RStage : never,
-  ):  TParams['_stage'] extends UnsetMarker ? IntellisenseFor<
-    'ifelse',
-    'stage',
-    IfElseBuilder<
-      Merge<
-        InferIfElseParams<TParams>,
-        {
-          _stage: OverwriteIfDefined<
-            TParams['_stage'],
-            ExtractStageInput<RStage>
-          >
-          _input: OverwriteIfDefined<
-            TParams['_input'],
-            ExtractStageInput<RStage>
-          >
-          _output: OverwriteIfDefined<
-            TParams['_output'],
-            ExtractStageOutput<RStage>
-          >
-        }
+  ): TParams['_stage'] extends UnsetMarker ? IntellisenseFor<
+      'ifelse',
+      'stage',
+      IfElseBuilder<
+        Merge<
+          InferIfElseParams<TParams>,
+          {
+            _stage: OverwriteIfDefined<
+              TParams['_stage'],
+              ExtractStageInput<RStage>
+            >
+            _input: OverwriteIfDefined<
+              TParams['_input'],
+              ExtractStageInput<RStage>
+            >
+            _output: OverwriteIfDefined<
+              TParams['_output'],
+              ExtractStageOutput<RStage>
+            >
+          }
+        >
       >
     >
-  > : never
+    : never
   else<RStage extends AbstractStage<ExtractInput<TParams>, ExtractOutput<TParams>>>(
     stage: RStage,
   ): IntellisenseFor<
@@ -140,7 +140,7 @@ export interface IfElseBuilder<TParams extends IfElseParams> {
   >
 }
 export function ifelse(
-  _def:IfElseConfig<any, any>  = {} as IfElseConfig<any, any>,
+  _def: IfElseConfig<any, any> = {} as IfElseConfig<any, any>,
 ): IfElseBuilder<InferIfElseParams<{ _type: 'ifelse' }>> {
   return {
     _def,

@@ -9,11 +9,11 @@ describe('ifelseBuilder', () => {
       .type('stage')
       .input(z.object({ name: z.string() }))
       .output(z.object({ name: z.string(), success: z.boolean(), fixed: z.boolean() }))
-      .run(async ({ name }) => {
+      .run(async ({ input: { name } }) => {
         return {
           name: name ? name : 'undefined',
           success: false,
-          fixed: false
+          fixed: false,
         }
       }).build()
 
@@ -21,7 +21,7 @@ describe('ifelseBuilder', () => {
       .type('stage')
       .input(z.object({ name: z.string() }))
       .output(z.object({ name: z.string(), success: z.boolean() }))
-      .run(async ({ name }) => {
+      .run(async ({ input: { name } }) => {
         return {
           name: name ? name : 'undefined',
           success: true,
@@ -31,18 +31,18 @@ describe('ifelseBuilder', () => {
     const st = builder()
       .type('ifelse')
       .stage(truthy)
-      .if((input) => {
-        const inp = input as {name: string}
+      .if(({ input }) => {
+        const inp = input as { name: string }
         return inp.name === 'Alex'
       })
       // .then(truthy)
       .else(falsy)
       .build()
 
-    const resFalsey = await st.exec({ name: 'name' })
+    const resFalsey = await st.execute({ name: 'name' })
     expect(resFalsey).toMatchObject({ name: 'name', success: false })
 
-    const resTruthy = await st.exec({ name: 'Alex' })
+    const resTruthy = await st.execute({ name: 'Alex' })
     expect(resTruthy).toMatchObject({ name: 'Alex', success: true })
   })
 })

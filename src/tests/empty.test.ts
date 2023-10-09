@@ -8,7 +8,7 @@ describe('emptBuilder', () => {
       .type('empty')
       .build()
 
-    const res = await st.exec({ city: 'NY' })
+    const res = await st.execute({ city: 'NY' })
     expect(res).toMatchObject({ city: 'NY' })
   })
 })

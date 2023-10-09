@@ -9,7 +9,7 @@ describe('builde', () => {
       .type('stage')
       .input(z.string().optional())
       .output(z.object({ name: z.string(), full: z.string() }))
-      .run(async name => {
+      .run(async ({ input: name }) => {
         return {
           name: name ? name : 'undefined',
           full: 'full',
@@ -17,7 +17,7 @@ describe('builde', () => {
       })
       .build()
 
-    const res = await st.exec('name')
+    const res = await st.exec({ input: 'name' })
     expect(res).toMatchObject({ name: 'name', full: 'full' })
   })
 })
