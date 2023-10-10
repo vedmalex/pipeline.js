@@ -20,5 +20,6 @@ describe('stageBuilder', () => {
     expect(res).toMatchObject({ name: 'name', full: 'full' })
     const res2 = await st.execute('name')
     expect(res2).toMatchObject({ name: 'name', full: 'full' })
+
   })
 })

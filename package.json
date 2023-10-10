@@ -1,7 +1,7 @@
 {
   "name": "pipeline.js",
   "description": "Pipeline.js - async workflow framework for node.js and browser",
-  "version": "2.1.0-beta.2",
+  "version": "3.0.0-beta.1",
   "author": {
     "name": "Alex Vedmedenko",
     "email": "vedmalex@gmail.com"
@@ -38,8 +38,8 @@
     "watchall": "tsc -w -p tsconfig.json",
     "watch": "tsc -w -p tsconfig.build.json"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/vedmalex/pipeline.js.git"
