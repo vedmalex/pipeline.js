@@ -20,12 +20,49 @@ import {
   MergeIfDefined,
   OverwriteIfDefined,
 } from './utility'
+import { CreateError, ParallelError } from './error'
+import _ from 'lodash'
 
-async function processIt<Input, Output>(
+async function processSwitchIt<Input, Output>(
   this: MultiWaySwitch<Input, Output>,
   { input }: { input: Input },
 ): Promise<Output> {
-  return input as any
+
+  const presult = await Promise.allSettled(this.config.cases.map(item => item.exec({ input })))
+
+  let errors: Array<any> = []
+  let result: { output: Output } = {} as any
+
+  for (let i = 0; i < presult.length; i++) {
+    const item = presult[i]
+    if (item.status == 'fulfilled') {
+      result = _.defaultsDeep(result, {output: item.value})
+    } else {
+      errors.push(
+        new ParallelError({
+          index: i,
+          ctx: input[i],
+          err: item.reason,
+        }),
+      )
+    }
+  }
+  if (errors.length > 0) {
+    throw CreateError(errors)
+  }
+  return result.output
+}
+
+
+async function processCaseIt<Input, Output>(
+  this: MultiWaySwitchCase<Input, Output>,
+  { input }: { input: Input },
+): Promise<Output> {
+  if (await this.config.evaluate({input})) {
+    return this.config.stage.execute(input)
+  } else {
+    return input as undefined as Output
+  }
 }
 
 export class MultiWaySwitch<
@@ -34,7 +71,7 @@ export class MultiWaySwitch<
   Config extends MultWaySwitchConfig<Input, Output> = MultWaySwitchConfig<Input, Output>,
 > extends AbstractStage<Input, Output, Config> {
   constructor(cfg: Config) {
-    super({ ...cfg, run: processIt })
+    super({ ...cfg, run: processSwitchIt })
     this.config = validatorMultiWaySwitchConfig(this.config).parse(this.config) as unknown as Config
   }
 }
@@ -61,16 +98,21 @@ export class MultiWaySwitchCase<
     Output
   >,
 > extends AbstractStage<Input, Output, Config> {
+  constructor(cfg: Config) {
+    super({ ...cfg, run: processCaseIt })
+    this.config = validatorMultiWaySwitchCaseConfig(this.config).parse(this.config) as unknown as Config
+  }
 }
 
-export type StageEvaluateFunction<Input> = (ctx: Input) => Promise<boolean> | boolean
+
+export type StageEvaluateFunction<Input> = (payload: {input: Input}) => Promise<boolean> | boolean
 
 export interface MultiWaySwitchCaseConfig<Input, Output> extends BaseStageConfig<Input, Output> {
   stage: AbstractStage<Input, Output>
   evaluate: StageEvaluateFunction<Input>
 }
 
-export function validatorMultWaySwitchCaseConfig<Input, Output>(
+export function validatorMultiWaySwitchCaseConfig<Input, Output>(
   config: MultiWaySwitchCaseConfig<Input, Output>,
 ) {
   const input: z.ZodSchema = config?.stage.config?.input
@@ -169,4 +211,44 @@ export interface MultiWaySwitchCaseBuilder<TParams extends MultiWaySwitchCasePar
       >
     >
   >
+}
+
+export function multiwayswitch(
+  _def: MultWaySwitchConfig<any, any> = { cases: [] } as MultWaySwitchConfig<any, any>,
+): MultiWaySwitchBuilder<InferMultiWaySwitchParams<{ _type: 'multiwayswitch' }>> {
+  return {
+    _def: _def as MultWaySwitchConfig<any, any>,
+    add(item) {
+      _def.cases.push(item)
+      return multiwayswitch({
+        ..._def,
+      }) as any
+    },
+    build() {
+      return new MultiWaySwitch(_def) as any
+    },
+  }
+}
+
+export function multiwayswitchcase(
+  _def: MultiWaySwitchCaseConfig<any, any> = {} as MultiWaySwitchCaseConfig<any, any>,
+): MultiWaySwitchCaseBuilder<InferMultiWaySwitchCaseParams<{ _type: 'multiwayswitchcase' }>> {
+  return {
+    _def: _def as MultiWaySwitchCaseConfig<any, any>,
+    stage(stage) {
+      return multiwayswitchcase({
+        ..._def,
+        stage,
+      }) as any
+    },
+    evaluate(evaluate) {
+      return multiwayswitchcase({
+        ..._def,
+        evaluate,
+      }) as any
+    },
+    build() {
+      return new MultiWaySwitchCase(_def) as any
+    },
+  }
 }

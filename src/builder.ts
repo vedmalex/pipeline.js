@@ -3,7 +3,7 @@ import { dowhile, DoWhileBuilder } from './dowhile'
 import { empty, EmptyBuilder } from './empty'
 import { ERROR } from './error'
 import { ifelse, IfElseBuilder } from './ifelse'
-import { MultiWaySwitchBuilder, MultiWaySwitchCaseBuilder } from './multiwayswitch'
+import { multiwayswitch, MultiWaySwitchBuilder, multiwayswitchcase, MultiWaySwitchCaseBuilder } from './multiwayswitch'
 import { pipeline, PipelineBuilder } from './pipeline'
 import { rescue, RescueBuilder } from './rescue'
 import { retryonerror, RetryOnErrorBuilder } from './retryonerror'
@@ -52,6 +52,10 @@ export function builder(): Builder<InferBuilderParams<{ _type: UnsetMarker }>> {
           return pipeline() as any
         case input === 'sequential':
           return sequential() as any
+        case input === 'multiwayswitch':
+          return multiwayswitch() as any
+        case input === 'multiwayswitchcase':
+          return multiwayswitchcase() as any
         default:
           throw new Error(ERROR.not_implemented)
       }

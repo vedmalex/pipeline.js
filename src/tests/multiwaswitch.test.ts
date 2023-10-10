@@ -14,11 +14,11 @@ describe('multiwayswitch', () => {
           .run(({ input }) => {
             return {
               ...input,
-              id: String(Math.random() * 1000),
+              id: '1000'
             }
           }).build(),
       )
-      .evaluate(item => !item.id)
+      .evaluate(({input:item}) => !item.id)
       .build()
 
     const stCaseTwo = builder()
@@ -37,11 +37,11 @@ describe('multiwayswitch', () => {
           .run(({ input }) => {
             return {
               ...input,
-              region: String(Math.random() * 1000),
+              region: 'new region'
             }
           }).build(),
       )
-      .evaluate(item => !item.region)
+      .evaluate(({input:item}) => !item.region)
       .build()
 
     const sw = builder()
@@ -49,5 +49,9 @@ describe('multiwayswitch', () => {
       .add(stCaseOne)
       .add(stCaseTwo)
       .build()
+
+    const result = await sw.execute({ name: 'alex', city: 'NBJ' })
+    expect(result).toMatchObject({ name: 'alex', city: 'NBJ', region: 'new region', id: '1000' })
+
   })
 })

@@ -108,6 +108,7 @@ export interface RescueBuilder<TParams extends RescueParams> {
     >
   >
 }
+
 export function rescue<TConfig extends RescueConfig<any, any>>(
   _def: Partial<TConfig> = {},
 ): RescueBuilder<InferRescueParams<{ _type: 'rescue' }>> {
