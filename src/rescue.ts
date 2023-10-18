@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 import { AbstractStage, BaseStageConfig, RescueParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import { ERROR } from './error'
 import {
@@ -47,7 +47,7 @@ export interface RescueConfig<Input, Output> extends BaseStageConfig<Input, Outp
   rescue: RescueRun<Input, Output>
 }
 
-export function validatorRescueConfig<Input, Output>(
+function validatorRescueConfig<Input, Output>(
   config: BaseStageConfig<Input, Output>,
 ) {
   const output: z.ZodSchema = config.output ? config.output : z.any()

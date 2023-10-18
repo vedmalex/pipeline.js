@@ -1,5 +1,5 @@
 import 'jest'
-import { z } from 'zod'
+import z from 'zod'
 import { builder } from '../builder'
 
 describe('multiwayswitch', () => {
@@ -14,11 +14,11 @@ describe('multiwayswitch', () => {
           .run(({ input }) => {
             return {
               ...input,
-              id: '1000'
+              id: '1000',
             }
           }).build(),
       )
-      .evaluate(({input:item}) => !item.id)
+      .evaluate(({ input: item }) => !item.id)
       .build()
 
     const stCaseTwo = builder()
@@ -37,11 +37,11 @@ describe('multiwayswitch', () => {
           .run(({ input }) => {
             return {
               ...input,
-              region: 'new region'
+              region: 'new region',
             }
           }).build(),
       )
-      .evaluate(({input:item}) => !item.region)
+      .evaluate(({ input: item }) => !item.region)
       .build()
 
     const sw = builder()
@@ -52,6 +52,5 @@ describe('multiwayswitch', () => {
 
     const result = await sw.execute({ name: 'alex', city: 'NBJ' })
     expect(result).toMatchObject({ name: 'alex', city: 'NBJ', region: 'new region', id: '1000' })
-
   })
 })

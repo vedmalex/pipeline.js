@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 import { AbstractStage, BaseStageConfig, DoWhileParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import {
   ErrorMessage,
@@ -59,7 +59,7 @@ export interface DoWhileConfig<Input, Output, IInput, IOutput> extends BaseStage
   combine: DoWhileCombine<Input, Output, IOutput>
 }
 
-export function validatorDoWhileConfig<Input, Output, IInput, IOutput>(
+function validatorDoWhileConfig<Input, Output, IInput, IOutput>(
   config: DoWhileConfig<Input, Output, IInput, IOutput>,
 ) {
   const input: z.ZodSchema = config?.input ? config.input : z.any()

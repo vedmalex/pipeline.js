@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 import { AbstractStage, SequentialParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import { CreateError } from './error'
 import { ParallelError } from './error'
@@ -90,7 +90,7 @@ export interface SequentialConfig<Input, Output> extends StageConfig<Input, Outp
   stage: AbstractStage<Input, Output>
 }
 
-export function validatorSequentialConfig<Input, Output>(
+function validatorSequentialConfig<Input, Output>(
   config: SequentialConfig<Input, Output>,
 ) {
   return validatorBaseStageConfig

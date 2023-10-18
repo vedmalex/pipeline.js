@@ -7,7 +7,7 @@ describe('AbstractStage', () => {
     const stage = new AbstractStage({
       input: z.string(),
       output: z.string(),
-      run: input => {
+      run: ({ input }) => {
         return input
       },
     })
@@ -24,7 +24,7 @@ describe('AbstractStage', () => {
     const stage = new AbstractStage({
       input: z.string(),
       output: z.string(),
-      run: async input => {
+      run: async ({ input }) => {
         return input
       },
     })
@@ -48,7 +48,7 @@ describe('AbstractStage', () => {
     })
     let run = false
     try {
-      await stage.exec(10)
+      await stage.execute(10)
     } catch (err) {
       run = true
     }
@@ -63,7 +63,7 @@ describe('AbstractStage', () => {
         // @ts-expect-error
         run: 10,
       })
-      await stage.exec(10)
+      await stage.execute(10)
     } catch (err) {
       run = true
     }

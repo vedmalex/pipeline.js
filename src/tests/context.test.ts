@@ -13,12 +13,12 @@ describe('context', () => {
     expect(ctx.age).toBe(43)
     expect(context.name).toBe('alex')
     expect(context.age).toBe(43)
-    //@ts-ignore
+    // @ts-ignore
     delete ctx.age
     expect(context.age).toBeUndefined()
     expect('name' in ctx).toBeTruthy()
     expect(Context.isContext(ctx)).toBeTruthy()
-    expect(ctx).toMatchObject({name: 'alex'})
+    expect(ctx).toMatchObject({ name: 'alex' })
   })
 
   it("didn't messedup anything in target", () => {
@@ -52,8 +52,8 @@ describe('context', () => {
     expect(ctx2 == ctx).toBeTruthy()
     expect(Context.isContext(ctx)).toBeTruthy()
     expect(Context.isContext(ctx2)).toBeTruthy()
-    expect(ctx).toMatchObject({name: "alex"})
-    expect(ctx2).toMatchObject({name: "alex"})
+    expect(ctx).toMatchObject({ name: 'alex' })
+    expect(ctx2).toMatchObject({ name: 'alex' })
     expect(ctx.hasChild(ctx)).toBeFalsy()
   })
 
@@ -86,7 +86,7 @@ describe('context', () => {
     const ctx = Context.ensure(context)
     const ctx2 = ctx.fork({ name: 'Egor' })
     expect(ctx2.address.State).toBe('RO')
-    expect(ctx2).toMatchObject({name: "Egor",address: { city: 'NCH', State: 'RO', country: 'RU' }})
+    expect(ctx2).toMatchObject({ name: 'Egor', address: { city: 'NCH', State: 'RO', country: 'RU' } })
 
     const parent = ctx2.getParent()
     expect(parent).not.toBeUndefined()
@@ -103,7 +103,7 @@ describe('context', () => {
     const ctx = Context.ensure(context)
     const ctx2 = ctx.fork({ name: 'Egor' })
     expect(ctx2.address.State).toBe('RO')
-    expect(ctx2).toMatchObject({name: "Egor",address: { city: 'NCH', State: 'RO', country: 'RU' }})
+    expect(ctx2).toMatchObject({ name: 'Egor', address: { city: 'NCH', State: 'RO', country: 'RU' } })
     ctx2.address.State = 'RU_RO'
     expect(ctx.address.State).toBe(ctx.address.State)
     const parent = ctx2.getParent()

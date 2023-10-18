@@ -1,4 +1,5 @@
-import { z } from 'zod'
+import defaultsDeep from 'lodash/defaultsDeep'
+import z from 'zod'
 import {
   AbstractStage,
   BaseStageConfig,
@@ -7,6 +8,7 @@ import {
   validatorBaseStageConfig,
   validatorRunConfig,
 } from './base'
+import { CreateError, ParallelError } from './error'
 import {
   ExtractInput,
   ExtractOutput,
@@ -20,14 +22,11 @@ import {
   MergeIfDefined,
   OverwriteIfDefined,
 } from './utility'
-import { CreateError, ParallelError } from './error'
-import _ from 'lodash'
 
 async function processSwitchIt<Input, Output>(
   this: MultiWaySwitch<Input, Output>,
   { input }: { input: Input },
 ): Promise<Output> {
-
   const presult = await Promise.allSettled(this.config.cases.map(item => item.exec({ input })))
 
   let errors: Array<any> = []
@@ -36,7 +35,7 @@ async function processSwitchIt<Input, Output>(
   for (let i = 0; i < presult.length; i++) {
     const item = presult[i]
     if (item.status == 'fulfilled') {
-      result = _.defaultsDeep(result, {output: item.value})
+      result = defaultsDeep(result, { output: item.value })
     } else {
       errors.push(
         new ParallelError({
@@ -53,12 +52,11 @@ async function processSwitchIt<Input, Output>(
   return result.output
 }
 
-
 async function processCaseIt<Input, Output>(
   this: MultiWaySwitchCase<Input, Output>,
   { input }: { input: Input },
 ): Promise<Output> {
-  if (await this.config.evaluate({input})) {
+  if (await this.config.evaluate({ input })) {
     return this.config.stage.execute(input)
   } else {
     return input as undefined as Output
@@ -76,7 +74,7 @@ export class MultiWaySwitch<
   }
 }
 
-export function validatorMultiWaySwitchConfig<Input, Output>(
+function validatorMultiWaySwitchConfig<Input, Output>(
   config: BaseStageConfig<Input, Output>,
 ) {
   return validatorBaseStageConfig
@@ -104,15 +102,14 @@ export class MultiWaySwitchCase<
   }
 }
 
-
-export type StageEvaluateFunction<Input> = (payload: {input: Input}) => Promise<boolean> | boolean
+export type StageEvaluateFunction<Input> = (payload: { input: Input }) => Promise<boolean> | boolean
 
 export interface MultiWaySwitchCaseConfig<Input, Output> extends BaseStageConfig<Input, Output> {
   stage: AbstractStage<Input, Output>
   evaluate: StageEvaluateFunction<Input>
 }
 
-export function validatorMultiWaySwitchCaseConfig<Input, Output>(
+function validatorMultiWaySwitchCaseConfig<Input, Output>(
   config: MultiWaySwitchCaseConfig<Input, Output>,
 ) {
   const input: z.ZodSchema = config?.stage.config?.input

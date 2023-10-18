@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 import {
   AbstractStage,
   BaseStageConfig,
@@ -100,7 +100,7 @@ export interface RetryOnErrorConfig<Input, Output, Backup> extends BaseStageConf
   restore?: FnRestore<Input, Backup>
 }
 
-export function validatorRetryOnErrorConfig<Input, Output, Backup>(
+function validatorRetryOnErrorConfig<Input, Output, Backup>(
   config: RetryOnErrorConfig<Input, Output, Backup>,
 ) {
   const input: z.ZodSchema = config.stage.config.input ? config.stage.config.input : z.any()

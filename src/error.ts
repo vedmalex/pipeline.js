@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 
 export class ComplexError extends Error {
   payload: Array<Error | object | string>

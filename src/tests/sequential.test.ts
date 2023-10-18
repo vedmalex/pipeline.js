@@ -1,5 +1,5 @@
 import 'jest'
-import { z } from 'zod'
+import z from 'zod'
 import { builder } from '../builder'
 
 describe('sequential', () => {

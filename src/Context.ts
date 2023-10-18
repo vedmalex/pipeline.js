@@ -94,9 +94,15 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
     allContexts[this.id] = this
     const res = new Proxy(this, {
       get(target: Context<T>, key: string | symbol | number, _proxy: any): any {
-        if (key == ContextSymbol) return true
-        if (key == ProxySymbol) return _proxy
-        if (key == 'allContexts') return allContexts
+        if (key == ContextSymbol) {
+          return true
+        }
+        if (key == ProxySymbol) {
+          return _proxy
+        }
+        if (key == 'allContexts') {
+          return allContexts
+        }
 
         if (!(key in RESERVED)) {
           if (key in target.ctx) {
@@ -110,7 +116,9 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
           }
           if (RESERVED[key as keyof typeof RESERVED] == RESERVATIONS.func_this) {
             return target[key].bind(target)
-          } else return target[key] // just props
+          } else {
+            return target[key] // just props
+          }
         }
       },
       set(target: Context<T>, key: keyof typeof RESERVED | string | symbol, value): boolean {
@@ -118,9 +126,9 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
           target.ctx[key] = value
           return true
         } else if (
-          typeof key == 'string' &&
-          key in RESERVED &&
-          RESERVED[key as keyof typeof RESERVED] != RESERVATIONS.prop
+          typeof key == 'string'
+          && key in RESERVED
+          && RESERVED[key as keyof typeof RESERVED] != RESERVATIONS.prop
         ) {
           return false
         } else {
@@ -178,7 +186,9 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         child.setParent(this.proxy)
       }
       return child
-    } else return child
+    } else {
+      return child
+    }
   }
 
   /**

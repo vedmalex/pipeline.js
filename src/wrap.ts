@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 import { AbstractStage, validatorBaseStageConfig, validatorRunConfig, WrapParams } from './base'
 import { StageConfig } from './stage'
 import {
@@ -80,7 +80,7 @@ export interface WrapConfig<Input, Output, IInput, IOutput> extends StageConfig<
   finalize: WrapFinalize<Input, Output, IOutput>
 }
 
-export function validatorWrapConfig<Input, Output, IInput, IOutput>(
+function validatorWrapConfig<Input, Output, IInput, IOutput>(
   config: WrapConfig<Input, Output, IInput, IOutput>,
 ) {
   const output: z.ZodSchema = config?.output ? config.output : z.any()

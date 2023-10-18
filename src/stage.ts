@@ -28,7 +28,7 @@ export class Stage<Input, Output, TConfig extends StageConfig<Input, Output> = S
 
 export type StageConfig<Input, Output> = BaseStageConfig<Input, Output> & RunConfig<Input, Output>
 
-export function validatorStageConfig<Input, Output>(config: StageConfig<Input, Output>) {
+function validatorStageConfig<Input, Output>(config: StageConfig<Input, Output>) {
   return validatorBaseStageConfig.merge(validatorRunConfig(config))
 }
 

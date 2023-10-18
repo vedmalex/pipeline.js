@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 import { AbstractStage, BaseStageConfig, PipelineParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import {
   ExtractInput,
@@ -37,7 +37,7 @@ export interface PipelineConfig<Input, Output> extends BaseStageConfig<Input, Ou
   stages: Array<AbstractStage<any, any>>
 }
 
-export function validatorPipelineConfig<Input, Output>(
+function validatorPipelineConfig<Input, Output>(
   config: BaseStageConfig<Input, Output>,
 ) {
   return validatorBaseStageConfig

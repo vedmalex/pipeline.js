@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 import { AbstractStage, BaseStageConfig, TimeoutParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import { ERROR } from './error'
 import {
@@ -53,7 +53,7 @@ export interface TimeoutConfig<Input, Output> extends BaseStageConfig<Input, Out
   overdue?: AbstractStage<Input, Output>
 }
 
-export function validatorTimeoutConfig<Input, Output>(
+function validatorTimeoutConfig<Input, Output>(
   config: TimeoutConfig<Input, Output>,
 ) {
   const input = config.stage.config.input ? config.stage.config.input : z.any()

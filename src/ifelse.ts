@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import z from 'zod'
 import { AbstractStage, BaseStageConfig, IfElseParams, validatorBaseStageConfig, validatorRunConfig } from './base'
 import {
   ExtractInput,
@@ -42,7 +42,7 @@ export interface IfElseConfig<Input, Output> extends BaseStageConfig<Input, Outp
   else?: AbstractStage<Input, Output>
 }
 
-export function validatorIfElseConfig<Input, Output>(
+function validatorIfElseConfig<Input, Output>(
   config: IfElseConfig<Input, Output>,
 ) {
   const input = config.then.config.input ? config.then.config.input : z.any()

@@ -1,8 +1,9 @@
 {
+  "extends": "bun-types/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "rootDir": "src",
-    "outDir": "dist",
+    "rootDir": ".",
+    "outDir": ".",
     "composite": true,
     "esModuleInterop": true,
     "sourceMap": true,
@@ -34,22 +35,31 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "downlevelIteration": true,
+    "jsx": "preserve",
     "lib": [
-      "ESNext",
-      "ESNext.AsyncIterable",
-      "DOM",
-      "DOM.Iterable"
+      "ESNext"
     ],
     "types": [
-      "node",
-      "jest",
       "bun-types"
-    ]
+    ],
+    "paths": {
+      "@grainjs/*": [
+        "./packages/*"
+      ],
+      "@utils/*": [
+        "./utilities/*"
+      ],
+      "@server/*": [
+        "./app/server/*"
+      ]
+    }
   },
   "include": [
-    "src/**/*"
+    "./**/*"
   ],
   "exclude": [
-    "**/node_modules/**"
+    "node_modules/**/*",
+    "app.gen/**/*",
+    "app.public/**/*"
   ]
 }
