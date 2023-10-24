@@ -129,7 +129,7 @@ function validatorMultiWaySwitchCaseConfig<Input, Output>(
 }
 
 export interface MultiWaySwitchBuilder<TParams extends MultiWaySwitchParams> {
-  _def: MultWaySwitchConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  config: MultWaySwitchConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
 
   build<I extends ExtractInput<TParams>, O extends ExtractOutput<TParams>>(): MultiWaySwitch<
     I,
@@ -161,7 +161,7 @@ export interface MultiWaySwitchBuilder<TParams extends MultiWaySwitchParams> {
 }
 
 export interface MultiWaySwitchCaseBuilder<TParams extends MultiWaySwitchCaseParams> {
-  _def: MultiWaySwitchCaseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  config: MultiWaySwitchCaseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   build(): MultiWaySwitchCase<
     ExtractInput<TParams>,
     ExtractOutput<TParams>
@@ -211,41 +211,41 @@ export interface MultiWaySwitchCaseBuilder<TParams extends MultiWaySwitchCasePar
 }
 
 export function multiwayswitch(
-  _def: MultWaySwitchConfig<any, any> = { cases: [] } as MultWaySwitchConfig<any, any>,
+  config: MultWaySwitchConfig<any, any> = { cases: [] } as MultWaySwitchConfig<any, any>,
 ): MultiWaySwitchBuilder<InferMultiWaySwitchParams<{ _type: 'multiwayswitch' }>> {
   return {
-    _def: _def as MultWaySwitchConfig<any, any>,
+    config: config as MultWaySwitchConfig<any, any>,
     add(item) {
-      _def.cases.push(item)
+      config.cases.push(item)
       return multiwayswitch({
-        ..._def,
+        ...config,
       }) as any
     },
     build() {
-      return new MultiWaySwitch(_def) as any
+      return new MultiWaySwitch(config) as any
     },
   }
 }
 
 export function multiwayswitchcase(
-  _def: MultiWaySwitchCaseConfig<any, any> = {} as MultiWaySwitchCaseConfig<any, any>,
+  config: MultiWaySwitchCaseConfig<any, any> = {} as MultiWaySwitchCaseConfig<any, any>,
 ): MultiWaySwitchCaseBuilder<InferMultiWaySwitchCaseParams<{ _type: 'multiwayswitchcase' }>> {
   return {
-    _def: _def as MultiWaySwitchCaseConfig<any, any>,
+    config: config as MultiWaySwitchCaseConfig<any, any>,
     stage(stage) {
       return multiwayswitchcase({
-        ..._def,
+        ...config,
         stage,
       }) as any
     },
     evaluate(evaluate) {
       return multiwayswitchcase({
-        ..._def,
+        ...config,
         evaluate,
       }) as any
     },
     build() {
-      return new MultiWaySwitchCase(_def) as any
+      return new MultiWaySwitchCase(config) as any
     },
   }
 }

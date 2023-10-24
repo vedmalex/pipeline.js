@@ -23,7 +23,7 @@ export interface RetryOnErrorConfig<Input, Output, Backup> extends BaseStageConf
     restore?: FnRestore<Input, Backup>;
 }
 export interface RetryOnErrorBuilder<TParams extends RetryOnErrorParams> {
-    _def: RetryOnErrorConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any>;
+    config: RetryOnErrorConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any>;
     build(): RetryOnError<ExtractInput<TParams>, ExtractOutput<TParams>, RetryOnErrorConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any>>;
     stage<RStage extends AbstractStage<any, any>>(stage: RStage): IntellisenseFor<'retryonerror', 'stage', RetryOnErrorBuilder<Merge<InferRetryOnErrorParams<TParams>, {
         _stage: OverwriteIfDefined<TParams['_stage'], ExtractStage<RStage>>;
@@ -41,6 +41,6 @@ export interface RetryOnErrorBuilder<TParams extends RetryOnErrorParams> {
         _restore: OverwriteIfDefined<TParams['_restore'], Restore>;
     }>>>;
 }
-export declare function retryonerror(_def?: RetryOnErrorConfig<any, any, any>): RetryOnErrorBuilder<InferRetryOnErrorParams<{
+export declare function retryonerror(config?: RetryOnErrorConfig<any, any, any>): RetryOnErrorBuilder<InferRetryOnErrorParams<{
     _type: 'retryonerror';
 }>>;

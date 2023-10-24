@@ -29,10 +29,10 @@
   "scripts": {
     "test": "jest --coverage",
     "prepublish": "tsc -b tsconfig.build.json",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.types.json",
     "watchall": "tsc -w -p tsconfig.json",
-    "watch": "tsc -w -p tsconfig.build.json",
-    "build-types": "tsc -w -p tsconfig.types.json",
+    "watch": "tsc -w -p tsconfig.types.json",
+    "build-types": "tsc -p tsconfig.types.json",
     "check-types": "tsc --noEmit -w -p tsconfig.build.json"
   },
   "main": "dist/index.js",

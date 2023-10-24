@@ -280,7 +280,7 @@ export type SchemaType<
       : $Parser
     : ErrorMessage<'All input parsers did not resolve to an object'>
   : ErrorMessage<'All input parsers did not resolve to an object'>
-export type Parser = ParserZod<any,any>
+export type Parser = ParserZod<any, any>
 
 export type InferConfig<TStage> = TStage extends Stage<any, any, infer $TConfig> ? $TConfig
   : TStage extends Stage<infer $Input, infer $Output, any> ? StageConfig<$Input, $Output>

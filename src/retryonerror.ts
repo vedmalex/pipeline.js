@@ -144,7 +144,7 @@ function validatorRetryOnErrorConfig<Input, Output, Backup>(
 }
 
 export interface RetryOnErrorBuilder<TParams extends RetryOnErrorParams> {
-  _def: RetryOnErrorConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any>
+  config: RetryOnErrorConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any>
   build(): RetryOnError<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
@@ -226,36 +226,36 @@ export interface RetryOnErrorBuilder<TParams extends RetryOnErrorParams> {
   >
 }
 export function retryonerror(
-  _def: RetryOnErrorConfig<any, any, any> = {} as RetryOnErrorConfig<any, any, any>,
+  config: RetryOnErrorConfig<any, any, any> = {} as RetryOnErrorConfig<any, any, any>,
 ): RetryOnErrorBuilder<InferRetryOnErrorParams<{ _type: 'retryonerror' }>> {
   return {
-    _def,
+    config,
     stage(stage) {
       return retryonerror({
-        ..._def,
+        ...config,
         stage,
       }) as any
     },
     retry(retry) {
       return retryonerror({
-        ..._def,
+        ...config,
         retry,
       }) as any
     },
     backup(backup) {
       return retryonerror({
-        ..._def,
+        ...config,
         backup,
       }) as any
     },
     restore(restore) {
       return retryonerror({
-        ..._def,
+        ...config,
         restore,
       }) as any
     },
     build() {
-      return new RetryOnError(_def) as any
+      return new RetryOnError(config) as any
     },
   }
 }

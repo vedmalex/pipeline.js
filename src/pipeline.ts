@@ -48,7 +48,7 @@ function validatorPipelineConfig<Input, Output>(
 }
 
 export interface PipelineBuilder<TParams extends PipelineParams> {
-  _def: PipelineConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  config: PipelineConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   build(): Pipeline<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
@@ -75,16 +75,16 @@ export interface PipelineBuilder<TParams extends PipelineParams> {
 }
 
 export function pipeline(
-  _def: PipelineConfig<any, any> = { stages: [] },
+  config: PipelineConfig<any, any> = { stages: [] },
 ): PipelineBuilder<InferPipelineParams<{ _type: 'pipeline' }>> {
   return {
-    _def: _def,
+    config: config,
     addStage(stage) {
-      _def.stages.push(stage)
-      return pipeline(_def) as any
+      config.stages.push(stage)
+      return pipeline(config) as any
     },
     build() {
-      return new Pipeline(_def) as any
+      return new Pipeline(config) as any
     },
   }
 }

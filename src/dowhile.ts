@@ -95,7 +95,7 @@ function validatorDoWhileConfig<Input, Output, IInput, IOutput>(
 }
 
 export interface DoWhileBuilder<TParams extends DoWhileParams> {
-  _def: DoWhileConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
+  config: DoWhileConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
   build<
     Result extends DoWhile<
       ExtractInput<TParams>,
@@ -208,45 +208,45 @@ export interface DoWhileBuilder<TParams extends DoWhileParams> {
 }
 
 export function dowhile(
-  _def: DoWhileConfig<any, any, any, any> = {} as DoWhileConfig<any, any, any, any>,
+  config: DoWhileConfig<any, any, any, any> = {} as DoWhileConfig<any, any, any, any>,
 ): DoWhileBuilder<InferDoWhileParams<{ _type: 'dowhile' }>> {
   return {
-    _def,
+    config,
     input(input) {
       return dowhile({
-        ..._def,
+        ...config,
         input: input as any,
       })
     },
     output(output) {
       return dowhile({
-        ..._def,
+        ...config,
         output: output as any,
       })
     },
     do(stage) {
       return dowhile({
-        ..._def,
+        ...config,
         do: stage,
       }) as any
     },
     build() {
-      return new DoWhile(_def) as any
+      return new DoWhile(config) as any
     },
     step(step) {
       return dowhile({
-        ..._def,
+        ...config,
         step,
       })
     },
     combine(combine) {
       return dowhile({
-        ..._def,
+        ...config,
         combine,
       })
     },
     while(condition) {
-      return dowhile({ ..._def, while: condition })
+      return dowhile({ ...config, while: condition })
     },
   }
 }

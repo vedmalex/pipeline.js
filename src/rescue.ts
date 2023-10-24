@@ -67,7 +67,7 @@ function validatorRescueConfig<Input, Output>(
 }
 
 export interface RescueBuilder<TParams extends RescueParams> {
-  _def: RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  config: RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   build(): Rescue<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
@@ -110,24 +110,24 @@ export interface RescueBuilder<TParams extends RescueParams> {
 }
 
 export function rescue<TConfig extends RescueConfig<any, any>>(
-  _def: Partial<TConfig> = {},
+  config: Partial<TConfig> = {},
 ): RescueBuilder<InferRescueParams<{ _type: 'rescue' }>> {
   return {
-    _def: _def as TConfig,
+    config: config as TConfig,
     stage(stage) {
       return rescue({
-        ..._def,
+        ...config,
         stage,
       }) as any
     },
     rescue(fn) {
       return rescue({
-        ..._def,
+        ...config,
         rescue: fn as any,
       }) as any
     },
     build() {
-      return new Rescue(_def as TConfig) as any
+      return new Rescue(config as TConfig) as any
     },
   }
 }

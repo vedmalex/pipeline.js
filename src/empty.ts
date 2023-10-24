@@ -8,18 +8,18 @@ export class Empty<Input, TConfig extends BaseStageConfig<Input, Input> = BaseSt
 }
 
 export function empty(
-  _def: BaseStageConfig<any, any> = {},
+  config: BaseStageConfig<any, any> = {},
 ): EmptyBuilder {
   return {
-    _def,
+    config,
     build() {
-      return new Empty(_def) as any
+      return new Empty(config) as any
     },
   }
 }
 
 export interface EmptyBuilder {
-  _def: BaseStageConfig<any, any>
+  config: BaseStageConfig<any, any>
   // где-то теряется тип Params
   build(): Empty<
     any,

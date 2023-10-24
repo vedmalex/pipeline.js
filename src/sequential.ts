@@ -102,7 +102,7 @@ function validatorSequentialConfig<Input, Output>(
 }
 
 export interface SequentialBuilder<TParams extends SequentialParams> {
-  _def: SequentialConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  config: SequentialConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   serial(): IntellisenseFor<
     'sequential',
     'serial',
@@ -143,24 +143,24 @@ export interface SequentialBuilder<TParams extends SequentialParams> {
 }
 
 export function sequential(
-  _def: SequentialConfig<any, any> = {} as SequentialConfig<any, any>,
+  config: SequentialConfig<any, any> = {} as SequentialConfig<any, any>,
 ): SequentialBuilder<InferSequentialParams<{ _type: 'sequential' }>> {
   return {
-    _def,
+    config,
     serial() {
       return sequential({
-        ..._def,
+        ...config,
         serial: true,
       }) as any
     },
     stage(stage) {
       return sequential({
-        ..._def,
+        ...config,
         stage,
       }) as any
     },
     build() {
-      return new Sequential(_def) as any
+      return new Sequential(config) as any
     },
   }
 }

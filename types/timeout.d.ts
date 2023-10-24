@@ -12,7 +12,7 @@ export interface TimeoutConfig<Input, Output> extends BaseStageConfig<Input, Out
     overdue?: AbstractStage<Input, Output>;
 }
 export interface TimeoutBuilder<TParams extends TimeoutParams> {
-    _def: TimeoutConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
+    config: TimeoutConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
     build(): Timeout<ExtractInput<TParams>, ExtractOutput<TParams>, TimeoutConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>;
     stage<RStage extends AbstractStage<any, any>>(stage: RStage): IntellisenseFor<'timeout', 'stage', TimeoutBuilder<Merge<InferTimeoutParams<TParams>, {
         _stage: OverwriteIfDefined<TParams['_stage'], RStage>;
@@ -24,6 +24,6 @@ export interface TimeoutBuilder<TParams extends TimeoutParams> {
         _timeout: OverwriteIfDefined<TParams['_timeout'], Timeout>;
     }>>>;
 }
-export declare function timeout(_def?: TimeoutConfig<any, any>): TimeoutBuilder<InferTimeoutParams<{
+export declare function timeout(config?: TimeoutConfig<any, any>): TimeoutBuilder<InferTimeoutParams<{
     _type: 'timeout';
 }>>;

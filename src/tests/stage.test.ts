@@ -1,6 +1,6 @@
+import { stage } from 'src'
 import z from 'zod'
 import { builder } from '../builder'
-import { stage } from 'src'
 
 describe('stageBuilder', () => {
   // дальше работаем с типами!!! чтобы был контроль входщих данных и выходящих
@@ -22,7 +22,7 @@ describe('stageBuilder', () => {
     const res2 = await st.execute('name')
     expect(res2).toMatchObject({ name: 'name', full: 'full' })
   })
-    it('run just_stage', async () => {
+  it('run just_stage', async () => {
     const st = stage()
       .input(z.string().optional())
       .output(z.object({ name: z.string(), full: z.string() }))

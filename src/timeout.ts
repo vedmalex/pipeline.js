@@ -79,7 +79,7 @@ function validatorTimeoutConfig<Input, Output>(
 }
 
 export interface TimeoutBuilder<TParams extends TimeoutParams> {
-  _def: TimeoutConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  config: TimeoutConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   build(): Timeout<
     ExtractInput<TParams>,
     ExtractOutput<TParams>,
@@ -136,30 +136,30 @@ export interface TimeoutBuilder<TParams extends TimeoutParams> {
 }
 
 export function timeout(
-  _def: TimeoutConfig<any, any> = {} as TimeoutConfig<any, any>,
+  config: TimeoutConfig<any, any> = {} as TimeoutConfig<any, any>,
 ): TimeoutBuilder<InferTimeoutParams<{ _type: 'timeout' }>> {
   return {
-    _def,
+    config,
     stage(stage) {
       return timeout({
-        ..._def,
+        ...config,
         stage,
       }) as any
     },
     overdue(overdue) {
       return timeout({
-        ..._def,
+        ...config,
         overdue,
       })
     },
     timeout(period) {
       return timeout({
-        ..._def,
+        ...config,
         timeout: period,
       })
     },
     build() {
-      return new Timeout(_def)
+      return new Timeout(config)
     },
   }
 }

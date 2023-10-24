@@ -12,7 +12,7 @@ export interface RescueConfig<Input, Output> extends BaseStageConfig<Input, Outp
     rescue: RescueRun<Input, Output>;
 }
 export interface RescueBuilder<TParams extends RescueParams> {
-    _def: RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
+    config: RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
     build(): Rescue<ExtractInput<TParams>, ExtractOutput<TParams>, RescueConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>;
     stage<RStage extends AbstractStage<any, any>>(stage: RStage): IntellisenseFor<'rescue', 'stage', RescueBuilder<Merge<InferRescueParams<TParams>, {
         _stage: OverwriteIfDefined<TParams['_stage'], ExtractStage<RStage>>;
@@ -21,6 +21,6 @@ export interface RescueBuilder<TParams extends RescueParams> {
     }>>>;
     rescue(rescue: RescueRun<ExtractInput<TParams>, ExtractOutput<TParams>>): IntellisenseFor<'rescue', 'rescue', RescueBuilder<InferRescueParams<TParams>>>;
 }
-export declare function rescue<TConfig extends RescueConfig<any, any>>(_def?: Partial<TConfig>): RescueBuilder<InferRescueParams<{
+export declare function rescue<TConfig extends RescueConfig<any, any>>(config?: Partial<TConfig>): RescueBuilder<InferRescueParams<{
     _type: 'rescue';
 }>>;

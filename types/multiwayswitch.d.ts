@@ -17,7 +17,7 @@ export interface MultiWaySwitchCaseConfig<Input, Output> extends BaseStageConfig
     evaluate: StageEvaluateFunction<Input>;
 }
 export interface MultiWaySwitchBuilder<TParams extends MultiWaySwitchParams> {
-    _def: MultWaySwitchConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
+    config: MultWaySwitchConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
     build<I extends ExtractInput<TParams>, O extends ExtractOutput<TParams>>(): MultiWaySwitch<I, O, MultWaySwitchConfig<I, O>>;
     add<AddCase extends MultiWaySwitchCase<any, any>>(input: AddCase): IntellisenseFor<'multiwayswitch', 'add', MultiWaySwitchBuilder<Merge<InferMultiWaySwitchParams<TParams>, {
         _input: MergeIfDefined<TParams['_input'], ExtractStageInput<AddCase>>;
@@ -25,7 +25,7 @@ export interface MultiWaySwitchBuilder<TParams extends MultiWaySwitchParams> {
     }>>>;
 }
 export interface MultiWaySwitchCaseBuilder<TParams extends MultiWaySwitchCaseParams> {
-    _def: MultiWaySwitchCaseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
+    config: MultiWaySwitchCaseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
     build(): MultiWaySwitchCase<ExtractInput<TParams>, ExtractOutput<TParams>>;
     stage<RStage extends AbstractStage<any, any>>(stage: RStage): IntellisenseFor<'multiwayswitchcase', 'stage', MultiWaySwitchCaseBuilder<Merge<InferMultiWaySwitchCaseParams<TParams>, {
         _stage: OverwriteIfDefined<TParams['_stage'], ExtractStage<RStage>>;
@@ -36,9 +36,9 @@ export interface MultiWaySwitchCaseBuilder<TParams extends MultiWaySwitchCasePar
         _evaluate: OverwriteIfDefined<TParams['_evaluate'], true>;
     }>>>;
 }
-export declare function multiwayswitch(_def?: MultWaySwitchConfig<any, any>): MultiWaySwitchBuilder<InferMultiWaySwitchParams<{
+export declare function multiwayswitch(config?: MultWaySwitchConfig<any, any>): MultiWaySwitchBuilder<InferMultiWaySwitchParams<{
     _type: 'multiwayswitch';
 }>>;
-export declare function multiwayswitchcase(_def?: MultiWaySwitchCaseConfig<any, any>): MultiWaySwitchCaseBuilder<InferMultiWaySwitchCaseParams<{
+export declare function multiwayswitchcase(config?: MultiWaySwitchCaseConfig<any, any>): MultiWaySwitchCaseBuilder<InferMultiWaySwitchCaseParams<{
     _type: 'multiwayswitchcase';
 }>>;

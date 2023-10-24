@@ -17,7 +17,7 @@ export interface WrapConfig<Input, Output, IInput, IOutput> extends StageConfig<
     finalize: WrapFinalize<Input, Output, IOutput>;
 }
 export interface WrapBuilder<TParams extends WrapParams> {
-    _def: WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>;
+    config: WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>;
     build<Result extends Wrap<ExtractInput<TParams>, ExtractOutput<TParams>, ExtractStageInput<TParams['_stage']>, ExtractStageOutput<TParams['_stage']>>>(): TParams['_prepare'] extends true ? TParams['_finalize'] extends true ? Result : ErrorMessage<'prepare MUST have finalize'> : Result;
     input<$Parser extends Parser>(schema: SchemaType<TParams, $Parser, '_input', 'in'>): IntellisenseFor<'wrap', 'input', WrapBuilder<Merge<InferWrapParams<TParams>, {
         _input: OverwriteIfDefined<TParams['_input'], inferParser<$Parser>['in']>;
@@ -35,6 +35,6 @@ export interface WrapBuilder<TParams extends WrapParams> {
         _finalize: OverwriteIfDefined<TParams['_finalize'], true>;
     }>>>;
 }
-export declare function wrap(_def?: WrapConfig<any, any, any, any>): WrapBuilder<InferWrapParams<{
+export declare function wrap(config?: WrapConfig<any, any, any, any>): WrapBuilder<InferWrapParams<{
     _type: 'wrap';
 }>>;

@@ -9,7 +9,7 @@ export interface SequentialConfig<Input, Output> extends StageConfig<Input, Outp
     stage: AbstractStage<Input, Output>;
 }
 export interface SequentialBuilder<TParams extends SequentialParams> {
-    _def: SequentialConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
+    config: SequentialConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
     serial(): IntellisenseFor<'sequential', 'serial', SequentialBuilder<Merge<InferSequentialParams<TParams>, {
         _serial: OverwriteIfDefined<TParams['_serial'], true>;
     }>>>;
@@ -18,6 +18,6 @@ export interface SequentialBuilder<TParams extends SequentialParams> {
         _stage: OverwriteIfDefined<TParams['_stage'], ExtractStage<RStage>>;
     }>>>;
 }
-export declare function sequential(_def?: SequentialConfig<any, any>): SequentialBuilder<InferSequentialParams<{
+export declare function sequential(config?: SequentialConfig<any, any>): SequentialBuilder<InferSequentialParams<{
     _type: 'sequential';
 }>>;

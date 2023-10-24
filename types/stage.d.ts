@@ -8,7 +8,7 @@ export declare class Stage<Input, Output, TConfig extends StageConfig<Input, Out
 }
 export type StageConfig<Input, Output> = BaseStageConfig<Input, Output> & RunConfig<Input, Output>;
 export interface StageBuilder<TParams extends StageParams> {
-    _def: StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
+    config: StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
     input<$Parser extends Parser>(schema: SchemaType<TParams, $Parser, '_input', 'in'>): IntellisenseFor<'stage', 'input', StageBuilder<Merge<InferStageParams<TParams>, {
         _input: OverwriteIfDefined<TParams['_input'], inferParser<$Parser>['in']>;
     }>>>;
@@ -20,6 +20,6 @@ export interface StageBuilder<TParams extends StageParams> {
     }>>>;
     build(): Stage<ExtractInput<TParams>, ExtractOutput<TParams>, StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>;
 }
-export declare function stage<TConfig extends StageConfig<any, any>>(_def?: TConfig): StageBuilder<InferStageParams<{
+export declare function stage<TConfig extends StageConfig<any, any>>(config?: TConfig): StageBuilder<InferStageParams<{
     _type: 'stage';
 }>>;

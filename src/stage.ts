@@ -33,7 +33,7 @@ function validatorStageConfig<Input, Output>(config: StageConfig<Input, Output>)
 }
 
 export interface StageBuilder<TParams extends StageParams> {
-  _def: StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  config: StageConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   input<$Parser extends Parser>(
     schema: SchemaType<TParams, $Parser, '_input', 'in'>,
   ): IntellisenseFor<
@@ -93,30 +93,30 @@ export interface StageBuilder<TParams extends StageParams> {
   >
 }
 export function stage<TConfig extends StageConfig<any, any>>(
-  _def: TConfig = {} as TConfig,
+  config: TConfig = {} as TConfig,
 ): StageBuilder<InferStageParams<{ _type: 'stage' }>> {
   return {
-    _def: _def as TConfig,
+    config: config as TConfig,
     input(input) {
       return stage({
-        ..._def,
+        ...config,
         input,
       })
     },
     output(output) {
       return stage({
-        ..._def,
+        ...config,
         output,
       })
     },
     run(run) {
       return stage({
-        ..._def,
+        ...config,
         run,
       })
     },
     build() {
-      return new Stage(_def as TConfig)
+      return new Stage(config as TConfig)
     },
   }
 }

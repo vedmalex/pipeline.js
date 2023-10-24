@@ -24,7 +24,7 @@ export interface DoWhileConfig<Input, Output, IInput, IOutput> extends BaseStage
     combine: DoWhileCombine<Input, Output, IOutput>;
 }
 export interface DoWhileBuilder<TParams extends DoWhileParams> {
-    _def: DoWhileConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>;
+    config: DoWhileConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>;
     build<Result extends DoWhile<ExtractInput<TParams>, ExtractStageInput<TParams['_stage']>, ExtractStageOutput<TParams['_stage']>, DoWhileConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>>>(): TParams['_step'] extends true ? TParams['_combine'] extends true ? Result : ErrorMessage<'prepare MUST have finalize'> : Result;
     input<$Parser extends Parser>(schema: SchemaType<TParams, $Parser, '_input', 'in'>): IntellisenseFor<'dowhile', 'input', DoWhileBuilder<Merge<InferDoWhileParams<TParams>, {
         _input: OverwriteIfDefined<TParams['_input'], inferParser<$Parser>['in']>;
@@ -44,6 +44,6 @@ export interface DoWhileBuilder<TParams extends DoWhileParams> {
         _combine: OverwriteIfDefined<TParams['_combine'], true>;
     }>>>;
 }
-export declare function dowhile(_def?: DoWhileConfig<any, any, any, any>): DoWhileBuilder<InferDoWhileParams<{
+export declare function dowhile(config?: DoWhileConfig<any, any, any, any>): DoWhileBuilder<InferDoWhileParams<{
     _type: 'dowhile';
 }>>;

@@ -62,7 +62,7 @@ function validatorIfElseConfig<Input, Output>(
 }
 
 export interface IfElseBuilder<TParams extends IfElseParams> {
-  _def: IfElseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
+  config: IfElseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>
   if(
     timeout: IfElseCondition<OverwriteIfDefined<ExtractInput<TParams>, unknown>>,
   ): IntellisenseFor<
@@ -140,36 +140,36 @@ export interface IfElseBuilder<TParams extends IfElseParams> {
   >
 }
 export function ifelse(
-  _def: IfElseConfig<any, any> = {} as IfElseConfig<any, any>,
+  config: IfElseConfig<any, any> = {} as IfElseConfig<any, any>,
 ): IfElseBuilder<InferIfElseParams<{ _type: 'ifelse' }>> {
   return {
-    _def,
+    config,
     if(condition) {
       return ifelse({
-        ..._def,
+        ...config,
         if: condition,
       }) as any
     },
     stage(stage) {
       return ifelse({
-        ..._def,
+        ...config,
         then: stage,
       }) as any
     },
     then(stage) {
       return ifelse({
-        ..._def,
+        ...config,
         then: stage,
       }) as any
     },
     else(stage) {
       return ifelse({
-        ..._def,
+        ...config,
         else: stage,
       }) as any
     },
     build() {
-      return new IfElse(_def) as any
+      return new IfElse(config) as any
     },
   }
 }

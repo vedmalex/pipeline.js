@@ -122,7 +122,7 @@ function validatorWrapConfig<Input, Output, IInput, IOutput>(
 }
 
 export interface WrapBuilder<TParams extends WrapParams> {
-  _def: WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
+  config: WrapConfig<ExtractInput<TParams>, ExtractOutput<TParams>, any, any>
   build<
     Result extends Wrap<
       ExtractInput<TParams>,
@@ -222,40 +222,40 @@ export interface WrapBuilder<TParams extends WrapParams> {
 }
 
 export function wrap(
-  _def: WrapConfig<any, any, any, any> = {} as WrapConfig<any, any, any, any>,
+  config: WrapConfig<any, any, any, any> = {} as WrapConfig<any, any, any, any>,
 ): WrapBuilder<InferWrapParams<{ _type: 'wrap' }>> {
   return {
-    _def,
+    config,
     input(input) {
       return wrap({
-        ..._def,
+        ...config,
         input: input as any,
       })
     },
     output(output) {
       return wrap({
-        ..._def,
-        output:output as any,
+        ...config,
+        output: output as any,
       })
     },
     stage(stage) {
       return wrap({
-        ..._def,
+        ...config,
         stage,
       }) as any
     },
     build() {
-      return new Wrap(_def) as any
+      return new Wrap(config) as any
     },
     prepare(prepare) {
       return wrap({
-        ..._def,
+        ...config,
         prepare,
       })
     },
     finalize(finalize) {
       return wrap({
-        ..._def,
+        ...config,
         finalize,
       })
     },

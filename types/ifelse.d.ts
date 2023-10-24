@@ -12,7 +12,7 @@ export interface IfElseConfig<Input, Output> extends BaseStageConfig<Input, Outp
     else?: AbstractStage<Input, Output>;
 }
 export interface IfElseBuilder<TParams extends IfElseParams> {
-    _def: IfElseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
+    config: IfElseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>;
     if(timeout: IfElseCondition<OverwriteIfDefined<ExtractInput<TParams>, unknown>>): IntellisenseFor<'ifelse', 'if', IfElseBuilder<InferIfElseParams<TParams>>>;
     then<RStage extends AbstractStage<MaySetInput<TParams>, MaySetOutput<TParams>>>(stage: TParams['_stage'] extends UnsetMarker ? RStage : never): TParams['_stage'] extends UnsetMarker ? IntellisenseFor<'ifelse', 'then', IfElseBuilder<Merge<InferIfElseParams<TParams>, {
         _stage: OverwriteIfDefined<TParams['_stage'], ExtractStageInput<RStage>>;
@@ -27,6 +27,6 @@ export interface IfElseBuilder<TParams extends IfElseParams> {
     else<RStage extends AbstractStage<ExtractInput<TParams>, ExtractOutput<TParams>>>(stage: RStage): IntellisenseFor<'ifelse', 'else', IfElseBuilder<InferIfElseParams<TParams>>>;
     build(): IfElse<ExtractInput<TParams>, ExtractOutput<TParams>, IfElseConfig<ExtractInput<TParams>, ExtractOutput<TParams>>>;
 }
-export declare function ifelse(_def?: IfElseConfig<any, any>): IfElseBuilder<InferIfElseParams<{
+export declare function ifelse(config?: IfElseConfig<any, any>): IfElseBuilder<InferIfElseParams<{
     _type: 'ifelse';
 }>>;
