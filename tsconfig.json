@@ -27,19 +27,14 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "importHelpers": true,
-    "module": "esnext",
-    "target": "esnext",
+    "module": "ESNext",
+    "target": "ESNext",
     "moduleResolution": "bundler",
     "moduleDetection": "force",
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "downlevelIteration": true,
-    "lib": [
-      "ESNext",
-      "ESNext.AsyncIterable",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": [],
     "types": [
       "node",
       "jest",

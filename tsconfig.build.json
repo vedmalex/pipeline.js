@@ -5,7 +5,7 @@
     "rootDir": "src",
     "outDir": "dist",
     "composite": true,
-    "module": "CommonJS",
+    "module": "ESNext",
     "esModuleInterop": true,
     "sourceMap": true,
     "declaration": true,
@@ -27,15 +27,10 @@
     "noUnusedLocals": true,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
-    "target": "es2018",
-    "moduleResolution": "node",
+    "target": "ESNext",
+    "moduleResolution": "Bundler",
     "importHelpers": true,
-    "lib": [
-      "ESNext",
-      "ESNext.AsyncIterable",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": [],
     "types": [
       "node",
       "jest"

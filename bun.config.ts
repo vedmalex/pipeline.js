@@ -5,7 +5,7 @@ export function createConfig({
   pkg,
   // aliases,
   entrypoints = ['src/index.ts'],
-  outdir = './out',
+  outdir = './dist',
   target = 'bun',
   format = 'esm',
   external = [],

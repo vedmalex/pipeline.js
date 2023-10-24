@@ -404,7 +404,7 @@ export type PropertiesFor<T extends StageType, kind extends 'all' | 'start'> = T
   : T extends 'wrap' ? GetIntellisenceFor<T, kind>
   : T extends 'emtpy' ? GetIntellisenceFor<T, kind>
   : T extends 'timeout' ? GetIntellisenceFor<T, kind>
-  // : T extends 'ifelse' ? GetIntellisenceFor<T, kind>
+  : T extends 'ifelse' ? GetIntellisenceFor<T, kind>
   : T extends 'retryonerror' ? GetIntellisenceFor<T, kind>
   : T extends 'dowhile' ? GetIntellisenceFor<T, kind>
   : T extends 'sequential' ? GetIntellisenceFor<T, kind>
