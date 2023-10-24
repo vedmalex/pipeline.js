@@ -1,4 +1,3 @@
-import z from 'zod';
 import { AbstractStage, BuilderParams, DoWhileParams, IfElseParams, MultiWaySwitchCaseParams, MultiWaySwitchParams, PipelineParams, RescueParams, RetryOnErrorParams, SequentialParams, StageParams, TimeoutParams, WithInputOutputParams, WithInputParams, WrapParams } from './base';
 import { Stage, StageConfig } from './stage';
 export declare const unsetMarker: unique symbol;
@@ -173,7 +172,7 @@ export type ParserZod<TInput, TParsedInput> = {
 };
 export type ErrorMessage<TMessage extends string> = TMessage;
 export type SchemaType<TParams extends BuilderParams, $Parser extends Parser, key extends keyof TParams, parser extends keyof inferParser<$Parser>> = TParams[key] extends UnsetMarker ? $Parser : inferParser<$Parser>[parser] extends Record<string, unknown> | undefined ? TParams[key] extends Record<string, unknown> | undefined ? undefined extends inferParser<$Parser>[parser] ? undefined extends TParams[key] ? $Parser : ErrorMessage<'Cannot chain an optional parser to a required parser'> : $Parser : ErrorMessage<'All input parsers did not resolve to an object'> : ErrorMessage<'All input parsers did not resolve to an object'>;
-export type Parser = z.ZodTypeAny;
+export type Parser = ParserZod<any, any>;
 export type InferConfig<TStage> = TStage extends Stage<any, any, infer $TConfig> ? $TConfig : TStage extends Stage<infer $Input, infer $Output, any> ? StageConfig<$Input, $Output> : {};
 export type InferContext<TStage> = TStage extends Stage<infer $Input, any> ? $Input : UnsetMarker;
 export type inferParser<TParser extends Parser> = TParser extends ParserZod<infer $TIn, infer $TOut> ? {

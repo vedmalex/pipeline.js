@@ -215,13 +215,13 @@ export function dowhile(
     input(input) {
       return dowhile({
         ..._def,
-        input,
+        input: input as any,
       })
     },
     output(output) {
       return dowhile({
         ..._def,
-        output,
+        output: output as any,
       })
     },
     do(stage) {

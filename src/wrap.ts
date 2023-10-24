@@ -229,13 +229,13 @@ export function wrap(
     input(input) {
       return wrap({
         ..._def,
-        input,
+        input: input as any,
       })
     },
     output(output) {
       return wrap({
         ..._def,
-        output,
+        output:output as any,
       })
     },
     stage(stage) {
