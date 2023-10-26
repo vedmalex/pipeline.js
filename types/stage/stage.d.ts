@@ -1,0 +1,30 @@
+import { z } from 'zod';
+import { StageSymbol } from './getStageConfig';
+import { StageConfig } from './StageConfig';
+import { AnyStage, CallbackFunction, LegacyCallback, RunPipelineFunction, StageRun } from './types';
+export declare class Stage<Input, Output, Config extends StageConfig<Input, Output> = StageConfig<Input, Output>> implements AnyStage<Input, Output> {
+    get config(): Config;
+    [StageSymbol]: boolean;
+    protected _config: Config;
+    constructor();
+    constructor(name: string);
+    constructor(config: Config);
+    constructor(runFn: RunPipelineFunction<Input, Output>);
+    constructor(stage: AnyStage<Input, Output>);
+    get reportName(): string;
+    toString(): string;
+    get name(): string;
+    execute(context: Input): Promise<Output>;
+    execute(context: Input, callback: LegacyCallback<Output>): void;
+    execute(err: unknown, context: Input, callback: LegacyCallback<Output>): void;
+    exec(context: Input): Promise<Output>;
+    exec(context: Input, callback: CallbackFunction<Input, Output>): void;
+    exec(err: unknown, context: Input, callback: CallbackFunction<Input, Output>): void;
+    protected runStageMethod(err_: unknown, err: unknown, ctx: Input | undefined, context: Input, stageToRun: StageRun<any, Output>, callback: CallbackFunction<Input, Output>): void;
+    protected stage(err: unknown, context: Input, callback: CallbackFunction<Input, Output>): void;
+    protected run?: StageRun<Input, Output>;
+    protected compile(rebuild?: boolean): StageRun<Input, Output>;
+    protected rescue(_err: unknown, context: unknown, fail: (err: unknown) => void, success: (ctx: unknown) => void): void;
+    protected rescue_async(_err: unknown, context: unknown): Promise<[unknown, unknown]>;
+    protected validate<T>(validate: z.ZodType<T>, context: unknown, callback: CallbackFunction<Input, T>): void;
+}

@@ -1,0 +1,13 @@
+import { CallbackFunction } from './CallbackFunction';
+export type Rescue1Sync = (this: unknown, err: Error) => any;
+export type Rescue1ASync = (this: unknown, err: Error) => Promise<void>;
+export type Rescue2ASync = (this: null, err: Error, ctx: unknown) => Promise<void>;
+export type Rescue2Sync = (this: null, err: Error, ctx: unknown) => unknown;
+export type Rescue3Callback = (this: null, err: Error, ctx: unknown, done: CallbackFunction<unknown, unknown>) => void;
+export declare function isRescue1Sync(inp: unknown): inp is Rescue1Sync;
+export declare function isRescue1ASync(inp: unknown): inp is Rescue1ASync;
+export declare function isRescue2ASync(inp: unknown): inp is Rescue2ASync;
+export declare function isRescue3Callback(inp: unknown): inp is Rescue3Callback;
+export declare function isRescue2Sync(inp: unknown): inp is Rescue2Sync;
+export declare function isRescue(inp: unknown): inp is Rescue;
+export type Rescue = Rescue1Sync | Rescue1ASync | Rescue2ASync | Rescue2Sync | Rescue3Callback;

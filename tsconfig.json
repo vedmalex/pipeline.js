@@ -1,43 +1,11 @@
 {
+  "extends": "../../shared/tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "rootDir": "src",
-    "outDir": "dist",
-    "composite": true,
-    "module": "CommonJS",
-    "esModuleInterop": true,
-    "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
-    "removeComments": true,
-    "skipLibCheck": true,
-    "skipDefaultLibCheck": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "strictBindCallApply": true,
-    "strictFunctionTypes": true,
-    "strictPropertyInitialization": true,
-    "noImplicitAny": false,
-    "noImplicitReturns": false,
-    "noImplicitOverride": true,
-    "noImplicitThis": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedParameters": false,
-    "noUnusedLocals": true,
-    "forceConsistentCasingInFileNames": true,
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "es2018",
-    "moduleResolution": "node",
-    "importHelpers": true,
-    "lib": [
-      "ESNext",
-      "ESNext.AsyncIterable",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "rootDir": "./src",
+    "outDir": "./types",
     "types": [
-      "node",
+      "bun-types",
       "jest"
     ]
   },
@@ -45,6 +13,7 @@
     "src/**/*"
   ],
   "exclude": [
+    "src/**/*.test.*",
     "**/node_modules/**"
   ]
 }

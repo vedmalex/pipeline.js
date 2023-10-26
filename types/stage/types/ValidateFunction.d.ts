@@ -1,0 +1,17 @@
+import { CallbackFunction } from './CallbackFunction';
+import { Thenable } from './is_thenable';
+export type ValidateFunction0Sync<Output> = (this: Output) => boolean;
+export declare function isValidateFunction0Sync<Output>(inp: unknown): inp is ValidateFunction0Sync<Output>;
+export type ValidateFunction1Sync<Output> = (this: void, ctx: Output) => boolean;
+export declare function isValidateFunction1Sync<Output>(inp: unknown): inp is ValidateFunction1Sync<Output>;
+export type ValidateFunction1Async<Output> = (this: void, ctx: Output) => Promise<boolean>;
+export declare function isValidateFunction1Async<Output>(inp: unknown): inp is ValidateFunction1Async<Output>;
+export type ValidateFunction1Thenable<Output> = (this: void, ctx: Output) => Thenable<boolean>;
+export declare function isValidateFunction1Thenable<Output>(inp: unknown): inp is ValidateFunction1Thenable<Output>;
+export type ValidateFunction2Sync<Output> = (this: void, ctx: Output, callback: CallbackFunction<boolean, boolean>) => void;
+export declare function isValidateFunction2Sync<Output>(inp: unknown): inp is ValidateFunction2Sync<Output>;
+export type ValidateFunction<Output> = ValidateFunction0Sync<Output> | ValidateFunction1Sync<Output> | ValidateFunction1Async<Output> | ValidateFunction1Thenable<Output> | ValidateFunction2Sync<Output>;
+export declare function isValidateFunction<Output>(inp: unknown): inp is ValidateFunction<Output>;
+export type ValidateSync<Output> = (ctx: Output) => Output;
+export type ValidateAsync<Output> = (ctx: Output) => Promise<Output>;
+export type ValidateCallback<Output> = (ctx: Output, done: CallbackFunction<Output, Output>) => void;
