@@ -21,7 +21,7 @@
     "noUnusedLocals": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["ES2020"],
-    "types": ["node", "jest"],
+    "types": ["node"],
     "baseUrl": "./",
     "rootDir": "./src",
     "outDir": "lib",
