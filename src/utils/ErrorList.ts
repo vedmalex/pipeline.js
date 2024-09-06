@@ -48,12 +48,14 @@ export function isComplexError(inp: any): inp is ComplexError {
   return inp.isComplex && Array.isArray(inp.payload)
 }
 export class ComplexError extends Error {
-  payload: Array<Error>
-  isComplex: boolean
+  payload!: Array<Error>
+  isComplex!: boolean
   // to store all details of single error
   constructor(...payload: Array<Error>) {
     debugger
     super()
+    //@ts-ignore
+    return payload[0]
     this.payload = payload
     this.isComplex = true
   }
