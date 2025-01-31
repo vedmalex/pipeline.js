@@ -23,7 +23,6 @@ import {
   is_func2,
 } from './types'
 import { Func3Sync } from './types'
-import { ContextType } from '../context'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
 
@@ -33,26 +32,26 @@ export function execute_custom_run<T extends StageObject>(
   return function (
     this: any,
     err: Possible<ComplexError>,
-    context: ContextType<T>,
+    context: T,
     _done: CallbackFunction<T>,
   ) {
     const done = run_callback_once(_done)
     switch (run.length) {
       // this is the context of the run function
       case 0:
-        if (is_func0_async<ContextType<T>>(run)) {
+        if (is_func0_async<T>(run)) {
           try {
             const res = run.call(context)
             res.then(r => done(undefined, r)).catch(err => done(err))
           } catch (err) {
             process_error(err, done)
           }
-        } else if (is_func0<ContextType<T>>(run)) {
+        } else if (is_func0<T>(run)) {
           try {
             const res = run.apply(context)
             if (res instanceof Promise) {
               res.then(r => done(undefined, r)).catch(err => done(err))
-            } else if (is_thenable<ContextType<T>>(res)) {
+            } else if (is_thenable<T>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
               done(undefined, res)
@@ -63,7 +62,7 @@ export function execute_custom_run<T extends StageObject>(
         }
         break
       case 1:
-        if (is_func1_async<ContextType<T>, ContextType<T>>(run)) {
+        if (is_func1_async<T, T>(run)) {
           try {
             run(context)
               .then(ctx => done(undefined, ctx))
@@ -73,15 +72,15 @@ export function execute_custom_run<T extends StageObject>(
           }
         } else if (
           is_func1<
-            ContextType<T> | Promise<ContextType<T>> | Thanable<ContextType<T>>,
-            ContextType<T>
+            T | Promise<T> | Thanable<T>,
+            T
           >(run)
         ) {
           try {
             const res = run.call(this, context)
             if (res instanceof Promise) {
               res.then(r => done(undefined, r)).catch(err => done(err))
-            } else if (is_thenable<ContextType<T>>(res)) {
+            } else if (is_thenable<T>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else {
               done(undefined, res)
@@ -96,9 +95,9 @@ export function execute_custom_run<T extends StageObject>(
       case 2:
         if (
           is_func2_async<
-            ContextType<T>,
+            T,
             Possible<ComplexError>,
-            ContextType<T>
+            T
           >(run)
         ) {
           try {

@@ -1,7 +1,6 @@
 import { Stage } from './stage'
 import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
-import { ContextType } from './context'
 import { isAnyStage } from './utils/types'
 import {
   AnyStage,
@@ -92,7 +91,7 @@ export class DoWhile<
   override compile(rebuild: boolean = false): StageRun<any> {
     let run: StageRun<any> = (
       err: Possible<ComplexError>,
-      context: ContextType<T>,
+      context: T,
       done: CallbackFunction<T>,
     ) => {
       let iter: number = -1

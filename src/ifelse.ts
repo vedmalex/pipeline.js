@@ -9,7 +9,6 @@ import {
   StageObject,
 } from './utils/types'
 import { CallbackFunction, Possible, StageRun } from './utils/types'
-import { ContextType } from './context'
 
 export class IfElse<T extends StageObject> extends Stage<T, IfElseConfig<T>> {
   constructor(config?: AllowedStage<T, T, IfElseConfig<T>>) {
@@ -30,7 +29,7 @@ export class IfElse<T extends StageObject> extends Stage<T, IfElseConfig<T>> {
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
       err: Possible<ComplexError>,
-      context: ContextType<T>,
+      context: T,
       done: CallbackFunction<T>,
     ) => {
       if (typeof this.config.condition == 'function') {

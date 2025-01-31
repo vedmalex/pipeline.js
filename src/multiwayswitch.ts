@@ -1,7 +1,6 @@
 import { Stage } from './stage'
 import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
-import { ContextType } from './context'
 import { isAnyStage } from './utils/types'
 import {
   AllowedStage,
@@ -31,8 +30,8 @@ export interface MultiWaySwitchStatic<
 > {
   stage: AnyStage<I, I> | RunPipelineFunction<I>
   evaluate?: boolean
-  split?: Func1Sync<ContextType<R>, ContextType<I>>
-  combine?: Func2Sync<ContextType<I>, ContextType<R>, any>
+  split?: Func1Sync<R, I>
+  combine?: Func2Sync<I, R, any>
 }
 
 export interface MultiWaySwitchDynamic<
@@ -41,8 +40,8 @@ export interface MultiWaySwitchDynamic<
 > {
   stage: AnyStage<R, R> | RunPipelineFunction<R>
   evaluate: Func1<boolean, R>
-  split?: Func1Sync<ContextType<T>, ContextType<R>>
-  combine?: Func2Sync<ContextType<R>, ContextType<R>, any>
+  split?: Func1Sync<T, R>
+  combine?: Func2Sync<R, R, any>
 }
 
 export function isMultiWaySwitch<T extends StageObject, R extends StageObject>(
@@ -62,8 +61,8 @@ export interface MultWaySwitchConfig<
   R extends StageObject,
 > extends StageConfig<T> {
   cases: Array<MultiWaySwitchCase<R, StageObject>>
-  split?: Func1Sync<ContextType<R>, ContextType<StageObject>>
-  combine?: Func2Sync<ContextType<T>, Possible<T>, any>
+  split?: Func1Sync<R, StageObject>
+  combine?: Func2Sync<T, Possible<T>, any>
 }
 
 export type AllowedMWS<
@@ -147,7 +146,7 @@ export class MultiWaySwitch<
     return '[pipeline MultWaySwitch]'
   }
 
-  combine(ctx: ContextType<T>, retCtx: ContextType<R>): ContextType<T> {
+  combine(ctx: T, retCtx: R): T {
     if (this.config.combine) {
       return this.config.combine(ctx, retCtx)
     } else {
@@ -157,9 +156,9 @@ export class MultiWaySwitch<
 
   combineCase(
     item: MultiWaySwitchCase<R, StageObject>,
-    ctx: ContextType<R>,
-    retCtx: ContextType<StageObject>,
-  ): ContextType<T> {
+    ctx: R,
+    retCtx: StageObject,
+  ): T {
     if (item.combine) {
       return item.combine(ctx, retCtx)
     } else {
@@ -167,7 +166,7 @@ export class MultiWaySwitch<
     }
   }
 
-  split(ctx: ContextType<T>): ContextType<R> {
+  split(ctx: T): R {
     if (this.config.split) {
       return this.config.split(ctx)
     } else {
@@ -176,8 +175,8 @@ export class MultiWaySwitch<
   }
 
   splitCase(
-    item: { split?: Func1Sync<any, ContextType<T>> },
-    ctx: ContextType<R>,
+    item: { split?: Func1Sync<any, T> },
+    ctx: R,
   ): any {
     if (item.split) {
       return item.split(ctx)
@@ -246,7 +245,7 @@ export class MultiWaySwitch<
 
     let run: StageRun<T> = (
       err: Possible<ComplexError>,
-      ctx: ContextType<T>,
+      ctx: T,
       done: CallbackFunction<T>,
     ) => {
       let actuals: Array<MultiWaySwitchCase<R, StageObject>> = []
@@ -264,10 +263,10 @@ export class MultiWaySwitch<
       let hasError = false
 
       let next = (index: number) => {
-        return (err: Possible<ComplexError>, retCtx: ContextType<R>) => {
+        return (err: Possible<ComplexError>, retCtx: R) => {
           iter++
           let cur = actuals[index]
-          let res: Possible<ContextType<T>> = null
+          let res: Possible<T> = null
           if (err) {
             if (!hasError) hasError = true
             errors.push(err)

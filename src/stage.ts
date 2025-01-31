@@ -14,7 +14,6 @@ import {
   ValidateFunction,
 } from './utils/types'
 
-import { Context, ContextType, OriginalObject } from './context'
 import { can_fix_error } from './utils/can_fix_error'
 import { execute_callback } from './utils/execute_callback'
 import { execute_custom_run } from './utils/execute_custom_run'
@@ -69,8 +68,8 @@ export class Stage<
   protected runStageMethod(
     err_: Possible<ComplexError>,
     err: Possible<ComplexError>,
-    ctx: ContextType<T>,
-    context: ContextType<T>,
+    ctx: T,
+    context: T,
     stageToRun: InternalStageRun<T>,
     callback: CallbackFunction<T>,
   ) {
@@ -97,10 +96,10 @@ export class Stage<
   // может быть вызван как Promise
   // сделать все дубликаты и проверки методов для работы с промисами
   public execute(context: T): Promise<T>
-  public execute(context: ContextType<T>): Promise<T>
+  public execute(context: T): Promise<T>
   public execute(context: T, callback: CallbackExternalFunction<T>): void
   public execute(
-    context: ContextType<T>,
+    context: T,
     callback: CallbackExternalFunction<T>,
   ): void
   public execute(
@@ -115,27 +114,27 @@ export class Stage<
   ): void | Promise<T> {
     // discover arguments
     let err: Possible<ComplexError>,
-      not_ensured_context: T | ContextType<T>,
+      not_ensured_context: T | T,
       __callback: Possible<CallbackExternalFunction<T>>
 
     if (arguments.length == 1) {
-      not_ensured_context = _err as T | ContextType<T>
+      not_ensured_context = _err as T | T
       // promise
     } else if (arguments.length == 2) {
       if (typeof _context == 'function') {
         // callback
-        not_ensured_context = _err as T | ContextType<T>
+        not_ensured_context = _err as T | T
         err = undefined
         __callback = _context as CallbackFunction<T>
       } else {
         // promise
         err = _err as ComplexError
-        not_ensured_context = _context as T | ContextType<T>
+        not_ensured_context = _context as T | T
       }
     } else {
       // callback
       err = _err as ComplexError
-      not_ensured_context = _context as T | ContextType<T>
+      not_ensured_context = _context as T | T
       __callback = _callback as CallbackFunction<T>
     }
 
@@ -151,49 +150,26 @@ export class Stage<
 
     const stageToRun = this.run.bind(this)
 
-    const input_is_context = Context.isContext(not_ensured_context)
-    let context = Context.ensure<T>(not_ensured_context)
-    if (input_is_context) {
-      ;(context as unknown as Context<T>)[OriginalObject] = true
-    }
+    let context = not_ensured_context
     if (!__callback) {
       return new Promise((res, rej) => {
         this.execute(err, context, ((err: Possible<ComplexError>, ctx: T) => {
           if (err) rej(err)
           else {
-            if (input_is_context) {
-              res(ctx)
-            } else {
-              if (Context.isContext(ctx)) {
-                res(ctx.original)
-              } else {
-                res(ctx)
-              }
-            }
+            res(ctx)
           }
         }) as CallbackFunction<T>)
       })
     } else {
       const back: typeof __callback = (err, _ctx) => {
-        if (input_is_context) {
-          __callback?.(err, _ctx)
-        } else {
-          if (Context.isContext(_ctx)) {
-            __callback?.(err, _ctx.original)
-          } else {
-            __callback?.(
-              CreateError([err, new Error('context is always context object')]),
-              _ctx,
-            )
-          }
-        }
+        __callback?.(err, _ctx)
       }
       // process.nextTick(() => {
         const sucess = (ret: T) => back(undefined, ret ?? context)
         const fail = (err: Possible<ComplexError>) => back(err, context)
         const callback = ((
           err: Possible<ComplexError>,
-          _ctx: ContextType<T>,
+          _ctx: T,
         ) => {
           if (err) {
             this.rescue(err, _ctx, fail, sucess)
@@ -212,14 +188,14 @@ export class Stage<
           if (this.config.ensure) {
             this.ensure(this.config.ensure, context, ((
               err_: Possible<ComplexError>,
-              ctx: ContextType<T>,
+              ctx: T,
             ) => {
               this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
             }) as CallbackFunction<T>)
           } else if (this._config.validate) {
             this.validate(this._config.validate, context, ((
               err_: Possible<ComplexError>,
-              ctx: ContextType<T>,
+              ctx: T,
             ) => {
               this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
             }) as CallbackFunction<T>)
@@ -233,17 +209,17 @@ export class Stage<
 
   protected stage(
     err: Possible<ComplexError>,
-    context: ContextType<T>,
+    context: T,
     callback: CallbackFunction<T>,
   ) {
     const back = callback
-    const sucess = (ret: ContextType<T>) => back(undefined, ret ?? context)
+    const sucess = (ret: T) => back(undefined, ret ?? context)
     const fail = (err: Possible<ComplexError>) => back(err, context)
     if (this._config.run) {
       if (context) {
         execute_callback(err, this._config.run, context, ((
           err: Possible<ComplexError>,
-          ctx: ContextType<T>,
+          ctx: T,
         ) => {
           if (err) {
             this.rescue(err, ctx ?? context, fail, sucess)
@@ -291,9 +267,9 @@ export class Stage<
   // в конце важен и контекст ошибки? или не важен
   protected rescue<E>(
     _err: Possible<Error | string>,
-    context: ContextType<T>,
+    context: T,
     fail: (err: Possible<ComplexError>) => void,
-    success: (ctx: ContextType<T>) => void,
+    success: (ctx: T) => void,
   ) {
     let err: Possible<ComplexError>
 
@@ -338,7 +314,7 @@ export class Stage<
 
   protected validate(
     validate: ValidateFunction<T>,
-    context: ContextType<T>,
+    context: T,
     callback: CallbackFunction<T>,
   ) {
     execute_validate(validate, context, ((
@@ -362,12 +338,12 @@ export class Stage<
   }
   protected ensure(
     ensure: EnsureFunction<T>,
-    context: ContextType<T>,
+    context: T,
     callback: CallbackFunction<T>,
   ) {
     execute_ensure(ensure, context, ((
       err: Possible<ComplexError>,
-      result: ContextType<T>,
+      result: T,
     ) => {
       callback(err, result ?? context)
     }) as CallbackFunction<T>)
@@ -375,7 +351,7 @@ export class Stage<
 }
 
 export type EnsureParams<T> = {
-  context: ContextType<T>
+  context: T
   callback: CallbackFunction<T> | undefined
   err: Possible<ComplexError>
   is_promise: boolean

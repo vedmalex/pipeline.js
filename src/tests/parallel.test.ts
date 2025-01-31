@@ -124,7 +124,7 @@ describe('Parallel', function () {
     })
   })
 
-  it.only('complex example 1 - Error Handling', function (done) {
+  it('complex example 1 - Error Handling', function (done) {
     var stage0 = new Stage(function (err, ctx, done) {
       ctx.liter = 1
       if (ctx.some == 4) done(new Error('4'))

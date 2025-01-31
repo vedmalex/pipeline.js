@@ -18,14 +18,13 @@ import { Sequential } from '../sequential'
 import { Timeout } from '../timeout'
 import { Wrap } from '../wrap'
 import { empty_run } from './empty_run'
-import { ContextType } from '../context'
 
 export type StageObject = Record<string | symbol | number, any>
 
 export type CallbackFunction<T> =
   | (() => void)
   | ((err?: Possible<ComplexError>) => void)
-  | ((err?: Possible<ComplexError>, res?: ContextType<T>) => void)
+  | ((err?: Possible<ComplexError>, res?: T) => void)
 
 export type CallbackExternalFunction<T> =
   | (() => void)
@@ -121,7 +120,7 @@ export function is_func3<R, P1, P2, P3>(
 
 export function is_func0_async<T>(
   inp: Function,
-): inp is Func0Async<ContextType<T>> {
+): inp is Func0Async<T> {
   return is_async(inp) && is_func0(inp)
 }
 
@@ -171,22 +170,22 @@ export type RunPipelineFunction<T extends StageObject> =
   | Func3Sync<
       void,
       Possible<ComplexError>,
-      ContextType<T>,
+      T,
       CallbackExternalFunction<T>
     >
-  | Func2Sync<void, ContextType<T>, CallbackExternalFunction<T>>
-  | Func2Async<ContextType<T>, Possible<ComplexError>, ContextType<T>>
+  | Func2Sync<void, T, CallbackExternalFunction<T>>
+  | Func2Async<T, Possible<ComplexError>, T>
   | Func0Sync<
-      ContextType<T> | Promise<ContextType<T>> | Thanable<ContextType<T>>
+      T | Promise<T> | Thanable<T>
     >
-  | Func1Async<ContextType<T>, ContextType<T>>
+  | Func1Async<T, T>
   | Func1Sync<
-      ContextType<T> | Promise<ContextType<T>> | Thanable<ContextType<T>>,
-      ContextType<T>
+      T | Promise<T> | Thanable<T>,
+      T
     >
   | Func1Sync<void, CallbackExternalFunction<T>>
-  | Func1Sync<void, ContextType<T>>
-  | Func0Async<ContextType<T>>
+  | Func1Sync<void, T>
+  | Func0Async<T>
 
 export function isRunPipelineFunction<T extends StageObject>(
   inp: any,
@@ -224,13 +223,13 @@ export function isRescue<T>(inp: any): inp is Rescue<T> {
 export type ValidateFunction<T> =
   // will throw error
   | (() => boolean)
-  | ((value: ContextType<T>) => boolean)
+  | ((value: T) => boolean)
   // will reject with error
-  | ((value: ContextType<T>) => Promise<boolean>)
-  | ((value: ContextType<T>) => Thanable<boolean>)
+  | ((value: T) => Promise<boolean>)
+  | ((value: T) => Thanable<boolean>)
   // will return error in callback
   | ((
-      value: ContextType<T>,
+      value: T,
       callback: CallbackExternalFunction<boolean>,
     ) => void)
 
@@ -271,11 +270,11 @@ export interface PipelineConfig<T extends StageObject> extends StageConfig<T> {
 export interface ParallelConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T> {
   stage: AnyStage<R> | RunPipelineFunction<R>
-  split?: Func1Sync<Array<ContextType<R>>, ContextType<T>>
+  split?: Func1Sync<Array<R>, T>
   combine?: Func2Sync<
-    ContextType<T> | void,
-    ContextType<T>,
-    Array<ContextType<R>>
+    T | void,
+    T,
+    Array<R>
   >
 }
 
@@ -287,13 +286,13 @@ export function isStageRun<T extends StageObject>(
 
 export type StageRun<T extends StageObject> = (
   err: Possible<ComplexError>,
-  context: ContextType<T>,
+  context: T,
   callback: CallbackFunction<T>,
 ) => void
 
 export type InternalStageRun<T extends StageObject> = (
   err: Possible<ComplexError>,
-  context: ContextType<T>,
+  context: T,
   callback: CallbackFunction<T>,
 ) => void
 
@@ -492,8 +491,8 @@ export function getEmptyConfig<T extends StageObject, R extends StageObject>(
 export interface WrapConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T> {
   stage: AnyStage<T> | RunPipelineFunction<T>
-  prepare: (ctx: ContextType<T>) => ContextType<R>
-  finalize?: (ctx: ContextType<T>, retCtx: ContextType<R>) => ContextType<T>
+  prepare: (ctx: T) => R
+  finalize?: (ctx: T, retCtx: R) => T
 }
 
 export function getWrapConfig<

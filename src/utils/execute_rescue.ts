@@ -1,4 +1,3 @@
-import { IContextProxy } from '../context'
 import { ComplexError, CreateError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
@@ -15,7 +14,7 @@ import { is_func1, is_func1_async, is_func2 } from './types'
 export function execute_rescue<T>(
   rescue: Rescue<T>,
   err: Error,
-  context: IContextProxy<T>,
+  context: T,
   done: (err?: Possible<ComplexError>) => void,
 ) {
   switch (rescue.length) {

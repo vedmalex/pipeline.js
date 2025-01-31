@@ -2,7 +2,6 @@ import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
 import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
-import { ContextType } from './context'
 import {
   AllowedStage,
   CallbackFunction,
@@ -41,15 +40,15 @@ export class Parallel<
     }
   }
 
-  split(ctx: ContextType<T>): Array<ContextType<R>> {
+  split(ctx: T): Array<R> {
     return this._config.split ? this._config.split(ctx) : [ctx]
   }
 
   combine(
-    ctx: ContextType<T>,
-    children: Array<ContextType<R>>,
-  ): ContextType<T> {
-    let res: ContextType<T>
+    ctx: T,
+    children: Array<R>,
+  ): T {
+    let res: T
     if (this.config.combine) {
       let c = this.config.combine(ctx, children)
       res = c ?? ctx
@@ -74,7 +73,7 @@ export class Parallel<
     if (this.config.stage) {
       var run: StageRun<T> = (
         err: Possible<ComplexError>,
-        ctx: ContextType<T>,
+        ctx: T,
         done: CallbackFunction<T>,
       ) => {
         var iter = 0

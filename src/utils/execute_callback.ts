@@ -22,21 +22,20 @@ import {
   is_func2,
 } from './types'
 import { Possible } from './types'
-import { ContextType } from '../context'
 
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
 
 export function execute_callback<T extends StageObject>(
   err: Possible<ComplexError>,
   run: RunPipelineFunction<T>,
-  context: ContextType<T>,
+  context: T,
   _done: CallbackFunction<T>,
 ) {
   const done = run_callback_once(_done)
   switch (run.length) {
     // this is the context of the run function
     case 0:
-      if (is_func0_async<ContextType<T>>(run)) {
+      if (is_func0_async<T>(run)) {
         try {
           const res = run.call(context)
           res
@@ -45,7 +44,7 @@ export function execute_callback<T extends StageObject>(
         } catch (err) {
           process_error(err, done)
         }
-      } else if (is_func0<ContextType<T>>(run)) {
+      } else if (is_func0<T>(run)) {
         try {
           const res = run.apply(context)
           if (res instanceof Promise) {
@@ -65,7 +64,7 @@ export function execute_callback<T extends StageObject>(
       }
       break
     case 1:
-      if (is_func1_async<ContextType<T>, ContextType<T>>(run)) {
+      if (is_func1_async<T, T>(run)) {
         try {
           run(context)
             .then(ctx => done(undefined, ctx))
@@ -77,9 +76,9 @@ export function execute_callback<T extends StageObject>(
         try {
           const res = (
             run as Func1Sync<
-              | ContextType<T>
-              | Promise<ContextType<T>>
-              | Thanable<ContextType<T>>,
+              | T
+              | Promise<T>
+              | Thanable<T>,
               T
             >
           )(context)
@@ -99,7 +98,7 @@ export function execute_callback<T extends StageObject>(
       break
     case 2:
       if (
-        is_func2_async<ContextType<T>, Possible<ComplexError>, ContextType<T>>(
+        is_func2_async<T, Possible<ComplexError>, T>(
           run,
         )
       ) {

@@ -1,4 +1,5 @@
 import { DoWhile } from '../dowhile'
+import { Context } from '../context'
 import { Stage } from '../stage'
 import { Wrap } from '../wrap'
 
@@ -102,9 +103,9 @@ describe('Wrap', function () {
     })
 
     stage.execute(
-      {
+      Context.ensure({
         iter: 0,
-      },
+      }),
       function (err, context) {
         if (context) {
           expect(context.iter).toEqual(10)

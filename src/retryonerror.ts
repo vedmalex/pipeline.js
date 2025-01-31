@@ -1,4 +1,3 @@
-import { Context, ContextType } from './context'
 import { Stage } from './stage'
 import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
@@ -21,9 +20,9 @@ import {
 export interface RetryOnErrorConfig<T extends StageObject>
   extends StageConfig<T> {
   stage: AnyStage<T> | RunPipelineFunction<T>
-  retry: number | Func3<boolean, Possible<ComplexError>, ContextType<T>, number>
-  backup?: (ctx: ContextType<T>) => ContextType<T>
-  restore?: (ctx: ContextType<T>, backup: ContextType<T>) => ContextType<T>
+  retry: number | Func3<boolean, Possible<ComplexError>, T, number>
+  backup?: (ctx: T) => T
+  restore?: (ctx: T, backup: T) => T
 }
 
 export function getRetryOnErrorConfig<
@@ -82,37 +81,26 @@ export class RetryOnError<T extends StageObject> extends Stage<
     return '[pipeline RetryOnError]'
   }
 
-  backupContext(ctx: ContextType<T>): ContextType<T> {
+  backupContext(ctx: T): T {
     if (this.config.backup) {
       return this.config.backup(ctx)
     } else {
-      if (Context.isContext(ctx)) {
-        return ctx.fork({})
-      } else {
-        return ctx
-      }
+      return ctx
     }
   }
 
-  restoreContext(ctx: ContextType<T>, backup: ContextType<T>): ContextType<T> {
+  restoreContext(ctx: T, backup: T): T {
     if (this.config.restore) {
       return this.config.restore(ctx, backup)
     } else {
-      if (Context.isContext(ctx)) {
-        for (let key in backup) {
-          ;(ctx as any)[key] = backup[key]
-        }
-        return ctx
-      } else {
-        return backup
-      }
+      return backup
     }
   }
 
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
       err: Possible<ComplexError>,
-      ctx: ContextType<T>,
+      ctx: T,
       done: CallbackFunction<T>,
     ) => {
       /// ловить ошибки
@@ -133,7 +121,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
       }
       let iter = -1
 
-      let next = (err: Possible<ComplexError>, _ctx: ContextType<T>) => {
+      let next = (err: Possible<ComplexError>, _ctx: T) => {
         iter++
         if (reachEnd(err, iter)) {
           return done(err, _ctx ?? ctx)

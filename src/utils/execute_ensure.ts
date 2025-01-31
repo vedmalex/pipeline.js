@@ -10,18 +10,17 @@ import {
 } from './types'
 import { is_func1, is_func1_async, is_func2 } from './types'
 import { Func1Async } from './types'
-import { ContextType } from '../context'
 
 export function execute_ensure<T>(
   ensure: EnsureFunction<T>,
-  context: ContextType<T>,
+  context: T,
   done: CallbackFunction<T>,
 ) {
   switch (ensure.length) {
     case 1:
       if (is_func1_async(ensure)) {
         try {
-          ;(ensure as Func1Async<ContextType<T>, ContextType<T>>)(context)
+          ;(ensure as Func1Async<T, T>)(context)
             .then(res => done(undefined, res))
             .catch(err => done(err))
         } catch (err) {
@@ -31,9 +30,9 @@ export function execute_ensure<T>(
         try {
           const res = (
             ensure as Func1Sync<
-              | ContextType<T>
-              | Promise<ContextType<T>>
-              | Thanable<ContextType<T>>,
+              | T
+              | Promise<T>
+              | Thanable<T>,
               T
             >
           )(context)
@@ -54,7 +53,7 @@ export function execute_ensure<T>(
     case 2:
       if (is_func2(ensure)) {
         try {
-          ensure(context, (err: ComplexError, ctx: ContextType<T>) => {
+          ensure(context, (err: ComplexError, ctx: T) => {
             done(err, ctx)
           })
         } catch (err) {

@@ -1,4 +1,3 @@
-import { ContextType } from './context'
 import { Stage } from './stage'
 import { ComplexError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
@@ -34,14 +33,14 @@ export class Wrap<T extends StageObject, R extends StageObject> extends Stage<
   override compile(rebuild: boolean = false): StageRun<T> {
     let run = (
       err: Possible<ComplexError>,
-      context: ContextType<T>,
+      context: T,
       done: CallbackFunction<T>,
     ) => {
       const ctx = this.prepare(context)
       if (this.config.stage) {
         run_or_execute<any>(this.config.stage, err, ctx, ((
           err: Possible<ComplexError>,
-          retCtx: ContextType<R>,
+          retCtx: R,
         ) => {
           if (!err) {
             const result = this.finalize(context, retCtx ?? ctx)
@@ -57,14 +56,14 @@ export class Wrap<T extends StageObject, R extends StageObject> extends Stage<
 
     return super.compile(rebuild)
   }
-  prepare(ctx: ContextType<T>): unknown {
+  prepare(ctx: T): unknown {
     if (this.config.prepare) {
       return this.config.prepare(ctx) ?? ctx
     } else {
       return ctx
     }
   }
-  finalize(ctx: ContextType<T>, retCtx: ContextType<R>): ContextType<T> {
+  finalize(ctx: T, retCtx: R): T {
     // by default the main context will be used to return;
     if (this.config.finalize) {
       return this.config.finalize(ctx, retCtx)

@@ -1,9 +1,8 @@
 /*!
  * Module dependency
  */
-var cmp = require('comparator.js');
-var get = cmp.get;
-var set = cmp.set;
+var get = require('./get').get;
+var set = require('./set').set;
 var clone = require('./util.js').clone;
 
 // добавить время обработки ctx на процессоре
