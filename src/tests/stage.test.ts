@@ -1,5 +1,4 @@
 import { JSONSchemaType } from 'ajv'
-import 'jest'
 import { Stage } from '../stage'
 
 describe('stage', () => {

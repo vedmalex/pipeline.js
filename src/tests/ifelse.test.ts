@@ -1,4 +1,3 @@
-import 'jest'
 import { IfElse } from '../ifelse'
 import { Stage } from '../stage'
 

@@ -1,9 +1,5 @@
-import 'jest'
-
-import { Context } from '../context'
 import { DoWhile } from '../dowhile'
 import { Stage } from '../stage'
-import { AnyStage } from '../../lib/utils/types'
 
 describe('DoWhile', function () {
   it('works with default', function (done) {

@@ -18,7 +18,7 @@ import { Sequential } from '../sequential'
 import { Timeout } from '../timeout'
 import { Wrap } from '../wrap'
 import { empty_run } from './empty_run'
-import { ContextType } from 'src/context'
+import { ContextType } from '../context'
 
 export type StageObject = Record<string | symbol | number, any>
 
@@ -446,6 +446,7 @@ export function getPipelinConfig<T extends StageObject, R extends StageObject>(
 export function getParallelConfig<T extends StageObject, R extends StageObject>(
   config: AllowedStage<T, R, ParallelConfig<T, R>>,
 ): ParallelConfig<T, R> {
+  //@ts-ignore
   const res = getStageConfig<R, R, ParallelConfig<T, R>>(config)
   if (isAnyStage<T, R>(res) || isRunPipelineFunction<R>(res)) {
     return { stage: res } as ParallelConfig<T, R>

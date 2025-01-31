@@ -1,4 +1,3 @@
-import 'jest'
 import { Sequential } from '../sequential'
 import { Stage } from '../stage'
 import { Wrap } from '../wrap'

@@ -1,4 +1,3 @@
-import 'jest'
 import { Context } from '../context'
 import { MultiWaySwitch } from '../multiwayswitch'
 import { Pipeline } from '../pipeline'

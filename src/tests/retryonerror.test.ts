@@ -1,4 +1,3 @@
-import 'jest'
 import { RetryOnError } from '../retryonerror'
 
 describe('RetryOnError', function() {

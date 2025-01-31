@@ -1,4 +1,3 @@
-import 'jest'
 import { Context } from '../context'
 
 describe('context', () => {
@@ -123,6 +122,7 @@ describe('context', () => {
     const ctx2 = ctx.get('address')
     expect(ctx2.State).toBe('RO')
     expect(Context.isContext(ctx2)).toBeTruthy()
+    console.log(Context.isContext(ctx.address))
     expect(Context.isContext(ctx.address)).toBeTruthy()
     expect(ctx2).toMatchSnapshot('address')
     const parent = ctx2.getRoot()

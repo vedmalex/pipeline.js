@@ -44,7 +44,7 @@ export class Pipeline<T extends StageObject> extends Stage<
   ) {
     super()
     if (config) {
-      this._config = getPipelinConfig(config)
+      this._config = getPipelinConfig(config as any)
     } else {
       this._config.stages = []
     }

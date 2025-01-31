@@ -1,9 +1,7 @@
-import 'jest'
 import { Context } from '../context'
 
 import { Pipeline } from '../pipeline'
 import { Stage } from '../stage'
-import { ComplexError } from '../utils/ErrorList'
 import { isAnyStage } from '../utils/types'
 
 describe('Pipeline', function () {
@@ -47,7 +45,7 @@ describe('Pipeline', function () {
       throw new Error('error')
     })
     pipe.execute({}, function (err, ctx) {
-      expect('error').toEqual(err?.payload.message)
+      expect('error').toEqual(err?.message)
       done()
     })
   })
@@ -64,7 +62,7 @@ describe('Pipeline', function () {
       },
     ])
     pipe.execute({}, function (err, ctx) {
-      expect('error').toEqual(err?.payload.message)
+      expect('error').toEqual(err?.message)
       done()
     })
   })
@@ -172,7 +170,7 @@ describe('Pipeline', function () {
       precompile: () => {
         compile++
       },
-      ensure: function (ctx, callback) {
+      ensure: function (ctx) {
         ensure++
       },
     } as any)
@@ -238,7 +236,7 @@ describe('Pipeline', function () {
     pipe.addStage(s3)
 
     pipe.execute(ctx1, function (err, ctx) {
-      expect(err?.payload).toEqual(error)
+      expect(err).toEqual(error)
       // expect(ctx1.hasErrors()).toEqual(true);
       // expect(ctx1.getErrors()[0] == error).toEqual(true);
       expect(ctx1.get('s1')).toEqual(true)
@@ -278,7 +276,7 @@ describe('Pipeline', function () {
       expect(err).not.toBeUndefined()
       expect(
         /Error: STG: reports: run is not a function/.test(
-          err.errors[0].toString(),
+          err.payload[0].toString(),
         ),
       ).toBeTruthy()
       done()

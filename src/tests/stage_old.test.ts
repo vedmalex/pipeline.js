@@ -1,4 +1,3 @@
-import 'jest'
 import { Context } from '../context'
 import { Stage } from '../stage'
 

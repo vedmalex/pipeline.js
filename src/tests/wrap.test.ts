@@ -1,10 +1,6 @@
-import 'jest'
-
-import { Context } from '../context'
 import { DoWhile } from '../dowhile'
 import { Stage } from '../stage'
 import { Wrap } from '../wrap'
-import { Possible } from '../../lib/utils/types'
 
 describe('Wrap', function () {
   it('works', function (done) {

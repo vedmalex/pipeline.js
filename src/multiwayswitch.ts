@@ -291,7 +291,7 @@ export class MultiWaySwitch<
       }
 
       if (actuals.length === 0) {
-        return done(err)
+        return done(err, ctx)
       }
     }
 

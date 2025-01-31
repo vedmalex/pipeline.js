@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    // Enable latest features
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "allowJs": true,
+
+    // Bundler mode
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": false,
+
+    // Best practices
+    "strict": true,
+    "skipLibCheck": true,
+
+    // Some stricter flags (disabled by default)
+    "noPropertyAccessFromIndexSignature": false,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": false,
+    "removeComments": true,
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "noImplicitOverride": true,
+    "noImplicitThis": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedParameters": false,
+    "noUnusedLocals": true,
+    "noErrorTruncation": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "lib": ["ESNext"],
+    "baseUrl": ".",
+    "rootDir": "./src",
+    "outDir": "./types",
+    "types": ["@types/bun"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.*", "**/node_modules/**"]
+}

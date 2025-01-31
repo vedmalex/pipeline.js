@@ -32,47 +32,53 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
       ctx: ContextType<T>,
       done: CallbackFunction<T>,
     ) => {
-      let to: any
-      let localDone = ((
-        err: Possible<ComplexError>,
-        retCtx: ContextType<T>,
-      ) => {
-        if (to) {
-          clearTimeout(to)
-          to = null
-          return done(err, retCtx)
-        }
-      }) as CallbackFunction<T>
-      let waitFor
+      let to: NodeJS.Timeout | null = null;
+      let isDone = false // Флаг, чтобы отслеживать, был ли уже вызван done
 
-      if (this.config.timeout instanceof Function) {
-        waitFor = this.config.timeout(ctx)
-      } else {
-        waitFor = this.config.timeout
-      }
+      const localDone = ((err: Possible<ComplexError>, retCtx: ContextType<T>) => {
+        if (isDone) return // Если done уже был вызван, выходим
+        isDone = true // Устанавливаем флаг, что done вызван
+        if (to) clearTimeout(to) // Отменяем таймаут
+        to = null;
+        return done(err, retCtx);
+      }) as CallbackFunction<T>;
+
+      const waitFor =
+        this.config.timeout instanceof Function
+          ? this.config.timeout(ctx)
+          : this.config.timeout;
+
       if (waitFor) {
         to = setTimeout(() => {
-          if (to) {
-            if (this.config.overdue) {
-              run_or_execute(this.config.overdue, err, ctx, localDone)
+          const timeoutRef = to;
+          to = null;
+
+          if (timeoutRef && this.config.overdue) {
+            run_or_execute(this.config.overdue, err, ctx, localDone);
+          } else {
+            if (!isDone) { // если overdue не настроен и если done еще не был вызван - вызываем done
+              localDone(null, ctx);
             }
           }
-          /* else {
-            here can be some sort of caching operation
-          }*/
-        }, waitFor)
+        }, waitFor);
+
         if (this.config.stage) {
-          run_or_execute(this.config.stage, err, ctx, localDone)
+          try {
+            run_or_execute(this.config.stage, err, ctx, localDone);
+          } catch (error) {
+            if (to) clearTimeout(to); // Отменяем таймаут при ошибке
+            to = null;
+            localDone(error as ComplexError, ctx);
+          }
         }
+      } else if (this.config.stage) {
+        run_or_execute(this.config.stage, err, ctx, done);
       } else {
-        if (this.config.stage) {
-          run_or_execute(this.config.stage, err, ctx, done)
-        }
+        localDone(null, ctx); // Если нет ни таймаута, ни stage, завершаем работу
       }
     }
 
-    this.run = run
-
-    return super.compile(rebuild)
+    this.run = run;
+    return super.compile(rebuild);
   }
 }

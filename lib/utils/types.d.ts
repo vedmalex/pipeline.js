@@ -11,7 +11,7 @@ import { RetryOnError } from '../retryonerror';
 import { Sequential } from '../sequential';
 import { Timeout } from '../timeout';
 import { Wrap } from '../wrap';
-import { ContextType } from 'src/context';
+import { ContextType } from '../context';
 export type StageObject = Record<string | symbol | number, any>;
 export type CallbackFunction<T> = (() => void) | ((err?: Possible<ComplexError>) => void) | ((err?: Possible<ComplexError>, res?: ContextType<T>) => void);
 export type CallbackExternalFunction<T> = (() => void) | ((err?: Possible<Error>) => void) | ((err?: Possible<Error>, res?: T) => void);

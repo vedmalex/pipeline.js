@@ -1,4 +1,3 @@
-import 'jest'
 import { Stage } from '../stage'
 import { Timeout } from '../timeout'
 
@@ -34,7 +33,7 @@ describe('Timeout', function () {
       done()
     })
   })
-
+  
   it('accepts use default overdue', function (done) {
     var to = new Timeout({
       timeout: 100,
@@ -45,7 +44,7 @@ describe('Timeout', function () {
       }),
     })
     to.execute({}, function (err, ctx) {
-      expect(err).toBeUndefined()
+      expect(err).toBeNull()
       done()
     })
   })
@@ -66,7 +65,7 @@ describe('Timeout', function () {
         to: 1000,
       },
       function (err, ctx) {
-        expect(err).toBeUndefined()
+        expect(err).toBeNull()
         done()
       },
     )

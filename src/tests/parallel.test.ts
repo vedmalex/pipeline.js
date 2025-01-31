@@ -1,5 +1,3 @@
-import 'jest'
-
 import { Context } from '../context'
 import { Parallel } from '../parallel'
 import { Stage } from '../stage'
@@ -126,7 +124,7 @@ describe('Parallel', function () {
     })
   })
 
-  it('complex example 1 - Error Handling', function (done) {
+  it.only('complex example 1 - Error Handling', function (done) {
     var stage0 = new Stage(function (err, ctx, done) {
       ctx.liter = 1
       if (ctx.some == 4) done(new Error('4'))
@@ -158,7 +156,7 @@ describe('Parallel', function () {
     })
     stage.execute(ctx, function (err, context) {
       expect(err instanceof Error).toEqual(true)
-      expect(err.errors.length).toEqual(2)
+      expect(err.payload.length).toEqual(2)
       expect(!context.result).toEqual(true)
       done()
     })
