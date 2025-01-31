@@ -14,6 +14,7 @@ import {
   ValidateFunction,
 } from './utils/types'
 
+import { Context, OriginalObject } from './context'
 import { can_fix_error } from './utils/can_fix_error'
 import { execute_callback } from './utils/execute_callback'
 import { execute_custom_run } from './utils/execute_custom_run'
@@ -96,7 +97,6 @@ export class Stage<
   // может быть вызван как Promise
   // сделать все дубликаты и проверки методов для работы с промисами
   public execute(context: T): Promise<T>
-  public execute(context: T): Promise<T>
   public execute(context: T, callback: CallbackExternalFunction<T>): void
   public execute(
     context: T,
@@ -150,19 +150,42 @@ export class Stage<
 
     const stageToRun = this.run.bind(this)
 
-    let context = not_ensured_context
+    const input_is_context = Context.isContext(not_ensured_context)
+    let context = Context.ensure<T>(not_ensured_context)
+    if (input_is_context) {
+      ;(context as unknown as Context<T>)[OriginalObject] = true
+    }
     if (!__callback) {
       return new Promise((res, rej) => {
         this.execute(err, context, ((err: Possible<ComplexError>, ctx: T) => {
           if (err) rej(err)
           else {
-            res(ctx)
+            if (input_is_context) {
+              res(ctx)
+            } else {
+              if (Context.isContext(ctx)) {
+                res(ctx.original)
+              } else {
+                res(ctx)
+              }
+            }
           }
         }) as CallbackFunction<T>)
       })
     } else {
       const back: typeof __callback = (err, _ctx) => {
-        __callback?.(err, _ctx)
+        if (input_is_context) {
+          __callback?.(err, _ctx)
+        } else {
+          if (Context.isContext(_ctx)) {
+            __callback?.(err, _ctx.original)
+          } else {
+            __callback?.(
+              CreateError([err, new Error('context is always context object')]),
+              _ctx,
+            )
+          }
+        }
       }
       // process.nextTick(() => {
         const sucess = (ret: T) => back(undefined, ret ?? context)

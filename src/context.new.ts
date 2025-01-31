@@ -107,11 +107,19 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         if (key == 'allContexts') return allContexts
 
         if (!(key in RESERVED)) {
+          let value
           if (key in target.ctx) {
-            return (target.ctx as any)[key]
+            value = (target.ctx as any)[key]
           } else {
-            return target.__parent?.[key as any]
+            value = target.__parent?.[key as any]
           }
+
+          if(typeof value === 'object' && value && !Context.isContext(value)){
+            return new Context(value)
+          } else {
+            return value
+          }
+
           // return (target.ctx as any)[key]
         } else {
           if (RESERVED[key as keyof typeof RESERVED] == RESERVATIONS.func_ctx) {
@@ -162,14 +170,21 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         }
       },
       ownKeys(target: Context<T>) {
-        if (target.__parent) {
-          return [
-            ...Reflect.ownKeys(target.ctx),
-            ...Reflect.ownKeys(target.__parent),
-          ]
-        } else {
-          return Reflect.ownKeys(target.ctx)
+        const keys = new Set<string | symbol>();
+
+        // Add keys from the context's own properties
+        for (const key of Reflect.ownKeys(target.ctx)) {
+            keys.add(key);
         }
+
+        // Add keys from the parent if it exists
+        if (target.__parent) {
+            for (const key of Reflect.ownKeys(target.__parent)) {
+                 keys.add(key);
+            }
+        }
+
+        return Array.from(keys);
       },
     })
 

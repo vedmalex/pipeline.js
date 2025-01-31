@@ -1,3 +1,4 @@
+import { Context } from './context'
 import { Stage } from './stage'
 import { ComplexError, CreateError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
@@ -85,7 +86,11 @@ export class RetryOnError<T extends StageObject> extends Stage<
     if (this.config.backup) {
       return this.config.backup(ctx)
     } else {
-      return ctx
+      if (Context.isContext(ctx)) {
+        return ctx.fork({})
+      } else {
+        return ctx
+      }
     }
   }
 
@@ -93,7 +98,14 @@ export class RetryOnError<T extends StageObject> extends Stage<
     if (this.config.restore) {
       return this.config.restore(ctx, backup)
     } else {
-      return backup
+      if (Context.isContext(ctx)) {
+        for (let key in backup) {
+          ;(ctx as any)[key] = backup[key]
+        }
+        return ctx
+      } else {
+        return backup
+      }
     }
   }
 
