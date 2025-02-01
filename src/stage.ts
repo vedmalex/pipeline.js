@@ -187,7 +187,7 @@ export class Stage<
           }
         }
       }
-      // process.nextTick(() => {
+      process.nextTick(() => {
         const sucess = (ret: T) => back(undefined, ret ?? context)
         const fail = (err: Possible<ComplexError>) => back(err, context)
         const callback = ((
@@ -226,7 +226,7 @@ export class Stage<
             stageToRun(undefined, context, callback)
           }
         }
-      // })
+      })
     }
   }
 
