@@ -243,56 +243,67 @@ export class MultiWaySwitch<
       }
     }
 
-    let run: StageRun<T> = (
-      err: Possible<ComplexError>,
-      ctx: T,
+    let run: StageRun<T> = async (
+      initialErr: Possible<ComplexError>,
+      initialCtx: T,
       done: CallbackFunction<T>,
     ) => {
-      let actuals: Array<MultiWaySwitchCase<R, StageObject>> = []
-      actuals.push.apply(actuals, statics)
+      // Собираем все актуальные задачи
+      const actuals: Array<MultiWaySwitchCase<R, StageObject>> = [];
+      actuals.push(...statics);
 
       for (let i = 0; i < dynamics.length; i++) {
-        if (dynamics[i].evaluate(ctx as T)) {
-          actuals.push(dynamics[i])
+        if (dynamics[i].evaluate(initialCtx as T)) {
+          actuals.push(dynamics[i]);
         }
       }
 
-      let iter = 0
-
-      let errors: Array<Error> = []
-      let hasError = false
-
-      let next = (index: number) => {
-        return (err: Possible<ComplexError>, retCtx: R) => {
-          iter++
-          let cur = actuals[index]
-          let res: Possible<T> = null
-          if (err) {
-            if (!hasError) hasError = true
-            errors.push(err)
-          } else {
-            res = this.combineCase(cur, ctx, retCtx)
-          }
-
-          if (iter >= actuals.length) {
-            return done(hasError ? CreateError(errors) : undefined, res ?? ctx)
-          }
-        }
-      }
-      let stg
-      let lctx
-      for (i = 0; i < actuals.length; i++) {
-        stg = actuals[i]
-        lctx = this.splitCase(stg, ctx)
-
-        run_or_execute<T>(stg.stage, err, lctx, next(i) as CallbackFunction<T>)
-        // не хватает явной передачи контекста
-      }
-
+      // Если задач нет, завершаем сразу
       if (actuals.length === 0) {
-        return done(err, ctx)
+        return done(initialErr, initialCtx);
       }
-    }
+
+      let hasError = false;
+      const errors: Array<Error> = [];
+      let resultContext: Possible<T> = null;
+
+      try {
+        // Создаем массив промисов для выполнения задач
+        const promises = actuals.map((stg, index) => {
+          return new Promise<void>((resolve) => {
+            const lctx = this.splitCase(stg, initialCtx);
+
+            run_or_execute<T>(
+              stg.stage,
+              initialErr,
+              lctx,
+              (err, retCtx) => {
+                if (err) {
+                  if (!hasError) hasError = true;
+                  errors.push(err);
+                } else {
+                  resultContext = this.combineCase(stg, initialCtx, retCtx as any);
+                }
+                resolve();
+              }
+            );
+          });
+        });
+
+        // Ожидаем завершения всех задач
+        await Promise.all(promises);
+
+        // Возвращаем результат или ошибку
+        if (hasError) {
+          done(CreateError(errors), resultContext ?? initialCtx);
+        } else {
+          done(undefined, resultContext ?? initialCtx);
+        }
+      } catch (err) {
+        // Обработка неожиданных ошибок
+        done(err as ComplexError, initialCtx);
+      }
+    };
 
     this.run = run
 

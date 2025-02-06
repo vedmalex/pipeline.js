@@ -45,7 +45,7 @@ describe('Pipeline', function () {
       throw new Error('error')
     })
     pipe.execute({}, function (err, ctx) {
-      expect('error').toEqual(err?.message)
+      expect('error').toEqual(err?.cause.err.message)
       done()
     })
   })
@@ -62,7 +62,7 @@ describe('Pipeline', function () {
       },
     ])
     pipe.execute({}, function (err, ctx) {
-      expect('error').toEqual(err?.message)
+      expect('error').toEqual(err?.cause.err.message)
       done()
     })
   })
@@ -147,7 +147,7 @@ describe('Pipeline', function () {
 
   it('accept empty addStages', function (done) {
     var pipe = new Pipeline()
-    ;(pipe as any).addStage()
+      ; (pipe as any).addStage()
     expect(pipe.config.stages.length).toEqual(0)
     done()
   })
@@ -236,7 +236,7 @@ describe('Pipeline', function () {
     pipe.addStage(s3)
 
     pipe.execute(ctx1, function (err, ctx) {
-      expect(err).toEqual(error)
+      expect(err?.cause.err).toEqual(error)
       // expect(ctx1.hasErrors()).toEqual(true);
       // expect(ctx1.getErrors()[0] == error).toEqual(true);
       expect(ctx1.get('s1')).toEqual(true)
@@ -276,7 +276,7 @@ describe('Pipeline', function () {
       expect(err).not.toBeUndefined()
       expect(
         /Error: STG: reports: run is not a function/.test(
-          err.payload[0].toString(),
+          err.cause.err.payload[0].toString(),
         ),
       ).toBeTruthy()
       done()
@@ -332,7 +332,7 @@ describe('Pipeline', function () {
       if (++l == 10) done()
     }
     for (var i = 0; i < 10; i++) {
-      ;(function () {
+      ; (function () {
         var ctx1 = {
           one: 1,
         }

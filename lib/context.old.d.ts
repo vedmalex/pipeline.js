@@ -2,11 +2,11 @@ import { StageObject } from './utils/types';
 export declare const ContextSymbol: unique symbol;
 export declare const OriginalObject: unique symbol;
 export declare const ProxySymbol: unique symbol;
-export declare enum RESERVATIONS {
-    prop = 0,
-    func_this = 1,
-    func_ctx = 2
-}
+export declare const RESERVATIONS: {
+    prop: number;
+    func_this: number;
+    func_ctx: number;
+};
 export type ContextType<T> = IContextProxy<T> & T;
 export interface IContextProxy<T> {
     getParent(): ContextType<T>;

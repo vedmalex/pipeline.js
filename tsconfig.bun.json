@@ -39,7 +39,9 @@
     "baseUrl": ".",
     "rootDir": "./src",
     "outDir": "./types",
-    "types": ["@types/bun"]
+    "types": ["@types/bun"],
+    "skipDefaultLibCheck": true,
+    "erasableSyntaxOnly": true,
   },
   "include": ["src/**/*"],
   "exclude": ["src/**/*.test.*", "**/node_modules/**"]

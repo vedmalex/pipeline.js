@@ -21,7 +21,7 @@ import {
 /**
  * it make possible to choose which stage to run according to result of `condition` evaluation
  *  - config as
- 		- `Function` --- first Stage for pipeline
+      - `Function` --- first Stage for pipeline
  * 		- `Stage` --- first Stage
  * 		- `Array` --- list of stages
  * 		- `Object` --- config for Pipeline
@@ -79,32 +79,52 @@ export class Pipeline<T extends StageObject> extends Stage<
   }
 
   override compile(rebuild: boolean = false): StageRun<T> {
-    let run: StageRun<T> = (
-      err: Possible<ComplexError>,
+    let runAsync = async (
+      initialErr: Possible<ComplexError>,
       context: T,
-      done: CallbackFunction<T>,
     ) => {
-      let i = -1
-      // sequential run;
-      let next = (err: Possible<ComplexError>, ctx: T) => {
-        i += 1
-        if (!err && i < this.config.stages.length) {
-          const st = this.config.stages[i]
-          run_or_execute<T>(
-            st,
-            err,
-            ctx ?? context,
-            next as CallbackFunction<T>,
-          )
-        } else if (i >= this.config.stages.length || err) {
-          done(err, ctx ?? context)
-        }
+      let currentContext = context;
+      for (let i = 0; i < this.config.stages.length; i++) {
+        const stage = this.config.stages[i];
+        const { promise, resolve, reject } = Promise.withResolvers<T>()
+        run_or_execute<T>(
+          stage,
+          initialErr,
+          currentContext,
+          (err, ctx) => {
+            if (err) {
+              reject(err)
+            } else {
+              resolve(ctx ?? currentContext);
+            }
+          }
+        );
+        await promise.catch(err => {
+          throw new Error('pipeline - error', {
+            cause: {
+              err,
+              i,
+              stages: this.config.stages,
+              ctx: currentContext
+            },
+          })
+        })
       }
-      next(err, context)
-    }
+      return currentContext
+    };
 
     if (this.config.stages.length > 0) {
-      this.run = run
+      this.run = (err: Possible<ComplexError>, context: T, done: CallbackFunction<T>) => {
+        let error = err;
+        let ctx = context
+        runAsync(err, context)
+          .then(retCtx => { if (retCtx) { ctx = retCtx } })
+          .catch(err => { if (err) error = err })
+          .finally(() => {
+            done(error, ctx)
+          })
+
+      }
     } else {
       this.run = empty_run
     }

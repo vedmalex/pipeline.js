@@ -527,7 +527,7 @@ describe('MWS', function () {
   })
 
   it('empty split run combine', function (done) {
-    var stage0 = new Stage(function (ctx) {})
+    var stage0 = new Stage(function (ctx) { })
     var stage = new MultiWaySwitch({
       cases: [stage0],
       split: function (ctx) {

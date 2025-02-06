@@ -16,12 +16,12 @@ const entrypoints = ['src/index.ts']
 //     throw new AggregateError(result.logs, 'Build failed')
 //   }
 // } else {
-  const { build } = await import('esbuild')
-  // Для esbuild
-  const esbuildConfig = createConfig({
-    target:'es5',
-    pkg,
-    entrypoints,
-  })
-  await build(esbuildConfig)
+const { build } = await import('esbuild')
+// Для esbuild
+const esbuildConfig = createConfig({
+  target: 'es5',
+  pkg,
+  entrypoints,
+})
+await build(esbuildConfig)
 // }

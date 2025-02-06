@@ -111,7 +111,7 @@ export function execute_callback<T extends StageObject>(
         }
       } else if (is_func2(run)) {
         try {
-          ;(run as Func2Sync<void, T, CallbackFunction<T>>)(context, done)
+          ; (run as Func2Sync<void, T, CallbackFunction<T>>)(context, done)
         } catch (err) {
           process_error(err, done)
         }

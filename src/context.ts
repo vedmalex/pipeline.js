@@ -7,18 +7,20 @@ import { StageObject } from './utils/types'
 export const ContextSymbol = Symbol('Context')
 export const OriginalObject = Symbol('OriginalObject')
 export const ProxySymbol = Symbol('Handler')
+export const CurrentStage = Symbol('CurrentStage')
 
 /*!
  * List of reserver words for context.
  * Used to check wheater or not property is the Context-class property
  */
 
-export enum RESERVATIONS {
-  prop,
-  func_this,
-  func_ctx,
+export const RESERVATIONS = {
+  prop: 0,
+  func_this: 1,
+  func_ctx: 2,
 }
-const RESERVED: Record<string, RESERVATIONS> = {
+
+const RESERVED: Record<string, number> = {
   getParent: RESERVATIONS.func_ctx,
   getRoot: RESERVATIONS.func_ctx,
   setParent: RESERVATIONS.func_ctx,
@@ -28,6 +30,7 @@ const RESERVED: Record<string, RESERVATIONS> = {
   __parent: RESERVATIONS.prop,
   __root: RESERVATIONS.prop,
   __stack: RESERVATIONS.prop,
+  __current: RESERVATIONS.prop,
   hasChild: RESERVATIONS.func_ctx,
   hasSubtree: RESERVATIONS.func_ctx,
   ensure: RESERVATIONS.func_ctx,
@@ -90,8 +93,10 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
   protected __parent!: ContextType<T>
   protected __root!: ContextType<T>
   protected __stack?: string[]
+  protected __current?: unknown
   protected id: number;
   [OriginalObject]?: boolean
+  [CurrentStage]?: unknown
   get original() {
     return this.ctx
   }
@@ -103,6 +108,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
     const res = new Proxy(this, {
       get(target: Context<T>, key: string | symbol | number, _proxy: any): any {
         if (key == ContextSymbol) return true
+        if (key == CurrentStage) return target.__current
         if (key == ProxySymbol) return _proxy
         if (key == 'allContexts') return allContexts
 
@@ -129,8 +135,12 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         key: keyof typeof RESERVED | string | symbol,
         value,
       ): boolean {
+        if (key == CurrentStage) {
+          target.__current = value
+          return true
+        }
         if (!(key in RESERVED)) {
-          ;(target.ctx as any)[key] = value
+          ; (target.ctx as any)[key] = value
           return true
         } else if (
           typeof key == 'string' &&
@@ -139,7 +149,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         ) {
           return false
         } else {
-          ;(target as any)[key] = value
+          ; (target as any)[key] = value
           return true
         }
       },

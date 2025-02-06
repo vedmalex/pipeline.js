@@ -2,11 +2,12 @@ import { StageObject } from './utils/types';
 export declare const ContextSymbol: unique symbol;
 export declare const OriginalObject: unique symbol;
 export declare const ProxySymbol: unique symbol;
-export declare enum RESERVATIONS {
-    prop = 0,
-    func_this = 1,
-    func_ctx = 2
-}
+export declare const CurrentStage: unique symbol;
+export declare const RESERVATIONS: {
+    prop: number;
+    func_this: number;
+    func_ctx: number;
+};
 export type ContextType<T> = IContextProxy<T> & T;
 export interface IContextProxy<T> {
     getParent(): ContextType<T>;
@@ -29,8 +30,10 @@ export declare class Context<T extends StageObject> implements IContextProxy<T> 
     protected __parent: ContextType<T>;
     protected __root: ContextType<T>;
     protected __stack?: string[];
+    protected __current?: unknown;
     protected id: number;
     [OriginalObject]?: boolean;
+    [CurrentStage]?: unknown;
     get original(): T;
     constructor(config: T);
     fork<C extends StageObject>(ctx: C): ContextType<T & C>;

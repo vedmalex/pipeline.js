@@ -13,12 +13,13 @@ export const ProxySymbol = Symbol('Handler')
  * Used to check wheater or not property is the Context-class property
  */
 
-export enum RESERVATIONS {
-  prop,
-  func_this,
-  func_ctx,
+export const RESERVATIONS = {
+  prop: 0,
+  func_this: 1,
+  func_ctx: 2,
 }
-const RESERVED: Record<string, RESERVATIONS> = {
+
+const RESERVED: Record<string, number> = {
   getParent: RESERVATIONS.func_ctx,
   getRoot: RESERVATIONS.func_ctx,
   setParent: RESERVATIONS.func_ctx,
@@ -130,7 +131,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         value,
       ): boolean {
         if (!(key in RESERVED)) {
-          ;(target.ctx as any)[key] = value
+          ; (target.ctx as any)[key] = value
           return true
         } else if (
           typeof key == 'string' &&
@@ -139,7 +140,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         ) {
           return false
         } else {
-          ;(target as any)[key] = value
+          ; (target as any)[key] = value
           return true
         }
       },

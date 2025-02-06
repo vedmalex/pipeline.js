@@ -71,46 +71,66 @@ export class Sequential<
 
   override compile(rebuild: boolean = false): StageRun<T> {
     if (this.config.stage) {
-      var run = (
-        err: Possible<ComplexError>,
-        ctx: T,
+      const run: StageRun<T> = async (
+        initialErr: Possible<ComplexError>,
+        initialCtx: T,
         done: CallbackFunction<T>,
       ) => {
-        var iter = -1
-        var children = this.split
-          ? this.split(ctx)
-          : [ctx as unknown as R]
-        var len = children ? children.length : 0
+        try {
+          let iter = -1;
+          const children = this.split
+            ? this.split(initialCtx)
+            : [initialCtx as unknown as R];
+          const len = children.length;
 
-        var next = (err: Possible<ComplexError>, retCtx?: R) => {
-          if (err) {
-            return done(err)
+          if (len === 0) {
+            return done(initialErr, initialCtx);
           }
 
-          if (retCtx) {
-            children[iter] = retCtx
-          }
+          let currentError: Possible<ComplexError> = initialErr;
+          let currentChildren: Array<R | undefined> = [];
+          currentChildren.length = len
+          currentChildren.fill(undefined)
 
-          iter += 1
-          if (iter >= len) {
-            let result = this.combine(ctx, children)
-            return done(undefined, result)
-          } else {
+          while (++iter < len) {
+            if (currentError) break;
+
+            const { resolve, reject, promise } = Promise.withResolvers<T>()
             run_or_execute(
               this.config.stage,
-              err,
+              currentError,
               children[iter],
-              next as CallbackFunction<T>,
-            )
-          }
-        }
+              (err, ctx) => {
+                if (err) {
+                  reject(err);
+                } else if (ctx) {
+                  resolve(ctx)
+                }
+              }
+            );
 
-        if (len === 0) {
-          return done(err, ctx)
-        } else {
-          next(err)
+            currentChildren[iter] = await promise.catch(err => {
+              throw new Error('sequeltial - error', {
+                cause: {
+                  err,
+                  iteration: iter,
+                  stage: this.config.stage,
+                  ctx: children[iter]
+                },
+              })
+            })
+          }
+
+          if (currentError) {
+            done(currentError);
+          } else {
+            const result = this.combine(initialCtx, currentChildren as Array<R>);
+            done(undefined, result);
+          }
+        } catch (err) {
+          done(err as ComplexError);
         }
-      }
+      };
 
       this.run = run
     } else {

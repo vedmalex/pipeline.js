@@ -1,5 +1,6 @@
 import { JSONSchemaType } from 'ajv'
 import { Stage } from '../stage'
+import { Config } from '../config'
 
 describe('stage', () => {
   it('throw error', done => {
@@ -7,6 +8,19 @@ describe('stage', () => {
     expect.assertions(1)
     st.execute({}, (err, context) => {
       expect(err).not.toBeUndefined()
+      done()
+    })
+  })
+
+  it('throw error on timeout', done => {
+    const current = Config.timeout
+    Config.timeout = 100
+    let st = new Stage((context, done) => {
+      setTimeout(() => done(), 1000)
+    })
+    st.execute({}, (err, context) => {
+      expect(err).not.toBeUndefined()
+      Config.timeout = current
       done()
     })
   })
@@ -49,7 +63,7 @@ describe('stage', () => {
     expect(
       () =>
         new Stage({
-          run: () => {},
+          run: () => { },
           schema: {},
           validate: {},
         } as any),
@@ -60,14 +74,14 @@ describe('stage', () => {
     expect(
       () =>
         new Stage<{ name?: string }>({
-          run: () => {},
+          run: () => { },
           validate: (_ctx: {}) => true,
         }),
     ).not.toThrow()
     expect(
       () =>
         new Stage({
-          run: () => {},
+          run: () => { },
           schema: {} as JSONSchemaType<{}>,
         }),
     ).not.toThrow()
@@ -75,7 +89,7 @@ describe('stage', () => {
 
   it('validate using schema', () => {
     const st = new Stage<{ name: string }>({
-      run: () => {},
+      run: () => { },
       schema: {
         type: 'object',
         properties: {
@@ -95,9 +109,9 @@ describe('stage', () => {
 
   it('initialize other stuff sucessfully', () => {
     let stage = new Stage({
-      run: () => {},
-      ensure: () => {},
-      rescue: () => {},
+      run: () => { },
+      ensure: () => { },
+      rescue: () => { },
       name: 'stage',
     })
     expect(stage.name).toBe('stage')

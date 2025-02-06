@@ -54,7 +54,7 @@ export class ComplexError extends Error {
   constructor(...payload: Array<Error>) {
     debugger
     super()
-    if(payload.length > 1){
+    if (payload.length > 1) {
       this.payload = payload
       this.isComplex = true
     } else {

@@ -96,11 +96,12 @@ export class RetryOnError<T extends StageObject> extends Stage<
 
   restoreContext(ctx: T, backup: T): T {
     if (this.config.restore) {
-      return this.config.restore(ctx, backup)
+      const res = this.config.restore(ctx, backup)
+      return res ?? ctx
     } else {
       if (Context.isContext(ctx)) {
         for (let key in backup) {
-          ;(ctx as any)[key] = backup[key]
+          ; (ctx as any)[key] = backup[key]
         }
         return ctx
       } else {
@@ -110,47 +111,73 @@ export class RetryOnError<T extends StageObject> extends Stage<
   }
 
   override compile(rebuild: boolean = false): StageRun<T> {
-    let run: StageRun<T> = (
-      err: Possible<ComplexError>,
-      ctx: T,
+    let run: StageRun<T> = async (
+      initialErr: Possible<ComplexError>,
+      initialCtx: T,
       done: CallbackFunction<T>,
     ) => {
-      /// ловить ошибки
-      // backup context object to overwrite if needed
-      let backup = this.backupContext(ctx)
+      let currentError: Possible<ComplexError> = initialErr;
+      let currentCtx = initialCtx;
+      let iter = -1;
+      const backup = this.backupContext(initialCtx);
+      try {
+        // Создаем резервную копию контекста
 
-      const reachEnd = (err: Possible<ComplexError>, iter: number) => {
-        if (err) {
-          if (this.config.retry instanceof Function) {
-            return !this.config.retry(err, ctx, iter)
-          } else {
-            // number
-            return iter > this.config.retry
+        // Функция для проверки завершения
+        const reachEnd = (err: Possible<ComplexError>, iteration: number): boolean => {
+          if (err) {
+            if (this.config.retry instanceof Function) {
+              return !this.config.retry(err, currentCtx, iteration);
+            } else {
+              // Если retry — число, проверяем количество попыток
+              return iteration > this.config.retry;
+            }
           }
-        } else {
-          return true
-        }
-      }
-      let iter = -1
+          return true; // Если ошибки нет, завершаем
+        };
 
-      let next = (err: Possible<ComplexError>, _ctx: T) => {
-        iter++
-        if (reachEnd(err, iter)) {
-          return done(err, _ctx ?? ctx)
-        } else {
-          // clean changes of existing before values.
-          // may be will need to clear at all and rewrite ? i don't know yet.
-          const res = this.restoreContext(_ctx ?? ctx, backup)
+        // Основной цикл
+        do {
+          iter++;
+
+          // Восстанавливаем контекст перед каждой попыткой
+          if (iter > 0)
+            currentCtx = this.restoreContext(currentCtx, backup);
+
+          const { resolve, reject, promise } = Promise.withResolvers<T>()
+          // Выполняем текущий этап
           run_or_execute(
             this.config.stage,
-            err,
-            res ?? ctx,
-            next as CallbackFunction<T>,
-          )
-        }
+            currentError,
+            currentCtx,
+            (err, ctx) => {
+              if (err) {
+                reject(err)
+              } else {
+                resolve(ctx ?? currentCtx);
+              }
+            },
+          );
+
+          await promise
+            .then(ret => {
+              currentCtx = ret as T
+              currentError = undefined
+            }).catch(err => {
+              currentError = err
+            })
+
+
+        } while (!reachEnd(currentError, iter))
+
+        // Завершаем выполнение
+        done(currentError, currentCtx);
+      } catch (err) {
+        // Обрабатываем неожиданные ошибки
+        currentCtx = this.restoreContext(currentCtx, backup);
+        done(err as ComplexError, initialCtx);
       }
-      run_or_execute(this.config.stage, err, ctx, next as CallbackFunction<T>)
-    }
+    };
 
     this.run = run
 

@@ -20,7 +20,7 @@
     "noUnusedParameters": false,
     "noUnusedLocals": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2020"],
+    "lib": ["ESNext"],
     "types": ["node"],
     "baseUrl": "./",
     "rootDir": "./src",
@@ -28,7 +28,10 @@
     "allowSyntheticDefaultImports": true,
     "target": "es5",
     "experimentalDecorators": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true,
+    "erasableSyntaxOnly": true,
   },
   "include": ["src/**/*"],
   "exclude": ["src/tests"]

@@ -9,8 +9,6 @@ export function run_callback_once<T>(
     if (done_call == 0) {
       done_call += 1
       wrapee(err, ctx)
-    } else if (err) {
-      throw err
     } else {
       throw CreateError([err, 'callback called more than once'])
     }

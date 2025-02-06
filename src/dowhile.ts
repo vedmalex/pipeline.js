@@ -89,27 +89,47 @@ export class DoWhile<
   }
 
   override compile(rebuild: boolean = false): StageRun<any> {
-    let run: StageRun<any> = (
-      err: Possible<ComplexError>,
-      context: T,
+    let run: StageRun<any> = async (
+      initialErr: Possible<ComplexError>,
+      initialContext: T,
       done: CallbackFunction<T>,
     ) => {
-      let iter: number = -1
-      let next = (err: Possible<ComplexError>) => {
-        iter++
-        if (this.reachEnd(err, context, iter)) {
-          return done(err, context)
-        } else {
-          run_or_execute<T>(
-            this.config.stage,
-            err,
-            this.split(context, iter),
-            next as CallbackFunction<T>,
-          )
+      let iter = -1;
+      let currentError: Possible<ComplexError> = initialErr;
+      let currentContext = initialContext;
+
+      try {
+        while (true) {
+          iter++;
+
+          // Проверка условия завершения
+          if (this.reachEnd(currentError, currentContext, iter)) {
+            break;
+          }
+
+          // Выполнение текущего шага
+          await new Promise<void>((resolve, reject) => {
+            run_or_execute<T>(
+              this.config.stage,
+              currentError,
+              this.split(currentContext, iter),
+              (err, ctx) => {
+                if (err) {
+                  currentError = err;
+                } else {
+                  currentContext = ctx ?? currentContext;
+                }
+                resolve();
+              }
+            );
+          });
         }
+      } catch (err) {
+        currentError = err as ComplexError;
+      } finally {
+        done(currentError, currentContext);
       }
-      next(err)
-    }
+    };
 
     this.run = run
 

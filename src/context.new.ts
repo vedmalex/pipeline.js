@@ -13,12 +13,13 @@ export const ProxySymbol = Symbol('Handler')
  * Used to check wheater or not property is the Context-class property
  */
 
-export enum RESERVATIONS {
-  prop,
-  func_this,
-  func_ctx,
+export const RESERVATIONS = {
+  prop: 0,
+  func_this: 1,
+  func_ctx: 2,
 }
-const RESERVED: Record<string, RESERVATIONS> = {
+
+const RESERVED: Record<string, number> = {
   getParent: RESERVATIONS.func_ctx,
   getRoot: RESERVATIONS.func_ctx,
   setParent: RESERVATIONS.func_ctx,
@@ -114,7 +115,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
             value = target.__parent?.[key as any]
           }
 
-          if(typeof value === 'object' && value && !Context.isContext(value)){
+          if (typeof value === 'object' && value && !Context.isContext(value)) {
             return new Context(value)
           } else {
             return value
@@ -138,7 +139,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         value,
       ): boolean {
         if (!(key in RESERVED)) {
-          ;(target.ctx as any)[key] = value
+          ; (target.ctx as any)[key] = value
           return true
         } else if (
           typeof key == 'string' &&
@@ -147,7 +148,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
         ) {
           return false
         } else {
-          ;(target as any)[key] = value
+          ; (target as any)[key] = value
           return true
         }
       },
@@ -174,14 +175,14 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
 
         // Add keys from the context's own properties
         for (const key of Reflect.ownKeys(target.ctx)) {
-            keys.add(key);
+          keys.add(key);
         }
 
         // Add keys from the parent if it exists
         if (target.__parent) {
-            for (const key of Reflect.ownKeys(target.__parent)) {
-                 keys.add(key);
-            }
+          for (const key of Reflect.ownKeys(target.__parent)) {
+            keys.add(key);
+          }
         }
 
         return Array.from(keys);

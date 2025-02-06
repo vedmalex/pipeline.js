@@ -1,0 +1,1 @@
+{"version":3,"file":"next_tick.js","sourceRoot":"","sources":["../../../src/utils/acync/next_tick.ts"],"names":[],"mappings":";;;;;;;;;;;;AAAa,QAAA,QAAQ,GAAG,OAAO,OAAO,KAAK,QAAQ,IAAI,OAAO,KAAK,IAAI,IAAI,OAAO,CAAC,QAAQ,IAAI,SAAS,QAAQ,CAAsB,EAA4B;IAAE,cAAc;SAAd,UAAc,EAAd,qBAAc,EAAd,IAAc;QAAd,6BAAc;;IAC9K,UAAU,8BAAC,EAAE,EAAE,CAAC,GAAK,IAAI,UAAE;AAC/B,CAAC,CAAC"}

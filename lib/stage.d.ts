@@ -16,9 +16,9 @@ export declare class Stage<T extends StageObject, C extends StageConfig<T> = Sta
     get name(): string;
     protected runStageMethod(err_: Possible<ComplexError>, err: Possible<ComplexError>, ctx: T, context: T, stageToRun: InternalStageRun<T>, callback: CallbackFunction<T>): void;
     execute(context: T): Promise<T>;
-    execute(context: T, callback: CallbackExternalFunction<T>): void;
-    execute(context: T, callback: CallbackExternalFunction<T>): void;
-    execute(err: Possible<ComplexError>, context: T, callback: CallbackExternalFunction<T>): void;
+    execute(context: T, callback: CallbackExternalFunction<T>): Promise<void>;
+    execute(context: T, callback: CallbackExternalFunction<T>): Promise<void>;
+    execute(err: Possible<ComplexError>, context: T, callback: CallbackExternalFunction<T>): Promise<void>;
     protected stage(err: Possible<ComplexError>, context: T, callback: CallbackFunction<T>): void;
     compile(rebuild?: boolean): StageRun<T>;
     protected run?: InternalStageRun<T>;

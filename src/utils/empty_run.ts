@@ -6,5 +6,5 @@ export function empty_run<T extends StageObject>(
   context: T,
   done: CallbackFunction<T>,
 ) {
-  done(err, context)
+  return Promise.try((err, context) => done(err, context), err, context)
 }

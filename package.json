@@ -1,7 +1,7 @@
 {
   "name": "pipeline.js",
   "description": "Pipeline.js - async workflow framework for node.js and browser",
-  "version": "2.0.26",
+  "version": "2.0.28",
   "author": {
     "name": "Alex Vedmedenko",
     "email": "vedmalex@gmail.com"
@@ -36,11 +36,14 @@
     "doxx": "2.1.1",
     "esbuild": "^0.24.2",
     "prettier": "^2.8.0",
-    "typescript": "latest"
+    "typescript": "next"
   },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "files": ["lib","src"],
+  "files": [
+    "lib",
+    "src"
+  ],
   "scripts": {
     "prepublish": "npm run clean && npm run lib",
     "build": "bun build.ts && tsc -p tsconfig.bun.json",

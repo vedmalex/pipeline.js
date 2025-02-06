@@ -60,6 +60,8 @@ export function execute_rescue<T>(
             res.then(_ => done()).catch(err => done(err))
           } else if (is_thenable(res)) {
             res.then(_ => done()).catch(err => done(err))
+          } else if (res) {
+            done(err as ComplexError)
           } else {
             done()
           }

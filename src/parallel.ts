@@ -71,60 +71,65 @@ export class Parallel<
 
   override compile(rebuild: boolean = false): StageRun<T> {
     if (this.config.stage) {
-      var run: StageRun<T> = (
-        err: Possible<ComplexError>,
-        ctx: T,
+      const run: StageRun<T> = async (
+        initialErr: Possible<ComplexError>,
+        initialCtx: T,
         done: CallbackFunction<T>,
       ) => {
-        var iter = 0
-        var children = this.split(ctx)
-        var len = children ? children.length : 0
-        let errors: Array<Error>
-        let hasError = false
-
-        var next = (index: number) => {
-          return (err: Possible<ComplexError>, retCtx: any) => {
-            if (!err) {
-              children[index] = retCtx ?? children[index]
-            } else {
-              if (!hasError) {
-                hasError = true
-                errors = []
-              }
-              const error = new ParallelError({
-                stage: this.name,
-                index: index,
-                err: err,
-                ctx: children[index],
-              })
-              if (error) errors.push(error)
-            }
-
-            iter += 1
-            if (iter >= len) {
-              if (!hasError) {
-                let result = this.combine(ctx, children)
-                return done(undefined, result)
-              } else {
-                return done(CreateError(errors), ctx)
-              }
-            }
-          }
-        }
+        const children = this.split(initialCtx);
+        const len = children ? children.length : 0;
 
         if (len === 0) {
-          return done(err, ctx)
-        } else {
-          for (var i = 0; i < len; i++) {
-            run_or_execute(
-              this.config.stage,
-              err,
-              children[i],
-              next(i) as CallbackFunction<T>,
-            )
-          }
+          return done(initialErr, initialCtx);
         }
-      }
+
+        let hasError = false;
+        const errors: Error[] = [];
+
+        try {
+          // Создаем массив промисов для параллельного выполнения
+          const promises = children.map((child, index) => {
+            return new Promise<void>((resolve) => {
+              run_or_execute(
+                this.config.stage,
+                initialErr,
+                child,
+                (err, retCtx) => {
+                  if (err) {
+                    if (!hasError) {
+                      hasError = true;
+                    }
+                    const error = new ParallelError({
+                      stage: this.name,
+                      index: index,
+                      err: err,
+                      ctx: child,
+                    });
+                    errors.push(error);
+                  } else {
+                    children[index] = retCtx ?? child;
+                  }
+                  resolve();
+                }
+              );
+            });
+          });
+
+          // Ожидаем завершения всех промисов
+          await Promise.all(promises);
+
+          // Проверяем, были ли ошибки
+          if (hasError) {
+            done(CreateError(errors), initialCtx);
+          } else {
+            const result = this.combine(initialCtx, children);
+            done(undefined, result);
+          }
+        } catch (err) {
+          // Обработка неожиданных ошибок
+          done(err as ComplexError, initialCtx);
+        }
+      };
       this.run = run
     } else {
       this.run = empty_run
