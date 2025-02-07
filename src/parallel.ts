@@ -83,43 +83,42 @@ export class Parallel<
           return done(initialErr, initialCtx);
         }
 
-        let hasError = false;
-        const errors: Error[] = [];
-
         try {
           // Создаем массив промисов для параллельного выполнения
-          const promises = children.map((child, index) => {
-            return new Promise<void>((resolve) => {
-              run_or_execute(
-                this.config.stage,
-                initialErr,
-                child,
-                (err, retCtx) => {
-                  if (err) {
-                    if (!hasError) {
-                      hasError = true;
-                    }
-                    const error = new ParallelError({
+          const promises: Array<Promise<{ index: number, ctx: R }>> = []
+          for (let i = 0; i < children.length; i++) {
+            const child = children[i]
+            const { promise, reject, resolve } = Promise.withResolvers<{ index: number, ctx: R }>()
+
+            run_or_execute(
+              this.config.stage,
+              initialErr,
+              child,
+              (err, retCtx) => {
+                if (err) {
+                  reject(new Error('parallel - error', {
+                    cause: {
                       stage: this.name,
-                      index: index,
+                      index: i,
                       err: err,
                       ctx: child,
-                    });
-                    errors.push(error);
-                  } else {
-                    children[index] = retCtx ?? child;
-                  }
-                  resolve();
+                    }
+                  }))
+                } else {
+                  resolve({ index: i, ctx: retCtx ?? child });
                 }
-              );
-            });
-          });
+              }
+            );
+            promises.push(promise)
+          }
 
           // Ожидаем завершения всех промисов
-          await Promise.all(promises);
+          const result = await Promise.allSettled(promises);
+          let errors = result.filter((value) => value.status === 'rejected')
+            .map(v => v.reason)
 
           // Проверяем, были ли ошибки
-          if (hasError) {
+          if (errors.length > 0) {
             done(CreateError(errors), initialCtx);
           } else {
             const result = this.combine(initialCtx, children);

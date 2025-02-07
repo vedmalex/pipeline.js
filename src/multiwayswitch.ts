@@ -263,39 +263,49 @@ export class MultiWaySwitch<
         return done(initialErr, initialCtx);
       }
 
-      let hasError = false;
-      const errors: Array<Error> = [];
       let resultContext: Possible<T> = null;
 
       try {
         // Создаем массив промисов для выполнения задач
-        const promises = actuals.map((stg, index) => {
-          return new Promise<void>((resolve) => {
-            const lctx = this.splitCase(stg, initialCtx);
 
-            run_or_execute<T>(
-              stg.stage,
-              initialErr,
-              lctx,
-              (err, retCtx) => {
-                if (err) {
-                  if (!hasError) hasError = true;
-                  errors.push(err);
-                } else {
-                  resultContext = this.combineCase(stg, initialCtx, retCtx as any);
-                }
+        const promises: Array<Promise<void>> = []
+
+        for (let i = 0; i < actuals.length; i++) {
+          const stg = actuals[i]
+          const { promise, resolve, reject } = Promise.withResolvers<void>()
+          const lctx = this.splitCase(stg, initialCtx);
+          run_or_execute<T>(
+            stg.stage,
+            initialErr,
+            lctx,
+            (err, retCtx) => {
+              if (err) {
+                reject(new Error('mws - error', {
+                  cause: {
+                    err,
+                    ctx: lctx,
+                    actuals,
+                    index: i,
+                  }
+                }))
+              } else {
+                // TODO: ?? контекст может быть сильно изменен !!
+                resultContext = this.combineCase(stg, initialCtx, retCtx as any);
                 resolve();
               }
-            );
-          });
-        });
+            }
+          );
+          promises.push(promise)
+        }
 
-        // Ожидаем завершения всех задач
-        await Promise.all(promises);
+        // Ожидаем завершения всех промисов
+        const result = await Promise.allSettled(promises);
+        let errors = result.filter((value) => value.status === 'rejected')
+          .map(v => v.reason)
 
-        // Возвращаем результат или ошибку
-        if (hasError) {
-          done(CreateError(errors), resultContext ?? initialCtx);
+        // Проверяем, были ли ошибки
+        if (errors.length > 0) {
+          done(CreateError(errors), initialCtx);
         } else {
           done(undefined, resultContext ?? initialCtx);
         }

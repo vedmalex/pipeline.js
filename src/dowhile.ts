@@ -108,21 +108,22 @@ export class DoWhile<
           }
 
           // Выполнение текущего шага
-          await new Promise<void>((resolve, reject) => {
-            run_or_execute<T>(
-              this.config.stage,
-              currentError,
-              this.split(currentContext, iter),
-              (err, ctx) => {
-                if (err) {
-                  currentError = err;
-                } else {
-                  currentContext = ctx ?? currentContext;
-                }
-                resolve();
+          const { resolve, promise } = Promise.withResolvers<void>()
+
+          run_or_execute<T>(
+            this.config.stage,
+            currentError,
+            this.split(currentContext, iter),
+            (err, ctx) => {
+              if (err) {
+                currentError = err;
+              } else {
+                currentContext = ctx ?? currentContext;
               }
-            );
-          });
+              resolve();
+            }
+          );
+          await promise
         }
       } catch (err) {
         currentError = err as ComplexError;
