@@ -1,7 +1,7 @@
 {
   "name": "pipeline.js",
   "description": "Pipeline.js - async workflow framework for node.js and browser",
-  "version": "2.0.30",
+  "version": "2.0.31",
   "author": {
     "name": "Alex Vedmedenko",
     "email": "vedmalex@gmail.com"
@@ -12,30 +12,20 @@
     "pipeline"
   ],
   "dependencies": {
-    "ajv": "^8.11.2",
+    "ajv": "^8.17.1",
     "ajv-errors": "^3.0.0",
-    "ajv-formats": "^2.1.1",
+    "ajv-formats": "^3.0.1",
     "ajv-keywords": "^5.1.0",
-    "colors": "1.4.0",
-    "debug": "4.3.4",
     "fte.js": "3.0.0-rc.4",
     "js-schema": "1.0.1",
     "lodash": "^4.17.21",
-    "semver": "7.3.8",
-    "zod": "^3.19.1"
+    "semver": "^7.7.1"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.1",
-    "@types/lodash": "^4.14.189",
-    "@types/node": "18.11.9",
-    "@typescript-eslint/eslint-plugin": "5.44.0",
-    "@typescript-eslint/parser": "5.44.0",
-    "benchmark": "2.1.4",
-    "browserify": "17.0.0",
-    "dox": "1.0.0",
-    "doxx": "2.1.1",
-    "esbuild": "^0.24.2",
-    "prettier": "^2.8.0",
+    "@types/bun": "^1.2.5",
+    "@types/lodash": "^4.17.16",
+    "@types/node": "22.13.10",
+    "esbuild": "^0.25.1",
     "typescript": "next"
   },
   "main": "lib/index.js",
