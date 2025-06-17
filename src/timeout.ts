@@ -1,5 +1,5 @@
 import { Stage } from './stage'
-import { ComplexError } from './utils/ErrorList'
+import { CleanError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { AllowedStage, getTimeoutConfig, StageObject } from './utils/types'
 import {
@@ -27,14 +27,14 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
 
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
-      err: Possible<ComplexError>,
+      err: Possible<CleanError>,
       ctx: T,
       done: CallbackFunction<T>,
     ) => {
       let to: NodeJS.Timeout | null = null;
       let isDone = false // Флаг, чтобы отслеживать, был ли уже вызван done
 
-      const localDone = ((err: Possible<ComplexError>, retCtx: T) => {
+      const localDone = ((err: Possible<CleanError>, retCtx: T) => {
         if (isDone) return // Если done уже был вызван, выходим
         isDone = true // Устанавливаем флаг, что done вызван
         if (to) clearTimeout(to) // Отменяем таймаут
@@ -67,7 +67,7 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
           } catch (error) {
             if (to) clearTimeout(to); // Отменяем таймаут при ошибке
             to = null;
-            localDone(error as ComplexError, ctx);
+            localDone(error as CleanError, ctx);
           }
         }
       } else if (this.config.stage) {

@@ -1,14 +1,14 @@
-import { ComplexError, CreateError, isComplexError } from './ErrorList'
+import { createError, isCleanError } from './ErrorList'
 import { CallbackFunction } from './types'
 
 export function process_error<T>(err: unknown, done: CallbackFunction<T>) {
-  if (isComplexError(err)) {
+  if (isCleanError(err)) {
     done(err)
   } else if (err instanceof Error) {
-    done(new ComplexError(err))
+    done(createError(err))
   } else if (typeof err == 'string') {
-    done(CreateError(err))
+    done(createError(err))
   } else {
-    done(CreateError(String(err)))
+    done(createError(String(err)))
   }
 }

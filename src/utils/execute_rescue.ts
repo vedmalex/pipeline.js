@@ -1,4 +1,4 @@
-import { ComplexError, CreateError } from './ErrorList'
+import { CleanError, createError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import {
@@ -15,13 +15,13 @@ export function execute_rescue<T>(
   rescue: Rescue<T>,
   err: Error,
   context: T,
-  done: (err?: Possible<ComplexError>) => void,
+  done: (err?: Possible<CleanError>) => void,
 ) {
   switch (rescue.length) {
     case 1:
       if (is_func1_async(rescue)) {
         try {
-          rescue(err)
+          rescue(createError(err))
             .then(_ => done(undefined))
             .catch(err => done(err))
         } catch (err) {
@@ -29,7 +29,7 @@ export function execute_rescue<T>(
         }
       } else if (is_func1(rescue)) {
         try {
-          const res = rescue(err)
+          const res = rescue(createError(err))
           if (res instanceof Promise) {
             res.then(_ => done()).catch(err => done(err))
           } else if (is_thenable(res)) {
@@ -41,13 +41,13 @@ export function execute_rescue<T>(
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
       }
       break
     case 2:
       if (is_func2_async(rescue)) {
         try {
-          rescue(err, context)
+          rescue(createError(err), context)
             .then(_ => done())
             .catch(err => done(err))
         } catch (err) {
@@ -55,13 +55,13 @@ export function execute_rescue<T>(
         }
       } else if (is_func2(rescue)) {
         try {
-          const res = rescue(err, context)
+          const res = rescue(createError(err), context)
           if (res instanceof Promise) {
             res.then(_ => done()).catch(err => done(err))
           } else if (is_thenable(res)) {
             res.then(_ => done()).catch(err => done(err))
           } else if (res) {
-            done(err as ComplexError)
+            done(err as CleanError)
           } else {
             done()
           }
@@ -69,21 +69,21 @@ export function execute_rescue<T>(
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
       }
       break
     case 3:
       if (is_func3(rescue) && !is_func3_async(rescue)) {
         try {
-          rescue(err, context, done)
+          rescue(createError(err), context, done)
         } catch (err) {
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
       }
       break
     default:
-      done(CreateError(ERROR.signature))
+      done(createError(ERROR.signature))
   }
 }

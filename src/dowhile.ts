@@ -1,5 +1,5 @@
 import { Stage } from './stage'
-import { ComplexError, CreateError } from './utils/ErrorList'
+import { CleanError, createError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { isAnyStage } from './utils/types'
 import {
@@ -18,7 +18,7 @@ export interface DoWhileConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T> {
   stage: AnyStage<T, R> | SingleStageFunction<T>
   split?: Func2Sync<T, Possible<T>, number>
-  reachEnd?: Func3Sync<boolean, Possible<ComplexError>, Possible<T>, number>
+  reachEnd?: Func3Sync<boolean, Possible<CleanError>, Possible<T>, number>
 }
 
 export class DoWhile<
@@ -42,7 +42,7 @@ export class DoWhile<
       config.stage = _config
     } else {
       if (_config?.run && _config?.stage) {
-        throw CreateError('use or run or stage, not both')
+        throw createError('use or run or stage, not both')
       }
 
       if (_config?.stage) {
@@ -73,7 +73,7 @@ export class DoWhile<
   }
 
   reachEnd(
-    err: Possible<ComplexError>,
+    err: Possible<CleanError>,
     ctx: Possible<T>,
     iter: number,
   ): boolean {
@@ -90,12 +90,12 @@ export class DoWhile<
 
   override compile(rebuild: boolean = false): StageRun<any> {
     let run: StageRun<any> = async (
-      initialErr: Possible<ComplexError>,
+      initialErr: Possible<CleanError>,
       initialContext: T,
       done: CallbackFunction<T>,
     ) => {
       let iter = -1;
-      let currentError: Possible<ComplexError> = initialErr;
+      let currentError: Possible<CleanError> = initialErr;
       let currentContext = initialContext;
 
       try {
@@ -126,7 +126,7 @@ export class DoWhile<
           await promise
         }
       } catch (err) {
-        currentError = err as ComplexError;
+        currentError = err as CleanError;
       } finally {
         done(currentError, currentContext);
       }

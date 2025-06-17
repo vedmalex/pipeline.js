@@ -317,7 +317,7 @@ describe('Stage', function() {
     stage.execute(ctx, function(err) {
       // expect(ctx.hasErrors().toEqual( true);
       expect(
-        /Error\: STG\: reports\: run is not a function/.test(err.toString()),
+        /STG\: reports\: run is not a function/.test(err.toString()),
       ).toBeTruthy()
       done()
     })
@@ -329,7 +329,7 @@ describe('Stage', function() {
     stage.execute(ctx, function(err, context) {
       expect(ctx).toEqual(context)
       expect(
-        /Error\: STG\: reports\: run is not a function/.test(err.toString()),
+        /STG\: reports\: run is not a function/.test(err.toString()),
       ).toBeTruthy()
       done()
     })

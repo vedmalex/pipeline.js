@@ -45,7 +45,8 @@ describe('Pipeline', function () {
       throw new Error('error')
     })
     pipe.execute({}, function (err, ctx) {
-      expect('error').toEqual(err?.cause.err.message)
+      // With simplified error architecture, original error is preserved as primary
+      expect('error').toEqual(err?.chain.primary.message)
       done()
     })
   })
@@ -62,7 +63,8 @@ describe('Pipeline', function () {
       },
     ])
     pipe.execute({}, function (err, ctx) {
-      expect('error').toEqual(err?.cause.err.message)
+      // With simplified error architecture, original error is preserved as primary
+      expect('error').toEqual(err?.chain.primary.message)
       done()
     })
   })
@@ -236,7 +238,8 @@ describe('Pipeline', function () {
     pipe.addStage(s3)
 
     pipe.execute(ctx1, function (err, ctx) {
-      expect(err?.cause.err).toEqual(error)
+      // With improved timeout handler architecture, original error is preserved as primary
+      expect(err?.chain.primary).toEqual(error)
       // expect(ctx1.hasErrors()).toEqual(true);
       // expect(ctx1.getErrors()[0] == error).toEqual(true);
       expect(ctx1.get('s1')).toEqual(true)
@@ -274,9 +277,10 @@ describe('Pipeline', function () {
     pipe.addStage(s2)
     pipe.execute(ctx, function (err) {
       expect(err).not.toBeUndefined()
+      // With simplified error architecture, prefix "Error:" is no longer included
       expect(
-        /Error: STG: reports: run is not a function/.test(
-          err.cause.err.payload[0].toString(),
+        /STG: reports: run is not a function/.test(
+          err.chain.primary.message,
         ),
       ).toBeTruthy()
       done()

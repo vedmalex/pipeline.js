@@ -1,4 +1,4 @@
-import { ComplexError, CreateError } from './ErrorList'
+import { CleanError, createError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import { run_callback_once } from './run_callback_once'
@@ -26,7 +26,7 @@ import { Possible } from './types'
 // может не являться async funciton но может вернуть промис, тогда тоже должен отработать как промис
 
 export function execute_callback<T extends StageObject>(
-  err: Possible<ComplexError>,
+  err: Possible<CleanError>,
   run: RunPipelineFunction<T>,
   context: T,
   _done: CallbackFunction<T>,
@@ -93,12 +93,12 @@ export function execute_callback<T extends StageObject>(
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
       }
       break
     case 2:
       if (
-        is_func2_async<T, Possible<ComplexError>, T>(
+        is_func2_async<T, Possible<CleanError>, T>(
           run,
         )
       ) {
@@ -116,12 +116,12 @@ export function execute_callback<T extends StageObject>(
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
       }
       break
     case 3:
       if (
-        is_func3<void, Possible<ComplexError>, T, CallbackFunction<T>>(run) &&
+        is_func3<void, Possible<CleanError>, T, CallbackFunction<T>>(run) &&
         !is_func3_async(run)
       ) {
         try {
@@ -130,10 +130,10 @@ export function execute_callback<T extends StageObject>(
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
       }
       break
     default:
-      done(CreateError(ERROR.signature))
+      done(createError(ERROR.signature))
   }
 }

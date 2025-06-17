@@ -1,6 +1,6 @@
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
-import { ComplexError } from './utils/ErrorList'
+import { CleanError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
   AllowedStage,
@@ -72,7 +72,7 @@ export class Sequential<
   override compile(rebuild: boolean = false): StageRun<T> {
     if (this.config.stage) {
       const run: StageRun<T> = async (
-        initialErr: Possible<ComplexError>,
+        initialErr: Possible<CleanError>,
         initialCtx: T,
         done: CallbackFunction<T>,
       ) => {
@@ -87,7 +87,7 @@ export class Sequential<
             return done(initialErr, initialCtx);
           }
 
-          let currentError: Possible<ComplexError> = initialErr;
+          let currentError: Possible<CleanError> = initialErr;
           let currentChildren: Array<R | undefined> = [];
           currentChildren.length = len
           currentChildren.fill(undefined)
@@ -110,7 +110,7 @@ export class Sequential<
             );
 
             currentChildren[iter] = await promise.catch(err => {
-              throw new Error('sequeltial - error', {
+              throw new Error('sequential - error', {
                 cause: {
                   err,
                   iteration: iter,
@@ -128,7 +128,7 @@ export class Sequential<
             done(undefined, result);
           }
         } catch (err) {
-          done(err as ComplexError);
+          done(err as CleanError);
         }
       };
 

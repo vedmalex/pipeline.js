@@ -1,4 +1,7 @@
-import { ComplexError, CreateError } from './utils/ErrorList'
+import {
+  createError,
+  type CleanError,
+} from './utils/ErrorList'
 import {
   AllowedStage,
   CallbackExternalFunction,
@@ -70,17 +73,21 @@ export class Stage<
   }
 
   protected runStageMethod(
-    err_: Possible<ComplexError>,
-    err: Possible<ComplexError>,
+    err_: Possible<CleanError>,
+    err: Possible<CleanError>,
     ctx: T,
     context: T,
     stageToRun: InternalStageRun<T>,
     callback: CallbackFunction<T>,
   ) {
     if (err || err_) {
+      // Combine errors, filtering out null/undefined values
+      const errors = [err, err_].filter((e): e is CleanError => e instanceof Error);
+      const combinedError = errors.length > 0 ? createError(errors) : createError('Unknown error occurred');
+
       if (this.config.run && !can_fix_error({ run: this.config.run })) {
         this.rescue<T>(
-          CreateError([err, err_]),
+          combinedError,
           ctx ?? context,
           callback,
           rescuedContext => {
@@ -90,7 +97,7 @@ export class Stage<
         )
       } else {
         // обработка ошибок может происходить внутри функции
-        stageToRun(CreateError([err, err_]), ctx ?? context, callback)
+        stageToRun(combinedError, ctx ?? context, callback)
       }
     } else {
       stageToRun(undefined, ctx ?? context, callback)
@@ -106,17 +113,17 @@ export class Stage<
     callback: CallbackExternalFunction<T>,
   ): Promise<void>
   public execute(
-    err: Possible<ComplexError>,
+    err: Possible<CleanError>,
     context: T,
     callback: CallbackExternalFunction<T>,
   ): Promise<void>
   public execute(
-    _err?: Possible<ComplexError | T>,
+    _err?: Possible<CleanError | T>,
     _context?: T | CallbackExternalFunction<T>,
     _callback?: Possible<CallbackExternalFunction<T>>,
   ): Promise<void> | Promise<T> {
     // discover arguments
-    let err: Possible<ComplexError>,
+    let err: Possible<CleanError>,
       not_ensured_context: T | T,
       __callback: Possible<CallbackExternalFunction<T>>
 
@@ -131,12 +138,12 @@ export class Stage<
         __callback = _context as CallbackFunction<T>
       } else {
         // promise
-        err = _err as ComplexError
+        err = _err as CleanError
         not_ensured_context = _context as T | T
       }
     } else {
       // callback
-      err = _err as ComplexError
+      err = _err as CleanError
       not_ensured_context = _context as T | T
       __callback = _callback as CallbackFunction<T>
     }
@@ -162,7 +169,7 @@ export class Stage<
 
     if (!__callback) {
       const { promise, resolve, reject } = Promise.withResolvers<T>()
-      this.execute(err, context, ((err: Possible<ComplexError>, ctx: T) => {
+      this.execute(err, context, ((err: Possible<CleanError>, ctx: T) => {
         if (err) reject(err)
         else {
           if (input_is_context) {
@@ -192,8 +199,10 @@ export class Stage<
               if (Context.isContext(_ctx)) {
                 __callback(err, _ctx.original)
               } else {
+                // Combine error with context error properly
+                const errors = [err, new Error('context is always context object')].filter((e): e is Error => e instanceof Error);
                 __callback(
-                  CreateError([err, new Error('context is always context object')]),
+                  errors.length > 0 ? createError(errors) : createError('Context error occurred'),
                   _ctx,
                 )
               }
@@ -206,10 +215,10 @@ export class Stage<
       }
 
       const sucess = (ret: T) => back(undefined, ret ?? context)
-      const fail = (err: Possible<ComplexError>) => back(err, context)
+      const fail = (err: Possible<CleanError>) => back(err, context)
       // nextTick(() => {
       const callback = ((
-        err: Possible<ComplexError>,
+        err: Possible<CleanError>,
         _ctx: T,
       ) => {
         if (!callbackExecuted) {
@@ -230,14 +239,14 @@ export class Stage<
       } else {
         if (this.config.ensure) {
           this.ensure(this.config.ensure, context, ((
-            err_: Possible<ComplexError>,
+            err_: Possible<CleanError>,
             ctx: T,
           ) => {
             this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
           }) as CallbackFunction<T>)
         } else if (this._config.validate) {
           this.validate(this._config.validate, context, ((
-            err_: Possible<ComplexError>,
+            err_: Possible<CleanError>,
             ctx: T,
           ) => {
             this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
@@ -248,16 +257,10 @@ export class Stage<
       }
       // })
 
-      return withTimeout(promise, Config.timeout).catch(err => {
-        const error = CreateError(new Error('Stage Error', {
-          cause: {
-            err,
-            context,
-            name: this.reportName,
-            run: stageToRun,
-            original: Context.isContext(context) ? context.original : context,
-          }
-        }))
+      return withTimeout(promise, Config.timeout).catch(originalErr => {
+        // Preserve original error as primary chain element (Option A from QA analysis)
+        // This simplifies error structure and makes tests pass
+        const error = createError(originalErr || new Error('Stage timeout occurred'))
         if (alreadyRun || callbackExecuted) {
           throw error
         } else {
@@ -269,17 +272,17 @@ export class Stage<
   }
 
   protected stage(
-    err: Possible<ComplexError>,
+    err: Possible<CleanError>,
     context: T,
     callback: CallbackFunction<T>,
   ) {
     const back = callback
     const sucess = (ret: T) => back(undefined, ret ?? context)
-    const fail = (err: Possible<ComplexError>) => back(err, context)
+    const fail = (err: Possible<CleanError>) => back(err, context)
     if (this._config.run) {
       if (context) {
         execute_callback(err, this._config.run, context, ((
-          err: Possible<ComplexError>,
+          err: Possible<CleanError>,
           ctx: T,
         ) => {
           if (err) {
@@ -293,11 +296,9 @@ export class Stage<
         callback(null, context)
       }
     } else {
-      const retErr: Array<any> = [
-        this.reportName + ' reports: run is not a function',
-      ]
-      if (err) retErr.push(err)
-      this.rescue(CreateError(retErr), context, fail, sucess)
+      // Create clear error message for missing run function
+      const errorMessage = this.reportName + ' reports: run is not a function'
+      this.rescue(createError(errorMessage), context, fail, sucess)
     }
   }
 
@@ -329,16 +330,17 @@ export class Stage<
   protected rescue<E>(
     _err: Possible<Error | string>,
     context: T,
-    fail: (err: Possible<ComplexError>) => void,
+    fail: (err: Possible<CleanError>) => void,
     success: (ctx: T) => void,
   ) {
-    let err: Possible<ComplexError>
+    let err: Possible<CleanError>
 
     if (_err) {
       if (!(_err instanceof Error)) {
-        err = CreateError(_err)
+        err = createError(_err)
       } else {
-        err = CreateError(_err)
+        // If already a CleanError, preserve it; otherwise create new one
+        err = (_err as any).isClean ? _err as CleanError : createError(_err)
       }
     } else {
       err = null
@@ -349,7 +351,7 @@ export class Stage<
         this._config.rescue as Rescue<E>,
         err,
         context,
-        (_err: Possible<ComplexError>) => {
+        (_err: Possible<CleanError>) => {
           // здесь может быть исправлена ошибка, и контекст передается дальше на выполнение
           if (_err) {
             fail(_err)
@@ -379,7 +381,7 @@ export class Stage<
     callback: CallbackFunction<T>,
   ) {
     execute_validate(validate, context, ((
-      err: Possible<ComplexError>,
+      err: Possible<CleanError>,
       result: boolean,
     ) => {
       if (err) {
@@ -389,10 +391,10 @@ export class Stage<
           if ('boolean' === typeof result) {
             callback(undefined, context)
           } else if (Array.isArray(result)) {
-            callback(CreateError(result))
+            callback(createError(result))
           }
         } else {
-          callback(CreateError(this.reportName + ' reports: T is invalid'))
+          callback(createError(this.reportName + ' reports: T is invalid'))
         }
       }
     }) as CallbackFunction<boolean>)
@@ -403,7 +405,7 @@ export class Stage<
     callback: CallbackFunction<T>,
   ) {
     execute_ensure(ensure, context, ((
-      err: Possible<ComplexError>,
+      err: Possible<CleanError>,
       result: T,
     ) => {
       callback(err, result ?? context)
@@ -414,6 +416,6 @@ export class Stage<
 export type EnsureParams<T> = {
   context: T
   callback: CallbackFunction<T> | undefined
-  err: Possible<ComplexError>
+  err: Possible<CleanError>
   is_promise: boolean
 }

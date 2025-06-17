@@ -1,6 +1,6 @@
 import { JSONSchemaType } from 'ajv'
 import { Stage, isStage } from '../stage'
-import { CreateError, ComplexError } from './ErrorList'
+import { createError, CleanError } from './ErrorList'
 
 import Ajv from 'ajv'
 
@@ -23,8 +23,8 @@ export type StageObject = Record<string | symbol | number, any>
 
 export type CallbackFunction<T> =
   | (() => void)
-  | ((err?: Possible<ComplexError>) => void)
-  | ((err?: Possible<ComplexError>, res?: T) => void)
+  | ((err?: Possible<CleanError>) => void)
+  | ((err?: Possible<CleanError>, res?: T) => void)
 
 export type CallbackExternalFunction<T> =
   | (() => void)
@@ -152,10 +152,10 @@ export function is_thenable<T>(inp?: any): inp is Thanable<T> {
 export type Possible<T> = T | undefined | null
 
 export type SingleStageFunction<T extends StageObject> =
-  | Func2Async<T, Possible<ComplexError>, Possible<T>>
+  | Func2Async<T, Possible<CleanError>, Possible<T>>
   | Func3Sync<
       void,
-      Possible<ComplexError>,
+      Possible<CleanError>,
       Possible<T>,
       CallbackExternalFunction<T>
     >
@@ -169,12 +169,12 @@ export function isSingleStageFunction<T extends StageObject>(
 export type RunPipelineFunction<T extends StageObject> =
   | Func3Sync<
       void,
-      Possible<ComplexError>,
+      Possible<CleanError>,
       T,
       CallbackExternalFunction<T>
     >
   | Func2Sync<void, T, CallbackExternalFunction<T>>
-  | Func2Async<T, Possible<ComplexError>, T>
+  | Func2Async<T, Possible<CleanError>, T>
   | Func0Sync<
       T | Promise<T> | Thanable<T>
     >
@@ -206,7 +206,7 @@ export type Rescue<T> =
   | Func1Async<T, Error>
   | Func1Sync<T | Promise<T> | Thanable<T>, Error>
   // not applied as this
-  | Func2Async<T, Possible<ComplexError>, Possible<T>>
+  | Func2Async<T, Possible<CleanError>, Possible<T>>
   | Func2Sync<T | Promise<T> | Thanable<T>, Error, Possible<T>>
   | Func3Sync<void, Error, Possible<T>, CallbackFunction<T>>
 
@@ -285,13 +285,13 @@ export function isStageRun<T extends StageObject>(
 }
 
 export type StageRun<T extends StageObject> = (
-  err: Possible<ComplexError>,
+  err: Possible<CleanError>,
   context: T,
   callback: CallbackFunction<T>,
 ) => void
 
 export type InternalStageRun<T extends StageObject> = (
-  err: Possible<ComplexError>,
+  err: Possible<CleanError>,
   context: T,
   callback: CallbackFunction<T>,
 ) => void
@@ -339,13 +339,13 @@ export function getStageConfig<
       result.run = config.run
     }
     if (config.validate && config.schema) {
-      throw CreateError('use only one `validate` or `schema`')
+      throw createError('use only one `validate` or `schema`')
     }
     if (config.ensure && config.schema) {
-      throw CreateError('use only one `ensure` or `schema`')
+      throw createError('use only one `ensure` or `schema`')
     }
     if (config.ensure && config.validate) {
-      throw CreateError('use only one `ensure` or `validate`')
+      throw createError('use only one `ensure` or `validate`')
     }
     if (isValidateFunction<T>(config.validate)) {
       result.validate = config.validate
@@ -368,7 +368,7 @@ export function getStageConfig<
       const validate = ajv.compile(result.schema)
       result.validate = ((ctx: T): boolean => {
         if (!validate(ctx) && validate.errors) {
-          throw CreateError(ajv.errorsText(validate.errors))
+          throw createError(ajv.errorsText(validate.errors))
         } else return true
       }) as ValidateFunction<T>
     }
@@ -411,7 +411,7 @@ export function getPipelinConfig<T extends StageObject, R extends StageObject>(
         } else if (isAnyStage<T, R>(item)) {
           return item as AnyStage<T>
         } else {
-          throw CreateError('not suitable type for array in pipeline')
+          throw createError('not suitable type for array in pipeline')
         }
       }),
     }
@@ -425,7 +425,7 @@ export function getPipelinConfig<T extends StageObject, R extends StageObject>(
       return { stages: [res] } as PipelineConfig<T>
     } else if (typeof config == 'object' && !isAnyStage<T, R>(config)) {
       if (config.run && config.stages?.length > 0) {
-        throw CreateError(" don't use run and stage both ")
+        throw createError(" don't use run and stage both ")
       }
       if (config.run) {
         res.stages = [config.run]
@@ -452,7 +452,7 @@ export function getParallelConfig<T extends StageObject, R extends StageObject>(
   } else if (typeof config == 'object' && !isAnyStage<T, R>(config)) {
     const r = res as ParallelConfig<T, R>
     if (config.run && config.stage) {
-      throw CreateError("don't use run and stage both")
+      throw createError("don't use run and stage both")
     }
     if (config.split) {
       r.split = config.split
@@ -505,7 +505,7 @@ export function getWrapConfig<
     return { stage: res } as C
   } else if (typeof config == 'object' && !isAnyStage<T, R>(config)) {
     if (config.run && config.stage) {
-      throw CreateError("don't use run and stage both")
+      throw createError("don't use run and stage both")
     }
     if (config.run) {
       res.stage = config.run as RunPipelineFunction<any>
@@ -538,7 +538,7 @@ export function getTimeoutConfig<T extends StageObject>(
     return { stage: res } as TimeoutConfig<T>
   } else if (typeof config == 'object' && !isAnyStage<T, T>(config)) {
     if (config.run && config.stage) {
-      throw CreateError("don't use run and stage both")
+      throw createError("don't use run and stage both")
     }
     if (config.run) {
       res.stage = config.run
@@ -570,7 +570,7 @@ export function getIfElseConfig<
     return { success: res } as C
   } else if (typeof config == 'object' && !isAnyStage<T, C>(config)) {
     if (config.run && config.success) {
-      throw CreateError("don't use run and stage both")
+      throw createError("don't use run and stage both")
     }
     if (config.run) {
       res.success = config.run

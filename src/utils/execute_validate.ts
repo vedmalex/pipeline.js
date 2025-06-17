@@ -1,4 +1,4 @@
-import { CreateError } from './ErrorList'
+import { createError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import {
@@ -43,7 +43,7 @@ export function execute_validate<T>(
             if (res) {
               done(undefined, res)
             } else {
-              done(CreateError(ERROR.invalid_context))
+              done(createError(ERROR.invalid_context))
             }
           } else {
             done(res)
@@ -52,24 +52,24 @@ export function execute_validate<T>(
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
       }
       break
     case 2:
       if (is_func2(validate)) {
         try {
           validate(context, (err: Possible<Error>, res: boolean) => {
-            if (err) done(CreateError(err), res)
+            if (err) done(createError(err), res)
             else done(err, res)
           })
         } catch (err) {
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
       }
       break
     default:
-      done(CreateError(ERROR.signature))
+      done(createError(ERROR.signature))
   }
 }

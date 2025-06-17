@@ -25,7 +25,7 @@ describe('Sequential', function () {
     var stage = new Sequential({
       stage: st,
       rescue: function (err, conext) {
-        if (err.cause.err.message !== 'error') return err
+        if (err.message !== 'sequential - error') return err
       },
     })
 

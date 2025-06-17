@@ -162,13 +162,13 @@ describe('stage', () => {
   //     stages: [],
   //     precompile(this: Config) {
   //       let run: StageRun<CTX, CTX> = (
-  //         err: Possible<ComplexError>,
+  //         err: Possible<CleanError>,
   //         context: CTX,
   //         done: CallbackFunction<CTX>,
   //       ) => {
   //         let i = -1
   //         //sequential run;
-  //         let next = (err: Possible<ComplexError>, context: CTX | undefiend) => {
+  //         let next = (err: Possible<CleanError>, context: CTX | undefiend) => {
   //           i += 1
   //           if (i < this.stages.length) {
   //             run_or_execute(this.stages[i], err, context, next)

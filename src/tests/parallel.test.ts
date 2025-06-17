@@ -3,6 +3,7 @@ import { Parallel } from '../parallel'
 import { Stage } from '../stage'
 import { Wrap } from '../wrap'
 import { isAnyStage } from '../utils/types'
+import { CleanError } from '../utils/ErrorList'
 
 describe('Parallel', function () {
   it('works with default', function (done) {
@@ -155,8 +156,10 @@ describe('Parallel', function () {
       },
     })
     stage.execute(ctx, function (err, context) {
-      expect(err instanceof Error).toEqual(true)
-      expect(err.payload.length).toEqual(2)
+      expect(err instanceof CleanError).toEqual(true)
+      expect(err.chain.primary.message).toEqual('parallel - error')
+      expect(err.chain.secondary.length).toEqual(1)
+      expect(err.chain.secondary[0].message).toEqual('parallel - error')
       expect(!context.result).toEqual(true)
       done()
     })

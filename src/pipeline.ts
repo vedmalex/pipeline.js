@@ -1,6 +1,6 @@
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
-import { ComplexError } from './utils/ErrorList'
+import { CleanError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { isAnyStage } from './utils/types'
 import {
@@ -80,7 +80,7 @@ export class Pipeline<T extends StageObject> extends Stage<
 
   override compile(rebuild: boolean = false): StageRun<T> {
     let runAsync = async (
-      initialErr: Possible<ComplexError>,
+      initialErr: Possible<CleanError>,
       context: T,
     ) => {
       let currentContext = context;
@@ -100,21 +100,15 @@ export class Pipeline<T extends StageObject> extends Stage<
           }
         );
         await promise.catch(err => {
-          throw new Error('pipeline - error', {
-            cause: {
-              err,
-              i,
-              stages: this.config.stages,
-              ctx: currentContext
-            },
-          })
+          // Preserve original error (Option A architecture improvement)
+          throw err
         })
       }
       return currentContext
     };
 
     if (this.config.stages.length > 0) {
-      this.run = (err: Possible<ComplexError>, context: T, done: CallbackFunction<T>) => {
+      this.run = (err: Possible<CleanError>, context: T, done: CallbackFunction<T>) => {
         let error = err;
         let ctx = context
         runAsync(err, context)

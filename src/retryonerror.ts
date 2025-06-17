@@ -1,6 +1,6 @@
 import { Context } from './context'
 import { Stage } from './stage'
-import { ComplexError, CreateError } from './utils/ErrorList'
+import { CleanError, createError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
   AllowedStage,
@@ -21,7 +21,7 @@ import {
 export interface RetryOnErrorConfig<T extends StageObject>
   extends StageConfig<T> {
   stage: AnyStage<T> | RunPipelineFunction<T>
-  retry: number | Func3<boolean, Possible<ComplexError>, T, number>
+  retry: number | Func3<boolean, Possible<CleanError>, T, number>
   backup?: (ctx: T) => T
   restore?: (ctx: T, backup: T) => T
 }
@@ -35,7 +35,7 @@ export function getRetryOnErrorConfig<
     return { stage: res } as C
   } else if (typeof config == 'object' && !isAnyStage<T, C>(config)) {
     if (config.run && config.stage) {
-      throw CreateError("don't use run and stage both")
+      throw createError("don't use run and stage both")
     }
     if (config.run) {
       res.stage = config.run
@@ -112,11 +112,11 @@ export class RetryOnError<T extends StageObject> extends Stage<
 
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = async (
-      initialErr: Possible<ComplexError>,
+      initialErr: Possible<CleanError>,
       initialCtx: T,
       done: CallbackFunction<T>,
     ) => {
-      let currentError: Possible<ComplexError> = initialErr;
+      let currentError: Possible<CleanError> = initialErr;
       let currentCtx = initialCtx;
       let iter = -1;
       const backup = this.backupContext(initialCtx);
@@ -124,7 +124,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
         // Создаем резервную копию контекста
 
         // Функция для проверки завершения
-        const reachEnd = (err: Possible<ComplexError>, iteration: number): boolean => {
+        const reachEnd = (err: Possible<CleanError>, iteration: number): boolean => {
           if (err) {
             if (this.config.retry instanceof Function) {
               return !this.config.retry(err, currentCtx, iteration);
@@ -175,7 +175,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
       } catch (err) {
         // Обрабатываем неожиданные ошибки
         currentCtx = this.restoreContext(currentCtx, backup);
-        done(err as ComplexError, initialCtx);
+        done(err as CleanError, initialCtx);
       }
     };
 

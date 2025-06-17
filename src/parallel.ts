@@ -1,6 +1,6 @@
 import { Stage } from './stage'
 import { empty_run } from './utils/empty_run'
-import { ComplexError, CreateError } from './utils/ErrorList'
+import { CleanError, createError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
   AllowedStage,
@@ -72,7 +72,7 @@ export class Parallel<
   override compile(rebuild: boolean = false): StageRun<T> {
     if (this.config.stage) {
       const run: StageRun<T> = async (
-        initialErr: Possible<ComplexError>,
+        initialErr: Possible<CleanError>,
         initialCtx: T,
         done: CallbackFunction<T>,
       ) => {
@@ -119,14 +119,14 @@ export class Parallel<
 
           // Проверяем, были ли ошибки
           if (errors.length > 0) {
-            done(CreateError(errors), initialCtx);
+            done(createError(errors), initialCtx);
           } else {
             const result = this.combine(initialCtx, children);
             done(undefined, result);
           }
         } catch (err) {
           // Обработка неожиданных ошибок
-          done(err as ComplexError, initialCtx);
+          done(err as CleanError, initialCtx);
         }
       };
       this.run = run

@@ -1,4 +1,4 @@
-import { CreateError, ComplexError } from './ErrorList'
+import { createError, CleanError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import {
@@ -47,23 +47,23 @@ export function execute_ensure<T>(
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
       }
       break
     case 2:
       if (is_func2(ensure)) {
         try {
-          ensure(context, (err: ComplexError, ctx: T) => {
+          ensure(context, (err: CleanError, ctx: T) => {
             done(err, ctx)
           })
         } catch (err) {
           process_error(err, done)
         }
       } else {
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
       }
       break
     default:
-      done(CreateError(ERROR.signature))
+      done(createError(ERROR.signature))
   }
 }

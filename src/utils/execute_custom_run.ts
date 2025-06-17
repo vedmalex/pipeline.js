@@ -1,4 +1,4 @@
-import { ComplexError, CreateError } from './ErrorList'
+import { CleanError, createError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import { run_callback_once } from './run_callback_once'
@@ -31,7 +31,7 @@ export function execute_custom_run<T extends StageObject>(
 ): StageRun<T> {
   return function (
     this: any,
-    err: Possible<ComplexError>,
+    err: Possible<CleanError>,
     context: T,
     _done: CallbackFunction<T>,
   ) {
@@ -89,14 +89,14 @@ export function execute_custom_run<T extends StageObject>(
             process_error(err, done)
           }
         } else {
-          done(CreateError(ERROR.signature))
+          done(createError(ERROR.signature))
         }
         break
       case 2:
         if (
           is_func2_async<
             T,
-            Possible<ComplexError>,
+            Possible<CleanError>,
             T
           >(run)
         ) {
@@ -119,7 +119,7 @@ export function execute_custom_run<T extends StageObject>(
             process_error(err, done)
           }
         } else {
-          done(CreateError(ERROR.signature))
+          done(createError(ERROR.signature))
         }
         break
       case 3:
@@ -132,11 +132,11 @@ export function execute_custom_run<T extends StageObject>(
             process_error(err, done)
           }
         } else {
-          done(CreateError(ERROR.signature))
+          done(createError(ERROR.signature))
         }
         break
       default:
-        done(CreateError(ERROR.signature))
+        done(createError(ERROR.signature))
     }
   }
 }

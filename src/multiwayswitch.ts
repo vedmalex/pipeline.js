@@ -1,5 +1,5 @@
 import { Stage } from './stage'
-import { ComplexError, CreateError } from './utils/ErrorList'
+import { CleanError, createError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { isAnyStage } from './utils/types'
 import {
@@ -93,7 +93,7 @@ export function getMultWaySwitchConfig<
         } else if (isMultiWaySwitch<R, StageObject>(item)) {
           res = item
         } else {
-          throw CreateError('not suitable type for array in pipelin')
+          throw createError('not suitable type for array in pipelin')
         }
         return res
       }),
@@ -104,7 +104,7 @@ export function getMultWaySwitchConfig<
       return { cases: [{ stage: res, evaluate: true }] }
     } else if (typeof config == 'object' && !isAnyStage<T, R>(config)) {
       if (config?.run && config.cases && config.cases.length > 0) {
-        throw CreateError(" don't use run and stage both ")
+        throw createError(" don't use run and stage both ")
       }
       if (config.run) {
         res.cases = [{ stage: config.run, evaluate: true }]
@@ -244,7 +244,7 @@ export class MultiWaySwitch<
     }
 
     let run: StageRun<T> = async (
-      initialErr: Possible<ComplexError>,
+      initialErr: Possible<CleanError>,
       initialCtx: T,
       done: CallbackFunction<T>,
     ) => {
@@ -305,13 +305,13 @@ export class MultiWaySwitch<
 
         // Проверяем, были ли ошибки
         if (errors.length > 0) {
-          done(CreateError(errors), initialCtx);
+          done(createError(errors), initialCtx);
         } else {
           done(undefined, resultContext ?? initialCtx);
         }
       } catch (err) {
         // Обработка неожиданных ошибок
-        done(err as ComplexError, initialCtx);
+        done(err as CleanError, initialCtx);
       }
     };
 

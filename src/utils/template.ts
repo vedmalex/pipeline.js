@@ -1,5 +1,5 @@
 import { Stage } from '../stage'
-import { ComplexError, CreateError } from './ErrorList'
+import { CleanError, createError } from './ErrorList'
 import {
   AllowedStage,
   AnyStage,
@@ -28,7 +28,7 @@ export function getTemplateConfig<
     return { stage: res } as C
   } else if (typeof config == 'object' && !isAnyStage<T, C>(config)) {
     if (config.run && config.stage) {
-      throw CreateError("don't use run and stage both")
+      throw createError("don't use run and stage both")
     }
     if (config.run) {
       res.stage = config.run
@@ -64,7 +64,7 @@ export class Template<
 
   override compile(rebuild: boolean = false): StageRun<T> {
     let run: StageRun<T> = (
-      err: Possible<ComplexError>,
+      err: Possible<CleanError>,
       context: Possible<T>,
       done: CallbackFunction<T>,
     ) => {}

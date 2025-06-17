@@ -1,5 +1,5 @@
 import { Stage } from './stage'
-import { ComplexError } from './utils/ErrorList'
+import { CleanError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
   getWrapConfig,
@@ -32,14 +32,14 @@ export class Wrap<T extends StageObject, R extends StageObject> extends Stage<
 
   override compile(rebuild: boolean = false): StageRun<T> {
     let run = (
-      err: Possible<ComplexError>,
+      err: Possible<CleanError>,
       context: T,
       done: CallbackFunction<T>,
     ) => {
       const ctx = this.prepare(context)
       if (this.config.stage) {
         run_or_execute<any>(this.config.stage, err, ctx, ((
-          err: Possible<ComplexError>,
+          err: Possible<CleanError>,
           retCtx: R,
         ) => {
           if (!err) {

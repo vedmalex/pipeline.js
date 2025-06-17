@@ -40,7 +40,7 @@ Stage {
 }
 `;
 
-exports[`stage validate using schema 1`] = `[Error: data should be an object with a name property]`;
+exports[`stage validate using schema 1`] = `[CleanError: data should be an object with a name property]`;
 
 exports[`stage initialize other stuff sucessfully: schema stage 1 1`] = `
 Stage {
