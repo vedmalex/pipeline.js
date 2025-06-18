@@ -43,4 +43,3 @@ export declare function benchmarkErrorCreation(iterations?: number): {
     complexErrorTime: number;
     improvement: string;
 };
-//# sourceMappingURL=ErrorList.d.ts.map

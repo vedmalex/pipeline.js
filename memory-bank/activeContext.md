@@ -1,32 +1,112 @@
 # Active Context - Memory Bank System
 
-## Current Status: READY FOR NEW TASK
-**Date:** 2025-06-10
-**Memory Bank Status:** RESET - Ready for Next Project
-**Last Completed:** ErrorList Architecture Modernization (ARCHIVED)
+## Current Status: VAN MODE ACTIVE
+**Date:** 2025-06-17
+**Memory Bank Status:** NEW PROJECT INITIALIZED
+**Project:** Pipeline.js ES5 Instanceof Refactoring
 
 ---
 
-## Previous Task Summary (ARCHIVED)
-- **Task:** ErrorList Architecture Modernization
-- **Level:** 3 (Intermediate Feature)
-- **Result:** SUCCESSFULLY COMPLETED & ARCHIVED
-- **Archive:** `memory-bank/archive/archive-errorlist-modernization-2025-06-10.md`
+## 🎯 CURRENT TASK: ES5 Instanceof Refactoring
+
+### Task Overview
+- **ID:** ES5-INSTANCEOF-REFACTOR-2025-06-17
+- **Status:** PLANNED (VAN Analysis Complete)
+- **Priority:** CRITICAL
+- **Complexity:** Level 3 (Intermediate Feature)
+- **Type:** COMPATIBILITY_FIX + SYSTEM_REFACTORING
+
+### Critical Problem Identified
+Pipeline.js compiles to ES5 for compatibility, but current code uses `instanceof` checks that don't work in ES5 environments. This affects ALL type detection throughout the library.
+
+### Impact Assessment
+- **Production Impact:** Silent failures in ES5 environments
+- **Compatibility:** Library unusable in legacy browsers/Node.js versions
+- **Development:** Type detection broken, debugging difficult
+- **Foundation:** Blocks other modernization efforts
 
 ---
 
-## System Status
-- **Memory Bank:** Reset and ready for new development cycle
-- **Knowledge Base:** Comprehensive archive created with all documentation
-- **Library Status:** pipeline.js ready for v2.0.33 publication
-- **Next Action:** Use VAN Mode to initiate next development task
+## 🔍 VAN MODE ANALYSIS RESULTS
+
+### Codebase Status
+- **Tests:** 130/130 passing (100% success rate) ✅
+- **TypeScript:** Modern setup with Bun integration
+- **Previous Work:** ErrorList modernization completed & archived
+- **Technical Debt:** Critical instanceof compatibility issues
+
+### Complexity Assessment: Level 3
+**Reasons for Level 3 Classification:**
+1. **System-wide Impact** - Affects multiple core components (Stage, Pipeline, Context)
+2. **Architectural Changes** - Requires custom type detection system design
+3. **Compatibility Requirements** - Must maintain backward compatibility
+4. **Testing Complexity** - Needs ES5 environment validation
+
+### Required Memory Bank Phases
+```
+VAN (✅ Complete) → PLAN → CREATIVE → IMPLEMENT → REFLECT → ARCHIVE
+```
 
 ---
 
-## Available for Next Project
-The Memory Bank system is now ready to analyze and execute the next development task. All previous work has been comprehensively archived and the system is prepared for a fresh start.
+## 📋 DISCOVERED TECHNICAL REQUIREMENTS
 
-**To begin next task:** Activate VAN Mode with your project requirements.
+### Primary Goal
+Replace all `instanceof` checks with ES5-compatible custom type detection while maintaining:
+- Type safety for TypeScript users
+- Runtime performance
+- Backward API compatibility
+- Full test coverage
+
+### Implementation Scope
+Based on TODO.md analysis:
+1. **Stage instanceof checks** - Type detection for pipeline stages
+2. **Pipeline instanceof checks** - Pipeline composition validation
+3. **Context instanceof checks** - Context object validation
+4. **Error instanceof checks** - Error handling and type detection
+
+### Success Criteria
+- ✅ All tests pass in ES5 compiled environment
+- ✅ Zero breaking changes to public API
+- ✅ Performance maintained or improved
+- ✅ TypeScript types preserved
+
+---
+
+## 🚀 NEXT ACTION REQUIRED
+
+### Mode Transition Decision
+**VAN Mode Result:** Level 3 task detected
+
+According to Memory Bank rules:
+```
+🚫 LEVEL 3 TASK DETECTED
+Implementation in VAN mode is BLOCKED
+This task REQUIRES PLAN mode for proper planning and design
+```
+
+**Required Action:** Switch to PLAN mode for architectural planning
+
+### Why PLAN Mode Required?
+1. **Complex Architecture** - Need systematic design of type detection system
+2. **Multiple Components** - Stage, Pipeline, Context, Error all affected
+3. **Compatibility Strategy** - ES5 vs modern TypeScript balance
+4. **Testing Strategy** - Multi-environment validation approach
+
+---
+
+## 📊 PROJECT FOUNDATION
+
+### Available Infrastructure
+- **Memory Bank:** Fully operational and reset for new project
+- **Development Environment:** Modern TypeScript + Bun + Node.js
+- **Test Suite:** Comprehensive with 130 tests passing
+- **Knowledge Base:** Previous ErrorList modernization archived
+
+### Ready for Planning Phase
+The VAN mode analysis is complete. The project is ready for detailed planning phase to design the instanceof replacement system.
+
+**To proceed:** Type `PLAN` to enter planning mode.
 
 # Memory Bank: Активный контекст
 

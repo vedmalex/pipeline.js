@@ -1,7 +1,7 @@
 {
   "name": "pipeline.js",
   "description": "Pipeline.js - async workflow framework for node.js and browser",
-  "version": "2.0.33",
+  "version": "2.0.33-alpha.2",
   "author": {
     "name": "Alex Vedmedenko",
     "email": "vedmalex@gmail.com"
@@ -36,7 +36,7 @@
   ],
   "scripts": {
     "prepublish": "npm run clean && npm run lib",
-    "build": "bun build.ts && tsc -p tsconfig.bun.json",
+    "build": "bun build.ts && tsc -p tsconfig.json",
     "lib": "tsc -p tsconfig.json",
     "watch": "tsc -w -p tsconfig.json",
     "clean": "git clean -dfqX -- {types,dist}/** && rm -rf tsconfig.tsbuildinfo dist types"

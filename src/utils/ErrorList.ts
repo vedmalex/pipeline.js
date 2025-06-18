@@ -60,7 +60,21 @@ export class CleanError extends Error {
       primary: typeof primary === 'string' ? new Error(primary) : primary,
       secondary: options?.secondary,
       context: options?.context,
-      trace: this.captureTrace()
+      trace: (() => {
+        try {
+          // ES5-compatible inline trace capture
+          const stack = new Error().stack;
+          if (!stack) return [];
+
+          return stack
+            .split('\n')
+            .slice(2, 5) // Only 3 frames, not entire stack
+            .map(function(frame) { return frame.trim(); })
+            .filter(function(frame) { return frame.length > 0; });
+        } catch (e) {
+          return [];
+        }
+      })()
     };
 
     // Support modern Error.cause if provided
@@ -70,25 +84,6 @@ export class CleanError extends Error {
 
     // Fix prototype chain for instanceof checks
     Object.setPrototypeOf(this, CleanError.prototype);
-  }
-
-  /**
-   * Capture lightweight trace for debugging (not full stack)
-   */
-  private captureTrace(): string[] {
-    try {
-      // Capture only relevant frames, not entire application context
-      const stack = new Error().stack;
-      if (!stack) return [];
-
-      return stack
-        .split('\n')
-        .slice(2, 5) // Only 3 frames, not entire stack
-        .map(frame => frame.trim())
-        .filter(frame => frame.length > 0);
-    } catch {
-      return [];
-    }
   }
 
   /**

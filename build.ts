@@ -19,7 +19,7 @@ const entrypoints = ['src/index.ts']
 const { build } = await import('esbuild')
 // Для esbuild
 const esbuildConfig = createConfig({
-  target: 'es5',
+  target: 'node',
   pkg,
   entrypoints,
 })
