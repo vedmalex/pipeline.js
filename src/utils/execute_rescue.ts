@@ -1,4 +1,5 @@
 import { CleanError, createError } from './ErrorList'
+import { isPromise } from './TypeDetectors'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import {
@@ -30,7 +31,7 @@ export function execute_rescue<T>(
       } else if (is_func1(rescue)) {
         try {
           const res = rescue(createError(err))
-          if (res instanceof Promise) {
+          if (isPromise(res)) {
             res.then(_ => done()).catch(err => done(err))
           } else if (is_thenable(res)) {
             res.then(_ => done()).catch(err => done(err))
@@ -56,7 +57,7 @@ export function execute_rescue<T>(
       } else if (is_func2(rescue)) {
         try {
           const res = rescue(createError(err), context)
-          if (res instanceof Promise) {
+          if (isPromise(res)) {
             res.then(_ => done()).catch(err => done(err))
           } else if (is_thenable(res)) {
             res.then(_ => done()).catch(err => done(err))

@@ -1,8 +1,10 @@
 /**
  * Module dependency
  */
-import { defaultsDeep, get, set } from 'lodash'
+import { get, set } from 'lodash'
 import { StageObject } from './utils/types'
+import { isObject } from './utils/TypeDetectors'
+import CyclicJSON from './JSON'
 
 export const ContextSymbol = Symbol('Context')
 export const OriginalObject = Symbol('OriginalObject')
@@ -27,6 +29,7 @@ const RESERVED: Record<string, number> = {
   setRoot: RESERVATIONS.func_ctx,
   toString: RESERVATIONS.func_ctx,
   original: RESERVATIONS.prop,
+  __id: RESERVATIONS.prop,
   __parent: RESERVATIONS.prop,
   __root: RESERVATIONS.prop,
   __stack: RESERVATIONS.prop,
@@ -37,6 +40,7 @@ const RESERVED: Record<string, number> = {
   addChild: RESERVATIONS.func_ctx,
   addSubtree: RESERVATIONS.func_ctx,
   toJSON: RESERVATIONS.func_ctx,
+  toJSONSafe: RESERVATIONS.func_ctx,
   toObject: RESERVATIONS.func_ctx,
   fork: RESERVATIONS.func_this,
   get: RESERVATIONS.func_this,
@@ -57,7 +61,8 @@ export interface IContextProxy<T> {
   setParent(parent: ContextType<T>): void
   setRoot(parent: ContextType<T>): void
   toJSON(): string
-  toObject(clean?: boolean): T
+  toJSONSafe(): string
+  toObject(visited?: Set<Context<any>>): T
   toString(): string
   fork<C extends StageObject>(config: C): ContextType<T & C>
   get(path: keyof T): any
@@ -94,7 +99,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
   protected __root!: ContextType<T>
   protected __stack?: string[]
   protected __current?: unknown
-  protected id: number;
+  protected __id: number;
   [OriginalObject]?: boolean
   [CurrentStage]?: unknown
   get original() {
@@ -103,8 +108,8 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
 
   constructor(config: T) {
     this.ctx = config as T
-    this.id = count++
-    allContexts[this.id] = this
+    this.__id = count++
+    allContexts[this.__id] = this
     const res = new Proxy(this, {
       get(target: Context<T>, key: string | symbol | number, _proxy: any): any {
         if (key == ContextSymbol) return true
@@ -173,10 +178,16 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
       },
       ownKeys(target: Context<T>) {
         if (target.__parent) {
-          return [
-            ...Reflect.ownKeys(target.ctx),
-            ...Reflect.ownKeys(target.__parent),
-          ]
+          const ownKeys = Reflect.ownKeys(target.ctx)
+          const parentKeys = Reflect.ownKeys(target.__parent)
+          // Убираем дубликаты, оставляя приоритет за собственными ключами
+          const allKeys = [...ownKeys]
+          for (const key of parentKeys) {
+            if (!ownKeys.includes(key)) {
+              allKeys.push(key)
+            }
+          }
+          return allKeys
         } else {
           return Reflect.ownKeys(target.ctx)
         }
@@ -214,7 +225,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
    */
   get(path: keyof T): any {
     var root = get(this.ctx, path) as any
-    if (root instanceof Object) {
+    if (isObject(root)) {
       var result = root
       if (!Context.isContext(result)) {
         var lctx = Context.ensure(result)
@@ -285,14 +296,32 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
    * @param {Boolean} [clean]  `true` it need to clean object from referenced Types except Function and raw Object(js hash)
    * @return {Object}
    */
-  toObject<T>(): T {
-    const obj = {} as T
-    defaultsDeep(obj, this.ctx)
-    if (this.__parent) {
-      // TODO: взять весь объект по всей структуре дерева
-      defaultsDeep(obj, this.__parent.toObject())
+  toObject<T>(visited?: Set<Context<any>>): T {
+    // Защита от циклических ссылок между parent и child контекстами
+    if (!visited) {
+      visited = new Set()
     }
-    return obj
+
+    if (visited.has(this)) {
+      return { __circularRef: true, id: this.__id } as any
+    }
+
+    visited.add(this)
+
+    // Сначала получаем данные от parent (если есть)
+    let obj: any = {}
+    if (this.__parent && !visited.has(this.__parent as any)) {
+      obj = (this.__parent as any).toObject(visited)
+    }
+
+    // Затем накладываем свои данные поверх, избегая defaultsDeep с циклическими ссылками
+    for (const key in this.ctx) {
+      if (this.ctx.hasOwnProperty(key)) {
+        obj[key] = this.ctx[key]
+      }
+    }
+
+    return obj as T
   }
 
   /**
@@ -301,8 +330,28 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
    * @return {String}
    */
   toJSON(): string {
-    // always cleaning the object
-    return JSON.stringify(this.toObject())
+    try {
+      // Пытаемся использовать обычный JSON.stringify для производительности
+      return JSON.stringify(this.toObject())
+    } catch (error) {
+      // Если есть циклические ссылки, используем CyclicJSON как fallback
+      if (error instanceof TypeError &&
+          (error.message.includes('circular') ||
+           error.message.includes('cyclic'))) {
+        return CyclicJSON.stringify(this.toObject())
+      }
+      // Пробрасываем другие ошибки
+      throw error
+    }
+  }
+
+  /**
+   * Safe serialization using CyclicJSON
+   * @api public
+   * @return {String}
+   */
+  toJSONSafe(): string {
+    return CyclicJSON.stringify(this.toObject())
   }
 
   /**

@@ -2,6 +2,7 @@
 // This file validates TypeScript compatibility and performance characteristics
 
 import { Possible } from './types';
+import { isError, isCleanError as detectCleanError } from './TypeDetectors';
 
 // =============================================================================
 // TYPE DEFINITIONS (Based on Creative Phase Architecture)
@@ -171,7 +172,7 @@ export function createError(input: string | Error | Error[]): CleanError {
 
   if (Array.isArray(input)) {
     // Filter out null/undefined values
-    const validErrors = input.filter((err): err is Error => err instanceof Error);
+    const validErrors = input.filter((err): err is Error => isError(err));
 
     if (validErrors.length === 0) {
       return new CleanError('Unknown error occurred');
@@ -211,7 +212,7 @@ export function chainErrors(primary: Error, secondary: Error[]): CleanError {
  * Type guard for CleanError
  */
 export function isCleanError(input: any): input is CleanError {
-  return input instanceof CleanError && input.isClean === true;
+  return detectCleanError(input);
 }
 
 /**

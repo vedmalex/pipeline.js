@@ -1,4 +1,5 @@
 import { CleanError, createError } from './ErrorList'
+import { isPromise } from './TypeDetectors'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import { run_callback_once } from './run_callback_once'
@@ -49,7 +50,7 @@ export function execute_custom_run<T extends StageObject>(
         } else if (is_func0<T>(run)) {
           try {
             const res = run.apply(context)
-            if (res instanceof Promise) {
+            if (isPromise(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else if (is_thenable<T>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
@@ -78,7 +79,7 @@ export function execute_custom_run<T extends StageObject>(
         ) {
           try {
             const res = run.call(this, context)
-            if (res instanceof Promise) {
+            if (isPromise(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))
             } else if (is_thenable<T>(res)) {
               res.then(r => done(undefined, r)).catch(err => done(err))

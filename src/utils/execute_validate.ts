@@ -1,6 +1,7 @@
 import { createError } from './ErrorList'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
+import { isPromise } from './TypeDetectors'
 import {
   CallbackExternalFunction,
   Func1Sync,
@@ -35,7 +36,7 @@ export function execute_validate<T>(
               Possible<T>
             >
           )(context)
-          if (res instanceof Promise) {
+          if (isPromise(res)) {
             res.then(res => done(undefined, res)).catch(err => done(err))
           } else if (is_thenable(res)) {
             res.then(res => done(undefined, res)).catch(err => done(err))

@@ -2,6 +2,7 @@ import {
   createError,
   type CleanError,
 } from './utils/ErrorList'
+import { isError } from './utils/TypeDetectors';
 import {
   AllowedStage,
   CallbackExternalFunction,
@@ -82,7 +83,7 @@ export class Stage<
   ) {
     if (err || err_) {
       // Combine errors, filtering out null/undefined values
-      const errors = [err, err_].filter((e): e is CleanError => e instanceof Error);
+      const errors = [err, err_].filter((e): e is CleanError => isError(e));
       const combinedError = errors.length > 0 ? createError(errors) : createError('Unknown error occurred');
 
       if (this.config.run && !can_fix_error({ run: this.config.run })) {
@@ -200,7 +201,7 @@ export class Stage<
                 __callback(err, _ctx.original)
               } else {
                 // Combine error with context error properly
-                const errors = [err, new Error('context is always context object')].filter((e): e is Error => e instanceof Error);
+                const errors = [err, new Error('context is always context object')].filter((e): e is Error => isError(e));
                 __callback(
                   errors.length > 0 ? createError(errors) : createError('Context error occurred'),
                   _ctx,
@@ -336,7 +337,7 @@ export class Stage<
     let err: Possible<CleanError>
 
     if (_err) {
-      if (!(_err instanceof Error)) {
+      if (!isError(_err)) {
         err = createError(_err)
       } else {
         // If already a CleanError, preserve it; otherwise create new one

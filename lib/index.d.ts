@@ -1,5 +1,6 @@
 export * from './config';
 export * from './context';
+export * from './JSON';
 export * from './stage';
 export * from './dowhile';
 export * from './empty';

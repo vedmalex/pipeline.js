@@ -15,7 +15,8 @@ export interface IContextProxy<T> {
     setParent(parent: ContextType<T>): void;
     setRoot(parent: ContextType<T>): void;
     toJSON(): string;
-    toObject(clean?: boolean): T;
+    toJSONSafe(): string;
+    toObject(visited?: Set<Context<any>>): T;
     toString(): string;
     fork<C extends StageObject>(config: C): ContextType<T & C>;
     get(path: keyof T): any;
@@ -31,7 +32,7 @@ export declare class Context<T extends StageObject> implements IContextProxy<T> 
     protected __root: ContextType<T>;
     protected __stack?: string[];
     protected __current?: unknown;
-    protected id: number;
+    protected __id: number;
     [OriginalObject]?: boolean;
     [CurrentStage]?: unknown;
     get original(): T;
@@ -46,8 +47,9 @@ export declare class Context<T extends StageObject> implements IContextProxy<T> 
     setRoot(root: ContextType<T>): void;
     hasChild<C extends StageObject>(ctx: ContextType<C>): boolean;
     hasSubtree<C extends StageObject>(ctx: ContextType<C>): boolean;
-    toObject<T>(): T;
+    toObject<T>(visited?: Set<Context<any>>): T;
     toJSON(): string;
+    toJSONSafe(): string;
     toString(): string;
 }
 //# sourceMappingURL=context.d.ts.map

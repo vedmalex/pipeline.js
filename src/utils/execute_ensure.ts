@@ -1,4 +1,5 @@
 import { createError, CleanError } from './ErrorList'
+import { isPromise } from './TypeDetectors'
 import { ERROR } from './errors'
 import { process_error } from './process_error'
 import {
@@ -36,7 +37,7 @@ export function execute_ensure<T>(
               T
             >
           )(context)
-          if (res instanceof Promise) {
+          if (isPromise(res)) {
             res.then(res => done(undefined, res)).catch(err => done(err))
           } else if (is_thenable(res)) {
             res.then(res => done(undefined, res)).catch(err => done(err))

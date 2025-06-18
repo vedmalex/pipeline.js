@@ -2,6 +2,7 @@
  * Module dependency
  */
 import { defaultsDeep, get, set } from 'lodash'
+import { isObject } from './utils/TypeDetectors'
 import { StageObject } from './utils/types'
 
 export const ContextSymbol = Symbol('Context')
@@ -205,7 +206,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
    */
   get(path: keyof T): any {
     var root = get(this.ctx, path) as any
-    if (root instanceof Object) {
+    if (isObject(root)) {
       var result = root
       if (!Context.isContext(result)) {
         var lctx = Context.ensure(result)

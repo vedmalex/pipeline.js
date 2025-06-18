@@ -1,5 +1,6 @@
 import { Context } from './context'
 import { Stage } from './stage'
+import { isFunction } from './utils/TypeDetectors'
 import { CleanError, createError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import {
@@ -126,7 +127,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
         // Функция для проверки завершения
         const reachEnd = (err: Possible<CleanError>, iteration: number): boolean => {
           if (err) {
-            if (this.config.retry instanceof Function) {
+            if (isFunction(this.config.retry)) {
               return !this.config.retry(err, currentCtx, iteration);
             } else {
               // Если retry — число, проверяем количество попыток

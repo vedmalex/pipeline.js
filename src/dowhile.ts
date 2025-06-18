@@ -1,4 +1,5 @@
 import { Stage } from './stage'
+import { isFunction } from './utils/TypeDetectors'
 import { CleanError, createError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { isAnyStage } from './utils/types'
@@ -49,11 +50,11 @@ export class DoWhile<
         config.stage = _config.stage
       }
 
-      if (_config?.split instanceof Function) {
+      if (isFunction(_config?.split)) {
         config.split = _config.split
       }
 
-      if (_config?.reachEnd instanceof Function) {
+      if (isFunction(_config?.reachEnd)) {
         config.reachEnd = _config.reachEnd
       }
     }

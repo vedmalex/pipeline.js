@@ -1,4 +1,5 @@
 import { Stage } from './stage'
+import { isFunction } from './utils/TypeDetectors'
 import { CleanError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { AllowedStage, getTimeoutConfig, StageObject } from './utils/types'
@@ -43,7 +44,7 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
       }) as CallbackFunction<T>;
 
       const waitFor =
-        this.config.timeout instanceof Function
+        isFunction(this.config.timeout)
           ? this.config.timeout(ctx)
           : this.config.timeout;
 

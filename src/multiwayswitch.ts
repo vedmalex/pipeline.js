@@ -1,4 +1,5 @@
 import { Stage } from './stage'
+import { isFunction } from './utils/TypeDetectors'
 import { CleanError, createError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
 import { isAnyStage } from './utils/types'
@@ -195,7 +196,7 @@ export class MultiWaySwitch<
       let caseItem: MultiWaySwitchCase<R, StageObject>
       caseItem = this.config.cases[i]
 
-      if (caseItem instanceof Function) {
+      if (isFunction(caseItem)) {
         caseItem = {
           stage: new Stage(caseItem),
           evaluate: true,
@@ -210,7 +211,7 @@ export class MultiWaySwitch<
       }
 
       if (caseItem.stage) {
-        if (caseItem.stage instanceof Function) {
+        if (isFunction(caseItem.stage)) {
           caseItem.stage = caseItem.stage
         }
         if (
@@ -220,10 +221,10 @@ export class MultiWaySwitch<
           caseItem.stage = new Stage(caseItem.stage)
         }
 
-        if (!(caseItem.split instanceof Function)) {
+        if (!isFunction(caseItem.split)) {
           caseItem.split = this.config.split
         }
-        if (!(caseItem.combine instanceof Function)) {
+        if (!isFunction(caseItem.combine)) {
           caseItem.combine = this.config.combine
         }
 
