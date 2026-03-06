@@ -17,16 +17,34 @@ function heapMB(): number {
   return process.memoryUsage().heapUsed / 1024 / 1024
 }
 
-function gcAndMeasure(): number {
-  // Bun exposes gc() globally
-  if (typeof (globalThis as any).gc === 'function') {
-    (globalThis as any).gc()
+async function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function gcAndMeasure(settleMs: number = 20): Promise<number> {
+  // Bun does not expose global gc() unless started with --expose-gc,
+  // but Bun.gc() is always available. Fall back to global gc() for Node.
+  const bunGc = (globalThis as any).Bun?.gc
+  const globalGc = (globalThis as any).gc
+
+  const runGc = () => {
+    if (typeof bunGc === 'function') {
+      bunGc(true)
+    } else if (typeof globalGc === 'function') {
+      globalGc()
+    }
   }
+
+  runGc()
+  if (settleMs > 0) await sleep(settleMs)
+  runGc()
+  if (settleMs > 0) await sleep(settleMs)
+
   return heapMB()
 }
 
-async function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+async function warmup(fn: () => Promise<unknown>, iterations: number = 5_000) {
+  for (let i = 0; i < iterations; i++) await fn()
 }
 
 console.log('\n=== pipeline.js memory benchmark ===\n')
@@ -38,7 +56,7 @@ console.log('\n=== pipeline.js memory benchmark ===\n')
 console.log('── allContexts WeakRef leak test ──')
 
 {
-  const before = gcAndMeasure()
+  const before = await gcAndMeasure()
   let registrySize = 0
 
   // Create 50k contexts and immediately drop them
@@ -53,13 +71,13 @@ console.log('── allContexts WeakRef leak test ──')
   const beforeGC = Object.keys(anyCtx.allContexts).length
   
   // Force GC and wait for FinalizationRegistry callbacks
-  gcAndMeasure()
+  await gcAndMeasure()
   await sleep(100) // give FinalizationRegistry time to fire
-  gcAndMeasure()
+  await gcAndMeasure()
   await sleep(100)
 
   const afterGC = Object.keys(anyCtx.allContexts).length
-  const afterGCMem = gcAndMeasure()
+  const afterGCMem = await gcAndMeasure()
 
   console.log(`  Heap before creating contexts:  ${before.toFixed(1)} MB`)
   console.log(`  Heap after 50k contexts:        ${afterCreate.toFixed(1)} MB  (+${(afterCreate - before).toFixed(1)} MB)`)
@@ -78,19 +96,15 @@ console.log('\n── Stage.execute heap growth (sustained load) ──')
 {
   const stage = new Stage<{ n: number }>({ run: (ctx) => { ctx.n++ } })
 
-  gcAndMeasure()
-  await sleep(50)
-
-  const baseline = gcAndMeasure()
+  await warmup(() => stage.execute({ n: 0 }))
+  const baseline = await gcAndMeasure()
   const samples: number[] = []
 
   for (let batch = 0; batch < 5; batch++) {
     for (let i = 0; i < BATCH; i++) {
       await stage.execute({ n: 0 })
     }
-    gcAndMeasure()
-    await sleep(20)
-    samples.push(gcAndMeasure())
+    samples.push(await gcAndMeasure())
   }
 
   const min = Math.min(...samples)
@@ -98,9 +112,9 @@ console.log('\n── Stage.execute heap growth (sustained load) ──')
   const drift = max - baseline
 
   console.log(`  Baseline heap:   ${baseline.toFixed(2)} MB`)
-  samples.forEach((s, i) =>
-    console.log(`  After batch ${i + 1} (${((i+1)*BATCH).toLocaleString()} ops):  ${s.toFixed(2)} MB`)
-  )
+  samples.forEach((s, i) => {
+    console.log(`  After batch ${i + 1} (${((i + 1) * BATCH).toLocaleString()} ops):  ${s.toFixed(2)} MB`)
+  })
   console.log(`  Max heap drift:  ${drift.toFixed(2)} MB  ${drift < 2 ? '✓ stable' : '⚠ growing'}`)
 }
 
@@ -113,19 +127,15 @@ console.log('\n── Pipeline(10 stages) heap growth ──')
   const pipe = new Pipeline<{ n: number }>()
   for (let i = 0; i < 10; i++) pipe.addStage((ctx) => { ctx.n++ })
 
-  gcAndMeasure()
-  await sleep(50)
-
-  const baseline = gcAndMeasure()
+  await warmup(() => pipe.execute({ n: 0 }))
+  const baseline = await gcAndMeasure()
   const samples: number[] = []
 
   for (let batch = 0; batch < 5; batch++) {
     for (let i = 0; i < BATCH; i++) {
       await pipe.execute({ n: 0 })
     }
-    gcAndMeasure()
-    await sleep(20)
-    samples.push(gcAndMeasure())
+    samples.push(await gcAndMeasure())
   }
 
   const min = Math.min(...samples)
@@ -133,10 +143,10 @@ console.log('\n── Pipeline(10 stages) heap growth ──')
   const drift = max - baseline
 
   console.log(`  Baseline heap:   ${baseline.toFixed(2)} MB`)
-  samples.forEach((s, i) =>
-    console.log(`  After batch ${i + 1} (${((i+1)*BATCH).toLocaleString()} ops):  ${s.toFixed(2)} MB`)
-  )
-  console.log(`  Max heap drift:  ${drift.toFixed(2)} MB  ${drift < 5 ? '✓ stable' : '⚠ growing'}`)
+  samples.forEach((s, i) => {
+    console.log(`  After batch ${i + 1} (${((i + 1) * BATCH).toLocaleString()} ops):  ${s.toFixed(2)} MB`)
+  })
+  console.log(`  Max heap drift:  ${drift.toFixed(2)} MB  ${drift < 2 ? '✓ stable' : '⚠ growing'}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -147,9 +157,8 @@ console.log('\n── Allocation rate per Stage.execute call ──')
 {
   const stage = new Stage<{ n: number }>({ run: (ctx) => { ctx.n++ } })
 
-  gcAndMeasure()
-  await sleep(50)
-  const before = gcAndMeasure()
+  await warmup(() => stage.execute({ n: 0 }))
+  const before = await gcAndMeasure()
 
   const N = 100_000
   for (let i = 0; i < N; i++) {
