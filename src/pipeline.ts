@@ -86,22 +86,21 @@ export class Pipeline<T extends StageObject> extends Stage<
       let currentContext = context;
       for (let i = 0; i < this.config.stages.length; i++) {
         const stage = this.config.stages[i];
-        const { promise, resolve, reject } = Promise.withResolvers<T>()
-        run_or_execute<T>(
-          stage,
-          initialErr,
-          currentContext,
-          (err, ctx) => {
-            if (err) {
-              reject(err)
-            } else {
-              resolve(ctx ?? currentContext);
+        // OPT-8: new Promise avoids withResolvers allocation + .catch() rethrow chain
+        await new Promise<void>((resolve, reject) => {
+          run_or_execute<T>(
+            stage,
+            initialErr,
+            currentContext,
+            (err, ctx) => {
+              if (err) {
+                reject(err)
+              } else {
+                if (ctx) currentContext = ctx
+                resolve()
+              }
             }
-          }
-        );
-        await promise.catch(err => {
-          // Preserve original error (Option A architecture improvement)
-          throw err
+          );
         })
       }
       return currentContext

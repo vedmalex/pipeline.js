@@ -5,13 +5,13 @@ import { isError } from './TypeDetectors'
 export function run_callback_once<T>(
   wrapee: CallbackFunction<T>,
 ): CallbackFunction<T> {
-  let done_call = 0
+  // OPT-10: boolean flag is faster than integer counter (no increment + == 0 comparison)
+  let called = false
   const c = function (err: Possible<CleanError>, ctx: T) {
-    if (done_call == 0) {
-      done_call += 1
+    if (!called) {
+      called = true
       wrapee(err, ctx)
     } else {
-      // Combine error with callback error properly
       const errors = [err, new Error('callback called more than once')].filter((e): e is Error => isError(e));
       throw errors.length > 0 ? createError(errors) : createError('Callback called more than once')
     }

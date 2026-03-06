@@ -15,12 +15,15 @@ export function run_or_execute<T extends StageObject>(
   context: T,
   _done: CallbackFunction<T>,
 ): void {
-  const done = ((err: Possible<CleanError>, ctx: T) => {
-    _done(err, ctx ?? context)
-  }) as CallbackFunction<T>
+  // OPT-9: skip wrapper closure when stage is a Stage instance — execute() always
+  // resolves with a valid ctx. For function stages, keep the ctx??context fallback
+  // since arity-0 functions may omit the return value.
   if (isAnyStage<T>(stage)) {
-    stage.execute(err, context, done)
+    stage.execute(err, context, _done)
   } else {
+    const done = ((err: Possible<CleanError>, ctx: T) => {
+      _done(err, ctx ?? context)
+    }) as CallbackFunction<T>
     execute_callback<T>(err, stage, context, done)
   }
 }
