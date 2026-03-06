@@ -188,13 +188,21 @@ export class Stage<
     } else {
       // __callback is guaranteed non-null in this branch (we are in the else of `if (!__callback)`)
       const cb = __callback as CallbackExternalFunction<T>
+      // OPT-1/OPT-2: when no timeout, skip the second Promise.withResolvers and
+      // the .catch().finally() chain — run purely through callbacks.
+      const hasTimeout = Config.timeout !== Infinity
+
       let alreadyRun = false
       let callbackExecuted = false
 
-      const { promise, resolve, reject } = Promise.withResolvers<void>()
+      // OPT-1: only allocate the void-promise when a real timeout is needed
+      const { promise, resolve, reject } = hasTimeout
+        ? Promise.withResolvers<void>()
+        : { promise: undefined as unknown as Promise<void>, resolve: () => {}, reject: (_e: unknown) => {} }
 
       const back: typeof __callback = (err, _ctx) => {
         if (!alreadyRun) {
+          alreadyRun = true
           try {
             if (input_is_context) {
               cb(err, _ctx)
@@ -210,16 +218,16 @@ export class Stage<
                 )
               }
             }
-            resolve()
+            if (hasTimeout) resolve()
           } catch (err) {
-            reject(err)
+            if (hasTimeout) reject(err)
           }
         }
       }
 
       const sucess = (ret: T) => back(undefined, ret ?? context)
       const fail = (err: Possible<CleanError>) => back(err, context)
-      // nextTick(() => {
+
       const callback = ((
         err: Possible<CleanError>,
         _ctx: T,
@@ -233,6 +241,7 @@ export class Stage<
           }
         }
       }) as CallbackFunction<T>
+
       if (
         err &&
         this._config.run &&
@@ -258,19 +267,21 @@ export class Stage<
           stageToRun(undefined, context, callback)
         }
       }
-      // })
 
-      return withTimeout(promise, Config.timeout).catch(originalErr => {
-        // Preserve original error as primary chain element (Option A from QA analysis)
-        // This simplifies error structure and makes tests pass
-        const error = createError(originalErr || new Error('Stage timeout occurred'))
-        if (alreadyRun || callbackExecuted) {
-          throw error
-        } else {
-          fail(error)
-        }
-      })
-        .finally(() => alreadyRun = true)
+      // OPT-2: only attach timeout machinery when a real timeout is configured
+      if (hasTimeout) {
+        return withTimeout(promise, Config.timeout).catch(originalErr => {
+          const error = createError(originalErr || new Error('Stage timeout occurred'))
+          if (alreadyRun || callbackExecuted) {
+            throw error
+          } else {
+            fail(error)
+          }
+        }).finally(() => { alreadyRun = true })
+      } else {
+        // No timeout — return a resolved promise (no extra chain links)
+        return Promise.resolve()
+      }
     }
   }
 

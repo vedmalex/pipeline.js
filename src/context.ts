@@ -71,7 +71,12 @@ export interface IContextProxy<T> {
 }
 
 var count = 0
-var allContexts: Record<string, Context<any>> = {}
+// OPT-3: use WeakRef so GC can collect dead contexts; FinalizationRegistry
+// removes the stale entry from the index when the context is collected.
+var allContexts: Record<string, WeakRef<Context<any>>> = {}
+const _contextRegistry = new FinalizationRegistry<string>((id: string) => {
+  delete allContexts[id]
+})
 /**
  *  The **Context** itself
  *  @param {Object} config The object that is the source for the **Context**.
@@ -109,13 +114,23 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
   constructor(config: T) {
     this.ctx = config as T
     this.__id = count++
-    allContexts[this.__id] = this
+    const ref = new WeakRef(this)
+    allContexts[this.__id] = ref
+    _contextRegistry.register(this, String(this.__id))
     const res = new Proxy(this, {
       get(target: Context<T>, key: string | symbol | number, _proxy: any): any {
         if (key == ContextSymbol) return true
         if (key == CurrentStage) return target.__current
         if (key == ProxySymbol) return _proxy
-        if (key == 'allContexts') return allContexts
+        if (key == 'allContexts') {
+          // Return live (non-GC'd) contexts only
+          const live: Record<string, Context<any>> = {}
+          for (const id in allContexts) {
+            const ctx = allContexts[id].deref()
+            if (ctx !== undefined) live[id] = ctx
+          }
+          return live
+        }
 
         if (!(key in RESERVED)) {
           if (key in target.ctx) {
