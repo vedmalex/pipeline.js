@@ -30,8 +30,7 @@
     "experimentalDecorators": true,
     "moduleResolution": "node",
     "skipDefaultLibCheck": true,
-    "skipLibCheck": true,
-    "erasableSyntaxOnly": true,
+    "skipLibCheck": true
   },
   "include": ["src/**/*"],
   "exclude": ["src/tests"]

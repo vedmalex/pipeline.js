@@ -51,11 +51,11 @@ export class DoWhile<
       }
 
       if (isFunction(_config?.split)) {
-        config.split = _config.split
+        config.split = (_config as DoWhileConfig<T, R>).split
       }
 
       if (isFunction(_config?.reachEnd)) {
-        config.reachEnd = _config.reachEnd
+        config.reachEnd = (_config as DoWhileConfig<T, R>).reachEnd
       }
     }
     super(config)

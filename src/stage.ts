@@ -186,6 +186,8 @@ export class Stage<
       }) as CallbackFunction<T>)
       return promise
     } else {
+      // __callback is guaranteed non-null in this branch (we are in the else of `if (!__callback)`)
+      const cb = __callback as CallbackExternalFunction<T>
       let alreadyRun = false
       let callbackExecuted = false
 
@@ -195,14 +197,14 @@ export class Stage<
         if (!alreadyRun) {
           try {
             if (input_is_context) {
-              __callback(err, _ctx)
+              cb(err, _ctx)
             } else {
               if (Context.isContext(_ctx)) {
-                __callback(err, _ctx.original)
+                cb(err, _ctx.original)
               } else {
                 // Combine error with context error properly
                 const errors = [err, new Error('context is always context object')].filter((e): e is Error => isError(e));
-                __callback(
+                cb(
                   errors.length > 0 ? createError(errors) : createError('Context error occurred'),
                   _ctx,
                 )

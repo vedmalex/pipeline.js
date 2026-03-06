@@ -114,7 +114,7 @@ export class Parallel<
 
           // Ожидаем завершения всех промисов
           const result = await Promise.allSettled(promises);
-          let errors = result.filter((value) => value.status === 'rejected')
+          let errors = result.filter((value): value is PromiseRejectedResult => value.status === 'rejected')
             .map(v => v.reason)
 
           // Проверяем, были ли ошибки
