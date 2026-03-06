@@ -1,5 +1,6 @@
-import { CleanError } from './ErrorList'
+import { CleanError, createError } from './ErrorList'
 import { execute_callback } from './execute_callback'
+import { isError } from './TypeDetectors'
 import { isAnyStage } from './types'
 import {
   AnyStage,
@@ -19,11 +20,49 @@ export function run_or_execute<T extends StageObject>(
   // resolves with a valid ctx. For function stages, keep the ctx??context fallback
   // since arity-0 functions may omit the return value.
   if (isAnyStage<T>(stage)) {
-    stage.execute(err, context, _done)
+    runStageSafely(stage, err, context, _done)
   } else {
     const done = ((err: Possible<CleanError>, ctx: T) => {
       _done(err, ctx ?? context)
     }) as CallbackFunction<T>
     execute_callback<T>(err, stage, context, done)
+  }
+}
+
+const STAGE_DISPATCH_STACK_LIMIT = 128
+let stageDispatchDepth = 0
+
+const deferStageDispatch =
+  typeof queueMicrotask === 'function'
+    ? queueMicrotask
+    : (cb: () => void) => {
+        Promise.resolve().then(cb)
+      }
+
+function runStageSafely<T extends StageObject>(
+  stage: AnyStage<T>,
+  err: Possible<CleanError>,
+  context: T,
+  done: CallbackFunction<T>,
+) {
+  const invoke = () => {
+    stageDispatchDepth++
+    try {
+      stage.execute(err, context, done)
+    } catch (error) {
+      done(createError(isError(error) ? error : String(error)), context)
+    } finally {
+      stageDispatchDepth--
+    }
+  }
+
+  // Deeply nested Stage→Stage dispatch grows the synchronous JS call stack even
+  // though execution is semantically sequential. Break the chain occasionally so
+  // nested Pipeline/Wrap/IfElse graphs stay stack-safe without penalizing flat
+  // pipelines (their depth never approaches this limit).
+  if (stageDispatchDepth >= STAGE_DISPATCH_STACK_LIMIT) {
+    deferStageDispatch(invoke)
+  } else {
+    invoke()
   }
 }

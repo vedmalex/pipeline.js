@@ -19,15 +19,60 @@ import { RetryOnError } from '../src/retryonerror'
 const ITERATIONS = 10_000
 
 async function bench(name: string, fn: () => Promise<void>) {
-  // warmup
-  for (let i = 0; i < 100; i++) await fn()
+  const perOp = await measure(fn)
+  console.log(`  ${name.padEnd(45)} ${perOp.toFixed(2).padStart(8)} µs/op   ${(1_000_000 / perOp).toFixed(0).padStart(10)} ops/s`)
+  return perOp
+}
+
+async function measure(
+  fn: () => Promise<void>,
+  iterations: number = ITERATIONS,
+  warmup: number = 100,
+) {
+  for (let i = 0; i < warmup; i++) await fn()
 
   const start = performance.now()
-  for (let i = 0; i < ITERATIONS; i++) await fn()
+  for (let i = 0; i < iterations; i++) await fn()
   const elapsed = performance.now() - start
 
-  const perOp = (elapsed / ITERATIONS) * 1000 // microseconds
-  console.log(`  ${name.padEnd(45)} ${perOp.toFixed(2).padStart(8)} µs/op   ${(1_000_000 / perOp).toFixed(0).padStart(10)} ops/s`)
+  return (elapsed / iterations) * 1000 // microseconds
+}
+
+function median(values: number[]) {
+  const sorted = [...values].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid]
+}
+
+async function medianMeasure(
+  fn: () => Promise<void>,
+  iterations: number,
+  samples: number = 3,
+) {
+  const runs: number[] = []
+  for (let i = 0; i < samples; i++) {
+    runs.push(await measure(fn, iterations, 200))
+  }
+  return median(runs)
+}
+
+function linearFit(points: Array<{ x: number; y: number }>) {
+  const xMean = points.reduce((sum, p) => sum + p.x, 0) / points.length
+  const yMean = points.reduce((sum, p) => sum + p.y, 0) / points.length
+
+  let numerator = 0
+  let denominator = 0
+  for (const point of points) {
+    numerator += (point.x - xMean) * (point.y - yMean)
+    denominator += (point.x - xMean) * (point.x - xMean)
+  }
+
+  const slope = denominator === 0 ? 0 : numerator / denominator
+  const intercept = yMean - slope * xMean
+
+  return { slope, intercept }
 }
 
 console.log('\n=== pipeline.js hot path benchmark ===')
@@ -133,35 +178,31 @@ await bench('Stage.execute (pre-built Context input)', async () => {
 })
 
 // ---------------------------------------------------------------------------
-// 4. Per-stage overhead: Pipeline vs Stage baseline
+// 4. Pipeline scaling analysis
 // ---------------------------------------------------------------------------
-console.log('\n── Per-stage overhead analysis ──')
+console.log('\n── Pipeline scaling analysis ──')
 
-const stageMs = await (() => {
-  let sum = 0
-  let count = 0
-  return {
-    async measure() {
-      const s = performance.now()
-      await syncStage.execute({ n: 0 })
-      sum += performance.now() - s
-      count++
-    },
-    avg() { return (sum / count) * 1000 },
-  }
-})()
+const scalingCounts = [1, 2, 5, 10, 20, 50, 100]
+const scalingPoints: Array<{ x: number; y: number }> = []
 
-// measure isolated
-for (let i = 0; i < 1000; i++) await stageMs.measure()
-const singleStageUs = stageMs.avg()
+for (const count of scalingCounts) {
+  const pipe = makePipeline(count)
+  const iterations = count <= 10 ? 20_000 : count <= 50 ? 5_000 : 2_000
+  const totalUs = await medianMeasure(async () => {
+    await pipe.execute({ n: 0 })
+  }, iterations)
 
-const pipe10start = performance.now()
-for (let i = 0; i < 1000; i++) await pipe10.execute({ n: 0 })
-const pipe10us = ((performance.now() - pipe10start) / 1000) * 1000
+  scalingPoints.push({ x: count, y: totalUs })
+  console.log(
+    `  ${String(count).padStart(3)} stages -> total ${totalUs.toFixed(2).padStart(8)} µs/op | avg ${(totalUs / count).toFixed(3).padStart(7)} µs/stage`,
+  )
+}
 
-console.log(`  Single Stage baseline:               ${singleStageUs.toFixed(2)} µs/op`)
-console.log(`  Pipeline(10 stages):                 ${pipe10us.toFixed(2)} µs/op`)
-console.log(`  Per-stage overhead inside Pipeline:  ${((pipe10us - singleStageUs) / 10).toFixed(2)} µs/stage`)
+const largePoints = scalingPoints.filter(point => point.x >= 10)
+const { slope, intercept } = linearFit(largePoints)
+
+console.log(`  Linear fit (10+ stages):            total ≈ ${intercept.toFixed(2)} + ${slope.toFixed(3)}*N µs`)
+console.log(`  Incremental cost per added stage:   ${slope.toFixed(3)} µs/stage`)
 
 // ---------------------------------------------------------------------------
 // 5. DoWhile / Sequential / RetryOnError

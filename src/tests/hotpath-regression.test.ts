@@ -170,3 +170,66 @@ describe('OPT-8: Pipeline stage promise path', () => {
     expect(order).toEqual([1, 2, 3])
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Nested Pipeline stack safety (run_or_execute trampoline)
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Nested Pipeline stack safety', () => {
+  it('flat pipeline width does not grow stack depth across later stages', async () => {
+    const previousLimit = Error.stackTraceLimit
+    Error.stackTraceLimit = 100_000
+
+    try {
+      const samples: number[] = []
+      const pipe = new Pipeline<{ i: number }>()
+
+      for (let i = 0; i < 2_000; i++) {
+        pipe.addStage((ctx) => {
+          if (ctx.i === 0 || ctx.i === 999 || ctx.i === 1_999) {
+            samples.push(new Error().stack?.split('\n').length ?? 0)
+          }
+          ctx.i++
+        })
+      }
+
+      await pipe.execute({ i: 0 })
+
+      expect(samples.length).toBe(3)
+      expect(samples[1]).toBeLessThan(100)
+      expect(samples[2]).toBeLessThan(100)
+    } finally {
+      Error.stackTraceLimit = previousLimit
+    }
+  })
+
+  it('deeply nested pipelines do not overflow the stack and remain bounded', async () => {
+    const previousLimit = Error.stackTraceLimit
+    Error.stackTraceLimit = 100_000
+
+    try {
+      function nest(depth: number) {
+        let current: any = (ctx: any) => {
+          ctx.stackLines = new Error().stack?.split('\n').length ?? 0
+          ctx.ok = true
+        }
+
+        for (let i = 0; i < depth; i++) {
+          const p = new Pipeline<any>()
+          p.addStage(current)
+          current = p
+        }
+
+        return current as Pipeline<any>
+      }
+
+      const root = nest(8_000)
+      const result = await root.execute({ ok: false, stackLines: 0 } as any)
+
+      expect(result.ok).toBe(true)
+      expect(result.stackLines).toBeGreaterThan(0)
+      expect(result.stackLines).toBeLessThan(2_000)
+    } finally {
+      Error.stackTraceLimit = previousLimit
+    }
+  })
+})
