@@ -308,7 +308,6 @@ describe('Pipeline', function () {
   })
 
   it('allow reenterability', function (done) {
-    debugger
     var pipe = new Pipeline()
 
     pipe.addStage(function (context, done) {

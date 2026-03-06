@@ -101,10 +101,9 @@ describe('Stage', function() {
     // })
   })
 
-  it(
+    it(
     'do not handle Error it stage signature is (err, ctx, done)',
     function(done) {
-      debugger
       var flag = false
       var st = new Stage({
         validate: function(_: any) {
@@ -269,7 +268,6 @@ describe('Stage', function() {
   // it('prepare and finalize context')
 
   it('ensureContext', function(done) {
-    debugger
     var stage = new Stage<{ done: number }>(function(ctx) {
       ctx.done = 1
     })
@@ -286,7 +284,6 @@ describe('Stage', function() {
   })
 
   it('must run ensureContext if there is no run function', function(done) {
-    debugger
     var stage = new Stage()
     var ensure = 0
     stage.config.ensure = function(ctx, callback) {

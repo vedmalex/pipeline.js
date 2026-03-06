@@ -57,23 +57,19 @@ describe('RetryOnError', function () {
     var iter = -1
     var st = new RetryOnError({
       run: function (ctx) {
-        debugger
         ctx.works = true
         if (iter++ < 3) {
-          debugger
           throw new Error('error')
         }
       },
       retry: 4,
       backup: function (ctx) {
-        debugger
         ctx.backup++
         return {
           works: ctx.works,
         }
       },
       restore: function (ctx, backup) {
-        debugger
         ctx.restore++
         ctx.works = backup.works
       },
@@ -85,7 +81,6 @@ describe('RetryOnError', function () {
         restore: 0,
       },
       function (err, ctx) {
-        debugger
         expect(err).toBeUndefined()
         expect(ctx.works).toBeTruthy()
         expect(iter).toEqual(4)

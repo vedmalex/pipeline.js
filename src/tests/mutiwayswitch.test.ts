@@ -222,7 +222,6 @@ describe('MWS', function () {
       }),
       function (err, ctx) {
         expect(ctx.size).toBe(2)
-        debugger
         expect(err instanceof Error).toBe(true)
         done()
       },
