@@ -578,7 +578,7 @@ export function getIfElseConfig<
     if (config.success) {
       res.success = config.success
     }
-    if (config.condition) {
+    if (config.condition !== undefined) {
       res.condition = config.condition
     } else {
       res.condition = true

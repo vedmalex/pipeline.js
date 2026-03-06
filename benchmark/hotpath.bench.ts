@@ -12,6 +12,9 @@
 import { Stage } from '../src/stage'
 import { Pipeline } from '../src/pipeline'
 import { Context } from '../src/context'
+import { DoWhile } from '../src/dowhile'
+import { Sequential } from '../src/sequential'
+import { RetryOnError } from '../src/retryonerror'
 
 const ITERATIONS = 10_000
 
@@ -159,5 +162,63 @@ const pipe10us = ((performance.now() - pipe10start) / 1000) * 1000
 console.log(`  Single Stage baseline:               ${singleStageUs.toFixed(2)} µs/op`)
 console.log(`  Pipeline(10 stages):                 ${pipe10us.toFixed(2)} µs/op`)
 console.log(`  Per-stage overhead inside Pipeline:  ${((pipe10us - singleStageUs) / 10).toFixed(2)} µs/stage`)
+
+// ---------------------------------------------------------------------------
+// 5. DoWhile / Sequential / RetryOnError
+// ---------------------------------------------------------------------------
+console.log('\n── DoWhile / Sequential / RetryOnError ──')
+
+const doWhile5 = new DoWhile<{ n: number }, { n: number }>({
+  stage: async (ctx: any) => { ctx.n++ },
+  reachEnd: (_err: any, _ctx: any, i: number) => i >= 5,
+})
+await bench('DoWhile (5 iters, async stage)', async () => {
+  await doWhile5.execute({ n: 0 })
+})
+
+const doWhile1 = new DoWhile<{ n: number }, { n: number }>({
+  stage: async (ctx: any) => { ctx.n++ },
+  reachEnd: (_err: any, _ctx: any, i: number) => i >= 1,
+})
+await bench('DoWhile (1 iter, async stage)', async () => {
+  await doWhile1.execute({ n: 0 })
+})
+
+const seq3 = new Sequential<{ n: number }, { n: number }>({
+  stage: async (ctx: any) => { ctx.n++ },
+  split: (ctx: any) => [{ n: ctx.n }, { n: ctx.n }, { n: ctx.n }],
+})
+await bench('Sequential (3 children, async stage)', async () => {
+  await seq3.execute({ n: 0 })
+})
+
+const seq1 = new Sequential<{ n: number }, { n: number }>({
+  stage: async (ctx: any) => { ctx.n++ },
+  split: (ctx: any) => [{ n: ctx.n }],
+})
+await bench('Sequential (1 child, async stage)', async () => {
+  await seq1.execute({ n: 0 })
+})
+
+const retryOk = new RetryOnError<{ n: number }>({
+  stage: async (ctx: any) => { ctx.n++ },
+  retry: 3,
+})
+await bench('RetryOnError (no error, retry=3)', async () => {
+  await retryOk.execute({ n: 0 })
+})
+
+let _attempt = 0
+const retryFail1 = new RetryOnError<{ n: number }>({
+  stage: async (_ctx: any) => {
+    _attempt = (_attempt + 1) % 3
+    if (_attempt !== 0) throw new Error('fail')
+  },
+  retry: 3,
+})
+await bench('RetryOnError (fails 2x then ok, retry=3)', async () => {
+  _attempt = 0
+  await retryFail1.execute({ n: 0 })
+})
 
 console.log('\n=== done ===\n')

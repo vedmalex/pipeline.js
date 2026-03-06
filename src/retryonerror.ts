@@ -145,28 +145,22 @@ export class RetryOnError<T extends StageObject> extends Stage<
           if (iter > 0)
             currentCtx = this.restoreContext(currentCtx, backup);
 
-          const { resolve, reject, promise } = Promise.withResolvers<T>()
-          // Выполняем текущий этап
-          run_or_execute(
-            this.config.stage,
-            currentError,
-            currentCtx,
-            (err, ctx) => {
-              if (err) {
-                reject(err)
-              } else {
-                resolve(ctx ?? currentCtx);
-              }
-            },
-          );
-
-          await promise
-            .then(ret => {
-              currentCtx = ret as T
-              currentError = undefined
-            }).catch(err => {
-              currentError = err
-            })
+          await new Promise<void>(resolve => {
+            run_or_execute(
+              this.config.stage,
+              currentError,
+              currentCtx,
+              (err, ctx) => {
+                if (err) {
+                  currentError = err
+                } else {
+                  currentCtx = (ctx ?? currentCtx) as T
+                  currentError = undefined
+                }
+                resolve()
+              },
+            );
+          })
 
 
         } while (!reachEnd(currentError, iter))

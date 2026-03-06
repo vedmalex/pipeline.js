@@ -95,29 +95,27 @@ export class Sequential<
           while (++iter < len) {
             if (currentError) break;
 
-            const { resolve, reject, promise } = Promise.withResolvers<T>()
-            run_or_execute(
-              this.config.stage,
-              currentError,
-              children[iter],
-              (err, ctx) => {
-                if (err) {
-                  reject(err);
-                } else if (ctx) {
-                  resolve(ctx)
+            const iterSnapshot = iter
+            currentChildren[iter] = await new Promise<T>((resolve, reject) => {
+              run_or_execute(
+                this.config.stage,
+                currentError,
+                children[iterSnapshot],
+                (err, ctx) => {
+                  if (err) {
+                    reject(new Error('sequential - error', {
+                      cause: {
+                        err,
+                        iteration: iterSnapshot,
+                        stage: this.config.stage,
+                        ctx: children[iterSnapshot]
+                      },
+                    }))
+                  } else if (ctx) {
+                    resolve(ctx)
+                  }
                 }
-              }
-            );
-
-            currentChildren[iter] = await promise.catch(err => {
-              throw new Error('sequential - error', {
-                cause: {
-                  err,
-                  iteration: iter,
-                  stage: this.config.stage,
-                  ctx: children[iter]
-                },
-              })
+              );
             })
           }
 

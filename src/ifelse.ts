@@ -51,10 +51,14 @@ export class IfElse<T extends StageObject> extends Stage<T, IfElseConfig<T>> {
         if (this.config.condition) {
           if (this.config.success) {
             run_or_execute(this.config.success, err, context, done)
+          } else {
+            done(err, context)
           }
         } else {
           if (this.config.failed) {
             run_or_execute(this.config.failed, err, context, done)
+          } else {
+            done(err, context)
           }
         }
       } else {
