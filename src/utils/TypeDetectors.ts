@@ -259,6 +259,36 @@ export class TypeDetectors {
     return TypeDetectors.hasProperty(obj, methodName) &&
            TypeDetectors.isFunction(obj[methodName]);
   }
+
+  // ===== DATE / TYPEERROR / BUFFER DETECTION =====
+
+  /**
+   * ES5-safe Date type detection
+   * Replaces: value instanceof Date
+   */
+  static isDate(value: any): value is Date {
+    return Object.prototype.toString.call(value) === '[object Date]';
+  }
+
+  /**
+   * ES5-safe TypeError detection
+   * Replaces: error instanceof TypeError
+   */
+  static isTypeError(value: any): value is TypeError {
+    return TypeDetectors.isError(value) && value.name === 'TypeError';
+  }
+
+  /**
+   * ES5-safe Buffer detection (Node.js / Bun)
+   * Replaces: Buffer.isBuffer(value)
+   * Falls back gracefully in non-Node environments.
+   */
+  static isBuffer(value: any): value is Buffer {
+    if (typeof Buffer !== 'undefined' && typeof Buffer.isBuffer === 'function') {
+      return Buffer.isBuffer(value);
+    }
+    return !!(value && value.constructor && value.constructor.name === 'Buffer');
+  }
 }
 
 // ===== DEFAULT EXPORT =====
@@ -279,5 +309,8 @@ export const {
   detectType,
   validateType,
   hasProperty,
-  hasMethod
+  hasMethod,
+  isDate,
+  isTypeError,
+  isBuffer,
 } = TypeDetectors;

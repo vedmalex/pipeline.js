@@ -1,3 +1,5 @@
+import { isError, isDate, isBuffer } from './utils/TypeDetectors'
+
 export type JsonPrimitive = string | number | boolean | null
 export type JsonObject = { [key: string]: JsonValue }
 export type JsonArray = JsonValue[]
@@ -23,11 +25,11 @@ export class CyclicJSON {
       }
 
       // Handle Buffer before toJSON() call since Buffer has its own toJSON()
-      if (Buffer.isBuffer(value)) {
-        return { __buffer: value.toString('base64') }
+      if (isBuffer(value)) {
+        return { __buffer: (value as Buffer).toString('base64') }
       }
 
-      if (value instanceof Error) {
+      if (isError(value)) {
         const result: any = {
           name: value.name,
           message: value.message,
@@ -44,8 +46,8 @@ export class CyclicJSON {
         return result
       }
 
-      if (value instanceof Date) {
-        return (value as Date).toISOString()
+      if (isDate(value)) {
+        return value.toISOString()
       }
 
       if (typeof (value as any).toJSON === 'function') {

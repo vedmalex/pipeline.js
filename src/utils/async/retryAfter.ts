@@ -13,10 +13,7 @@ export async function retryAfter<T>(
       if (attempts >= maxAttempts) {
         throw new Error(`Max attempts (${maxAttempts}) reached: ${err}`);
       }
-      console.error(
-        `error occurred: ${err} retrying after ${timeout}ms. Attempt ${attempts}/${maxAttempts}`,
-      );
-      const { promise, resolve } = Promise.withResolvers()
+      const { promise, resolve } = Promise.withResolvers<void>()
       timeoutId = setTimeout(resolve, timeout)
       await promise
     } finally {

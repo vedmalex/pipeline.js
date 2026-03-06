@@ -3,7 +3,7 @@
  */
 import { get, set } from 'lodash'
 import { StageObject } from './utils/types'
-import { isObject } from './utils/TypeDetectors'
+import { isObject, isTypeError } from './utils/TypeDetectors'
 import CyclicJSON from './JSON'
 
 export const ContextSymbol = Symbol('Context')
@@ -335,7 +335,7 @@ export class Context<T extends StageObject> implements IContextProxy<T> {
       return JSON.stringify(this.toObject())
     } catch (error) {
       // Если есть циклические ссылки, используем CyclicJSON как fallback
-      if (error instanceof TypeError &&
+      if (isTypeError(error) &&
           (error.message.includes('circular') ||
            error.message.includes('cyclic'))) {
         return CyclicJSON.stringify(this.toObject())
