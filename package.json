@@ -1,7 +1,7 @@
 {
   "name": "pipeline.js",
-  "description": "Pipeline.js - async workflow framework for node.js",
-  "version": "0.4.8",
+  "description": "Pipeline.js - async workflow framework for node.js and browser",
+  "version": "2.0.33",
   "author": {
     "name": "Alex Vedmedenko",
     "email": "vedmalex@gmail.com"
@@ -12,33 +12,38 @@
     "pipeline"
   ],
   "dependencies": {
-    "js-schema": "*",
-    "comparator.js": "*",
-    "debug": "*",
-    "colors": "*",
-    "fte.js": "*",
-    "semver": "*"
+    "ajv": "^8.17.1",
+    "ajv-errors": "^3.0.0",
+    "ajv-formats": "^3.0.1",
+    "ajv-keywords": "^5.1.0",
+    "fte.js": "3.0.0-rc.4",
+    "js-schema": "1.0.1",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "mocha": "*",
-    "benchmark": "*",
-    "browserify": "*",
-    "dox": "*",
-    "doxx": "*"
+    "glob": "^8.0.3",
+    "@types/bun": "^1.2.5",
+    "@types/lodash": "^4.17.16",
+    "@types/node": "22.13.10",
+    "esbuild": "latest",
+    "typescript": "next"
   },
-  "directories": {
-    "lib": "./lib"
-  },
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "src"
+  ],
   "scripts": {
-    "test": "make test"
-  },
-  "main": "./index.js",
-  "engines": {
-    "node": ">= 0.10.35"
+    "prepublish": "npm run clean && npm run lib",
+    "build": "bun build.ts && tsc -p tsconfig.json",
+    "lib": "tsc -p tsconfig.json",
+    "watch": "tsc -w -p tsconfig.json",
+    "clean": "git clean -dfqX -- {types,dist}/** && rm -rf tsconfig.tsbuildinfo dist types"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vedmalex/pipeline.js.git"
+    "url": "git+https://github.com/vedmalex/pipeline.js.git"
   },
   "readmeFilename": "README.md",
   "bugs": {

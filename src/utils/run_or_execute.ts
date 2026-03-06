@@ -1,0 +1,26 @@
+import { CleanError } from './ErrorList'
+import { execute_callback } from './execute_callback'
+import { isAnyStage } from './types'
+import {
+  AnyStage,
+  CallbackFunction,
+  Possible,
+  RunPipelineFunction,
+  StageObject,
+} from './types'
+
+export function run_or_execute<T extends StageObject>(
+  stage: AnyStage<T> | RunPipelineFunction<T>,
+  err: Possible<CleanError>,
+  context: T,
+  _done: CallbackFunction<T>,
+): void {
+  const done = ((err: Possible<CleanError>, ctx: T) => {
+    _done(err, ctx ?? context)
+  }) as CallbackFunction<T>
+  if (isAnyStage<T>(stage)) {
+    stage.execute(err, context, done)
+  } else {
+    execute_callback<T>(err, stage, context, done)
+  }
+}
