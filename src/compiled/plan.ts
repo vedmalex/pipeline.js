@@ -11,6 +11,16 @@ export type CompiledPlanMode = 'compiled-static' | 'compiled-hybrid'
 
 export type FrameKind = 'ROOT' | 'WRAP' | 'RETRY' | 'LOOP' | 'PARALLEL'
 
+export type CompiledStageFnKind =
+  | 'FN0_SYNC'
+  | 'FN0_ASYNC'
+  | 'FN1_SYNC'
+  | 'FN1_ASYNC'
+  | 'FN2_CALLBACK'
+  | 'FN2_ASYNC'
+  | 'FN3_CALLBACK'
+  | 'GENERIC'
+
 export type PlanOp =
   | { op: 'RUN_STAGE_FN'; stageFnId: number }
   | { op: 'RUN_STAGE_INSTANCE'; stageId: number }
@@ -24,6 +34,7 @@ export type PlanOp =
 
 export type PlanTables = {
   stageFns: Array<RunPipelineFunction<any>>
+  stageFnKinds: CompiledStageFnKind[]
   stageInstances: Array<AnyStage<any>>
   predicates: Array<(ctx: any, err?: Possible<CleanError>) => boolean | Promise<boolean>>
   transforms: Array<(ctx: any, retCtx?: any) => any>
@@ -76,6 +87,7 @@ export type ExecutionState<T extends StageObject> = {
 export function createPlanTables(): PlanTables {
   return {
     stageFns: [],
+    stageFnKinds: [],
     stageInstances: [],
     predicates: [],
     transforms: [],

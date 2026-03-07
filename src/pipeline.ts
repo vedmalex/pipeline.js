@@ -1,5 +1,7 @@
 import { Stage } from './stage'
-import { compilePipelinePlan } from './compiled/compiler'
+import {
+  compilePipelinePlan,
+} from './compiled/compiler'
 import { executeCompiledPlan } from './compiled/executor'
 import { CompiledPlan } from './compiled/plan'
 import { empty_run } from './utils/empty_run'
@@ -57,6 +59,7 @@ export class Pipeline<T extends StageObject> extends Stage<
   protected compiledPlan?: CompiledPlan<T>
   protected compiledPlanVersion?: number
   protected compiledDependencySignature?: string
+  protected _compiledParents = new Set<Pipeline<any>>()
 
   constructor(
     config?:
@@ -67,6 +70,7 @@ export class Pipeline<T extends StageObject> extends Stage<
     super()
     if (config) {
       this._config = getPipelinConfig(config as any)
+      this.registerImmediatePipelineChildren()
     } else {
       this._config.stages = []
     }
@@ -74,6 +78,41 @@ export class Pipeline<T extends StageObject> extends Stage<
 
   public override get reportName() {
     return `PIPE:${this.config.name ? this.config.name : ''}`
+  }
+
+  protected isPipelineStage(stage: unknown): stage is Pipeline<any> {
+    return isAnyStage(stage) && typeof (stage as any).toString === 'function' && (stage as any).toString() === '[pipeline Pipeline]'
+  }
+
+  protected registerImmediatePipelineChildren() {
+    for (let i = 0; i < this.config.stages.length; i++) {
+      const child = this.config.stages[i]
+      if (this.isPipelineStage(child)) {
+        child.registerCompiledParent(this)
+      }
+    }
+  }
+
+  protected registerCompiledParent(parent: Pipeline<any>) {
+    if (parent !== this) {
+      this._compiledParents.add(parent)
+    }
+  }
+
+  protected invalidateCompiledCache(visited?: Set<Pipeline<any>>) {
+    const seen = visited ?? new Set<Pipeline<any>>()
+    if (seen.has(this)) return
+    seen.add(this)
+
+    this._graphVersion += 1
+    this.compiledPlan = undefined
+    this.compiledPlanVersion = undefined
+    this.compiledDependencySignature = undefined
+    this.run = undefined
+
+    this._compiledParents.forEach(parent => {
+      parent.invalidateCompiledCache(seen)
+    })
   }
 
   addStage<IT extends StageObject>(
@@ -93,11 +132,10 @@ export class Pipeline<T extends StageObject> extends Stage<
     }
     if (stage) {
       this.config.stages.push(stage as any)
-      this._graphVersion += 1
-      this.compiledPlan = undefined
-      this.compiledPlanVersion = undefined
-      this.compiledDependencySignature = undefined
-      this.run = undefined
+      if (this.isPipelineStage(stage)) {
+        stage.registerCompiledParent(this)
+      }
+      this.invalidateCompiledCache()
     }
   }
 
@@ -106,16 +144,16 @@ export class Pipeline<T extends StageObject> extends Stage<
   }
 
   protected getCompiledPlan(rebuild: boolean = false) {
-    const candidate = compilePipelinePlan(this as any)
     const isCurrent =
       !rebuild &&
       this.compiledPlan !== undefined &&
-      this.compiledPlanVersion === this._graphVersion &&
-      this.compiledDependencySignature === candidate.dependencySignature
+      this.compiledPlanVersion === this._graphVersion
 
     if (isCurrent) {
       return this.compiledPlan as CompiledPlan<T>
     }
+
+    const candidate = compilePipelinePlan(this as any)
 
     this.compiledPlan = candidate
     this.compiledPlanVersion = this._graphVersion

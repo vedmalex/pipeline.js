@@ -88,6 +88,59 @@ describe('compiled Pipeline skeleton', () => {
     expect(before.dependencySignature).not.toBe(after.dependencySignature)
   })
 
+  it('reuses cached compiled plan when graph signature is unchanged', async () => {
+    __setCompiledPipelineEnabledForTests(true)
+
+    try {
+      const root = new Pipeline<{ n: number }>([
+        (ctx) => { ctx.n += 1 },
+        (ctx) => { ctx.n += 10 },
+      ])
+
+      await root.execute({ n: 0 })
+      const firstPlan = (root as any).compiledPlan
+      const firstSignature = (root as any).compiledDependencySignature
+
+      await root.execute({ n: 0 })
+      const secondPlan = (root as any).compiledPlan
+      const secondSignature = (root as any).compiledDependencySignature
+
+      expect(firstPlan).toBeDefined()
+      expect(secondPlan).toBe(firstPlan)
+      expect(secondSignature).toBe(firstSignature)
+    } finally {
+      __setCompiledPipelineEnabledForTests(undefined)
+    }
+  })
+
+  it('invalidates parent compiled plan when nested child Pipeline mutates', async () => {
+    __setCompiledPipelineEnabledForTests(true)
+
+    try {
+      const nested = new Pipeline<{ n: number }>([
+        (ctx) => { ctx.n += 10 },
+      ])
+      const root = new Pipeline<{ n: number }>([
+        (ctx) => { ctx.n += 1 },
+        nested,
+      ])
+
+      const before = await root.execute({ n: 0 })
+      const firstPlan = (root as any).compiledPlan
+      expect(before.n).toBe(11)
+
+      nested.addStage((ctx) => { ctx.n += 100 })
+
+      const after = await root.execute({ n: 0 })
+      const secondPlan = (root as any).compiledPlan
+
+      expect(after.n).toBe(111)
+      expect(secondPlan).not.toBe(firstPlan)
+    } finally {
+      __setCompiledPipelineEnabledForTests(undefined)
+    }
+  })
+
   it('executes compiled flat plan with same result as legacy runtime', async () => {
     const root = new Pipeline<{ n: number }>()
     root.addStage((ctx) => { ctx.n += 1 })
@@ -110,6 +163,42 @@ describe('compiled Pipeline skeleton', () => {
     root.addStage((ctx) => {
       ctx.n += 10
     })
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ n: 0 })
+    const compiledResult = await executePlanPromise(plan, { n: 0 })
+
+    expect(compiledResult.n).toBe(legacyResult.n)
+  })
+
+  it('preserves zero-arg stage semantics for sync and async functions', async () => {
+    const root = new Pipeline<{ n: number }>([
+      function () {
+        return { n: 1 }
+      },
+      async function () {
+        return { n: 11 }
+      },
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ n: 0 })
+    const compiledResult = await executePlanPromise(plan, { n: 0 })
+
+    expect(compiledResult.n).toBe(legacyResult.n)
+  })
+
+  it('preserves err+ctx async and err+ctx+done stage semantics', async () => {
+    const root = new Pipeline<{ n: number }>([
+      async (_err, ctx) => {
+        ctx.n += 1
+        return ctx
+      },
+      (_err, ctx, done) => {
+        ctx.n += 10
+        done(undefined, ctx)
+      },
+    ])
 
     const plan = compilePipelinePlan(root as any)
     const legacyResult = await root.execute({ n: 0 })

@@ -41,7 +41,7 @@ This means the compiled executor exists and is testable, but is not yet active b
 
 ## Validation Status
 
-- `bun test` -> **319/319 pass**
+- `bun test` -> **323/323 pass**
 - `npx tsc --noEmit` -> **0 errors**
 - dedicated deep stress script -> pass:
   - `Pipeline` depth `20k`
@@ -58,30 +58,41 @@ Compiled executor comparison now exists in:
 
 - `benchmark/compiled-executor.bench.ts`
 
-Current benchmark snapshot:
+Recent post-specialization benchmark window (two passes, 10+ stage linear fit):
 
-- flat `Pipeline` legacy slope: ~`0.475 µs/stage`
-- flat runtime-compiled slope: ~`0.426 µs/stage`
-- flat direct-compiled slope: ~`0.124 µs/stage`
-- nested `Pipeline(100)` runtime path: `115.8 µs -> 71.4 µs`
+- flat `Pipeline` legacy slope: ~`0.288-0.301 µs/stage`
+- flat runtime-compiled slope: ~`0.053-0.058 µs/stage`
+- flat direct-compiled slope: ~`0.011-0.038 µs/stage`
+- nested `Pipeline` runtime-compiled spot checks remain materially faster, though larger nested cases still show some run-to-run variance.
+
+Most recent optimization in this phase:
+
+- removed O(N) full-plan cache validation from the runtime-compiled `Pipeline` path;
+- parent-propagated invalidation now bumps graph version transitively for nested `Pipeline` mutations;
+- cache hit validation is O(1) on the hot path;
+- preclassified `RUN_STAGE_FN` signatures at compile time and specialized direct execution for common `fn0`/`fn1`/`fn2`/`fn3` forms;
+- new parity tests cover cached plan reuse, parent invalidation, zero-arg sync/async stages, and `err+ctx` / `err+ctx+done` signatures.
 
 Fast regression depths remain in default test suite so `bun test` stays quick and stable.
 
 ---
 
-## Primary Open Question in IMPLEMENT
+## Rollout Decision in IMPLEMENT
 
-Should the next slice:
+Keep the compiled path opt-in for one more slice.
 
-1. keep the compiled path opt-in and expand parity/fallback coverage further, or
-2. harden and selectively broaden the runtime-compiled `Pipeline` path before enabling it by default?
+The new executor numbers are strong enough to justify a broader targeted rollout for compile-supported `Pipeline` graphs, but not a global default-on switch yet because:
+
+1. phase 1 still compiles only `Pipeline` and relies on hybrid fallback for wrappers;
+2. larger nested benchmarks still show visible run-to-run variance;
+3. wrapper-heavy and mixed fallback graphs need one more parity/benchmark pass before default enablement.
 
 ---
 
 ## Next Recommended Action
 
-Continue IMPLEMENT with the first real runtime slice:
+Continue IMPLEMENT with a controlled rollout-hardening slice:
 
-1. add parity tests comparing legacy vs compiled execution for more `Pipeline` scenarios
-2. use `benchmark/compiled-executor.bench.ts` to track slope changes while expanding support
-3. decide whether to keep `Pipeline` opt-in for one more slice or begin a controlled default-on rollout
+1. expand parity coverage for mixed hybrid graphs (`Pipeline` + wrapper fallback combinations)
+2. measure compiled-static vs compiled-hybrid plans separately in `benchmark/compiled-executor.bench.ts`
+3. consider default-on only for fully compiled-static `Pipeline` plans after one more stable benchmark window
