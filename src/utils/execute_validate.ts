@@ -1,5 +1,5 @@
-import { createError } from './ErrorList'
-import { ERROR } from './errors'
+import { createError, createCodeError } from './ErrorList'
+import { ErrorCode } from './errors'
 import { process_error } from './process_error'
 import { isPromise } from './TypeDetectors'
 import {
@@ -44,7 +44,7 @@ export function execute_validate<T>(
             if (res) {
               done(undefined, res)
             } else {
-              done(createError(ERROR.invalid_context))
+              done(createCodeError(ErrorCode.ERR_INVALID_CONTEXT))
             }
           } else {
             done(res)
@@ -53,7 +53,7 @@ export function execute_validate<T>(
           process_error(err, done)
         }
       } else {
-        done(createError(ERROR.signature))
+        done(createCodeError(ErrorCode.ERR_SIGNATURE))
       }
       break
     case 2:
@@ -67,10 +67,10 @@ export function execute_validate<T>(
           process_error(err, done)
         }
       } else {
-        done(createError(ERROR.signature))
+        done(createCodeError(ErrorCode.ERR_SIGNATURE))
       }
       break
     default:
-      done(createError(ERROR.signature))
+      done(createCodeError(ErrorCode.ERR_SIGNATURE))
   }
 }

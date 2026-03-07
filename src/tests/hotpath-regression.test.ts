@@ -8,7 +8,7 @@
  *  - P1-5 / P2-3: missing targeted regression coverage for OPT-7..10
  */
 
-import { CleanError, createError } from '../utils/ErrorList'
+import { CleanError, createError, ErrorCode } from '../utils/ErrorList'
 import { run_callback_once } from '../utils/run_callback_once'
 import { run_or_execute } from '../utils/run_or_execute'
 import { Stage } from '../stage'
@@ -65,6 +65,16 @@ describe('OPT-7: CleanError.chain.trace', () => {
   it('CleanError from Error object also has trace', () => {
     const err = createError(new Error('wrapped'))
     expect(Array.isArray(err.chain.trace)).toBe(true)
+  })
+
+  it('relabeling a CleanError preserves original trace reference', () => {
+    const original = createError(new Error('wrapped'))
+    const originalTrace = original.chain.trace
+    const relabeled = createError(original, ErrorCode.ERR_CONTEXT_TYPE)
+
+    expect(relabeled).not.toBe(original)
+    expect(relabeled.chain.trace).toBe(originalTrace)
+    expect(relabeled.chain.trace).toEqual(originalTrace)
   })
 })
 

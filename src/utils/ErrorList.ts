@@ -3,6 +3,10 @@
 
 import { Possible } from './types';
 import { isError, isCleanError as detectCleanError } from './TypeDetectors';
+import { ErrorCode, ErrorMessage, type ErrorCodeType } from './errors';
+
+// Re-export error codes for downstream consumers
+export { ErrorCode, ErrorMessage, type ErrorCodeType } from './errors';
 
 // =============================================================================
 // TYPE DEFINITIONS (Based on Creative Phase Architecture)
@@ -35,6 +39,7 @@ export interface ErrorOptions {
   secondary?: Error[];
   context?: ErrorContext;
   cause?: Error;
+  code?: ErrorCodeType;
 }
 
 // =============================================================================
@@ -48,6 +53,8 @@ export interface ErrorOptions {
 export class CleanError extends Error {
   readonly chain: ErrorChain;
   readonly isClean = true;
+  /** Stable error code for diagnosis (see ErrorCode constants) */
+  readonly code: ErrorCodeType;
 
   constructor(primary: Error | string, options?: ErrorOptions) {
     // Call parent constructor with clean message
@@ -55,6 +62,9 @@ export class CleanError extends Error {
 
     // Set error name for stack traces
     this.name = 'CleanError';
+
+    // Set stable error code — defaults to ERR_STAGE_THROW for user errors
+    this.code = options?.code ?? ErrorCode.ERR_STAGE_THROW;
 
     // OPT-7: Build chain with lazy-parsed + memoized stack trace.
     // new Error().stack is still captured eagerly (unavoidable — stack is only
@@ -155,6 +165,7 @@ export class CleanError extends Error {
   toJSON(): object {
     return {
       name: this.name,
+      code: this.code,
       message: this.message,
       primary: this.chain.primary.message,
       secondaryCount: this.chain.secondary?.length || 0,
@@ -164,16 +175,48 @@ export class CleanError extends Error {
   }
 }
 
+function cloneCleanError(
+  error: CleanError,
+  overrides?: {
+    secondary?: Error[];
+    context?: ErrorContext;
+    code?: ErrorCodeType;
+  },
+): CleanError {
+  const cloned = new CleanError(error.getPrimaryError(), {
+    secondary: overrides?.secondary ?? error.getSecondaryErrors(),
+    context: overrides?.context ?? error.getContext(),
+    code: overrides?.code ?? error.code,
+  })
+
+  Object.defineProperty(cloned.chain, 'trace', {
+    get(): string[] {
+      return error.chain.trace ?? []
+    },
+    enumerable: true,
+    configurable: true,
+  })
+
+  return cloned
+}
+
 // =============================================================================
 // FACTORY FUNCTIONS (Based on Creative Phase Specification)
 // =============================================================================
 
 /**
- * Create CleanError from various input types
+ * Create CleanError from various input types.
+ * If input is already a CleanError, returns it unchanged (no double-wrapping).
  */
-export function createError(input: string | Error | Error[]): CleanError {
+export function createError(input: string | Error | Error[], code?: ErrorCodeType): CleanError {
+  // Prevent double-wrapping: if input is already a CleanError, return as-is
+  if (detectCleanError(input)) {
+    const clean = input as CleanError
+    return !code || clean.code === code ? clean : cloneCleanError(clean, { code })
+  }
+
   if (typeof input === 'string') {
-    return new CleanError(input);
+    return new CleanError(input, { code: code ?? ErrorCode.ERR_UNKNOWN });
   }
 
   if (Array.isArray(input)) {
@@ -181,20 +224,32 @@ export function createError(input: string | Error | Error[]): CleanError {
     const validErrors = input.filter((err): err is Error => isError(err));
 
     if (validErrors.length === 0) {
-      return new CleanError('Unknown error occurred');
+      return new CleanError(ErrorMessage[ErrorCode.ERR_UNKNOWN], { code: code ?? ErrorCode.ERR_UNKNOWN });
     }
 
     if (validErrors.length === 1) {
-      return new CleanError(validErrors[0]);
+      // If the single error is already a CleanError, return it
+      if (detectCleanError(validErrors[0])) {
+        const clean = validErrors[0] as CleanError
+        return !code || clean.code === code ? clean : cloneCleanError(clean, { code })
+      }
+      return new CleanError(validErrors[0], { code });
     }
 
     // Multiple errors: first becomes primary, rest secondary
     const [primary, ...secondary] = validErrors;
-    return new CleanError(primary, { secondary });
+    if (detectCleanError(primary)) {
+      const clean = primary as CleanError
+      return cloneCleanError(clean, {
+        secondary: [...clean.getSecondaryErrors(), ...secondary],
+        code: code ?? clean.code,
+      })
+    }
+    return new CleanError(primary, { secondary, code });
   }
 
   // Single Error object
-  return new CleanError(input);
+  return new CleanError(input, { code });
 }
 
 /**
@@ -202,16 +257,32 @@ export function createError(input: string | Error | Error[]): CleanError {
  */
 export function createErrorWithContext(
   error: Error,
-  context: ErrorContext
+  context: ErrorContext,
+  code?: ErrorCodeType,
 ): CleanError {
-  return new CleanError(error, { context });
+  return new CleanError(error, { context, code });
+}
+
+/**
+ * Create a CleanError from an error code constant.
+ * Uses the canonical message from ErrorMessage table.
+ */
+export function createCodeError(code: ErrorCodeType, detail?: string): CleanError {
+  const msg = detail
+    ? `${ErrorMessage[code]}: ${detail}`
+    : ErrorMessage[code]
+  return new CleanError(msg, { code })
 }
 
 /**
  * Chain multiple errors together
  */
-export function chainErrors(primary: Error, secondary: Error[]): CleanError {
-  return new CleanError(primary, { secondary });
+export function chainErrors(
+  primary: Error,
+  secondary: Error[],
+  code?: ErrorCodeType,
+): CleanError {
+  return new CleanError(primary, { secondary, code });
 }
 
 /**

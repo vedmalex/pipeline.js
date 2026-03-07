@@ -1,4 +1,5 @@
 import { createError } from '../utils/ErrorList'
+import { ErrorCode, ErrorMessage, type ErrorCodeType } from '../utils/errors'
 import { isPromise } from '../utils/TypeDetectors'
 import { process_error } from '../utils/process_error'
 import { run_or_execute } from '../utils/run_or_execute'
@@ -33,8 +34,12 @@ function completeState<T extends StageObject>(state: ExecutionState<T>) {
   state.done(state.err, state.ctx)
 }
 
-function failState<T extends StageObject>(state: ExecutionState<T>, error: unknown) {
-  state.err = createError(error instanceof Error ? error : String(error))
+function failState<T extends StageObject>(
+  state: ExecutionState<T>,
+  error: unknown,
+  code?: ErrorCodeType,
+) {
+  state.err = createError(error instanceof Error ? error : String(error), code)
   state.result = undefined
   state.suspended = false
   state.pc = state.plan.errorExit
@@ -196,7 +201,7 @@ function executeCompiledPlanLoop<T extends StageObject>(state: ExecutionState<T>
     const op = state.plan.ops[state.pc]
 
     if (!op) {
-      failState(state, 'compiled executor pc out of bounds')
+      failState(state, ErrorMessage[ErrorCode.ERR_PC_OUT_OF_BOUNDS], ErrorCode.ERR_PC_OUT_OF_BOUNDS)
       continue
     }
 
@@ -239,7 +244,7 @@ function executeCompiledPlanLoop<T extends StageObject>(state: ExecutionState<T>
       case 'JUMP_IF_TRUE':
       case 'PUSH_FRAME':
       case 'POP_FRAME': {
-        failState(state, `opcode ${op.op} is not implemented in phase 1 executor`)
+        failState(state, `${ErrorMessage[ErrorCode.ERR_OPCODE_NOT_IMPL]}: ${op.op}`, ErrorCode.ERR_OPCODE_NOT_IMPL)
         continue
       }
 

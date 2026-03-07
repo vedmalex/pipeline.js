@@ -1,7 +1,9 @@
 import {
   createError,
+  createCodeError,
   type CleanError,
 } from './utils/ErrorList'
+import { ErrorCode, ErrorMessage } from './utils/errors'
 import { isError } from './utils/TypeDetectors';
 import {
   AllowedStage,
@@ -84,7 +86,7 @@ export class Stage<
     if (err || err_) {
       // Combine errors, filtering out null/undefined values
       const errors = [err, err_].filter((e): e is CleanError => isError(e));
-      const combinedError = errors.length > 0 ? createError(errors) : createError('Unknown error occurred');
+      const combinedError = errors.length > 0 ? createError(errors) : createCodeError(ErrorCode.ERR_UNKNOWN);
 
       if (this.config.run && !can_fix_error({ run: this.config.run })) {
         this.rescue<T>(
@@ -210,12 +212,7 @@ export class Stage<
               if (Context.isContext(_ctx)) {
                 cb(err, _ctx.original)
               } else {
-                // Combine error with context error properly
-                const errors = [err, new Error('context is always context object')].filter((e): e is Error => isError(e));
-                cb(
-                  errors.length > 0 ? createError(errors) : createError('Context error occurred'),
-                  _ctx,
-                )
+                cb(err, _ctx)
               }
             }
             if (hasTimeout) resolve()
@@ -271,7 +268,7 @@ export class Stage<
       // OPT-2: only attach timeout machinery when a real timeout is configured
       if (hasTimeout) {
         return withTimeout(promise, Config.timeout).catch(originalErr => {
-          const error = createError(originalErr || new Error('Stage timeout occurred'))
+          const error = createError(originalErr || new Error(ErrorMessage[ErrorCode.ERR_STAGE_TIMEOUT]), ErrorCode.ERR_STAGE_TIMEOUT)
           if (alreadyRun || callbackExecuted) {
             throw error
           } else {
@@ -311,8 +308,8 @@ export class Stage<
       }
     } else {
       // Create clear error message for missing run function
-      const errorMessage = this.reportName + ' reports: run is not a function'
-      this.rescue(createError(errorMessage), context, fail, sucess)
+      const errorMessage = this.reportName + ' reports: ' + ErrorMessage[ErrorCode.ERR_NO_RUN]
+      this.rescue(createError(errorMessage, ErrorCode.ERR_NO_RUN), context, fail, sucess)
     }
   }
 
@@ -408,7 +405,7 @@ export class Stage<
             callback(createError(result))
           }
         } else {
-          callback(createError(this.reportName + ' reports: T is invalid'))
+          callback(createError(this.reportName + ' reports: ' + ErrorMessage[ErrorCode.ERR_INVALID_CONTEXT], ErrorCode.ERR_INVALID_CONTEXT))
         }
       }
     }) as CallbackFunction<boolean>)

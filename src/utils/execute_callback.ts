@@ -1,6 +1,6 @@
-import { CleanError, createError } from './ErrorList'
+import { CleanError, createCodeError } from './ErrorList'
 import { isPromise } from './TypeDetectors'
-import { ERROR } from './errors'
+import { ErrorCode } from './errors'
 import { process_error } from './process_error'
 import { run_callback_once } from './run_callback_once'
 import {
@@ -94,7 +94,7 @@ export function execute_callback<T extends StageObject>(
           process_error(err, done)
         }
       } else {
-        done(createError(ERROR.signature))
+        done(createCodeError(ErrorCode.ERR_SIGNATURE))
       }
       break
     case 2:
@@ -117,7 +117,7 @@ export function execute_callback<T extends StageObject>(
           process_error(err, done)
         }
       } else {
-        done(createError(ERROR.signature))
+        done(createCodeError(ErrorCode.ERR_SIGNATURE))
       }
       break
     case 3:
@@ -131,10 +131,10 @@ export function execute_callback<T extends StageObject>(
           process_error(err, done)
         }
       } else {
-        done(createError(ERROR.signature))
+        done(createCodeError(ErrorCode.ERR_SIGNATURE))
       }
       break
     default:
-      done(createError(ERROR.signature))
+      done(createCodeError(ErrorCode.ERR_SIGNATURE))
   }
 }

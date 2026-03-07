@@ -1,4 +1,5 @@
-import { CleanError, createError } from './ErrorList'
+import { CleanError, createError, createCodeError } from './ErrorList'
+import { ErrorCode, ErrorMessage } from './errors'
 import { CallbackFunction, Possible } from './types'
 import { isError } from './TypeDetectors'
 
@@ -12,8 +13,11 @@ export function run_callback_once<T>(
       called = true
       wrapee(err, ctx)
     } else {
-      const errors = [err, new Error('callback called more than once')].filter((e): e is Error => isError(e));
-      throw errors.length > 0 ? createError(errors) : createError('Callback called more than once')
+      const doubleCallErr = new Error(ErrorMessage[ErrorCode.ERR_CALLBACK_DOUBLE])
+      const errors = [err, doubleCallErr].filter((e): e is Error => isError(e));
+      throw errors.length > 0
+        ? createError(errors, ErrorCode.ERR_CALLBACK_DOUBLE)
+        : createCodeError(ErrorCode.ERR_CALLBACK_DOUBLE)
     }
   } as CallbackFunction<T>
   return c
