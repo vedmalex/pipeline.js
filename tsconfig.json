@@ -22,6 +22,7 @@
     "forceConsistentCasingInFileNames": true,
     "lib": ["ESNext"],
     "types": ["node"],
+    "tsBuildInfoFile": ".cache/tsconfig.tsbuildinfo",
     "baseUrl": "./",
     "rootDir": "./src",
     "outDir": "lib",

@@ -39,7 +39,7 @@
     "build": "bun build.ts && tsc -p tsconfig.json",
     "lib": "tsc -p tsconfig.json",
     "watch": "tsc -w -p tsconfig.json",
-    "clean": "git clean -dfqX -- {types,dist}/** && rm -rf tsconfig.tsbuildinfo dist types"
+    "clean": "git clean -dfqX -- {types,dist}/** && rm -rf tsconfig.tsbuildinfo .cache dist types"
   },
   "repository": {
     "type": "git",

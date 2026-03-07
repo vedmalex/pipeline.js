@@ -12,10 +12,22 @@ import { CleanError, createError } from '../utils/ErrorList'
 import { run_callback_once } from '../utils/run_callback_once'
 import { run_or_execute } from '../utils/run_or_execute'
 import { Stage } from '../stage'
-import { Pipeline } from '../pipeline'
+import {
+  __setCompiledPipelineEnabledForTests,
+  Pipeline,
+} from '../pipeline'
 import { Wrap } from '../wrap'
 import { IfElse } from '../ifelse'
 import { Timeout } from '../timeout'
+
+async function withCompiledPipelineDisabled<T>(run: () => Promise<T>) {
+  __setCompiledPipelineEnabledForTests(false)
+  try {
+    return await run()
+  } finally {
+    __setCompiledPipelineEnabledForTests(undefined)
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OPT-7: CleanError lazy-parsed + memoized trace (ErrorList.ts)
@@ -179,61 +191,65 @@ describe('OPT-8: Pipeline stage promise path', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 describe('Nested Pipeline stack safety', () => {
   it('flat pipeline width does not grow stack depth across later stages', async () => {
-    const previousLimit = Error.stackTraceLimit
-    Error.stackTraceLimit = 5_000
+    await withCompiledPipelineDisabled(async () => {
+      const previousLimit = Error.stackTraceLimit
+      Error.stackTraceLimit = 5_000
 
-    try {
-      const samples: number[] = []
-      const pipe = new Pipeline<{ i: number }>()
+      try {
+        const samples: number[] = []
+        const pipe = new Pipeline<{ i: number }>()
 
-      for (let i = 0; i < 2_000; i++) {
-        pipe.addStage((ctx) => {
-          if (ctx.i === 0 || ctx.i === 999 || ctx.i === 1_999) {
-            samples.push(new Error().stack?.split('\n').length ?? 0)
-          }
-          ctx.i++
-        })
+        for (let i = 0; i < 2_000; i++) {
+          pipe.addStage((ctx) => {
+            if (ctx.i === 0 || ctx.i === 999 || ctx.i === 1_999) {
+              samples.push(new Error().stack?.split('\n').length ?? 0)
+            }
+            ctx.i++
+          })
+        }
+
+        await pipe.execute({ i: 0 })
+
+        expect(samples.length).toBe(3)
+        expect(samples[1]).toBeLessThan(100)
+        expect(samples[2]).toBeLessThan(100)
+      } finally {
+        Error.stackTraceLimit = previousLimit
       }
-
-      await pipe.execute({ i: 0 })
-
-      expect(samples.length).toBe(3)
-      expect(samples[1]).toBeLessThan(100)
-      expect(samples[2]).toBeLessThan(100)
-    } finally {
-      Error.stackTraceLimit = previousLimit
-    }
+    })
   })
 
   it('deeply nested pipelines (20k) do not overflow the stack and remain bounded', async () => {
-    const previousLimit = Error.stackTraceLimit
-    Error.stackTraceLimit = 5_000
+    await withCompiledPipelineDisabled(async () => {
+      const previousLimit = Error.stackTraceLimit
+      Error.stackTraceLimit = 5_000
 
-    try {
-      function nest(depth: number) {
-        let current: any = (ctx: any) => {
-          ctx.stackLines = new Error().stack?.split('\n').length ?? 0
-          ctx.ok = true
+      try {
+        function nest(depth: number) {
+          let current: any = (ctx: any) => {
+            ctx.stackLines = new Error().stack?.split('\n').length ?? 0
+            ctx.ok = true
+          }
+
+          for (let i = 0; i < depth; i++) {
+            const p = new Pipeline<any>()
+            p.addStage(current)
+            current = p
+          }
+
+          return current as Pipeline<any>
         }
 
-        for (let i = 0; i < depth; i++) {
-          const p = new Pipeline<any>()
-          p.addStage(current)
-          current = p
-        }
+        const root = nest(20_000)
+        const result = await root.execute({ ok: false, stackLines: 0 } as any)
 
-        return current as Pipeline<any>
+        expect(result.ok).toBe(true)
+        expect(result.stackLines).toBeGreaterThan(0)
+        expect(result.stackLines).toBeLessThan(2_000)
+      } finally {
+        Error.stackTraceLimit = previousLimit
       }
-
-      const root = nest(20_000)
-      const result = await root.execute({ ok: false, stackLines: 0 } as any)
-
-      expect(result.ok).toBe(true)
-      expect(result.stackLines).toBeGreaterThan(0)
-      expect(result.stackLines).toBeLessThan(2_000)
-    } finally {
-      Error.stackTraceLimit = previousLimit
-    }
+    })
   }, 20_000)
 })
 

@@ -1,11 +1,13 @@
 import { compilePipelinePlan } from '../compiled/compiler'
 import { planToString } from '../compiled/debug'
 import { executeCompiledPlan } from '../compiled/executor'
+import { IfElse } from '../ifelse'
 import {
   __setCompiledPipelineEnabledForTests,
   Pipeline,
 } from '../pipeline'
 import { Stage } from '../stage'
+import { Timeout } from '../timeout'
 import { Wrap } from '../wrap'
 import { StageObject } from '../utils/types'
 
@@ -16,6 +18,56 @@ function executePlanPromise<T extends StageObject>(plan: any, context: T, err?: 
       else resolve((ctx ?? context) as T)
     })
   })
+}
+
+class InspectablePipeline<T extends StageObject> extends Pipeline<T> {
+  public shouldUseCompiledByDefault() {
+    return this.shouldUseCompiledPlan(this.getCompiledPlan())
+  }
+}
+
+type HybridTestContext = {
+  n: number
+  branch: boolean
+}
+
+function makeHybridParityPipeline() {
+  const successNested = new Pipeline<HybridTestContext>([
+    (ctx) => { ctx.n += 100 },
+    (ctx) => { ctx.branch = false },
+  ])
+
+  return new Pipeline<HybridTestContext>([
+    (ctx) => {
+      ctx.n += 1
+      ctx.branch = true
+    },
+    new Wrap<HybridTestContext, HybridTestContext>({
+      stage: (ctx, done) => {
+        ctx.n += 10
+        done(undefined, ctx)
+      },
+      prepare: (ctx) => ctx,
+      finalize: (_ctx, retCtx) => retCtx,
+    }) as any,
+    new IfElse<HybridTestContext>({
+      condition: (ctx) => ctx.branch,
+      success: successNested,
+      failed: (ctx) => { ctx.n += 10000 },
+    }) as any,
+    new IfElse<HybridTestContext>({
+      condition: (ctx) => ctx.branch,
+      success: (ctx) => { ctx.n += 100000 },
+      failed: (ctx) => { ctx.n += 1000 },
+    }) as any,
+    new Timeout<HybridTestContext>({
+      timeout: 0,
+      stage: async (ctx) => {
+        ctx.n += 10000
+        return ctx
+      },
+    }) as any,
+  ])
 }
 
 describe('compiled Pipeline skeleton', () => {
@@ -267,6 +319,71 @@ describe('compiled Pipeline skeleton', () => {
     const compiledResult = await executePlanPromise(plan, { n: 0 })
 
     expect(compiledResult.n).toBe(legacyResult.n)
+  })
+
+  it('executes mixed hybrid plan with same result as legacy runtime', async () => {
+    const root = makeHybridParityPipeline()
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ n: 0, branch: false })
+    const compiledResult = await executePlanPromise(plan, { n: 0, branch: false })
+
+    expect(plan.mode).toBe('compiled-hybrid')
+    expect(plan.metadata.fallbackOps).toBeGreaterThanOrEqual(3)
+    expect(compiledResult).toEqual(legacyResult)
+    expect(compiledResult.n).toBe(11111)
+  })
+
+  it('preserves mixed hybrid graph behavior when compiled runtime flag is enabled', async () => {
+    const root = makeHybridParityPipeline()
+    const legacyResult = await root.execute({ n: 0, branch: false })
+
+    __setCompiledPipelineEnabledForTests(true)
+
+    try {
+      const compiledResult = await root.execute({ n: 0, branch: false })
+
+      expect((root as any).compiledPlan?.mode).toBe('compiled-hybrid')
+      expect(compiledResult).toEqual(legacyResult)
+    } finally {
+      __setCompiledPipelineEnabledForTests(undefined)
+    }
+  })
+
+  it('defaults fully compiled-static Pipelines to compiled execution in auto mode', async () => {
+    __setCompiledPipelineEnabledForTests(undefined)
+
+    const root = new InspectablePipeline<{ n: number }>([
+      (ctx) => { ctx.n += 1 },
+      (ctx) => { ctx.n += 10 },
+    ])
+
+    expect(root.shouldUseCompiledByDefault()).toBe(true)
+
+    const result = await root.execute({ n: 0 })
+
+    expect((root as any).compiledPlan?.mode).toBe('compiled-static')
+    expect(result.n).toBe(11)
+  })
+
+  it('keeps compiled-hybrid Pipelines on legacy execution in auto mode', async () => {
+    __setCompiledPipelineEnabledForTests(undefined)
+
+    const root = new InspectablePipeline<{ n: number }>([
+      (ctx) => { ctx.n += 1 },
+      new Wrap<{ n: number }, { n: number }>({
+        stage: (ctx) => { ctx.n += 10 },
+        prepare: (ctx) => ctx,
+        finalize: (_ctx, retCtx) => retCtx,
+      }) as any,
+    ])
+
+    expect(root.shouldUseCompiledByDefault()).toBe(false)
+
+    const result = await root.execute({ n: 0 })
+
+    expect((root as any).compiledPlan?.mode).toBe('compiled-hybrid')
+    expect(result.n).toBe(11)
   })
 
   it('short-circuits on error and does not run later ops', async () => {

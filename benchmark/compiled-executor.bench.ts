@@ -1,14 +1,19 @@
 import { compilePipelinePlan } from '../src/compiled/compiler'
 import { executeCompiledPlan } from '../src/compiled/executor'
+import { IfElse } from '../src/ifelse'
 import {
   __setCompiledPipelineEnabledForTests,
   Pipeline,
 } from '../src/pipeline'
+import { Timeout } from '../src/timeout'
+import { Wrap } from '../src/wrap'
 
 const COUNTS = [1, 2, 5, 10, 20, 50, 100]
 
+type BenchContext = { n: number }
+
 function makePipeline(count: number) {
-  const pipe = new Pipeline<{ n: number }>()
+  const pipe = new Pipeline<BenchContext>()
   for (let i = 0; i < count; i++) {
     pipe.addStage((ctx) => {
       ctx.n += 1
@@ -18,9 +23,9 @@ function makePipeline(count: number) {
 }
 
 function makeNestedPipeline(count: number, chunk: number = 5) {
-  const root = new Pipeline<{ n: number }>()
+  const root = new Pipeline<BenchContext>()
   for (let i = 0; i < count; i += chunk) {
-    const nested = new Pipeline<{ n: number }>()
+    const nested = new Pipeline<BenchContext>()
     const end = Math.min(i + chunk, count)
     for (let j = i; j < end; j++) {
       nested.addStage((ctx) => {
@@ -30,6 +35,53 @@ function makeNestedPipeline(count: number, chunk: number = 5) {
     root.addStage(nested as any)
   }
   return root
+}
+
+function makeHybridPipeline(count: number) {
+  const pipe = new Pipeline<BenchContext>()
+
+  for (let i = 0; i < count; i++) {
+    switch (i % 4) {
+      case 0:
+        pipe.addStage((ctx) => {
+          ctx.n += 1
+        })
+        break
+
+      case 1:
+        pipe.addStage(new Wrap<BenchContext, BenchContext>({
+          stage: (ctx) => {
+            ctx.n += 1
+          },
+          prepare: (ctx) => ctx,
+          finalize: (_ctx, retCtx) => retCtx,
+        }) as any)
+        break
+
+      case 2:
+        pipe.addStage(new IfElse<BenchContext>({
+          condition: i % 8 === 2,
+          success: (ctx) => {
+            ctx.n += 1
+          },
+          failed: (ctx) => {
+            ctx.n += 1
+          },
+        }) as any)
+        break
+
+      default:
+        pipe.addStage(new Timeout<BenchContext>({
+          timeout: 0,
+          stage: (ctx) => {
+            ctx.n += 1
+          },
+        }) as any)
+        break
+    }
+  }
+
+  return pipe
 }
 
 function median(values: number[]) {
@@ -87,8 +139,29 @@ async function benchRuntime(count: number, compiled: boolean) {
   }, iterationsFor(count))
 }
 
+async function benchHybridRuntime(count: number, compiled: boolean) {
+  __setCompiledPipelineEnabledForTests(compiled)
+  const pipe = makeHybridPipeline(count)
+  return medianMeasure(async () => {
+    await pipe.execute({ n: 0 })
+  }, iterationsFor(count))
+}
+
 async function benchDirectCompiled(count: number) {
   const pipe = makePipeline(count)
+  const plan = compilePipelinePlan(pipe as any)
+  return medianMeasure(async () => {
+    await new Promise<void>((resolve, reject) => {
+      executeCompiledPlan(plan, undefined, { n: 0 }, (err) => {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+  }, iterationsFor(count))
+}
+
+async function benchDirectHybridCompiled(count: number) {
+  const pipe = makeHybridPipeline(count)
   const plan = compilePipelinePlan(pipe as any)
   return medianMeasure(async () => {
     await new Promise<void>((resolve, reject) => {
@@ -113,8 +186,11 @@ console.log('\n=== compiled executor benchmark ===\n')
 const legacyPoints: Array<{ x: number; y: number }> = []
 const runtimeCompiledPoints: Array<{ x: number; y: number }> = []
 const directCompiledPoints: Array<{ x: number; y: number }> = []
+const hybridLegacyPoints: Array<{ x: number; y: number }> = []
+const hybridRuntimeCompiledPoints: Array<{ x: number; y: number }> = []
+const hybridDirectCompiledPoints: Array<{ x: number; y: number }> = []
 
-console.log('── Flat Pipeline scaling ──')
+console.log('── Flat Pipeline scaling (compiled-static) ──')
 for (const count of COUNTS) {
   const legacy = await benchRuntime(count, false)
   const runtimeCompiled = await benchRuntime(count, true)
@@ -133,10 +209,34 @@ const legacyFit = linearFit(legacyPoints.filter(point => point.x >= 10))
 const runtimeCompiledFit = linearFit(runtimeCompiledPoints.filter(point => point.x >= 10))
 const directCompiledFit = linearFit(directCompiledPoints.filter(point => point.x >= 10))
 
-console.log('\n── Flat Pipeline linear fit (10+ stages) ──')
+console.log('\n── Flat Pipeline linear fit (10+ stages, compiled-static) ──')
 console.log(`  legacy            total ≈ ${legacyFit.intercept.toFixed(2)} + ${legacyFit.slope.toFixed(3)}*N µs`)
 console.log(`  runtime-compiled  total ≈ ${runtimeCompiledFit.intercept.toFixed(2)} + ${runtimeCompiledFit.slope.toFixed(3)}*N µs`)
 console.log(`  direct-compiled   total ≈ ${directCompiledFit.intercept.toFixed(2)} + ${directCompiledFit.slope.toFixed(3)}*N µs`)
+
+console.log('\n── Flat Pipeline scaling (compiled-hybrid) ──')
+for (const count of COUNTS) {
+  const legacy = await benchHybridRuntime(count, false)
+  const runtimeCompiled = await benchHybridRuntime(count, true)
+  const directCompiled = await benchDirectHybridCompiled(count)
+
+  hybridLegacyPoints.push({ x: count, y: legacy })
+  hybridRuntimeCompiledPoints.push({ x: count, y: runtimeCompiled })
+  hybridDirectCompiledPoints.push({ x: count, y: directCompiled })
+
+  console.log(
+    `${String(count).padStart(3)} hybrid stages | legacy ${legacy.toFixed(2).padStart(8)} µs | runtime-compiled ${runtimeCompiled.toFixed(2).padStart(8)} µs | direct-compiled ${directCompiled.toFixed(2).padStart(8)} µs`,
+  )
+}
+
+const hybridLegacyFit = linearFit(hybridLegacyPoints.filter(point => point.x >= 10))
+const hybridRuntimeCompiledFit = linearFit(hybridRuntimeCompiledPoints.filter(point => point.x >= 10))
+const hybridDirectCompiledFit = linearFit(hybridDirectCompiledPoints.filter(point => point.x >= 10))
+
+console.log('\n── Flat Pipeline linear fit (10+ stages, compiled-hybrid) ──')
+console.log(`  legacy            total ≈ ${hybridLegacyFit.intercept.toFixed(2)} + ${hybridLegacyFit.slope.toFixed(3)}*N µs`)
+console.log(`  runtime-compiled  total ≈ ${hybridRuntimeCompiledFit.intercept.toFixed(2)} + ${hybridRuntimeCompiledFit.slope.toFixed(3)}*N µs`)
+console.log(`  direct-compiled   total ≈ ${hybridDirectCompiledFit.intercept.toFixed(2)} + ${hybridDirectCompiledFit.slope.toFixed(3)}*N µs`)
 
 console.log('\n── Nested Pipeline spot-check ──')
 for (const count of [10, 50, 100]) {

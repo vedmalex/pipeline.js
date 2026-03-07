@@ -24,18 +24,38 @@ import {
   StageRun,
 } from './utils/types'
 
+type CompiledPipelineExecutionMode = 'off' | 'auto' | 'force'
+
 let compiledPipelineOverride: boolean | undefined
 
 export function __setCompiledPipelineEnabledForTests(enabled?: boolean) {
   compiledPipelineOverride = enabled
 }
 
-export function __isCompiledPipelineEnabled() {
-  if (compiledPipelineOverride !== undefined) {
-    return compiledPipelineOverride
+function getCompiledPipelineExecutionMode(): CompiledPipelineExecutionMode {
+  if (compiledPipelineOverride === true) {
+    return 'force'
   }
 
-  return typeof process !== 'undefined' && process.env.PIPELINE_USE_COMPILED === '1'
+  if (compiledPipelineOverride === false) {
+    return 'off'
+  }
+
+  if (typeof process !== 'undefined') {
+    if (process.env.PIPELINE_USE_COMPILED === '1') {
+      return 'force'
+    }
+
+    if (process.env.PIPELINE_USE_COMPILED === '0') {
+      return 'off'
+    }
+  }
+
+  return 'auto'
+}
+
+export function __isCompiledPipelineEnabled() {
+  return getCompiledPipelineExecutionMode() !== 'off'
 }
 
 /**
@@ -162,6 +182,20 @@ export class Pipeline<T extends StageObject> extends Stage<
     return candidate
   }
 
+  protected shouldUseCompiledPlan(plan: CompiledPlan<T>) {
+    const mode = getCompiledPipelineExecutionMode()
+
+    if (mode === 'off') {
+      return false
+    }
+
+    if (mode === 'force') {
+      return true
+    }
+
+    return plan.mode === 'compiled-static'
+  }
+
   override compile(rebuild: boolean = false): StageRun<T> {
     let runAsync = async (
       initialErr: Possible<CleanError>,
@@ -206,7 +240,9 @@ export class Pipeline<T extends StageObject> extends Stage<
         if (__isCompiledPipelineEnabled()) {
           try {
             const compiledPlan = this.getCompiledPlan(rebuild)
-            return executeCompiledPlan(compiledPlan, err, context, done)
+            if (this.shouldUseCompiledPlan(compiledPlan)) {
+              return executeCompiledPlan(compiledPlan, err, context, done)
+            }
           } catch (_error) {
             // Fall through to legacy runtime if compilation/execution wiring is not ready.
           }
