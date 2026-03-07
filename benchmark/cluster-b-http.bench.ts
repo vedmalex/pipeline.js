@@ -5,7 +5,7 @@
  * - Short Pipeline (2-3 stages) with Timeout wrapper
  * - rescue() error handling
  * - Single execution per "request"
- * - Wrapper-heavy (compiled-hybrid path)
+ * - Wrapper-heavy, expected to stay fully compiled-static after TASK-011/TASK-014
  *
  * Success criterion: ≤5% regression between legacy and compiled.
  */

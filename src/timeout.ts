@@ -1,4 +1,5 @@
 import { Stage } from './stage'
+import { commitIsolatedStageContext, createIsolatedStageContext } from './utils/context_snapshot'
 import { isFunction } from './utils/TypeDetectors'
 import { CleanError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
@@ -32,53 +33,65 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
       ctx: T,
       done: CallbackFunction<T>,
     ) => {
-      let to: NodeJS.Timeout | null = null;
-      let isDone = false // Флаг, чтобы отслеживать, был ли уже вызван done
+      let to: NodeJS.Timeout | null = null
+      let isDone = false
 
-      const localDone = ((err: Possible<CleanError>, retCtx: T) => {
-        if (isDone) return // Если done уже был вызван, выходим
-        isDone = true // Устанавливаем флаг, что done вызван
-        if (to) clearTimeout(to) // Отменяем таймаут
-        to = null;
-        return done(err, retCtx);
-      }) as CallbackFunction<T>;
+      const finish = ((runErr: Possible<CleanError>, retCtx: T) => {
+        if (isDone) return
+        isDone = true
+        if (to) clearTimeout(to)
+        to = null
+        return done(runErr, retCtx)
+      }) as CallbackFunction<T>
 
       const waitFor =
         isFunction(this.config.timeout)
           ? this.config.timeout(ctx)
-          : this.config.timeout;
+          : this.config.timeout
 
       if (waitFor) {
         to = setTimeout(() => {
-          const timeoutRef = to;
-          to = null;
+          const timeoutRef = to
+          to = null
 
           if (timeoutRef && this.config.overdue) {
-            run_or_execute(this.config.overdue, err, ctx, localDone);
+            run_or_execute(this.config.overdue, err, ctx, finish)
           } else {
-            if (!isDone) { // если overdue не настроен и если done еще не был вызван - вызываем done
-              localDone(null, ctx);
+            if (!isDone) {
+              finish(null, ctx)
             }
           }
-        }, waitFor);
+        }, waitFor)
 
         if (this.config.stage) {
+          const isolatedCtx = createIsolatedStageContext(ctx)
+
           try {
-            run_or_execute(this.config.stage, err, ctx, localDone);
+            run_or_execute(this.config.stage, err, isolatedCtx, ((innerErr, retCtx) => {
+              if (isDone) {
+                return
+              }
+
+              if (innerErr) {
+                finish(innerErr, ctx)
+              } else {
+                finish(undefined, commitIsolatedStageContext(ctx, (retCtx ?? isolatedCtx) as T))
+              }
+            }) as CallbackFunction<T>)
           } catch (error) {
-            if (to) clearTimeout(to); // Отменяем таймаут при ошибке
-            to = null;
-            localDone(error as CleanError, ctx);
+            if (to) clearTimeout(to)
+            to = null
+            finish(error as CleanError, ctx)
           }
         }
       } else if (this.config.stage) {
-        run_or_execute(this.config.stage, err, ctx, done);
+        run_or_execute(this.config.stage, err, ctx, done)
       } else {
-        localDone(null, ctx); // Если нет ни таймаута, ни stage, завершаем работу
+        finish(null, ctx)
       }
     }
 
-    this.run = run;
+    this.run = run
     return super.compile(rebuild);
   }
 }

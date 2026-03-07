@@ -308,6 +308,7 @@ describe('Compiled executor internal error codes', () => {
       ops: [{ op: 'RETURN' }],
       tables: createPlanTables(),
       metadata: {
+        artifactKind: 'in-memory-runtime-plan',
         rootKind: 'test',
         flattenedStages: 0,
         fallbackOps: 0,
@@ -331,11 +332,12 @@ describe('Compiled executor internal error codes', () => {
       entry: 0,
       errorExit: 1,
       ops: [
-        { op: 'JUMP_IF_TRUE', predicateId: 0, target: 1 },
+        { op: 'PUSH_FRAME', frameKind: 'PARALLEL', data: 0 },
         { op: 'RETURN' },
       ],
       tables: createPlanTables(),
       metadata: {
+        artifactKind: 'in-memory-runtime-plan',
         rootKind: 'test',
         flattenedStages: 0,
         fallbackOps: 0,
@@ -350,7 +352,7 @@ describe('Compiled executor internal error codes', () => {
     const err: any = await executePlanError(plan, { value: 1 })
     expect(isCleanError(err)).toBe(true)
     expect(err.code).toBe(ErrorCode.ERR_OPCODE_NOT_IMPL)
-    expect(err.message).toContain('JUMP_IF_TRUE')
+    expect(err.message).toContain('PUSH_FRAME/PARALLEL')
   })
 })
 

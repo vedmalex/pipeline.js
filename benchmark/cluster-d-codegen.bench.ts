@@ -7,13 +7,14 @@
  * - combine() merges results back
  * - Tests both forked context and plain-object child patterns
  *
- * Success criterion: No regression; improvement tracked for future
- * Sequential compiled path (P1).
+ * Success criterion: no material regression (>10%) on any measured item count.
+ * Sequential compiled path is active; larger item-count regressions should be treated as follow-up optimization work.
  */
 import {
   __setCompiledPipelineEnabledForTests,
   Pipeline,
 } from '../src/pipeline'
+import { compilePipelinePlan } from '../src/compiled/compiler'
 import { Sequential } from '../src/sequential'
 import { Stage } from '../src/stage'
 
@@ -114,8 +115,8 @@ const ITEM_COUNTS = [1, 5, 10, 20, 50]
 console.log('\n=== Cluster D — Codegen / Sequential Benchmark ===\n')
 
 console.log('── Sequential scaling: items vs execution time ──')
-console.log(`${'items'.padStart(6)} | ${'legacy'.padStart(10)} µs | ${'compiled'.padStart(10)} µs | ${'delta'.padStart(10)}`)
-console.log('-'.repeat(50))
+console.log(`${'items'.padStart(6)} | ${'legacy'.padStart(10)} µs | ${'compiled'.padStart(10)} µs | ${'delta'.padStart(10)} | ${'plan'.padStart(15)}`)
+console.log('-'.repeat(68))
 
 const legacyPoints: Array<{ x: number; y: number }> = []
 const compiledPoints: Array<{ x: number; y: number }> = []
@@ -124,6 +125,7 @@ for (const itemCount of ITEM_COUNTS) {
   const iterations = itemCount <= 10 ? 10_000 : 2_000
 
   const pipe = makeCodegenPipeline(itemCount)
+  const plan = compilePipelinePlan(pipe as any)
 
   // Legacy
   __setCompiledPipelineEnabledForTests(false)
@@ -144,7 +146,7 @@ for (const itemCount of ITEM_COUNTS) {
 
   const delta = ((compiled - legacy) / legacy * 100)
   console.log(
-    `${String(itemCount).padStart(6)} | ${legacy.toFixed(2).padStart(10)} | ${compiled.toFixed(2).padStart(10)} | ${(delta >= 0 ? '+' : '') + delta.toFixed(1) + '%'}`
+    `${String(itemCount).padStart(6)} | ${legacy.toFixed(2).padStart(10)} | ${compiled.toFixed(2).padStart(10)} | ${(delta >= 0 ? '+' : '') + delta.toFixed(1) + '%'} | ${plan.mode.padStart(15)}`
   )
 }
 
@@ -165,8 +167,8 @@ const worstDelta = Math.max(
   )
 )
 console.log(`  Worst delta: ${worstDelta >= 0 ? '+' : ''}${worstDelta.toFixed(1)}%`)
-console.log(`  PASS: ${worstDelta <= 10 ? 'YES ✓' : 'NO ✗ (Sequential P1 not yet implemented)'}`)
-console.log(`  Note: Sequential compiled path is P1. Current results are Pipeline-only optimization.`)
+console.log(`  PASS: ${worstDelta <= 10 ? 'YES ✓' : 'NO ✗ (follow-up optimization needed)'}`)
+console.log(`  Note: Sequential now compiles natively; any remaining regression is executor-optimization debt, not missing compilation coverage.`)
 
 __setCompiledPipelineEnabledForTests(undefined)
 console.log('\n=== done ===\n')

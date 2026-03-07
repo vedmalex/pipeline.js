@@ -90,7 +90,7 @@ Default threshold for roadmap decisions:
 
 `RetryOnError` and compiled error boundaries are semantically coupled.
 
-**Roadmap clarification:** TASK-012 cannot be considered complete without TASK-010's error-model contract, even if some mechanical loop-frame work can begin earlier.
+**Roadmap clarification:** TASK-012 / TASK-014 mechanical compile-native work can land before TASK-010 is finalized, but the final catch/rescue/error-boundary contract still depends on TASK-010.
 
 ---
 
@@ -173,35 +173,36 @@ TASK-011 is complete only when all of the following are true:
 
 ## Phase 2 — Local Control Flow Primitives (TASK-012)
 
-**Goal**: Make loops, retries, and error recovery compiled-native.
+**Goal**: Make loops, retries, and timeout recovery compiled-native under the current error contract, then layer TASK-010 boundary semantics on top.
 
 ### 2a. Compile-native RetryOnError
 
-- `RETRY` frame: `retriesLeft` counter, `retryTarget` (pc to re-enter), optional backup/restore transforms
-- Compiler detects RetryOnError, emits frame push + inner ops + retry-on-error check
-- Executor: on error, check frame → if retries left, decrement and jump to retryTarget
-- `backup`/`restore` → transforms table entries
+- Implemented as explicit `RUN_RETRY` op plus executor retry-state frame
+- Retry policy, backup, and restore stay inspectable in plan constants instead of opaque `RUN_STAGE_FN` wrappers
+- Inner stage executes through compiled child runner IDs, preserving native lowering for nested compiled forms
 
 ### 2b. Compile-native DoWhile
 
-- `LOOP` frame: `loopHead` (pc), `iteration` counter, `reachEnd` predicate
-- Compiler emits frame push + inner ops + predicate check + conditional jump back
-- `split` function → per-iteration context derivation
-- Executor: after inner ops, evaluate reachEnd predicate → continue or exit
+- Implemented as explicit `RUN_LOOP` op plus loop-state frame
+- `split` and `reachEnd` remain visible in compiled plan metadata/constants
+- Loop continuation now lives in executor state instead of opaque closure recursion
 
 ### 2c. Compile-native Sequential
 
-- Already planned as TASK-009 P1
-- `LOOP_SEQUENTIAL` op: split → iterate (using LOOP frame) → combine
-- split/combine → transforms/combiners table entries
-- Inner stage compiled as subplan
+- Implemented as explicit `RUN_SEQUENTIAL` op plus sequential frame state
+- split → iterate → combine now runs in executor-managed state, without per-item fallback wrappers
+- Current benchmark gate is closed with compiled-static plans and no material regression
 
 ### 2d. Timeout boundary semantics
 
-- Timer registration as executor-level concern (not frame)
-- On timeout → cancel pending stage, route to error/fallback
-- Cleanup on normal completion
-- Most complex item in Phase 2 due to timer lifecycle management
+- Implemented as explicit `RUN_TIMEOUT` op with executor-owned timeout frame
+- Timeout now isolates the inner context so late post-timeout mutations do not leak back into the winning result
+- On timeout, overdue execution runs against the original context; the late main-stage completion is ignored
+- Supported timeout-snapshot domain is explicit: plain objects, arrays, `Map`, `Set`, `Buffer`, `ArrayBuffer` views, `Date`, `RegExp`, and custom instances with enumerable own state
+- Unsupported snapshot objects such as `WeakMap`, `WeakSet`, `WeakRef`, `FinalizationRegistry`, and live promises fail fast instead of being cloned implicitly
+- Timeout snapshots are intentionally a bounded runtime-container clone, not a universal JS deep-clone contract
+- Current guarantee is result isolation, not arbitrary external side-effect cancellation; abortable timeout stays a separate future implementation task until stages can accept cancellation signals
+- Final TASK-010 follow-up is still needed for rich catch/rescue boundary routing, not for basic timeout isolation
 
 ### 2e. Error boundary model (TASK-010 overlap)
 
@@ -210,7 +211,14 @@ TASK-011 is complete only when all of the following are true:
 - CleanError preservation of original error as primary signal
 - Error codes for stable diagnostic taxonomy
 
-**Dependency**: TASK-010 should define the error model first, then Phase 2 implements it in the compiled executor.
+**Note on ensure/validate behavior**: Both legacy and compiled paths swallow `ensure` throws and `validate` rejections — the stage succeeds anyway. This applies to both static (native executor) and hybrid (fallback island) modes. This matches legacy runtime behavior and is the expected parity contract.
+
+### Runtime plan note
+
+- The compiled plan is currently an in-memory executor artifact, not a portable serialization format
+- Primitive ops are explicit and inspectable, but their policy functions still live in runtime tables/constants
+
+**Dependency**: TASK-010 still owns the final public error/boundary model; Phase 2 now provides the native executor mechanics that model will plug into.
 
 ### Shared QA gates for TASK-010 / TASK-012 / TASK-014
 
@@ -232,6 +240,8 @@ The same observable behavior must hold in:
 - compiled-static path
 - compiled-hybrid path with fallback islands
 
+Hybrid coverage is expected to include the callback/timer edge cases as real fallback-island tests, not only representative wrapper smoke tests.
+
 ---
 
 ## Phase 3 — Parallel and Composition (future)
@@ -249,6 +259,7 @@ The same observable behavior must hold in:
 - Outcome channels (success/error/timeout/fallback routing)
 - Quorum / partial-completion joins
 - Resumable executor state / checkpoints
+- Abortable timeout contract for stages with cancellable external work, split into its own future task once stage-level cancellation exists
 
 ---
 
@@ -262,6 +273,8 @@ The same observable behavior must hold in:
 | 4 | Phase 2 | TASK-012: Compile-native DoWhile + RetryOnError | TASK-010 + TASK-011 | loop/retry frames with error-model parity |
 | 5 | Phase 2 | TASK-014: Timeout boundary + error boundaries | TASK-010 + TASK-012 | explicit compiled catch/retry/fallback semantics |
 | 6 | Phase 3 | TASK-015+: Parallel frame + composition | TASK-014 | structured parallel/join semantics |
+
+Abortable timeout cancellation intentionally stays out of TASK-014; schedule it separately only after the public stage contract grows a cancellation signal.
 
 ## Recommended Task Progression
 
