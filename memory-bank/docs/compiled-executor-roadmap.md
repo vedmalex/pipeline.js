@@ -201,7 +201,7 @@ TASK-011 is complete only when all of the following are true:
 - Supported timeout-snapshot domain is explicit: plain objects, arrays, `Map`, `Set`, `Buffer`, `ArrayBuffer` views, `Date`, `RegExp`, and custom instances with enumerable own state
 - Unsupported snapshot objects such as `WeakMap`, `WeakSet`, `WeakRef`, `FinalizationRegistry`, and live promises fail fast instead of being cloned implicitly
 - Timeout snapshots are intentionally a bounded runtime-container clone, not a universal JS deep-clone contract
-- Current guarantee is result isolation, not arbitrary external side-effect cancellation; abortable timeout stays a separate future implementation task until stages can accept cancellation signals
+- Current guarantee includes result isolation plus timeout-driven `AbortSignal` delivery for signal-aware stages; true forced cancellation of ignored work still remains future work
 - Final TASK-010 follow-up is still needed for rich catch/rescue boundary routing, not for basic timeout isolation
 
 ### 2e. Error boundary model (TASK-010 overlap)
@@ -244,12 +244,20 @@ Hybrid coverage is expected to include the callback/timer edge cases as real fal
 
 ---
 
-## Phase 3 — Parallel and Composition (future)
+## Phase 3 — Parallel and Composition
 
-- `PARALLEL` frame: fan-out N children, join strategy (all/any/quorum)
-- Bounded concurrency for data-parallel split workloads
-- Optional `CALL_SUBPLAN` for reusable compiled fragments
-- Map-reduce pattern support
+- `TASK-015` MVP is now implemented as explicit `RUN_PARALLEL` lowering with executor-managed fan-out/join state for the current `all-settled` `Parallel` semantics
+- Supported MVP contract preserves legacy behavior: empty/null split -> passthrough, all children start before settlement, errors aggregate after all children settle, success combines against the split child array
+- `TASK-016` bounded concurrency is now implemented in both legacy and compiled paths via `concurrency?: number` while keeping the same `all-settled` join behavior
+- `TASK-017` adds the first richer join strategy via `join: 'all' | 'any'`; `any` settles on first success, while all-fail still aggregates `parallel - error` children
+- `TASK-018` adds `join: 'quorum'` + `quorum?: number`; success now supports N-of-M thresholds while failed quorum still aggregates wrapped child errors after all children settle
+- `TASK-019` adds `trailing: 'ignore' | 'drain-active'` for early-success joins; `drain-active` stops queue growth after success and waits only for already-active branches
+- `TASK-020` adds `trailingTimeout?: number` for `drain-active`; early-success joins can now bound how long they wait for already-active branches before settling
+- `TASK-021` introduces the first public cancellation contract through `getExecutionSignal(ctx)` and wires timeout-triggered abort delivery into both legacy and compiled runtimes
+- `TASK-022` reuses that contract in `Parallel`: early-settlement paths now abort active child branch signals with `ERR_STAGE_ABORTED` while preserving stable parent results
+- `TASK-023` exposes `signal?: AbortSignal` on public `Stage.execute(...)` / `Pipeline.execute(...)`, normalizes public aborts to `ERR_STAGE_ABORTED`, and propagates the current execution signal through legacy + compiled child dispatch
+- Optional `CALL_SUBPLAN` for reusable compiled fragments remains future work
+- True cancellation of active branches remains future work
 
 ---
 
@@ -272,7 +280,10 @@ Hybrid coverage is expected to include the callback/timer edge cases as real fal
 | 3 | Phase 2 | TASK-013: Compile-native Sequential | TASK-011 | cluster-D parity + median improvement on real sequential workloads |
 | 4 | Phase 2 | TASK-012: Compile-native DoWhile + RetryOnError | TASK-010 + TASK-011 | loop/retry frames with error-model parity |
 | 5 | Phase 2 | TASK-014: Timeout boundary + error boundaries | TASK-010 + TASK-012 | explicit compiled catch/retry/fallback semantics |
-| 6 | Phase 3 | TASK-015+: Parallel frame + composition | TASK-014 | structured parallel/join semantics |
+| 6 | Phase 3 | TASK-015: Compile-native Parallel MVP | TASK-014 | structured all-settled parallel/join parity |
+| 7 | Phase 2 follow-up | TASK-021: Abort signal contract + timeout delivery | TASK-014 | signal-aware timeout cancellation parity without forced termination |
+| 8 | Phase 3 follow-up | TASK-022: Parallel abort delivery | TASK-021 + TASK-020 | signal-aware early-settlement abort parity for active branches |
+| 9 | Phase 2/3 follow-up | TASK-023: Public execute AbortSignal API | TASK-021 + TASK-022 | root execute cancellation parity across legacy + compiled paths |
 
 Abortable timeout cancellation intentionally stays out of TASK-014; schedule it separately only after the public stage contract grows a cancellation signal.
 

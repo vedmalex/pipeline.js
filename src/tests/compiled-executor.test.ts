@@ -2,12 +2,15 @@ import { compilePipelinePlan } from '../compiled/compiler'
 import { planToString } from '../compiled/debug'
 import { executeCompiledPlan } from '../compiled/executor'
 import { DoWhile } from '../dowhile'
+import { getExecutionSignal } from '../execution_signal'
 import { IfElse } from '../ifelse'
+import { Parallel } from '../parallel'
 import { __setCompiledPipelineEnabledForTests, Pipeline } from '../pipeline'
 import { RetryOnError } from '../retryonerror'
 import { Sequential } from '../sequential'
 import { Stage } from '../stage'
 import { Timeout } from '../timeout'
+import { ErrorCode } from '../utils/errors'
 import type { StageObject } from '../utils/types'
 import { Wrap } from '../wrap'
 
@@ -33,6 +36,89 @@ async function executeLegacyPipeline<T extends StageObject>(
     return await pipeline.execute(context)
   } finally {
     __setCompiledPipelineEnabledForTests(undefined)
+  }
+}
+
+async function executePipelineWithCompiledFlag<T extends StageObject>(
+  pipeline: Pipeline<T>,
+  context: T,
+  enabled: boolean,
+  options?: { signal?: AbortSignal },
+) {
+  __setCompiledPipelineEnabledForTests(enabled)
+  try {
+    return await pipeline.execute(context, options ?? {})
+  } finally {
+    __setCompiledPipelineEnabledForTests(undefined)
+  }
+}
+
+function executePipelineCallbackWithCompiledFlag<T extends StageObject>(
+  pipeline: Pipeline<T>,
+  context: T,
+  enabled: boolean,
+  options?: { signal?: AbortSignal },
+) {
+  __setCompiledPipelineEnabledForTests(enabled)
+
+  return new Promise<T>((resolve, reject) => {
+    try {
+      if (options) {
+        pipeline.execute(context, (err, ctx) => {
+          __setCompiledPipelineEnabledForTests(undefined)
+          if (err) reject(err)
+          else resolve((ctx ?? context) as T)
+        }, options)
+      } else {
+        pipeline.execute(context, (err, ctx) => {
+          __setCompiledPipelineEnabledForTests(undefined)
+          if (err) reject(err)
+          else resolve((ctx ?? context) as T)
+        })
+      }
+    } catch (error) {
+      __setCompiledPipelineEnabledForTests(undefined)
+      reject(error)
+    }
+  })
+}
+
+function executePipelineObservedCallbackWithCompiledFlag<T extends StageObject>(
+  pipeline: Pipeline<T>,
+  context: T,
+  enabled: boolean,
+  options?: { signal?: AbortSignal },
+) {
+  __setCompiledPipelineEnabledForTests(enabled)
+  let callbackCount = 0
+
+  const promise = new Promise<T>((resolve, reject) => {
+    try {
+      const callback = (err: any, ctx?: T) => {
+        callbackCount += 1
+        __setCompiledPipelineEnabledForTests(undefined)
+
+        if (err) {
+          reject(err)
+        } else {
+          resolve((ctx ?? context) as T)
+        }
+      }
+
+      if (options) {
+        pipeline.execute(context, callback, options)
+      } else {
+        pipeline.execute(context, callback)
+      }
+    } catch (error) {
+      __setCompiledPipelineEnabledForTests(undefined)
+      reject(error)
+    }
+  })
+
+  return {
+    promise,
+    getCallbackCount: () => callbackCount,
   }
 }
 
@@ -503,6 +589,35 @@ describe('compiled Pipeline skeleton', () => {
     )
   })
 
+  it('compiles Parallel without fallback ops', async () => {
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Parallel<{ items: number[]; total: number }, { value: number }>({
+        stage: (ctx) => {
+          ctx.value += 1
+        },
+        split: (ctx) => ctx.items.map((value) => ({ value })),
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, child) => sum + child.value, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ items: [1, 2, 3], total: 0 })
+    const compiledResult = await executePlanPromise(plan, {
+      items: [1, 2, 3],
+      total: 0,
+    })
+
+    expect(plan.mode).toBe('compiled-static')
+    expect(plan.ops.some((op) => op.op === 'RUN_PARALLEL')).toBe(true)
+    expect(plan.ops.some((op) => op.op === 'RUN_FALLBACK_STAGE')).toBe(false)
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
+    )
+  })
+
   it('compiles DoWhile and RetryOnError with parity', async () => {
     let retries = 0
     const root = new Pipeline<{ count: number; done: boolean }>([
@@ -644,6 +759,529 @@ describe('compiled Pipeline skeleton', () => {
     expect(compiledResult.n).toBe(0)
   })
 
+  it('preserves Parallel null-split parity', async () => {
+    const makePipeline = () =>
+      new Pipeline<{ n: number }>([
+        new Parallel<{ n: number }, { n: number }>({
+          stage: (ctx) => {
+            ctx.n = 99
+          },
+          split: () => null as any,
+        }) as any,
+      ])
+
+    const legacyPipeline = makePipeline()
+    const compiledPipeline = makePipeline()
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { n: 0 })
+    const compiledResult = await executePlanPromise(compiledPlan, { n: 0 })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(compiledResult.n).toBe(0)
+  })
+
+  it('preserves Parallel aggregated-error parity', async () => {
+    const makePipeline = () =>
+      new Pipeline<{ n: number }>([
+        new Parallel<{ n: number }, { id: number }>({
+          stage: (ctx) => {
+            if (ctx.id === 2 || ctx.id === 3) {
+              throw new Error(`child-${ctx.id}`)
+            }
+          },
+          split: () => [{ id: 1 }, { id: 2 }, { id: 3 }],
+        }) as any,
+      ])
+
+    const legacyPipeline = makePipeline()
+    const compiledPipeline = makePipeline()
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyError: any = await executeLegacyPipeline(legacyPipeline, {
+      n: 0,
+    }).catch((err) => err)
+    const compiledError: any = await executePlanPromise(compiledPlan, {
+      n: 0,
+    }).catch((err) => err)
+
+    expectErrorParity(legacyError, compiledError, 'parallel - error')
+    expect(legacyError.chain.secondary.length).toBe(
+      compiledError.chain.secondary.length,
+    )
+  })
+
+  it('preserves Parallel async fan-out behavior', async () => {
+    const makePipeline = (stats: { active: number; peak: number }) =>
+      new Pipeline<{ done: number[] }>([
+        new Parallel<{ done: number[] }, { id: number }>({
+          stage: async (ctx) => {
+            stats.active += 1
+            stats.peak = Math.max(stats.peak, stats.active)
+            await wait(10)
+            stats.active -= 1
+            ;(ctx as any).done = true
+          },
+          split: () => [{ id: 1 }, { id: 2 }, { id: 3 }],
+          combine: (ctx, children) => {
+            ctx.done = children
+              .filter((child: any) => child.done)
+              .map((child) => child.id)
+              .sort()
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyStats = { active: 0, peak: 0 }
+    const compiledStats = { active: 0, peak: 0 }
+    const legacyPipeline = makePipeline(legacyStats)
+    const compiledPipeline = makePipeline(compiledStats)
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { done: [] })
+    const compiledResult = await executePlanPromise(compiledPlan, { done: [] })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(legacyStats.peak).toBeGreaterThan(1)
+    expect(compiledStats.peak).toBeGreaterThan(1)
+  })
+
+  it('preserves Parallel bounded-concurrency parity', async () => {
+    const makePipeline = (stats: { active: number; peak: number }) =>
+      new Pipeline<{ done: number[] }>([
+        new Parallel<{ done: number[] }, { id: number; done?: boolean }>({
+          concurrency: 2,
+          stage: async (ctx) => {
+            stats.active += 1
+            stats.peak = Math.max(stats.peak, stats.active)
+            await wait(10)
+            stats.active -= 1
+            ctx.done = true
+          },
+          split: () => [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+          combine: (ctx, children) => {
+            ctx.done = children
+              .filter((child) => child.done)
+              .map((child) => child.id)
+              .sort()
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyStats = { active: 0, peak: 0 }
+    const compiledStats = { active: 0, peak: 0 }
+    const legacyPipeline = makePipeline(legacyStats)
+    const compiledPipeline = makePipeline(compiledStats)
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { done: [] })
+    const compiledResult = await executePlanPromise(compiledPlan, { done: [] })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(legacyStats.peak).toBeLessThanOrEqual(2)
+    expect(compiledStats.peak).toBeLessThanOrEqual(2)
+    expect(compiledStats.peak).toBeGreaterThan(1)
+  })
+
+  it('preserves Parallel join-any first-success parity', async () => {
+    const makePipeline = (started: number[]) =>
+      new Pipeline<{ winners: number[]; winner?: boolean }>([
+        new Parallel<
+          { winners: number[]; winner?: boolean },
+          { id: number; winner?: boolean }
+        >({
+          concurrency: 1,
+          join: 'any',
+          stage: async (ctx) => {
+            started.push(ctx.id)
+            return { id: ctx.id, winner: true }
+          },
+          split: () => [{ id: 1 }, { id: 2 }],
+          combine: (ctx, children) => {
+            ctx.winners = children.map((child) => child.id)
+            ctx.winner = children[0]?.winner === true
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyStarted: number[] = []
+    const compiledStarted: number[] = []
+    const legacyPipeline = makePipeline(legacyStarted)
+    const compiledPipeline = makePipeline(compiledStarted)
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, {
+      winners: [],
+    })
+    const compiledResult = await executePlanPromise(compiledPlan, {
+      winners: [],
+    })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(legacyStarted).toEqual([1])
+    expect(compiledStarted).toEqual([1])
+  })
+
+  it('preserves Parallel join-any all-fail parity', async () => {
+    const makePipeline = () =>
+      new Pipeline<{ n: number }>([
+        new Parallel<{ n: number }, { id: number }>({
+          join: 'any',
+          stage: (ctx) => {
+            throw new Error(`fail-${ctx.id}`)
+          },
+          split: () => [{ id: 1 }, { id: 2 }],
+        }) as any,
+      ])
+
+    const legacyPipeline = makePipeline()
+    const compiledPipeline = makePipeline()
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyError: any = await executeLegacyPipeline(legacyPipeline, {
+      n: 0,
+    }).catch((err) => err)
+    const compiledError: any = await executePlanPromise(compiledPlan, {
+      n: 0,
+    }).catch((err) => err)
+
+    expectErrorParity(legacyError, compiledError, 'parallel - error')
+    expect(legacyError.chain.secondary.length).toBe(
+      compiledError.chain.secondary.length,
+    )
+  })
+
+  it('preserves Parallel join-quorum success parity', async () => {
+    const makePipeline = (started: number[]) =>
+      new Pipeline<{ winners: number[] }>([
+        new Parallel<{ winners: number[] }, { id: number; winner?: boolean }>({
+          concurrency: 2,
+          join: 'quorum',
+          quorum: 2,
+          stage: async (ctx) => {
+            started.push(ctx.id)
+            return { id: ctx.id, winner: true }
+          },
+          split: () => [{ id: 1 }, { id: 2 }, { id: 3 }],
+          combine: (ctx, children) => {
+            ctx.winners = children.map((child) => child.id)
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyStarted: number[] = []
+    const compiledStarted: number[] = []
+    const legacyPipeline = makePipeline(legacyStarted)
+    const compiledPipeline = makePipeline(compiledStarted)
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, {
+      winners: [],
+    })
+    const compiledResult = await executePlanPromise(compiledPlan, {
+      winners: [],
+    })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(legacyStarted.slice(0, 2)).toEqual([1, 2])
+    expect(compiledStarted.slice(0, 2)).toEqual([1, 2])
+    expect(legacyStarted.length).toBeGreaterThanOrEqual(2)
+    expect(legacyStarted.length).toBeLessThanOrEqual(3)
+    expect(compiledStarted.length).toBeGreaterThanOrEqual(2)
+    expect(compiledStarted.length).toBeLessThanOrEqual(3)
+  })
+
+  it('preserves Parallel join-quorum failure parity', async () => {
+    const makePipeline = () =>
+      new Pipeline<{ n: number }>([
+        new Parallel<{ n: number }, { id: number }>({
+          join: 'quorum',
+          quorum: 3,
+          stage: (ctx) => {
+            if (ctx.id !== 1) {
+              throw new Error(`fail-${ctx.id}`)
+            }
+            return { id: ctx.id }
+          },
+          split: () => [{ id: 1 }, { id: 2 }, { id: 3 }],
+        }) as any,
+      ])
+
+    const legacyPipeline = makePipeline()
+    const compiledPipeline = makePipeline()
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyError: any = await executeLegacyPipeline(legacyPipeline, {
+      n: 0,
+    }).catch((err) => err)
+    const compiledError: any = await executePlanPromise(compiledPlan, {
+      n: 0,
+    }).catch((err) => err)
+
+    expectErrorParity(legacyError, compiledError, 'parallel - error')
+    expect(legacyError.chain.secondary.length).toBe(
+      compiledError.chain.secondary.length,
+    )
+  })
+
+  it('preserves Parallel join-any trailing-drain parity', async () => {
+    const makePipeline = (started: number[], finished: number[]) =>
+      new Pipeline<{ winners: number[] }>([
+        new Parallel<{ winners: number[] }, { id: number; winner?: boolean }>({
+          concurrency: 2,
+          join: 'any',
+          trailing: 'drain-active',
+          stage: async (ctx) => {
+            started.push(ctx.id)
+            await wait(ctx.id === 1 ? 5 : 15)
+            finished.push(ctx.id)
+            return { id: ctx.id, winner: true }
+          },
+          split: () => [{ id: 1 }, { id: 2 }, { id: 3 }],
+          combine: (ctx, children) => {
+            ctx.winners = children.map((child) => child.id)
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyStarted: number[] = []
+    const legacyFinished: number[] = []
+    const compiledStarted: number[] = []
+    const compiledFinished: number[] = []
+    const legacyPipeline = makePipeline(legacyStarted, legacyFinished)
+    const compiledPipeline = makePipeline(compiledStarted, compiledFinished)
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { winners: [] })
+    const compiledResult = await executePlanPromise(compiledPlan, { winners: [] })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(legacyStarted).toEqual([1, 2])
+    expect(compiledStarted).toEqual([1, 2])
+    expect(legacyFinished).toEqual([1, 2])
+    expect(compiledFinished).toEqual([1, 2])
+  })
+
+  it('preserves Parallel join-quorum trailing-drain parity', async () => {
+    const makePipeline = (started: number[]) =>
+      new Pipeline<{ winners: number[] }>([
+        new Parallel<{ winners: number[] }, { id: number; winner?: boolean }>({
+          concurrency: 4,
+          join: 'quorum',
+          quorum: 2,
+          trailing: 'drain-active',
+          stage: async (ctx) => {
+            started.push(ctx.id)
+            await wait(ctx.id >= 3 ? 15 : 5)
+            return { id: ctx.id, winner: true }
+          },
+          split: () => [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+          combine: (ctx, children) => {
+            ctx.winners = children.map((child) => child.id)
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyStarted: number[] = []
+    const compiledStarted: number[] = []
+    const legacyPipeline = makePipeline(legacyStarted)
+    const compiledPipeline = makePipeline(compiledStarted)
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { winners: [] })
+    const compiledResult = await executePlanPromise(compiledPlan, { winners: [] })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(legacyStarted).toEqual([1, 2, 3, 4])
+    expect(compiledStarted).toEqual([1, 2, 3, 4])
+  })
+
+  it('preserves Parallel trailing-drain-timeout parity', async () => {
+    const makePipeline = (started: number[], finished: number[]) =>
+      new Pipeline<{ winners: number[] }>([
+        new Parallel<{ winners: number[] }, { id: number; winner?: boolean }>({
+          concurrency: 2,
+          join: 'any',
+          trailing: 'drain-active',
+          trailingTimeout: 5,
+          stage: async (ctx) => {
+            started.push(ctx.id)
+            await wait(ctx.id === 1 ? 5 : 40)
+            finished.push(ctx.id)
+            return { id: ctx.id, winner: true }
+          },
+          split: () => [{ id: 1 }, { id: 2 }, { id: 3 }],
+          combine: (ctx, children) => {
+            ctx.winners = children.map((child) => child.id)
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyStarted: number[] = []
+    const legacyFinished: number[] = []
+    const compiledStarted: number[] = []
+    const compiledFinished: number[] = []
+    const legacyPipeline = makePipeline(legacyStarted, legacyFinished)
+    const compiledPipeline = makePipeline(compiledStarted, compiledFinished)
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { winners: [] })
+    const compiledResult = await executePlanPromise(compiledPlan, { winners: [] })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(legacyStarted).toEqual([1, 2])
+    expect(compiledStarted).toEqual([1, 2])
+    expect(legacyFinished).toEqual([1])
+    expect(compiledFinished).toEqual([1])
+
+    await wait(50)
+    expect(legacyFinished).toEqual([1, 2])
+    expect(compiledFinished).toEqual([1, 2])
+  })
+
+  it('preserves Parallel abort-signal parity on early success', async () => {
+    const makePipeline = (
+      started: number[],
+      finished: number[],
+      aborted: number[],
+    ) =>
+      new Pipeline<{ winners: number[] }>([
+        new Parallel<
+          { winners: number[] },
+          { id: number; winner?: boolean; aborted?: boolean }
+        >({
+          concurrency: 2,
+          join: 'any',
+          stage: function (_err, ctx, done) {
+            started.push(ctx.id)
+
+            if (ctx.id === 1) {
+              setTimeout(() => {
+                done(undefined, { id: ctx.id, winner: true })
+              }, 5)
+              return
+            }
+
+            const signal = getExecutionSignal(ctx)
+            const timer = setTimeout(() => {
+              finished.push(ctx.id)
+              done(undefined, { id: ctx.id, winner: true })
+            }, 40)
+
+            signal?.addEventListener('abort', () => {
+              aborted.push(ctx.id)
+              clearTimeout(timer)
+              done(undefined, { id: ctx.id, aborted: true })
+            }, { once: true })
+          },
+          split: () => [{ id: 1 }, { id: 2 }, { id: 3 }],
+          combine: (ctx, children) => {
+            ctx.winners = children.map((child) => child.id)
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyStarted: number[] = []
+    const legacyFinished: number[] = []
+    const legacyAborted: number[] = []
+    const compiledStarted: number[] = []
+    const compiledFinished: number[] = []
+    const compiledAborted: number[] = []
+    const legacyPipeline = makePipeline(legacyStarted, legacyFinished, legacyAborted)
+    const compiledPipeline = makePipeline(compiledStarted, compiledFinished, compiledAborted)
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { winners: [] })
+    const compiledResult = await executePlanPromise(compiledPlan, { winners: [] })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(legacyStarted).toEqual([1, 2])
+    expect(compiledStarted).toEqual([1, 2])
+    expect(legacyAborted).toEqual([2])
+    expect(compiledAborted).toEqual([2])
+
+    await wait(50)
+    expect(legacyFinished).toEqual([])
+    expect(compiledFinished).toEqual([])
+  })
+
+  it('preserves Parallel abort-signal parity after trailing timeout', async () => {
+    const makePipeline = (
+      started: number[],
+      finished: number[],
+      aborted: number[],
+    ) =>
+      new Pipeline<{ winners: number[] }>([
+        new Parallel<
+          { winners: number[] },
+          { id: number; winner?: boolean; aborted?: boolean }
+        >({
+          concurrency: 2,
+          join: 'any',
+          trailing: 'drain-active',
+          trailingTimeout: 5,
+          stage: function (_err, ctx, done) {
+            started.push(ctx.id)
+
+            if (ctx.id === 1) {
+              setTimeout(() => {
+                done(undefined, { id: ctx.id, winner: true })
+              }, 5)
+              return
+            }
+
+            const signal = getExecutionSignal(ctx)
+            const timer = setTimeout(() => {
+              finished.push(ctx.id)
+              done(undefined, { id: ctx.id, winner: true })
+            }, 40)
+
+            signal?.addEventListener('abort', () => {
+              aborted.push(ctx.id)
+              clearTimeout(timer)
+              done(undefined, { id: ctx.id, aborted: true })
+            }, { once: true })
+          },
+          split: () => [{ id: 1 }, { id: 2 }, { id: 3 }],
+          combine: (ctx, children) => {
+            ctx.winners = children.map((child) => child.id)
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyStarted: number[] = []
+    const legacyFinished: number[] = []
+    const legacyAborted: number[] = []
+    const compiledStarted: number[] = []
+    const compiledFinished: number[] = []
+    const compiledAborted: number[] = []
+    const legacyPipeline = makePipeline(legacyStarted, legacyFinished, legacyAborted)
+    const compiledPipeline = makePipeline(compiledStarted, compiledFinished, compiledAborted)
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { winners: [] })
+    const compiledResult = await executePlanPromise(compiledPlan, { winners: [] })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(legacyStarted).toEqual([1, 2])
+    expect(compiledStarted).toEqual([1, 2])
+    expect(legacyAborted).toEqual([2])
+    expect(compiledAborted).toEqual([2])
+
+    await wait(50)
+    expect(legacyFinished).toEqual([])
+    expect(compiledFinished).toEqual([])
+  })
+
   it('preserves DoWhile callback-error parity', async () => {
     const makePipeline = () =>
       new Pipeline<{ n: number }>([
@@ -703,6 +1341,235 @@ describe('compiled Pipeline skeleton', () => {
       compiledError.chain.primary.message,
     )
     expect(compiledError.chain.primary.message).toBe('overdue-failed')
+  })
+
+  it('preserves timeout abort-signal parity', async () => {
+    const makePipeline = (stats: { aborted: boolean }) =>
+      new Pipeline<{ result?: string }>([
+        new Timeout<{ result?: string }>({
+          timeout: 10,
+          stage: (_err, ctx, _done) => {
+            const signal = getExecutionSignal(ctx)
+            signal?.addEventListener('abort', () => {
+              stats.aborted = true
+            }, { once: true })
+          },
+          overdue: (ctx) => {
+            ctx.result = 'overdue'
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyStats = { aborted: false }
+    const compiledStats = { aborted: false }
+    const legacyPipeline = makePipeline(legacyStats)
+    const compiledPipeline = makePipeline(compiledStats)
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, {})
+    const compiledResult = await executePlanPromise(compiledPlan, {})
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(legacyResult.result).toBe('overdue')
+    expect(compiledResult.result).toBe('overdue')
+    expect(legacyStats.aborted).toBe(true)
+    expect(compiledStats.aborted).toBe(true)
+  })
+
+  it('preserves execute-level abort-signal parity between legacy and compiled Pipeline.execute', async () => {
+    const makePipeline = (seenSignals: AbortSignal[]) =>
+      new Pipeline<{ n: number }>([
+        new Stage<{ n: number }>({
+          run: (ctx, done) => {
+            const signal = getExecutionSignal(ctx)
+
+            if (signal) {
+              seenSignals.push(signal)
+            }
+
+            const timer = setTimeout(() => {
+              done(undefined, ctx)
+            }, 40)
+
+            signal?.addEventListener('abort', () => {
+              clearTimeout(timer)
+            }, { once: true })
+          },
+        }) as any,
+      ])
+
+    const legacySignals: AbortSignal[] = []
+    const compiledSignals: AbortSignal[] = []
+    const legacyPipeline = makePipeline(legacySignals)
+    const compiledPipeline = makePipeline(compiledSignals)
+    const legacyController = new AbortController()
+    const compiledController = new AbortController()
+
+    const legacyExecution = executePipelineWithCompiledFlag(
+      legacyPipeline,
+      { n: 0 },
+      false,
+      { signal: legacyController.signal },
+    ).catch((err) => err)
+    const compiledExecution = executePipelineWithCompiledFlag(
+      compiledPipeline,
+      { n: 0 },
+      true,
+      { signal: compiledController.signal },
+    ).catch((err) => err)
+
+    legacyController.abort()
+    compiledController.abort()
+
+    const legacyError: any = await legacyExecution
+    const compiledError: any = await compiledExecution
+
+    expect(legacyError.code).toBe(ErrorCode.ERR_STAGE_ABORTED)
+    expect(compiledError.code).toBe(ErrorCode.ERR_STAGE_ABORTED)
+    expect(legacySignals).toEqual([legacyController.signal])
+    expect(compiledSignals).toEqual([compiledController.signal])
+  })
+
+  it('preserves callback execute abort parity for pre-aborted Pipeline signals', async () => {
+    let legacyRuns = 0
+    let compiledRuns = 0
+    const makePipeline = (runs: { count: number }) =>
+      new Pipeline<{ n: number }>([
+        new Stage<{ n: number }>({
+          run: (ctx) => {
+            runs.count += 1
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyState = { count: legacyRuns }
+    const compiledState = { count: compiledRuns }
+    const legacyPipeline = makePipeline(legacyState)
+    const compiledPipeline = makePipeline(compiledState)
+    const legacyController = new AbortController()
+    const compiledController = new AbortController()
+
+    legacyController.abort(new Error('legacy-abort'))
+    compiledController.abort(new Error('compiled-abort'))
+
+    const legacyError: any = await executePipelineCallbackWithCompiledFlag(
+      legacyPipeline,
+      { n: 0 },
+      false,
+      { signal: legacyController.signal },
+    ).catch((err) => err)
+    const compiledError: any = await executePipelineCallbackWithCompiledFlag(
+      compiledPipeline,
+      { n: 0 },
+      true,
+      { signal: compiledController.signal },
+    ).catch((err) => err)
+
+    expect(legacyError.code).toBe(ErrorCode.ERR_STAGE_ABORTED)
+    expect(compiledError.code).toBe(ErrorCode.ERR_STAGE_ABORTED)
+    expect(legacyState.count).toBe(0)
+    expect(compiledState.count).toBe(0)
+  })
+
+  it('preserves callback execute late-abort parity between legacy and compiled Pipeline.execute', async () => {
+    const makePipeline = (stats: { started: number; aborted: number }) =>
+      new Pipeline<{ n: number }>([
+        new Stage<{ n: number }>({
+          run: (ctx, done) => {
+            stats.started += 1
+            const signal = getExecutionSignal(ctx)
+            const timer = setTimeout(() => {
+              done(undefined, ctx)
+            }, 40)
+
+            signal?.addEventListener('abort', () => {
+              stats.aborted += 1
+              clearTimeout(timer)
+            }, { once: true })
+          },
+        }) as any,
+      ])
+
+    const legacyStats = { started: 0, aborted: 0 }
+    const compiledStats = { started: 0, aborted: 0 }
+    const legacyPipeline = makePipeline(legacyStats)
+    const compiledPipeline = makePipeline(compiledStats)
+    const legacyController = new AbortController()
+    const compiledController = new AbortController()
+
+    const legacyExecution = executePipelineObservedCallbackWithCompiledFlag(
+      legacyPipeline,
+      { n: 0 },
+      false,
+      { signal: legacyController.signal },
+    )
+
+    await wait(5)
+    legacyController.abort(new Error('late-legacy-abort'))
+
+    const legacyError: any = await legacyExecution.promise.catch((err) => err)
+
+    const compiledExecution = executePipelineObservedCallbackWithCompiledFlag(
+      compiledPipeline,
+      { n: 0 },
+      true,
+      { signal: compiledController.signal },
+    )
+
+    await wait(5)
+    compiledController.abort(new Error('late-compiled-abort'))
+
+    const compiledError: any = await compiledExecution.promise.catch((err) => err)
+
+    expect(legacyError.code).toBe(ErrorCode.ERR_STAGE_ABORTED)
+    expect(compiledError.code).toBe(ErrorCode.ERR_STAGE_ABORTED)
+    expect(legacyStats.started).toBe(1)
+    expect(compiledStats.started).toBe(1)
+    expect(legacyStats.aborted).toBe(1)
+    expect(compiledStats.aborted).toBe(1)
+
+    await wait(50)
+    expect(legacyExecution.getCallbackCount()).toBe(1)
+    expect(compiledExecution.getCallbackCount()).toBe(1)
+  })
+
+  it('preserves inbound err forwarding for compiled stage-instance dispatch', async () => {
+    const injectedErr = new Error('forward-me')
+    const legacySeen: string[] = []
+    const compiledSeen: string[] = []
+
+    const legacyStage = new Stage<{ n: number }>({
+      run: (err, ctx, done) => {
+        legacySeen.push(err?.code ?? err?.message ?? 'missing')
+        done(undefined, ctx)
+      },
+    }) as any
+
+    const compiledStage = new Stage<{ n: number }>({
+      run: (err, ctx, done) => {
+        compiledSeen.push(err?.code ?? err?.message ?? 'missing')
+        done(undefined, ctx)
+      },
+    }) as any
+
+    const compiledPlan = compilePipelinePlan(new Pipeline<{ n: number }>([
+      compiledStage,
+    ]) as any)
+
+    const legacyResult = await (legacyStage as any).execute(injectedErr, { n: 0 })
+    const compiledResult = await executePlanPromise(
+      compiledPlan,
+      { n: 0 },
+      injectedErr,
+    )
+
+    expect(compiledPlan.mode).toBe('compiled-static')
+    expect(legacyResult.n).toBe(0)
+    expect(compiledResult.n).toBe(0)
+    expect(legacySeen).toEqual([ErrorCode.ERR_STAGE_THROW])
+    expect(compiledSeen).toEqual([ErrorCode.ERR_STAGE_THROW])
   })
 
   it('preserves rescue-modified-context parity in compiled-static plans', async () => {
@@ -1207,6 +2074,19 @@ describe('compiled Pipeline skeleton', () => {
 
   it('renders explicit primitive ops in plan dump', () => {
     const pipe = new Pipeline<{ n: number; done: boolean }>([
+      new Parallel<{ n: number; done: boolean }, { n: number }>({
+        concurrency: 2,
+        join: 'quorum',
+        quorum: 2,
+        trailing: 'drain-active',
+        trailingTimeout: 7,
+        stage: (ctx) => ({ n: ctx.n + 1 }),
+        split: (ctx) => [{ n: ctx.n }],
+        combine: (ctx, children) => {
+          ctx.n = children[0].n
+          return ctx
+        },
+      }) as any,
       new Sequential<{ n: number; done: boolean }, { n: number }>({
         stage: (ctx) => ({ n: ctx.n + 1 }),
         split: (ctx) => [{ n: ctx.n }],
@@ -1232,6 +2112,12 @@ describe('compiled Pipeline skeleton', () => {
     const dump = planToString(compilePipelinePlan(pipe as any))
 
     expect(dump).toContain('RUN_SEQUENTIAL')
+    expect(dump).toContain('RUN_PARALLEL')
+    expect(dump).toContain('concurrency=2')
+    expect(dump).toContain('join=quorum')
+    expect(dump).toContain('quorum=2')
+    expect(dump).toContain('trailing=drain-active')
+    expect(dump).toContain('trailingTimeout=7')
     expect(dump).toContain('RUN_LOOP')
     expect(dump).toContain('RUN_RETRY')
     expect(dump).toContain('RUN_TIMEOUT')

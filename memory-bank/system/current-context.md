@@ -1,100 +1,52 @@
-# Current Context — TASK-009 IMPLEMENT Hardening
+# Current Context — TASK-023 QA Public Execute AbortSignal API
 
-**Task:** Performance Research + Default Fast Path Documentation
-**Phase:** IMPLEMENT
-**Profile:** creative-first (T4:standard, qaLevel=MAX, INTERACTIVE=false)
-**Date:** 2026-03-07
-**Branch:** master | Active task pointer: `memory-bank/system/current-task.txt` -> `TASK-009`
-
----
-
-## Current Status
-
-TASK-009 implementation already moved the project to compile-time execution-mode selection and enabled compiled auto mode for both static and hybrid plans.
-
-Recent field-research and benchmark work produced:
-
-- four cluster-specific performance benchmarks
-- README performance documentation
-- `memory-bank/docs/compiled-executor-roadmap.md`
-- `memory-bank/docs/flow-control-primitives-adaptation-conclusion.md`
-- follow-up tasks `TASK-010` through `TASK-014`
-
-After DA review, the roadmap is being hardened before the next implementation task starts.
+**Task:** Public execute-level abort signal API
+**Phase:** QA
+**Date:** 2026-03-08
+**Branch:** master | Base commit: `901853d` | Working tree includes uncommitted `TASK-015` + `TASK-016` + `TASK-017` + `TASK-018` + `TASK-019` + `TASK-020` + `TASK-021` + `TASK-022` + `TASK-023`
 
 ---
 
-## What Is Already Landed
+## Just Completed
 
-- compiled-static and compiled-hybrid plans are selected at compile time rather than per call
-- auto mode is active by default, with `PIPELINE_USE_COMPILED=0` as the escape hatch
-- field evidence says most high-value production graphs are construction-time static or hybrid wrapper-heavy
-- cluster benchmarks show real gains on batch, HTTP-like, and CLI/codegen-style workloads
-- synthetic direct-compiled hybrid benchmarks still reveal fallback-boundary overhead in wrapper-heavy chains
+- `TASK-021` established the internal execution-signal contract and timeout-driven abort delivery
+- `TASK-022` added `Parallel` abort delivery for active branches on early settlement
+- `TASK-023` now exposes that contract at the public `Stage.execute(...)` / `Pipeline.execute(...)` boundary
 
----
+Planning artifact:
 
-## DA Gaps Now Explicitly Closed in Docs
-
-### 1. Hybrid performance gate
-
-The roadmap now treats hybrid direct-path performance as a required gate, not a nice-to-have.
-
-- removing fallback ops is not enough by itself
-- `TASK-011` must show benchmark improvement on the real target cluster and avoid material regression on the synthetic wrapper-heavy lane
-
-### 2. Current error contract
-
-The current compiled executor contract is now explicit:
-
-- phase-1 compiled execution guarantees sequential success/error short-circuit
-- `Stage.execute()` still owns `ensure`, `validate`, `rescue`, and current timeout semantics
-- future compiled boundaries must preserve that observable behavior
-
-### 3. Mandatory fallback-boundary test matrix
-
-Future work must test:
-
-- sync throw
-- async rejection
-- callback error
-- double-callback / callback-after-throw
-- rescue-modified context
-- ensure / validate failure across fallback boundaries
-
-### 4. Benchmark variance policy
-
-Roadmap decisions now require multi-run medians and visible variance.
-
-- improvement claim threshold: median gain >= 10%
-- regression guard: median slowdown <= 15% unless explicitly accepted as temporary
-
-### 5. Task dependency clarification
-
-The next tasks are no longer treated as independent.
-
-- `TASK-010` must establish the error contract first
-- `TASK-011` removes the largest hybrid fallback islands next
-- `TASK-013` can follow after `TASK-011`
-- `TASK-012` depends on both `TASK-010` and `TASK-011`
-- `TASK-014` depends on `TASK-010` and `TASK-012`
+- `memory-bank/docs/task-023-execute-abort-signal-plan.md`
 
 ---
 
-## Task Progression Plan
+## Current Technical State
 
-Follow this order:
-
-1. `TASK-010` — define `CleanError` contract, primary-cause preservation, and public-safe error-code taxonomy
-2. `TASK-011` — compile-native `IfElse` + `Wrap`, with hybrid-regression gate
-3. `TASK-013` — compile-native `Sequential`, validated on cluster-D workloads
-4. `TASK-012` — compile-native `DoWhile` + `RetryOnError`, using the settled error model
-5. `TASK-014` — timeout boundary + explicit compiled catch/retry/fallback semantics
-
-This order keeps performance wins early while reducing semantic churn.
+- public `ExecutionOptions` now supports `signal?: AbortSignal`
+- `Stage.execute(...)` accepts execute options in promise and callback forms while preserving existing internal positional forms
+- public execute aborts normalize to `ERR_STAGE_ABORTED`
+- root execution signals are bound onto the current context and propagated through legacy + compiled child dispatch
+- timeout/parallel child controllers are now linked to the current execution signal, but nested internal abort delivery still does not become a new hard failure at child stage boundaries
+- `run_or_execute(...)` and compiled stage-fn invocation inherit the current execution signal automatically when present on the context
+- post-critic fixes narrowed overload parsing so two-arg `execute(err, context)` is no longer misread as `(context, options)` when the context is empty or signal-shaped
+- post-critic fixes also split public abort normalization from internal linked-controller reasons, so user-supplied abort reasons no longer leak timeout codes through public execute failures
+- second-pass QA hardening now covers the 3-arg err-first promise form with execute options and callback-mode late-abort parity for legacy vs compiled `Pipeline.execute(...)`
+- callback abort QA now explicitly checks single-callback behavior after late abort, not only pre-aborted signal handling
+- third-pass hardening removes self-recursive public overload parsing from the promise path via `executeResolved(...)` and normalizes internal stage-dispatch errors before calling `Stage.execute(...)`
+- err-first parser QA now also asserts that signal-shaped err-first calls still forward the original error into rescue handling instead of only preserving context shape
+- fourth-pass hardening restores inbound err delivery to err-fixable `run` handlers when `Stage.execute(err, ctx)` has no ensure/validate boundary, so error-capable run functions no longer receive `undefined`
+- compiled QA now also covers `RUN_STAGE_INSTANCE` err-forwarding parity against direct `Stage.execute(err, ctx)` behavior
+- final overload QA now directly covers the 4-arg callback form `execute(err, context, callback, { signal })`, including signal-shaped context plus separate execution signal parsing
 
 ---
 
-## Immediate Next Action
+## Validation Snapshot
 
-Start `TASK-010` planning and define the explicit error-propagation contract before the next boundary-aware executor features are implemented.
+- `bun x tsc -p tsconfig.json --noEmit` -> clean
+- `bun test src/tests/stage.test.ts src/tests/timeout.test.ts src/tests/compiled-executor.test.ts` -> 92 pass
+- `bun test` -> 421 pass
+
+---
+
+## Next Action
+
+Decide the next cancellation follow-up slice. The current public API is in place; likely next work is either stronger parent-to-child signal linking across remaining primitives or explicit documentation/examples for the new execute options.

@@ -1,6 +1,7 @@
 import {
   createError,
   createCodeError,
+  normalizeExecutionErrorInput,
   type CleanError,
 } from './utils/ErrorList'
 import { ErrorCode, ErrorMessage } from './utils/errors'
@@ -9,9 +10,11 @@ import {
   AllowedStage,
   CallbackExternalFunction,
   CallbackFunction,
+  ExecutionOptions,
   EnsureFunction,
   getStageConfig,
   InternalStageRun,
+  isExecutionOptions,
   Possible,
   RunPipelineFunction,
   StageConfig,
@@ -31,6 +34,11 @@ import { isStageRun, Rescue, AnyStage, isAnyStage } from './utils/types'
 // import { nextTick } from './utils/async/next_tick'
 import { withTimeout } from './utils/async/withTimeout'
 import { Config } from './config'
+import {
+  bindExecutionSignal,
+  getExecutionSignal,
+  getPublicExecutionAbortError,
+} from './execution_signal'
 export const StageSymbol = Symbol('stage')
 // make possibility to context be immutable for debug purposes
 export function isStage<
@@ -110,7 +118,13 @@ export class Stage<
   // может быть вызван как Promise
   // сделать все дубликаты и проверки методов для работы с промисами
   public execute(context: T): Promise<T>
+  public execute(context: T, options: ExecutionOptions): Promise<T>
   public execute(context: T, callback: CallbackExternalFunction<T>): Promise<void>
+  public execute(
+    context: T,
+    callback: CallbackExternalFunction<T>,
+    options: ExecutionOptions,
+  ): Promise<void>
   public execute(
     context: T,
     callback: CallbackExternalFunction<T>,
@@ -118,17 +132,31 @@ export class Stage<
   public execute(
     err: Possible<CleanError>,
     context: T,
+    options: ExecutionOptions,
+  ): Promise<T>
+  public execute(
+    err: Possible<CleanError>,
+    context: T,
     callback: CallbackExternalFunction<T>,
   ): Promise<void>
   public execute(
+    err: Possible<CleanError>,
+    context: T,
+    callback: CallbackExternalFunction<T>,
+    options: ExecutionOptions,
+  ): Promise<void>
+  public execute(
     _err?: Possible<CleanError | T>,
-    _context?: T | CallbackExternalFunction<T>,
-    _callback?: Possible<CallbackExternalFunction<T>>,
+    _context?: T | CallbackExternalFunction<T> | ExecutionOptions,
+    _callback?: Possible<CallbackExternalFunction<T> | ExecutionOptions>,
+    _options?: ExecutionOptions,
   ): Promise<void> | Promise<T> {
     // discover arguments
     let err: Possible<CleanError>,
       not_ensured_context: T | T,
-      __callback: Possible<CallbackExternalFunction<T>>
+      __callback: Possible<CallbackExternalFunction<T>>,
+      options: ExecutionOptions | undefined
+    const inputLooksLikeError = isError(_err)
 
     if (arguments.length == 1) {
       not_ensured_context = _err as T | T
@@ -139,8 +167,29 @@ export class Stage<
         not_ensured_context = _err as T | T
         err = undefined
         __callback = _context as CallbackFunction<T>
+      } else if (!inputLooksLikeError && isExecutionOptions(_context)) {
+        not_ensured_context = _err as T | T
+        options = _context
       } else {
         // promise
+        err = _err as CleanError
+        not_ensured_context = _context as T | T
+      }
+    } else if (arguments.length == 3) {
+      if (typeof _context == 'function') {
+        not_ensured_context = _err as T | T
+        err = undefined
+        __callback = _context as CallbackFunction<T>
+        options = isExecutionOptions(_callback) ? _callback : undefined
+      } else if (typeof _callback == 'function') {
+        err = _err as CleanError
+        not_ensured_context = _context as T | T
+        __callback = _callback as CallbackFunction<T>
+      } else if (inputLooksLikeError && isExecutionOptions(_callback)) {
+        err = _err as CleanError
+        not_ensured_context = _context as T | T
+        options = _callback
+      } else {
         err = _err as CleanError
         not_ensured_context = _context as T | T
       }
@@ -149,7 +198,18 @@ export class Stage<
       err = _err as CleanError
       not_ensured_context = _context as T | T
       __callback = _callback as CallbackFunction<T>
+      options = _options
     }
+
+    return this.executeResolved(err, not_ensured_context, __callback, options)
+  }
+
+  protected executeResolved(
+    err: Possible<CleanError>,
+    not_ensured_context: T | T,
+    __callback?: Possible<CallbackExternalFunction<T>>,
+    options?: ExecutionOptions,
+  ): Promise<void> | Promise<T> {
 
     if (!this.run) {
       this.run = this.compile()
@@ -169,10 +229,12 @@ export class Stage<
       ; (context as unknown as Context<T>)[OriginalObject] = true
     }
     (context as unknown as Context<T>)[CurrentStage] = this
+    const publicExecutionSignal = options?.signal
+    const executionSignal = options?.signal ?? getExecutionSignal(context)
 
     if (!__callback) {
       const { promise, resolve, reject } = Promise.withResolvers<T>()
-      this.execute(err, context, ((err: Possible<CleanError>, ctx: T) => {
+      const promiseCallback = ((err: Possible<CleanError>, ctx: T) => {
         if (err) reject(err)
         else {
           if (input_is_context) {
@@ -185,9 +247,18 @@ export class Stage<
             }
           }
         }
-      }) as CallbackFunction<T>)
+      }) as CallbackFunction<T>
+
+      this.executeResolved(
+        normalizeExecutionErrorInput(err),
+        context,
+        promiseCallback,
+        options,
+      )
+
       return promise
     } else {
+      const cleanupExecutionSignal = bindExecutionSignal(context, executionSignal)
       // __callback is guaranteed non-null in this branch (we are in the else of `if (!__callback)`)
       const cb = __callback as CallbackExternalFunction<T>
       // OPT-1/OPT-2: when no timeout, skip the second Promise.withResolvers and
@@ -196,6 +267,19 @@ export class Stage<
 
       let alreadyRun = false
       let callbackExecuted = false
+      let abortListenerAttached = false
+
+      const detachAbortListener = () => {
+        if (abortListenerAttached && publicExecutionSignal) {
+          publicExecutionSignal.removeEventListener('abort', onAbort)
+          abortListenerAttached = false
+        }
+      }
+
+      const finalizeExecution = () => {
+        detachAbortListener()
+        cleanupExecutionSignal()
+      }
 
       // OPT-1: only allocate the void-promise when a real timeout is needed
       const { promise, resolve, reject } = hasTimeout
@@ -205,6 +289,7 @@ export class Stage<
       const back: typeof __callback = (err, _ctx) => {
         if (!alreadyRun) {
           alreadyRun = true
+          finalizeExecution()
           try {
             if (input_is_context) {
               cb(err, _ctx)
@@ -224,6 +309,21 @@ export class Stage<
 
       const sucess = (ret: T) => back(undefined, ret ?? context)
       const fail = (err: Possible<CleanError>) => back(err, context)
+
+      const onAbort = () => {
+        callbackExecuted = true
+        fail(getPublicExecutionAbortError(publicExecutionSignal?.reason) as any)
+      }
+
+      if (publicExecutionSignal) {
+        if (publicExecutionSignal.aborted) {
+          onAbort()
+          return Promise.resolve()
+        }
+
+        publicExecutionSignal.addEventListener('abort', onAbort, { once: true })
+        abortListenerAttached = true
+      }
 
       const callback = ((
         err: Possible<CleanError>,
@@ -261,7 +361,7 @@ export class Stage<
             this.runStageMethod(err, err_, ctx, context, stageToRun, callback)
           }) as CallbackFunction<T>)
         } else {
-          stageToRun(undefined, context, callback)
+          stageToRun(normalizeExecutionErrorInput(err), context, callback)
         }
       }
 

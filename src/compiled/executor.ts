@@ -1,4 +1,9 @@
-import { createError } from '../utils/ErrorList'
+import {
+  bindExecutionSignal,
+  createLinkedAbortController,
+  getExecutionSignal,
+} from '../execution_signal'
+import { createCodeError, createError } from '../utils/ErrorList'
 import { commitIsolatedStageContext, createIsolatedStageContext } from '../utils/context_snapshot'
 import { ErrorCode, ErrorMessage, type ErrorCodeType } from '../utils/errors'
 import { isPromise } from '../utils/TypeDetectors'
@@ -11,6 +16,7 @@ import {
   ExecutionState,
   Frame,
   LoopPlanData,
+  ParallelPlanData,
   PredicateResult,
   RetryPlanData,
   SequentialPlanData,
@@ -76,9 +82,30 @@ function unwindFramesOnError<T extends StageObject>(state: ExecutionState<T>) {
         break
       case 'TIMEOUT':
         state.ctx = frame.originalCtx
+        frame.controllerCleanup?.()
+        frame.controllerCleanup = null
+        if (frame.controller && !frame.controller.signal.aborted) {
+          frame.controller.abort(createCodeError(ErrorCode.ERR_STAGE_TIMEOUT))
+        }
         if (frame.timer) {
           clearTimeout(frame.timer)
           frame.timer = null
+        }
+        frame.settled = true
+        break
+      case 'PARALLEL':
+        state.ctx = frame.originalCtx
+        if (frame.drainTimer) {
+          clearTimeout(frame.drainTimer)
+          frame.drainTimer = null
+        }
+        for (const cleanup of frame.controllerCleanups) {
+          cleanup?.()
+        }
+        for (const controller of frame.controllers) {
+          if (controller && !controller.signal.aborted) {
+            controller.abort(createCodeError(ErrorCode.ERR_STAGE_ABORTED))
+          }
         }
         frame.settled = true
         break
@@ -153,18 +180,25 @@ function invokeStageFn<T extends StageObject>(
   inputErr: Possible<Error>,
   context: T,
   done: CallbackFunction<T>,
+  signal?: AbortSignal,
 ) {
   const run = plan.tables.stageFns[stageFnId]
   const kind = plan.tables.stageFnKinds[stageFnId] ?? 'GENERIC'
+  const effectiveSignal = signal ?? getExecutionSignal(context)
+  const cleanup = bindExecutionSignal(context, effectiveSignal)
+  const finish = ((err?: Possible<Error>, ctx?: T) => {
+    cleanup()
+    done(err as any, ctx)
+  }) as CallbackFunction<T>
 
   switch (kind) {
     case 'FN0_ASYNC': {
       try {
         ;(run as () => Promise<T>).call(context)
-          .then(res => done(undefined, (res ?? context) as T))
-          .catch(err => done(err))
+          .then(res => finish(undefined, (res ?? context) as T))
+          .catch(err => finish(err))
       } catch (err) {
-        process_error(err, done)
+        process_error(err, finish)
       }
       return
     }
@@ -174,13 +208,13 @@ function invokeStageFn<T extends StageObject>(
         const res = (run as () => unknown).call(context)
         if (isPromise(res) || is_thenable(res)) {
           res
-            .then(value => done(undefined, (value ?? context) as T))
-            .catch(err => done(err))
+            .then(value => finish(undefined, (value ?? context) as T))
+            .catch(err => finish(err))
         } else {
-          done(undefined, (res ?? context) as T)
+          finish(undefined, (res ?? context) as T)
         }
       } catch (err) {
-        process_error(err, done)
+        process_error(err, finish)
       }
       return
     }
@@ -188,10 +222,10 @@ function invokeStageFn<T extends StageObject>(
     case 'FN1_ASYNC': {
       try {
         ;(run as (ctx: T) => Promise<T>)(context)
-          .then(ctx => done(undefined, ctx))
-          .catch(err => done(err))
+          .then(ctx => finish(undefined, ctx))
+          .catch(err => finish(err))
       } catch (err) {
-        process_error(err, done)
+        process_error(err, finish)
       }
       return
     }
@@ -200,12 +234,12 @@ function invokeStageFn<T extends StageObject>(
       try {
         const res = (run as (ctx: T) => unknown)(context)
         if (isPromise(res) || is_thenable(res)) {
-          res.then(value => done(undefined, value as T)).catch(err => done(err))
+          res.then(value => finish(undefined, value as T)).catch(err => finish(err))
         } else {
-          done(undefined, res as T)
+          finish(undefined, res as T)
         }
       } catch (err) {
-        process_error(err, done)
+        process_error(err, finish)
       }
       return
     }
@@ -213,10 +247,10 @@ function invokeStageFn<T extends StageObject>(
     case 'FN2_ASYNC': {
       try {
         ;(run as (err: Possible<Error>, ctx: T) => Promise<T>)(inputErr, context)
-          .then(ctx => done(undefined, ctx))
-          .catch(err => done(err))
+          .then(ctx => finish(undefined, ctx))
+          .catch(err => finish(err))
       } catch (err) {
-        process_error(err, done)
+        process_error(err, finish)
       }
       return
     }
@@ -225,7 +259,7 @@ function invokeStageFn<T extends StageObject>(
       let callbackCalled = false
       const callback = run_callback_once(((err, ctx) => {
         callbackCalled = true
-        done(err, ctx)
+        finish(err, ctx)
       }) as CallbackFunction<T>)
       try {
         ;(run as (ctx: T, done: CallbackFunction<T>) => void)(context, callback)
@@ -241,7 +275,7 @@ function invokeStageFn<T extends StageObject>(
       let callbackCalled = false
       const callback = run_callback_once(((err, ctx) => {
         callbackCalled = true
-        done(err, ctx)
+        finish(err, ctx)
       }) as CallbackFunction<T>)
       try {
         ;(run as (err: Possible<Error>, ctx: T, done: CallbackFunction<T>) => void)(
@@ -259,7 +293,7 @@ function invokeStageFn<T extends StageObject>(
 
     case 'GENERIC':
     default:
-      run_or_execute(run as any, inputErr as any, context, done)
+      run_or_execute(run as any, inputErr as any, context, finish, effectiveSignal)
   }
 }
 
@@ -490,6 +524,426 @@ function createSequentialIterationError(
       ctx,
     },
   })
+}
+
+function createParallelIterationError(
+  frame: Extract<Frame, { kind: 'PARALLEL' }>,
+  index: number,
+  err: unknown,
+  ctx: unknown,
+) {
+  return new Error('parallel - error', {
+    cause: {
+      stage: frame.data.stageName,
+      index,
+      err,
+      ctx,
+    },
+  })
+}
+
+function abortParallelActiveControllers(
+  frame: Extract<Frame, { kind: 'PARALLEL' }>,
+) {
+  for (let i = 0; i < frame.controllers.length; i++) {
+    const controller = frame.controllers[i]
+    frame.controllerCleanups[i]?.()
+    frame.controllerCleanups[i] = null
+
+    if (controller && !controller.signal.aborted) {
+      controller.abort(createCodeError(ErrorCode.ERR_STAGE_ABORTED))
+    }
+
+    frame.controllers[i] = null
+  }
+}
+
+function settleParallelFrame<T extends StageObject>(
+  state: ExecutionState<T>,
+  frame: Extract<Frame, { kind: 'PARALLEL' }>,
+  resume: boolean,
+  resultChildren?: any[],
+) {
+  if (frame.settled || state.completed) {
+    return
+  }
+
+  frame.settled = true
+  if (frame.drainTimer) {
+    clearTimeout(frame.drainTimer)
+    frame.drainTimer = null
+  }
+
+  if (resultChildren !== undefined && frame.data.join !== 'all') {
+    abortParallelActiveControllers(frame)
+  }
+
+  removeFrame(state, frame)
+
+  if (resultChildren === undefined && frame.errors.length > 0) {
+    completePrimitiveError(state, createError(frame.errors as any) as any, frame.originalCtx)
+  } else {
+    try {
+      completePrimitiveSuccess(
+        state,
+        (
+          frame.data.combine(
+            frame.originalCtx,
+            resultChildren ?? frame.children,
+          ) ?? frame.originalCtx
+        ) as T,
+      )
+    } catch (err) {
+      failPrimitive(state, err, frame.originalCtx)
+    }
+  }
+
+  if (resume && !state.completed) {
+    executeCompiledPlanLoop(state)
+  }
+}
+
+function getParallelSuccessTarget(
+  frame: Extract<Frame, { kind: 'PARALLEL' }>,
+) {
+  if (frame.data.join === 'any') {
+    return 1
+  }
+
+  if (frame.data.join === 'quorum') {
+    return Math.min(
+      Math.max(1, frame.data.quorum ?? frame.children.length),
+      frame.children.length,
+    )
+  }
+
+  return frame.children.length
+}
+
+function shouldDrainTrailing(
+  frame: Extract<Frame, { kind: 'PARALLEL' }>,
+) {
+  return frame.data.trailing === 'drain-active' && frame.data.join !== 'all'
+}
+
+function maybeStartParallelDrainTimer<T extends StageObject>(
+  state: ExecutionState<T>,
+  frame: Extract<Frame, { kind: 'PARALLEL' }>,
+) {
+  if (
+    frame.settled ||
+    frame.drainTimer ||
+    !shouldDrainTrailing(frame) ||
+    frame.data.trailingTimeout === undefined
+  ) {
+    return
+  }
+
+  frame.drainTimer = setTimeout(() => {
+    frame.drainTimer = null
+
+    if (frame.settled || state.completed || !frame.thresholdMet) {
+      return
+    }
+
+    settleParallelFrame(
+      state,
+      frame,
+      true,
+      frame.data.join === 'all'
+        ? frame.children
+        : collectParallelSuccessfulChildren(frame),
+    )
+  }, frame.data.trailingTimeout)
+}
+
+function collectParallelSuccessfulChildren(
+  frame: Extract<Frame, { kind: 'PARALLEL' }>,
+) {
+  return frame.successfulChildren.filter((child) => child !== undefined)
+}
+
+function getParallelConcurrencyLimit(
+  frame: Extract<Frame, { kind: 'PARALLEL' }>,
+) {
+  return Math.min(
+    Math.max(1, frame.data.concurrency ?? frame.children.length),
+    frame.children.length,
+  )
+}
+
+function continueParallelFrame<T extends StageObject>(
+  state: ExecutionState<T>,
+  frame: Extract<Frame, { kind: 'PARALLEL' }>,
+) {
+  try {
+    const concurrency = getParallelConcurrencyLimit(frame)
+    const successTarget = getParallelSuccessTarget(frame)
+
+    while (
+      !state.completed &&
+      !frame.settled &&
+      !(frame.thresholdMet && shouldDrainTrailing(frame)) &&
+      frame.active < concurrency &&
+      frame.nextIndex < frame.children.length
+    ) {
+      const index = frame.nextIndex
+      const childCtx = frame.children[index]
+      const linkedController = createLinkedAbortController(getExecutionSignal(frame.originalCtx))
+      const controller = linkedController.controller
+      frame.nextIndex += 1
+      frame.active += 1
+      frame.controllers[index] = controller
+      frame.controllerCleanups[index] = linkedController.cleanup
+
+      let sync = true
+      let settledSync = false
+      let syncErr: Possible<Error>
+      let syncCtx: any
+
+      invokeStageFn(state.plan, frame.data.stageFnId!, state.inputErr, childCtx, ((err: Possible<Error>, ctx?: any) => {
+        linkedController.cleanup()
+        frame.controllerCleanups[index] = null
+        frame.controllers[index] = null
+
+        if (state.completed || frame.settled) {
+          return
+        }
+
+        if (sync) {
+          settledSync = true
+          syncErr = err
+          syncCtx = ctx
+          return
+        }
+
+        frame.active -= 1
+        frame.pending -= 1
+
+        if (err) {
+          frame.errors.push(createParallelIterationError(frame, index, err, childCtx))
+        } else {
+          frame.children[index] = (ctx ?? childCtx) as T
+          if (frame.successfulChildren[index] === undefined) {
+            frame.successfulChildren[index] = frame.children[index]
+            frame.successCount += 1
+          }
+
+          if (frame.successCount >= successTarget) {
+            frame.thresholdMet = true
+
+            if (!shouldDrainTrailing(frame)) {
+              settleParallelFrame(
+                state,
+                frame,
+                true,
+                frame.data.join === 'all'
+                  ? frame.children
+                  : collectParallelSuccessfulChildren(frame),
+              )
+              return
+            }
+
+            maybeStartParallelDrainTimer(state, frame)
+
+            if (frame.active === 0) {
+              settleParallelFrame(
+                state,
+                frame,
+                true,
+                frame.data.join === 'all'
+                  ? frame.children
+                  : collectParallelSuccessfulChildren(frame),
+              )
+            }
+            return
+          }
+        }
+
+        if (frame.thresholdMet && shouldDrainTrailing(frame)) {
+          if (frame.active === 0) {
+            settleParallelFrame(
+              state,
+              frame,
+              true,
+              frame.data.join === 'all'
+                ? frame.children
+                : collectParallelSuccessfulChildren(frame),
+            )
+          }
+          return
+        }
+
+        if (frame.pending === 0) {
+          if (frame.successCount >= successTarget) {
+            settleParallelFrame(
+              state,
+              frame,
+              true,
+              frame.data.join === 'all'
+                ? frame.children
+                : collectParallelSuccessfulChildren(frame),
+            )
+          } else {
+            settleParallelFrame(state, frame, true)
+          }
+          return
+        }
+
+        continueParallelFrame(state, frame)
+        if (!state.suspended && !state.completed) {
+          executeCompiledPlanLoop(state)
+        }
+      }) as CallbackFunction<any>, controller.signal)
+
+      sync = false
+
+      if (!settledSync) {
+        continue
+      }
+
+      frame.active -= 1
+      frame.pending -= 1
+      frame.controllers[index] = null
+
+      if (syncErr) {
+        frame.errors.push(createParallelIterationError(frame, index, syncErr, childCtx))
+      } else {
+        frame.children[index] = (syncCtx ?? childCtx) as T
+        if (frame.successfulChildren[index] === undefined) {
+          frame.successfulChildren[index] = frame.children[index]
+          frame.successCount += 1
+        }
+
+        if (frame.successCount >= successTarget) {
+          frame.thresholdMet = true
+
+          if (!shouldDrainTrailing(frame)) {
+            settleParallelFrame(
+              state,
+              frame,
+              false,
+              frame.data.join === 'all'
+                ? frame.children
+                : collectParallelSuccessfulChildren(frame),
+            )
+            return
+          }
+
+          maybeStartParallelDrainTimer(state, frame)
+
+          if (frame.active === 0) {
+            settleParallelFrame(
+              state,
+              frame,
+              false,
+              frame.data.join === 'all'
+                ? frame.children
+                : collectParallelSuccessfulChildren(frame),
+            )
+          }
+          return
+        }
+      }
+
+      if (frame.thresholdMet && shouldDrainTrailing(frame)) {
+        if (frame.active === 0) {
+          settleParallelFrame(
+            state,
+            frame,
+            false,
+            frame.data.join === 'all'
+              ? frame.children
+              : collectParallelSuccessfulChildren(frame),
+          )
+        }
+        return
+      }
+
+      if (frame.pending === 0) {
+        if (frame.successCount >= successTarget) {
+          settleParallelFrame(
+            state,
+            frame,
+            false,
+            frame.data.join === 'all'
+              ? frame.children
+              : collectParallelSuccessfulChildren(frame),
+          )
+        } else {
+          settleParallelFrame(state, frame, false)
+        }
+        return
+      }
+    }
+  } catch (err) {
+    removeFrame(state, frame)
+    failPrimitive(state, err, frame.originalCtx)
+  }
+}
+
+function runParallelOp<T extends StageObject>(
+  state: ExecutionState<T>,
+  dataIndex: number,
+) {
+  const data = state.plan.tables.constants[dataIndex] as ParallelPlanData | undefined
+
+  if (!data || data.kind !== 'PARALLEL') {
+    failState(
+      state,
+      `${ErrorMessage[ErrorCode.ERR_OPCODE_NOT_IMPL]}: RUN_PARALLEL`,
+      ErrorCode.ERR_OPCODE_NOT_IMPL,
+    )
+    return
+  }
+
+  if (data.stageFnId === undefined) {
+    if (state.inputErr) {
+      completePrimitiveError(state, state.inputErr, state.ctx)
+    } else {
+      completePrimitiveSuccess(state, state.ctx)
+    }
+    return
+  }
+
+  let children: any[] | null | undefined
+
+  try {
+    children = data.split(state.ctx)
+  } catch (err) {
+    failPrimitive(state, err, state.ctx)
+    return
+  }
+
+  if (!Array.isArray(children) || children.length === 0) {
+    if (state.inputErr) {
+      completePrimitiveError(state, state.inputErr, state.ctx)
+    } else {
+      completePrimitiveSuccess(state, state.ctx)
+    }
+    return
+  }
+
+  const frame: Extract<Frame, { kind: 'PARALLEL' }> = {
+    kind: 'PARALLEL',
+    data,
+    originalCtx: state.ctx,
+    children,
+    controllers: new Array(children.length).fill(null),
+    controllerCleanups: new Array(children.length).fill(null),
+    successfulChildren: new Array(children.length),
+    successCount: 0,
+    thresholdMet: false,
+    drainTimer: null,
+    nextIndex: 0,
+    active: 0,
+    pending: children.length,
+    errors: [],
+    settled: false,
+  }
+
+  state.frameStack.push(frame)
+  continueParallelFrame(state, frame)
 }
 
 function continueSequentialFrame<T extends StageObject>(
@@ -885,6 +1339,14 @@ function runTimeoutOp<T extends StageObject>(
     originalCtx: state.ctx,
     settled: false,
     timer: null,
+    controller: null,
+    controllerCleanup: null,
+  }
+
+  if (data.stageFnId !== undefined) {
+    const linkedController = createLinkedAbortController(getExecutionSignal(state.ctx))
+    frame.controller = linkedController.controller
+    frame.controllerCleanup = linkedController.cleanup
   }
 
   state.frameStack.push(frame)
@@ -899,6 +1361,8 @@ function runTimeoutOp<T extends StageObject>(
       clearTimeout(frame.timer)
       frame.timer = null
     }
+    frame.controllerCleanup?.()
+    frame.controllerCleanup = null
 
     removeFrame(state, frame)
     if (err) {
@@ -916,6 +1380,10 @@ function runTimeoutOp<T extends StageObject>(
     frame.timer = null
     if (frame.settled || state.completed) {
       return
+    }
+
+    if (frame.controller && !frame.controller.signal.aborted) {
+      frame.controller.abort(createCodeError(ErrorCode.ERR_STAGE_TIMEOUT))
     }
 
     if (data.overdueStageFnId === undefined) {
@@ -979,7 +1447,7 @@ function runTimeoutOp<T extends StageObject>(
 
     const committed = commitIsolatedStageContext(frame.originalCtx, (ctx ?? isolatedCtx) as T)
     finalize(false, undefined, committed)
-  }) as CallbackFunction<T>)
+  }) as CallbackFunction<T>, frame.controller?.signal)
 
   sync = false
 
@@ -1044,6 +1512,12 @@ function executeCompiledPlanLoop<T extends StageObject>(state: ExecutionState<T>
       case 'RUN_TIMEOUT':
         state.suspended = true
         runTimeoutOp(state, op.data)
+        if (state.suspended) return
+        continue
+
+      case 'RUN_PARALLEL':
+        state.suspended = true
+        runParallelOp(state, op.data)
         if (state.suspended) return
         continue
 

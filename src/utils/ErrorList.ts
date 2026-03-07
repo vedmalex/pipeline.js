@@ -274,6 +274,26 @@ export function createCodeError(code: ErrorCodeType, detail?: string): CleanErro
   return new CleanError(msg, { code })
 }
 
+export function normalizeExecutionErrorInput(input?: unknown): Possible<CleanError> {
+  if (input === undefined || input === null) {
+    return input as Possible<CleanError>
+  }
+
+  if (detectCleanError(input)) {
+    return input as CleanError
+  }
+
+  if (isError(input)) {
+    return createError(input)
+  }
+
+  if (typeof input === 'string') {
+    return createError(input)
+  }
+
+  return createError(String(input))
+}
+
 /**
  * Chain multiple errors together
  */

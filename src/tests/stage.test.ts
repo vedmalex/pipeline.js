@@ -1,6 +1,11 @@
 import { JSONSchemaType } from 'ajv'
+import { createCodeError } from '../utils/ErrorList'
 import { Stage } from '../stage'
 import { Config } from '../config'
+import { getExecutionSignal } from '../execution_signal'
+import { ErrorCode } from '../utils/errors'
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 describe('stage', () => {
   it('throw error', done => {
@@ -212,4 +217,179 @@ describe('stage', () => {
   //     },
   //   })
   // })
+
+  it('supports promise execute options with AbortSignal', async () => {
+    const observedSignals: AbortSignal[] = []
+    const stage = new Stage<{ n: number }>({
+      run: (ctx, done) => {
+        const signal = getExecutionSignal(ctx)
+
+        if (signal) {
+          observedSignals.push(signal)
+          signal.addEventListener('abort', () => {
+            done(undefined, ctx)
+          }, { once: true })
+        }
+      },
+    })
+
+    const controller = new AbortController()
+    const execution = stage.execute({ n: 0 }, { signal: controller.signal })
+
+    controller.abort(createCodeError(ErrorCode.ERR_STAGE_TIMEOUT))
+
+    const err: any = await execution.catch((error) => error)
+    expect(err.code).toBe(ErrorCode.ERR_STAGE_ABORTED)
+    expect(observedSignals).toEqual([controller.signal])
+  })
+
+  it('supports callback execute options with AbortSignal', async () => {
+    const stage = new Stage<{ n: number }>({
+      run: (ctx, done) => {
+        const timer = setTimeout(() => {
+          done(undefined, ctx)
+        }, 50)
+
+        getExecutionSignal(ctx)?.addEventListener('abort', () => {
+          clearTimeout(timer)
+        }, { once: true })
+      },
+    })
+
+    const controller = new AbortController()
+
+    await new Promise<void>((resolve, reject) => {
+      stage.execute({ n: 0 }, (err) => {
+        try {
+          expect(err).toBeDefined()
+          expect((err as any).code).toBe(ErrorCode.ERR_STAGE_ABORTED)
+          resolve()
+        } catch (error) {
+          reject(error)
+        }
+      }, { signal: controller.signal })
+
+      controller.abort(createCodeError(ErrorCode.ERR_STAGE_TIMEOUT))
+    })
+
+    await wait(5)
+  })
+
+  it('does not confuse signal-shaped context with execute options in err-first promise form', async () => {
+    const injectedErr = createCodeError(ErrorCode.ERR_UNKNOWN)
+    const signal = new AbortController().signal
+    const stage = new Stage<{ signal: AbortSignal }>({
+      run: async (_err, ctx) => {
+        return ctx
+      },
+    })
+
+    const result = await (stage as any).execute(injectedErr, { signal })
+
+    expect(result.signal).toBe(signal)
+    expect(result.isClean).toBeUndefined()
+  })
+
+  it('forwards err in signal-shaped err-first promise form to run handlers', async () => {
+    const injectedErr = createCodeError(ErrorCode.ERR_UNKNOWN)
+    const signal = new AbortController().signal
+    let seenErrCode: string | undefined
+
+    const stage = new Stage<{ signal: AbortSignal }>({
+      run: (err, ctx, done) => {
+        seenErrCode = err?.code
+        done(undefined, ctx)
+      },
+    })
+
+    const result = await (stage as any).execute(injectedErr, { signal })
+
+    expect(result.signal).toBe(signal)
+    expect(seenErrCode).toBe(ErrorCode.ERR_UNKNOWN)
+  })
+
+  it('does not confuse signal-shaped context with execute options in 3-arg err-first promise form', async () => {
+    const injectedErr = createCodeError(ErrorCode.ERR_UNKNOWN)
+    const contextSignal = new AbortController().signal
+    const executionController = new AbortController()
+    let seenExecutionSignal: AbortSignal | undefined
+    let seenErrCode: string | undefined
+
+    const stage = new Stage<{
+      signal: AbortSignal
+    }>({
+      run: (err, ctx, done) => {
+        seenExecutionSignal = getExecutionSignal(ctx)
+        seenErrCode = err?.code
+        done(undefined, ctx)
+      },
+    })
+
+    const result = await stage.execute(
+      injectedErr,
+      { signal: contextSignal },
+      { signal: executionController.signal },
+    )
+
+    expect(result.signal).toBe(contextSignal)
+    expect(seenExecutionSignal).toBe(executionController.signal)
+    expect(seenErrCode).toBe(ErrorCode.ERR_UNKNOWN)
+  })
+
+  it('does not confuse signal-shaped context with execute options in 4-arg err-first callback form', async () => {
+    const injectedErr = createCodeError(ErrorCode.ERR_UNKNOWN)
+    const contextSignal = new AbortController().signal
+    const executionController = new AbortController()
+    let seenExecutionSignal: AbortSignal | undefined
+    let seenErrCode: string | undefined
+
+    const stage = new Stage<{
+      signal: AbortSignal
+    }>({
+      run: (err, ctx, done) => {
+        seenExecutionSignal = getExecutionSignal(ctx)
+        seenErrCode = err?.code
+        done(undefined, ctx)
+      },
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      stage.execute(
+        injectedErr,
+        { signal: contextSignal },
+        (err, ctx) => {
+          try {
+            expect(err).toBeUndefined()
+            expect(ctx?.signal).toBe(contextSignal)
+            resolve()
+          } catch (error) {
+            reject(error)
+          }
+        },
+        { signal: executionController.signal },
+      )
+    })
+
+    expect(seenExecutionSignal).toBe(executionController.signal)
+    expect(seenErrCode).toBe(ErrorCode.ERR_UNKNOWN)
+  })
+
+  it('short-circuits pre-aborted execute options before running stage', async () => {
+    let ran = false
+    const stage = new Stage<{ n: number }>({
+      run: (ctx) => {
+        ran = true
+        return ctx
+      },
+    })
+    const controller = new AbortController()
+    controller.abort(createCodeError(ErrorCode.ERR_STAGE_TIMEOUT))
+
+    const err: any = await stage
+      .execute({ n: 0 }, { signal: controller.signal })
+      .catch((error) => error)
+
+    expect(err.code).toBe(ErrorCode.ERR_STAGE_ABORTED)
+    expect(ran).toBe(false)
+  })
 })

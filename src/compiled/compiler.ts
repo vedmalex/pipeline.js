@@ -1,5 +1,6 @@
 import { DoWhile } from '../dowhile'
 import { IfElse } from '../ifelse'
+import { Parallel } from '../parallel'
 import { RetryOnError } from '../retryonerror'
 import { Sequential } from '../sequential'
 import { Timeout } from '../timeout'
@@ -62,6 +63,10 @@ function isWrapStage<T extends StageObject>(stage: unknown): stage is Wrap<T, an
 
 function isSequentialStage<T extends StageObject>(stage: unknown): stage is Sequential<T, any> {
   return stage instanceof Sequential
+}
+
+function isParallelStage<T extends StageObject>(stage: unknown): stage is Parallel<T, any> {
+  return stage instanceof Parallel
 }
 
 function isDoWhileStage<T extends StageObject>(stage: unknown): stage is DoWhile<T, any> {
@@ -601,6 +606,42 @@ function appendDependencySignatureForStage<T extends StageObject>(
     return
   }
 
+  if (isParallelStage(child) && !hasStageBoundaryFeatures(child)) {
+    dependencyParts.push(`parallel:${child.reportName}:${getGraphVersion(child)}`)
+
+    if (child.config.stage) {
+      dependencyParts.push(...createCompiledRunnerInfo(child.config.stage).dependencyParts)
+    }
+
+    if (child.config.split) {
+      dependencyParts.push(getFunctionSignature(child.config.split as any, 1))
+    }
+
+    if (child.config.combine) {
+      dependencyParts.push(getFunctionSignature(child.config.combine as any, 2))
+    }
+
+    if (child.concurrency !== undefined) {
+      dependencyParts.push(`parallel-concurrency:${child.concurrency}`)
+    }
+
+    dependencyParts.push(`parallel-join:${child.join}`)
+
+    if (child.join === 'quorum') {
+      dependencyParts.push(`parallel-quorum:${child.quorum ?? 'default'}`)
+    }
+
+    if (child.trailing !== 'ignore') {
+      dependencyParts.push(`parallel-trailing:${child.trailing}`)
+    }
+
+    if (child.trailingTimeout !== undefined) {
+      dependencyParts.push(`parallel-trailing-timeout:${child.trailingTimeout}`)
+    }
+
+    return
+  }
+
   if (isDoWhileStage(child) && !hasStageBoundaryFeatures(child)) {
     dependencyParts.push(...createDoWhileRunnerInfo(child).dependencyParts)
     return
@@ -683,6 +724,68 @@ function emitSequentialStage<T extends StageObject>(
   }) - 1
 
   ops.push({ op: 'RUN_SEQUENTIAL', data })
+}
+
+function emitParallelStage<T extends StageObject>(
+  stage: Parallel<T, any>,
+  ops: PlanOp[],
+  tables: ReturnType<typeof createPlanTables>,
+  metadata: PlanMetadata,
+  dependencyParts: string[],
+) {
+  dependencyParts.push(`parallel:${stage.reportName}:${getGraphVersion(stage)}`)
+
+  let stageFnId: number | undefined
+
+  if (stage.config.stage) {
+    const inner = createCompiledRunnerInfo(stage.config.stage)
+    stageFnId = registerRunnerInfo(inner, tables, metadata, dependencyParts)
+  }
+
+  if (stage.config.split) {
+    dependencyParts.push(getFunctionSignature(stage.config.split as any, 1))
+  }
+
+  if (stage.config.combine) {
+    dependencyParts.push(getFunctionSignature(stage.config.combine as any, 2))
+  }
+
+  if (stage.concurrency !== undefined) {
+    dependencyParts.push(`parallel-concurrency:${stage.concurrency}`)
+  }
+
+  dependencyParts.push(`parallel-join:${stage.join}`)
+
+  if (stage.join === 'quorum') {
+    dependencyParts.push(`parallel-quorum:${stage.quorum ?? 'default'}`)
+  }
+
+  if (stage.trailing !== 'ignore') {
+    dependencyParts.push(`parallel-trailing:${stage.trailing}`)
+  }
+
+  if (stage.trailingTimeout !== undefined) {
+    dependencyParts.push(`parallel-trailing-timeout:${stage.trailingTimeout}`)
+  }
+
+  metadata.containsParallelOps = true
+
+  const data = tables.constants.push({
+    kind: 'PARALLEL',
+    reportName: stage.reportName,
+    stage: stage.config.stage,
+    stageName: stage.name,
+    stageFnId,
+    concurrency: stage.concurrency,
+    join: stage.join,
+    quorum: stage.quorum,
+    trailing: stage.trailing,
+    trailingTimeout: stage.trailingTimeout,
+    split: (ctx: any) => stage.split(ctx),
+    combine: (ctx: any, children: any[]) => stage.combine(ctx, children),
+  }) - 1
+
+  ops.push({ op: 'RUN_PARALLEL', data })
 }
 
 function emitLoopStage<T extends StageObject>(
@@ -917,6 +1020,11 @@ function emitStage<T extends StageObject>(
 
   if (isSequentialStage(child) && !hasStageBoundaryFeatures(child)) {
     emitSequentialStage(child, ops, tables, metadata, dependencyParts)
+    return
+  }
+
+  if (isParallelStage(child) && !hasStageBoundaryFeatures(child)) {
+    emitParallelStage(child, ops, tables, metadata, dependencyParts)
     return
   }
 

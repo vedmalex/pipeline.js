@@ -1,7 +1,10 @@
 import { Stage } from './stage'
+import { createLinkedAbortController, getExecutionSignal } from './execution_signal'
+import { createCodeError } from './utils/ErrorList'
 import { commitIsolatedStageContext, createIsolatedStageContext } from './utils/context_snapshot'
 import { isFunction } from './utils/TypeDetectors'
 import { CleanError } from './utils/ErrorList'
+import { ErrorCode } from './utils/errors'
 import { run_or_execute } from './utils/run_or_execute'
 import { AllowedStage, getTimeoutConfig, StageObject } from './utils/types'
 import {
@@ -35,12 +38,14 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
     ) => {
       let to: NodeJS.Timeout | null = null
       let isDone = false
+      let linkedController: ReturnType<typeof createLinkedAbortController> | null = null
 
       const finish = ((runErr: Possible<CleanError>, retCtx: T) => {
         if (isDone) return
         isDone = true
         if (to) clearTimeout(to)
         to = null
+        linkedController?.cleanup()
         return done(runErr, retCtx)
       }) as CallbackFunction<T>
 
@@ -49,10 +54,20 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
           ? this.config.timeout(ctx)
           : this.config.timeout
 
+      const parentSignal = getExecutionSignal(ctx)
+      linkedController = this.config.stage && waitFor
+        ? createLinkedAbortController(parentSignal)
+        : null
+      const controller = linkedController?.controller ?? null
+
       if (waitFor) {
         to = setTimeout(() => {
           const timeoutRef = to
           to = null
+
+          if (controller && !controller.signal.aborted) {
+            controller.abort(createCodeError(ErrorCode.ERR_STAGE_TIMEOUT))
+          }
 
           if (timeoutRef && this.config.overdue) {
             run_or_execute(this.config.overdue, err, ctx, finish)
@@ -77,7 +92,7 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
               } else {
                 finish(undefined, commitIsolatedStageContext(ctx, (retCtx ?? isolatedCtx) as T))
               }
-            }) as CallbackFunction<T>)
+            }) as CallbackFunction<T>, controller?.signal)
           } catch (error) {
             if (to) clearTimeout(to)
             to = null
@@ -89,6 +104,7 @@ export class Timeout<T extends StageObject> extends Stage<T, TimeoutConfig<T>> {
       } else {
         finish(null, ctx)
       }
+
     }
 
     this.run = run

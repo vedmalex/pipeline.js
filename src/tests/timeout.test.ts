@@ -1,7 +1,20 @@
+import * as publicApi from '../index'
 import { Stage } from '../stage'
+import { getExecutionSignal } from '../execution_signal'
 import { Timeout } from '../timeout'
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 describe('Timeout', function () {
+  it('exports execution signal helpers from public API', function (done) {
+    expect(publicApi.getExecutionSignal).toBe(getExecutionSignal)
+    expect(typeof publicApi.isExecutionAborted).toBe('function')
+    expect(typeof publicApi.throwIfExecutionAborted).toBe('function')
+    done()
+  })
+
   it('not used without construction', function (done) {
     expect(() => eval('Timeout()')).toThrow()
     done()
@@ -103,5 +116,31 @@ describe('Timeout', function () {
       else throw new Error('context is not defined')
       done()
     })
+  })
+
+  it('aborts signal-aware inner stage when timeout fires', async () => {
+    let aborted = false
+
+    const to = new Timeout({
+      timeout: 10,
+      stage: function (_err, ctx, _done) {
+        const signal = getExecutionSignal(ctx)
+        signal?.addEventListener('abort', () => {
+          aborted = true
+        }, { once: true })
+      },
+      overdue: function (_err, ctx, done) {
+        ctx.overdue = true
+        done(undefined, ctx)
+      },
+    })
+
+    const result = await to.execute({ overdue: false })
+
+    expect(result.overdue).toBe(true)
+    expect(aborted).toBe(true)
+
+    await wait(5)
+    expect(aborted).toBe(true)
   })
 })

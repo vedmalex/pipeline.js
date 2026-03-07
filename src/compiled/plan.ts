@@ -54,11 +54,27 @@ export type TimeoutPlanData = {
   timeout?: number | ((ctx: any) => number | undefined)
 }
 
+export type ParallelPlanData = {
+  kind: 'PARALLEL'
+  reportName: string
+  stage: unknown
+  stageName: string
+  stageFnId?: number
+  concurrency?: number
+  join: 'all' | 'any' | 'quorum'
+  quorum?: number
+  trailing: 'ignore' | 'drain-active'
+  trailingTimeout?: number
+  split: (ctx: any) => any[] | null | undefined
+  combine: (ctx: any, children: any[]) => any
+}
+
 export type PrimitivePlanData =
   | SequentialPlanData
   | LoopPlanData
   | RetryPlanData
   | TimeoutPlanData
+  | ParallelPlanData
 
 export type CompiledStageFnKind =
   | 'FN0_SYNC'
@@ -78,6 +94,7 @@ export type PlanOp =
   | { op: 'RUN_LOOP'; data: number }
   | { op: 'RUN_RETRY'; data: number }
   | { op: 'RUN_TIMEOUT'; data: number }
+  | { op: 'RUN_PARALLEL'; data: number }
   | { op: 'SET_CTX_FROM_RESULT' }
   | { op: 'JUMP'; target: number }
   | { op: 'JUMP_IF_TRUE'; predicateId: number; target: number }
@@ -155,8 +172,26 @@ export type Frame =
       originalCtx: any
       settled: boolean
       timer: ReturnType<typeof setTimeout> | null
+      controller: AbortController | null
+      controllerCleanup: (() => void) | null
     }
-  | { kind: 'PARALLEL'; joinTarget: number; pending: number; errors: Error[]; results: any[] }
+  | {
+      kind: 'PARALLEL'
+      data: ParallelPlanData
+      originalCtx: any
+      children: any[]
+      controllers: Array<AbortController | null>
+      controllerCleanups: Array<(() => void) | null>
+      successfulChildren: any[]
+      successCount: number
+      thresholdMet: boolean
+      drainTimer: ReturnType<typeof setTimeout> | null
+      nextIndex: number
+      active: number
+      pending: number
+      errors: Error[]
+      settled: boolean
+    }
 
 export type ExecutionState<T extends StageObject> = {
   plan: CompiledPlan<T>

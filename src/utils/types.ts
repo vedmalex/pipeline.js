@@ -151,6 +151,36 @@ export function is_thenable<T>(inp?: any): inp is Thanable<T> {
 
 export type Possible<T> = T | undefined | null
 
+export type ExecutionOptions = {
+  signal?: AbortSignal
+}
+
+export function isAbortSignal(inp?: unknown): inp is AbortSignal {
+  return !!inp && typeof inp === 'object'
+    && 'aborted' in inp
+    && typeof (inp as AbortSignal).addEventListener === 'function'
+    && typeof (inp as AbortSignal).removeEventListener === 'function'
+  }
+
+export function isExecutionOptions(inp?: unknown): inp is ExecutionOptions {
+  if (!inp || typeof inp !== 'object' || Array.isArray(inp)) {
+    return false
+  }
+
+  const keys = Reflect.ownKeys(inp)
+
+  if (keys.length === 0) {
+    return true
+  }
+
+  if (keys.length !== 1 || keys[0] !== 'signal') {
+    return false
+  }
+
+  return (inp as ExecutionOptions).signal === undefined
+    || isAbortSignal((inp as ExecutionOptions).signal)
+}
+
 export type SingleStageFunction<T extends StageObject> =
   | Func2Async<T, Possible<CleanError>, Possible<T>>
   | Func3Sync<
@@ -267,10 +297,18 @@ export interface PipelineConfig<T extends StageObject> extends StageConfig<T> {
   stages: Array<AnyStage<T, T> | RunPipelineFunction<T>>
 }
 
+export type ParallelJoinMode = 'all' | 'any' | 'quorum'
+export type ParallelTrailingMode = 'ignore' | 'drain-active'
+
 export interface ParallelConfig<T extends StageObject, R extends StageObject>
   extends StageConfig<T> {
   stage: AnyStage<R> | RunPipelineFunction<R>
   split?: Func1Sync<Array<R>, T>
+  concurrency?: number
+  join?: ParallelJoinMode
+  quorum?: number
+  trailing?: ParallelTrailingMode
+  trailingTimeout?: number
   combine?: Func2Sync<
     T | void,
     T,
@@ -456,6 +494,21 @@ export function getParallelConfig<T extends StageObject, R extends StageObject>(
     }
     if (config.split) {
       r.split = config.split
+    }
+    if (typeof config.concurrency === 'number') {
+      r.concurrency = config.concurrency
+    }
+    if (config.join) {
+      r.join = config.join
+    }
+    if (typeof config.quorum === 'number') {
+      r.quorum = config.quorum
+    }
+    if (config.trailing) {
+      r.trailing = config.trailing
+    }
+    if (typeof config.trailingTimeout === 'number') {
+      r.trailingTimeout = config.trailingTimeout
     }
     if (config.combine) {
       r.combine = config.combine

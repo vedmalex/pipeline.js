@@ -84,6 +84,12 @@ describe('CleanError.code field', () => {
     expect(json.code).toBe(ErrorCode.ERR_STAGE_TIMEOUT)
   })
 
+  it('createCodeError supports ERR_STAGE_ABORTED', () => {
+    const err = createCodeError(ErrorCode.ERR_STAGE_ABORTED)
+    expect(err.code).toBe(ErrorCode.ERR_STAGE_ABORTED)
+    expect(err.message).toBe(ErrorMessage[ErrorCode.ERR_STAGE_ABORTED])
+  })
+
   it('createErrorWithContext preserves code', () => {
     const err = createErrorWithContext(
       new Error('test'),

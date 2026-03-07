@@ -24,6 +24,10 @@ function formatOp(plan: CompiledPlan<any>, op: PlanOp) {
       const timeoutLabel = typeof data?.timeout === 'function' ? 'dynamic' : data?.timeout ?? 0
       return `${op.op} stage=${data?.stageFnId ?? '-'} overdue=${data?.overdueStageFnId ?? '-'} timeout=${timeoutLabel}`
     }
+    case 'RUN_PARALLEL': {
+      const data = plan.tables.constants[op.data]
+      return `${op.op} child=${data?.stageFnId ?? '-'} split=${data?.split ? 'yes' : 'no'} combine=${data?.combine ? 'yes' : 'no'} concurrency=${data?.concurrency ?? 'unbounded'} join=${data?.join ?? 'all'} quorum=${data?.quorum ?? '-'} trailing=${data?.trailing ?? 'ignore'} trailingTimeout=${data?.trailingTimeout ?? '-'}`
+    }
     case 'JUMP':
       return `${op.op} ${op.target}`
     case 'JUMP_IF_TRUE':

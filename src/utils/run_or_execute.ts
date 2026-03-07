@@ -1,4 +1,5 @@
-import { CleanError, createError } from './ErrorList'
+import { CleanError, createError, normalizeExecutionErrorInput } from './ErrorList'
+import { bindExecutionSignal, getExecutionSignal } from '../execution_signal'
 import { execute_callback } from './execute_callback'
 import { isError } from './TypeDetectors'
 import { isAnyStage } from './types'
@@ -15,16 +16,21 @@ export function run_or_execute<T extends StageObject>(
   err: Possible<CleanError>,
   context: T,
   _done: CallbackFunction<T>,
+  signal?: AbortSignal,
 ): void {
   // OPT-9: skip wrapper closure when stage is a Stage instance — execute() always
   // resolves with a valid ctx. For function stages, keep the ctx??context fallback
   // since arity-0 functions may omit the return value.
+  const effectiveSignal = signal ?? getExecutionSignal(context)
+  const cleanup = bindExecutionSignal(context, effectiveSignal)
+  const done = ((err: Possible<CleanError>, ctx: T) => {
+    cleanup()
+    _done(err, ctx ?? context)
+  }) as CallbackFunction<T>
+
   if (isAnyStage<T>(stage)) {
-    runStageSafely(stage, err, context, _done)
+    runStageSafely(stage, err, context, done)
   } else {
-    const done = ((err: Possible<CleanError>, ctx: T) => {
-      _done(err, ctx ?? context)
-    }) as CallbackFunction<T>
     execute_callback<T>(err, stage, context, done)
   }
 }
@@ -48,7 +54,7 @@ function runStageSafely<T extends StageObject>(
   const invoke = () => {
     stageDispatchDepth++
     try {
-      stage.execute(err, context, done)
+      stage.execute(normalizeExecutionErrorInput(err), context, done)
     } catch (error) {
       done(createError(isError(error) ? error : String(error)), context)
     } finally {

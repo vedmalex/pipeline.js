@@ -27,6 +27,8 @@ export const ErrorCode = {
   ERR_OPCODE_NOT_IMPL: 'ERR_OPCODE_NOT_IMPL',
   /** User code threw an error during stage execution */
   ERR_STAGE_THROW: 'ERR_STAGE_THROW',
+  /** Stage execution was aborted by runtime cancellation policy */
+  ERR_STAGE_ABORTED: 'ERR_STAGE_ABORTED',
 } as const
 
 export type ErrorCodeType = typeof ErrorCode[keyof typeof ErrorCode]
@@ -43,6 +45,7 @@ export const ErrorMessage: Record<ErrorCodeType, string> = {
   [ErrorCode.ERR_PC_OUT_OF_BOUNDS]: 'compiled executor pc out of bounds',
   [ErrorCode.ERR_OPCODE_NOT_IMPL]: 'opcode not implemented in current executor phase',
   [ErrorCode.ERR_STAGE_THROW]: 'stage threw an error',
+  [ErrorCode.ERR_STAGE_ABORTED]: 'stage execution aborted',
 }
 
 // Legacy compatibility — keep the old ERROR object shape alive so existing
