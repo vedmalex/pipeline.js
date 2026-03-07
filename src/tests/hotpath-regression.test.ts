@@ -13,6 +13,9 @@ import { run_callback_once } from '../utils/run_callback_once'
 import { run_or_execute } from '../utils/run_or_execute'
 import { Stage } from '../stage'
 import { Pipeline } from '../pipeline'
+import { Wrap } from '../wrap'
+import { IfElse } from '../ifelse'
+import { Timeout } from '../timeout'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OPT-7: CleanError lazy-parsed + memoized trace (ErrorList.ts)
@@ -177,7 +180,7 @@ describe('OPT-8: Pipeline stage promise path', () => {
 describe('Nested Pipeline stack safety', () => {
   it('flat pipeline width does not grow stack depth across later stages', async () => {
     const previousLimit = Error.stackTraceLimit
-    Error.stackTraceLimit = 100_000
+    Error.stackTraceLimit = 5_000
 
     try {
       const samples: number[] = []
@@ -202,9 +205,9 @@ describe('Nested Pipeline stack safety', () => {
     }
   })
 
-  it('deeply nested pipelines do not overflow the stack and remain bounded', async () => {
+  it('deeply nested pipelines (20k) do not overflow the stack and remain bounded', async () => {
     const previousLimit = Error.stackTraceLimit
-    Error.stackTraceLimit = 100_000
+    Error.stackTraceLimit = 5_000
 
     try {
       function nest(depth: number) {
@@ -222,8 +225,111 @@ describe('Nested Pipeline stack safety', () => {
         return current as Pipeline<any>
       }
 
-      const root = nest(8_000)
+      const root = nest(20_000)
       const result = await root.execute({ ok: false, stackLines: 0 } as any)
+
+      expect(result.ok).toBe(true)
+      expect(result.stackLines).toBeGreaterThan(0)
+      expect(result.stackLines).toBeLessThan(2_000)
+    } finally {
+      Error.stackTraceLimit = previousLimit
+    }
+  }, 20_000)
+})
+
+describe('Nested Stage wrapper stack safety', () => {
+  it('deep Wrap / IfElse / Timeout chains stay stack-safe', async () => {
+    const previousLimit = Error.stackTraceLimit
+    Error.stackTraceLimit = 5_000
+
+    try {
+      const terminal = () => (ctx: any) => {
+        ctx.stackLines = new Error().stack?.split('\n').length ?? 0
+        ctx.ok = true
+      }
+
+      const builders = {
+        Wrap(depth: number) {
+          let current: any = terminal()
+          for (let i = 0; i < depth; i++) {
+            current = new Wrap<any, any>({
+              stage: current,
+              prepare: (ctx) => ctx,
+              finalize: (ctx) => ctx,
+            })
+          }
+          return current
+        },
+        IfElse(depth: number) {
+          let current: any = terminal()
+          for (let i = 0; i < depth; i++) {
+            current = new IfElse<any>({
+              condition: true,
+              success: current,
+            })
+          }
+          return current
+        },
+        Timeout(depth: number) {
+          let current: any = terminal()
+          for (let i = 0; i < depth; i++) {
+            current = new Timeout<any>({
+              timeout: 0,
+              stage: current,
+            })
+          }
+          return current
+        },
+      }
+
+      for (const [name, build] of Object.entries(builders)) {
+        const root: any = build(4_000)
+        const result = await root.execute({ ok: false, stackLines: 0 } as any)
+
+        expect(result.ok).toBe(true)
+        expect(result.stackLines).toBeGreaterThan(0)
+        expect(result.stackLines).toBeLessThan(2_000)
+      }
+    } finally {
+      Error.stackTraceLimit = previousLimit
+    }
+  })
+
+  it('mixed Wrap / IfElse / Timeout nesting stays stack-safe', async () => {
+    const previousLimit = Error.stackTraceLimit
+    Error.stackTraceLimit = 5_000
+
+    try {
+      let current: any = (ctx: any) => {
+        ctx.stackLines = new Error().stack?.split('\n').length ?? 0
+        ctx.ok = true
+      }
+
+      for (let i = 0; i < 8_000; i++) {
+        switch (i % 3) {
+          case 0:
+            current = new Wrap<any, any>({
+              stage: current,
+              prepare: (ctx) => ctx,
+              finalize: (ctx) => ctx,
+            })
+            break
+          case 1:
+            current = new IfElse<any>({
+              condition: true,
+              success: current,
+            })
+            break
+          default:
+            current = new Timeout<any>({
+              timeout: 0,
+              stage: current,
+            })
+            break
+        }
+      }
+
+      const result = await current.execute({ ok: false, stackLines: 0 } as any)
 
       expect(result.ok).toBe(true)
       expect(result.stackLines).toBeGreaterThan(0)

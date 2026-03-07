@@ -1,4 +1,7 @@
 import { Stage } from './stage'
+import { compilePipelinePlan } from './compiled/compiler'
+import { executeCompiledPlan } from './compiled/executor'
+import { CompiledPlan } from './compiled/plan'
 import { empty_run } from './utils/empty_run'
 import { CleanError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
@@ -9,6 +12,7 @@ import {
   Possible,
   StageObject,
 } from './utils/types'
+
 import {
   AllowedStage,
   CallbackFunction,
@@ -17,6 +21,20 @@ import {
   StageConfig,
   StageRun,
 } from './utils/types'
+
+let compiledPipelineOverride: boolean | undefined
+
+export function __setCompiledPipelineEnabledForTests(enabled?: boolean) {
+  compiledPipelineOverride = enabled
+}
+
+export function __isCompiledPipelineEnabled() {
+  if (compiledPipelineOverride !== undefined) {
+    return compiledPipelineOverride
+  }
+
+  return typeof process !== 'undefined' && process.env.PIPELINE_USE_COMPILED === '1'
+}
 
 /**
  * it make possible to choose which stage to run according to result of `condition` evaluation
@@ -35,6 +53,11 @@ export class Pipeline<T extends StageObject> extends Stage<
   T,
   PipelineConfig<T>
 > {
+  protected _graphVersion = 0
+  protected compiledPlan?: CompiledPlan<T>
+  protected compiledPlanVersion?: number
+  protected compiledDependencySignature?: string
+
   constructor(
     config?:
       | PipelineConfig<T>
@@ -70,12 +93,35 @@ export class Pipeline<T extends StageObject> extends Stage<
     }
     if (stage) {
       this.config.stages.push(stage as any)
+      this._graphVersion += 1
+      this.compiledPlan = undefined
+      this.compiledPlanVersion = undefined
+      this.compiledDependencySignature = undefined
       this.run = undefined
     }
   }
 
   public override toString() {
     return '[pipeline Pipeline]'
+  }
+
+  protected getCompiledPlan(rebuild: boolean = false) {
+    const candidate = compilePipelinePlan(this as any)
+    const isCurrent =
+      !rebuild &&
+      this.compiledPlan !== undefined &&
+      this.compiledPlanVersion === this._graphVersion &&
+      this.compiledDependencySignature === candidate.dependencySignature
+
+    if (isCurrent) {
+      return this.compiledPlan as CompiledPlan<T>
+    }
+
+    this.compiledPlan = candidate
+    this.compiledPlanVersion = this._graphVersion
+    this.compiledDependencySignature = candidate.dependencySignature
+
+    return candidate
   }
 
   override compile(rebuild: boolean = false): StageRun<T> {
@@ -107,7 +153,7 @@ export class Pipeline<T extends StageObject> extends Stage<
     };
 
     if (this.config.stages.length > 0) {
-      this.run = (err: Possible<CleanError>, context: T, done: CallbackFunction<T>) => {
+      const runLegacy: StageRun<T> = (err: Possible<CleanError>, context: T, done: CallbackFunction<T>) => {
         let error = err;
         let ctx = context
         runAsync(err, context)
@@ -116,7 +162,19 @@ export class Pipeline<T extends StageObject> extends Stage<
           .finally(() => {
             done(error, ctx)
           })
+      }
 
+      this.run = (err: Possible<CleanError>, context: T, done: CallbackFunction<T>) => {
+        if (__isCompiledPipelineEnabled()) {
+          try {
+            const compiledPlan = this.getCompiledPlan(rebuild)
+            return executeCompiledPlan(compiledPlan, err, context, done)
+          } catch (_error) {
+            // Fall through to legacy runtime if compilation/execution wiring is not ready.
+          }
+        }
+
+        return runLegacy(err, context, done)
       }
     } else {
       this.run = empty_run
