@@ -366,7 +366,7 @@ describe('compiled Pipeline skeleton', () => {
     expect(result.n).toBe(11)
   })
 
-  it('keeps compiled-hybrid Pipelines on legacy execution in auto mode', async () => {
+  it('uses compiled execution for compiled-hybrid Pipelines in auto mode', async () => {
     __setCompiledPipelineEnabledForTests(undefined)
 
     const root = new InspectablePipeline<{ n: number }>([
@@ -378,7 +378,8 @@ describe('compiled Pipeline skeleton', () => {
       }) as any,
     ])
 
-    expect(root.shouldUseCompiledByDefault()).toBe(false)
+    // TASK-009: auto mode now uses compiled for both static and hybrid plans
+    expect(root.shouldUseCompiledByDefault()).toBe(true)
 
     const result = await root.execute({ n: 0 })
 

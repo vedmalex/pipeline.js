@@ -17,7 +17,11 @@ type PipelineLike<T extends StageObject> = {
 }
 
 function isPipelineLike<T extends StageObject>(stage: unknown): stage is PipelineLike<T> {
-  return isAnyStage(stage) && typeof (stage as any).toString === 'function' && (stage as any).toString() === '[pipeline Pipeline]'
+  return (
+    isAnyStage(stage) &&
+    Array.isArray((stage as any).config?.stages) &&
+    typeof (stage as any).split !== 'function'  // Exclude Sequential/Parallel which also return '[pipeline Pipeline]'
+  )
 }
 
 function isPlainStageLike<T extends StageObject>(stage: unknown) {

@@ -101,7 +101,7 @@ export class Pipeline<T extends StageObject> extends Stage<
   }
 
   protected isPipelineStage(stage: unknown): stage is Pipeline<any> {
-    return isAnyStage(stage) && typeof (stage as any).toString === 'function' && (stage as any).toString() === '[pipeline Pipeline]'
+    return stage instanceof Pipeline
   }
 
   protected registerImmediatePipelineChildren() {
@@ -193,39 +193,59 @@ export class Pipeline<T extends StageObject> extends Stage<
       return true
     }
 
-    return plan.mode === 'compiled-static'
+    // auto mode: use compiled for both static and hybrid plans
+    return true
   }
 
   override compile(rebuild: boolean = false): StageRun<T> {
-    let runAsync = async (
-      initialErr: Possible<CleanError>,
-      context: T,
-    ) => {
-      let currentContext = context;
-      for (let i = 0; i < this.config.stages.length; i++) {
-        const stage = this.config.stages[i];
-        // OPT-8: new Promise avoids withResolvers allocation + .catch() rethrow chain
-        await new Promise<void>((resolve, reject) => {
-          run_or_execute<T>(
-            stage,
-            initialErr,
-            currentContext,
-            (err, ctx) => {
-              if (err) {
-                reject(err)
-              } else {
-                if (ctx) currentContext = ctx
-                resolve()
-              }
-            }
-          );
-        })
-      }
-      return currentContext
-    };
-
     if (this.config.stages.length > 0) {
-      const runLegacy: StageRun<T> = (err: Possible<CleanError>, context: T, done: CallbackFunction<T>) => {
+      // Resolve execution mode once at compile-time, not per-call
+      const mode = getCompiledPipelineExecutionMode()
+
+      if (mode !== 'off') {
+        try {
+          const plan = this.getCompiledPlan(rebuild)
+          if (this.shouldUseCompiledPlan(plan)) {
+            // Fast path: bake compiled plan directly into this.run — zero gating overhead per call
+            this.run = (err: Possible<CleanError>, context: T, done: CallbackFunction<T>) => {
+              executeCompiledPlan(plan, err, context, done)
+            }
+            return super.compile(rebuild)
+          }
+        } catch (_error) {
+          // Fall through to legacy if compilation fails
+        }
+      }
+
+      // Legacy path
+      const runAsync = async (
+        initialErr: Possible<CleanError>,
+        context: T,
+      ) => {
+        let currentContext = context;
+        for (let i = 0; i < this.config.stages.length; i++) {
+          const stage = this.config.stages[i];
+          // OPT-8: new Promise avoids withResolvers allocation + .catch() rethrow chain
+          await new Promise<void>((resolve, reject) => {
+            run_or_execute<T>(
+              stage,
+              initialErr,
+              currentContext,
+              (err, ctx) => {
+                if (err) {
+                  reject(err)
+                } else {
+                  if (ctx) currentContext = ctx
+                  resolve()
+                }
+              }
+            );
+          })
+        }
+        return currentContext
+      };
+
+      this.run = (err: Possible<CleanError>, context: T, done: CallbackFunction<T>) => {
         let error = err;
         let ctx = context
         runAsync(err, context)
@@ -234,21 +254,6 @@ export class Pipeline<T extends StageObject> extends Stage<
           .finally(() => {
             done(error, ctx)
           })
-      }
-
-      this.run = (err: Possible<CleanError>, context: T, done: CallbackFunction<T>) => {
-        if (__isCompiledPipelineEnabled()) {
-          try {
-            const compiledPlan = this.getCompiledPlan(rebuild)
-            if (this.shouldUseCompiledPlan(compiledPlan)) {
-              return executeCompiledPlan(compiledPlan, err, context, done)
-            }
-          } catch (_error) {
-            // Fall through to legacy runtime if compilation/execution wiring is not ready.
-          }
-        }
-
-        return runLegacy(err, context, done)
       }
     } else {
       this.run = empty_run

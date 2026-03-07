@@ -106,3 +106,76 @@ Just the Empty Stage. On execute return context to callback.
 ![hierarchy](./pics/stages/Empty/class.png)
 
 More info see [documentation](/docs/index.html)
+
+## Performance
+
+### Compiled Execution (v2.13+)
+
+Pipeline.js includes a compiled executor that optimizes stage dispatch at compile-time
+rather than resolving execution strategy per-call. This is **enabled by default** — no
+configuration needed.
+
+#### How it works
+
+When you call `pipeline.execute(ctx)` (or `pipeline.compile()`), the pipeline analyzes
+its stage graph and produces a compiled execution plan:
+
+- **Compiled-static**: All stages are plain functions or `Stage` instances — the fastest
+  path. The compiled plan is a flat opcode loop with specialized dispatch per function
+  signature (sync/async, 0-3 args, callback style).
+
+- **Compiled-hybrid**: The pipeline contains wrapper stages (`Wrap`, `IfElse`, `Timeout`)
+  that need full Stage lifecycle dispatch. The compiled plan runs static stages through
+  the fast path and falls back to `run_or_execute` for wrapper stages.
+
+Both modes are used by default. The execution mode is resolved once at compile-time and
+baked into the pipeline's `run` function — there is **zero per-call gating overhead**.
+
+Current status note:
+
+- real workload benchmarks justify auto mode for both compiled-static and compiled-hybrid plans
+- synthetic wrapper-heavy microbenchmarks can still regress until more wrapper primitives become compile-native
+- the next roadmap slice targets `IfElse` and `Wrap` specifically to reduce that fallback-boundary cost
+
+#### Cache invalidation
+
+The compiled plan is cached and keyed by an internal graph version. Calling `addStage()`
+automatically invalidates the cache (including parent pipelines). The next `execute()`
+re-compiles transparently.
+
+#### Disabling compiled execution
+
+If you encounter issues, you can disable the compiled executor:
+
+```bash
+# Environment variable escape hatch
+PIPELINE_USE_COMPILED=0 node your-app.js
+```
+
+```js
+// Programmatic (for tests only)
+import { __setCompiledPipelineEnabledForTests } from 'pipeline.js'
+__setCompiledPipelineEnabledForTests(false)
+```
+
+#### Benchmark guidance
+
+The compiled executor shows the most improvement for:
+
+1. **Flat pipelines with many stages** (8+ fn/Stage stages) — 30-50% faster
+2. **Batch workloads** (same pipeline executed 100+ times) — amortized compile cost
+3. **Nested pipelines** — flattened into a single opcode sequence
+
+For short pipelines (2-3 stages) with wrapper-heavy compositions, the improvement is
+smaller since the `execute()` method overhead dominates.
+
+For performance decisions, prefer multi-run medians over single runs. A practical rule is:
+
+- treat improvements as meaningful when median speedup is at least `10%`
+- treat slowdowns above `15%` as regressions unless they are explicitly accepted for a temporary development slice
+
+If your workload is heavily wrapper-driven and latency-sensitive, benchmark both the default mode and the escape hatch during upgrades:
+
+```bash
+PIPELINE_USE_COMPILED=0 node your-app.js
+```
