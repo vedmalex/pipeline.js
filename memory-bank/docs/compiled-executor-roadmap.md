@@ -7,37 +7,43 @@ Analysis based on:
 - `memory-bank/docs/task-009-field-usage-research.md` — field usage evidence
 - Current IR/executor state in `src/compiled/` (TASK-008 + TASK-009 implementation)
 
-## Current State (post TASK-008 + TASK-009)
+## Current State (post TASK-027)
 
 ### What's implemented
 
 | Component | Status |
 |---|---|
-| `RUN_STAGE_FN` (8 signature kinds) | Implemented, specialized dispatch |
-| `RUN_STAGE_INSTANCE` | Implemented, delegates to `run_or_execute` |
-| `RUN_FALLBACK_STAGE` | Implemented, same as INSTANCE |
+| `RUN_STAGE_FN` (8 signature kinds) | Implemented, specialized dispatch, also used by synthetic lowerings |
+| `RUN_STAGE_INSTANCE` | Implemented, now mostly reserved for boundary-bearing `Stage` instances and subclasses |
+| `RUN_FALLBACK_STAGE` | Implemented, used for semantic boundary islands / hybrid fallback |
 | `SET_CTX_FROM_RESULT` | Implemented |
 | `JUMP` | Implemented |
+| `JUMP_IF_TRUE` | Implemented |
+| `PUSH_FRAME` / `POP_FRAME` | Implemented |
+| `RUN_SEQUENTIAL` | Implemented |
+| `RUN_LOOP` | Implemented |
+| `RUN_RETRY` | Implemented |
+| `RUN_TIMEOUT` | Implemented |
+| `RUN_PARALLEL` | Implemented |
 | `RETURN` | Implemented |
 | Flat Pipeline flattening | Implemented |
+| `Empty` native no-op lowering | Implemented (TASK-025) |
+| `MultiWaySwitch` synthetic-runner lowering | Implemented (TASK-026) |
+| Direct plain `Stage` devirtualization | Implemented (TASK-027) |
 | Dependency signature + cache | Implemented |
 | Auto-mode: both static + hybrid | Implemented (TASK-009) |
 | Compile-time gating (zero per-call overhead) | Implemented (TASK-009) |
+| Timeout / Parallel abort delivery + public execute signal | Implemented (TASK-021..023) |
 
-### What's reserved but NOT implemented
+### What's still intentionally future work
 
 | Component | Reserved in | What's missing |
 |---|---|---|
-| `JUMP_IF_TRUE` opcode | `plan.ts` | Executor handler, compiler emission |
-| `PUSH_FRAME` / `POP_FRAME` opcodes | `plan.ts` | Executor handlers |
-| `WRAP` frame | `plan.ts` | Compiler emission, executor finalize logic |
-| `RETRY` frame | `plan.ts` | Compiler emission, executor retry loop |
-| `LOOP` frame | `plan.ts` | Compiler emission, executor iteration |
-| `PARALLEL` frame | `plan.ts` | Compiler emission, executor fan-out/join |
-| `predicates` table | `plan.ts` | Empty, no consumers |
-| `transforms` table | `plan.ts` | Empty, no consumers |
-| `combiners` table | `plan.ts` | Empty, no consumers |
-| `constants` table | `plan.ts` | Empty, no consumers |
+| `CALL_SUBPLAN` / reusable compiled fragments | compiler + executor | Nested compiled subplans without synthetic wrapper runners |
+| Portable serialized plans | plan/runtime contract | Current plan is still an in-memory runtime artifact |
+| True forced cancellation of active work | timeout/parallel future | Only `AbortSignal` delivery exists today |
+| `combiners` table | `plan.ts` | Reserved but still unused directly by the executor |
+| Post-TASK-027 benchmark decision gate | process / benchmarks | Need fresh median-based profiling before adding more compiler complexity |
 
 ---
 
@@ -261,43 +267,119 @@ Hybrid coverage is expected to include the callback/timer edge cases as real fal
 
 ---
 
-## Phase 4 — Future-Forward (architecture-ready, not planned)
+## Phase 3.5 — Semantic Stabilization and Blind-Spot Cleanup
+
+- `TASK-024` stabilized the semantic contract before more devirtualization work:
+  - explicit context mode became the default
+  - `RetryOnError` plain-carrier backup moved to deep snapshots
+  - `MultiWaySwitch` combine folding now uses accumulated context
+  - one-time warning documents non-deterministic async combine order for multi-match MWS
+- `TASK-025` removed the `Empty` blind spot by lowering boundary-free `Empty` to a native no-op
+- `TASK-026` removed the top-level fallback cost for boundary-free `MultiWaySwitch` via a synthetic `RUN_STAGE_FN` runner, preserving current case-selection and combine semantics
+- `TASK-027` devirtualized direct boundary-free `Stage` instances into synthetic `RUN_STAGE_FN` runners while deliberately keeping boundary-bearing stages and subclasses on the old instance path
+
+**Interpretation:** the executor is now materially closer to a "compile what is semantically safe, fallback only for real boundaries" model. The next meaningful step should be driven by fresh benchmark evidence, not by blind opcode growth.
+
+---
+
+## Post-TASK-027 Benchmark Review
+
+Fresh median-based benchmark review was rerun after `TASK-024`..`TASK-027` across the real cluster benches plus the synthetic hybrid lane.
+
+The review was then rerun again after `mb3-critic` feedback with variance-visible reporting (`median`, `min`, `max`, and explicit raw runs for caution lanes) before allowing `TASK-030` planning to continue.
+
+### Result snapshot
+
+- **Cluster A (batch / repeated execution):** compiled runtime improves by about **34.8%** at the representative batch=100 lane; direct compiled remains much faster still.
+- **Cluster B (HTTP / wrapper-heavy short pipelines):** compiled runtime is now materially faster, not merely "non-regressing":
+  - Timeout scenario: about **42.8% faster** than legacy
+  - Wrap scenario: about **53.0% faster** than legacy
+- **Cluster C (CLI / bootstrap):**
+  - warm path improves materially (latest rerun about **37.7%**)
+  - cold single-use path is still slower because compile cost dominates one-shot runs; this is now tracked as a **separate informational metric**, not mixed into the warm-path promotion gate
+- **Synthetic compiled-executor lane:**
+  - compiled-static slope improved to about **0.045 us/stage** vs legacy **0.118 us/stage**
+  - compiled-hybrid slope improved to about **0.058 us/stage** vs legacy **0.331 us/stage**
+  - nested pipeline spot-check is already strongly better than legacy even without reusable compiled subplans
+
+### Caution
+
+- The first review showed a suspicious `Cluster D` regression at 20 items, but the variance-visible rerun did **not** reproduce it; current visible runs favor compiled execution across the measured range.
+- The more credible remaining caution has shifted to **variance / outlier behavior in hybrid synthetic lanes**, where some medians still win clearly but max values show occasional spikes.
+- This means the remaining debt is no longer a broad "compiler blind spot" story; it is now closer to targeted executor optimization, nested-composition attribution, and workload-shape variance analysis.
+
+### Decision
+
+- The benchmark review does **not** justify blind continued opcode growth.
+- It **does** justify opening the next roadmap task for nested compiled subplans / `CALL_SUBPLAN`, but as an evidence-driven investigation task rather than an assumed implementation slam-dunk.
+- Any follow-up task should prove that reusable nested compiled fragments help a real remaining gap more than they increase executor complexity.
+
+### TASK-030 investigation gates
+
+Before `TASK-030` may claim that `CALL_SUBPLAN`-style lowering is the right next step, it must answer all of these:
+
+1. **Bottleneck attribution** — show that the residual gap is really nested-composition overhead, not compile cost, measurement noise, or simpler executor optimization debt.
+2. **Cluster coverage** — keep these decision lanes in scope together:
+   - Cluster C warm path (promotion gate)
+   - Cluster C cold path (informational compile-cost tracking)
+   - Cluster D stability
+   - compiled-executor nested pipeline lane
+   - hybrid synthetic lane with visible variance
+3. **Variance visibility** — benchmark notes must keep median + min/max visible, with raw runs printed for caution lanes.
+4. **Alternative comparison** — compare `CALL_SUBPLAN` against simpler directions first (nested plan caching, runner reuse, or leaving current synthetic-runner lowering in place).
+
+---
+
+## Phase 4 — Future Composition and Profiling
 
 - Delay / backoff primitive
 - Outcome channels (success/error/timeout/fallback routing)
 - Quorum / partial-completion joins
 - Resumable executor state / checkpoints
 - Abortable timeout contract for stages with cancellable external work, split into its own future task once stage-level cancellation exists
+- Current active roadmap work inside this phase:
+  - `TASK-029` completed the benchmark-guided review
+  - `TASK-030` is now the open investigation task for nested compiled subplans / `CALL_SUBPLAN`, with critic-driven benchmark attribution gates
 
 ---
 
 ## Task Mapping
 
-| Order | Phase | Task | Depends on | Primary gate |
+| Order | Phase | Task | Status | Notes |
 |---|---|---|---|---|
-| 1 | Stabilization | TASK-010: CleanError + Error Taxonomy | TASK-008 (done) | explicit error contract + public-safe error code taxonomy |
-| 2 | Phase 1 | TASK-011: Compile-native IfElse + Wrap | TASK-009 (done) | remove wrapper fallback for compile-supported forms without hybrid regression |
-| 3 | Phase 2 | TASK-013: Compile-native Sequential | TASK-011 | cluster-D parity + median improvement on real sequential workloads |
-| 4 | Phase 2 | TASK-012: Compile-native DoWhile + RetryOnError | TASK-010 + TASK-011 | loop/retry frames with error-model parity |
-| 5 | Phase 2 | TASK-014: Timeout boundary + error boundaries | TASK-010 + TASK-012 | explicit compiled catch/retry/fallback semantics |
-| 6 | Phase 3 | TASK-015: Compile-native Parallel MVP | TASK-014 | structured all-settled parallel/join parity |
-| 7 | Phase 2 follow-up | TASK-021: Abort signal contract + timeout delivery | TASK-014 | signal-aware timeout cancellation parity without forced termination |
-| 8 | Phase 3 follow-up | TASK-022: Parallel abort delivery | TASK-021 + TASK-020 | signal-aware early-settlement abort parity for active branches |
-| 9 | Phase 2/3 follow-up | TASK-023: Public execute AbortSignal API | TASK-021 + TASK-022 | root execute cancellation parity across legacy + compiled paths |
+| 1 | Foundation | TASK-008: Compiled Iterative Executor | Completed | Core IR, compiler, executor, cache invalidation |
+| 2 | Foundation | TASK-009: Performance Research + Default Fast Path | Completed | Auto-mode for compiled-static + compiled-hybrid |
+| 3 | Stabilization | TASK-010: CleanError + Error Taxonomy | Completed | Stable public-safe error contract |
+| 4 | Phase 1 | TASK-011: Compile-native IfElse + Wrap | Completed | Removed major wrapper fallback islands |
+| 5 | Phase 2 | TASK-012: Compile-native DoWhile + RetryOnError | Completed | Loop/retry frames landed |
+| 6 | Phase 2 | TASK-013: Compile-native Sequential | Completed | Executor-managed split/iterate/combine |
+| 7 | Phase 2 | TASK-014: Timeout boundary + error boundaries | Completed | Timeout frame + boundary parity hardening |
+| 8 | Phase 3 | TASK-015: Compile-native Parallel MVP | Completed | `RUN_PARALLEL` fan-out/join core |
+| 9 | Phase 3 | TASK-016: Parallel bounded concurrency | Completed | Worker-pool scheduling |
+| 10 | Phase 3 | TASK-017: Parallel join-any | Completed | First-success settlement |
+| 11 | Phase 3 | TASK-018: Parallel quorum MVP | Completed | N-of-M threshold settlement |
+| 12 | Phase 3 | TASK-019: Parallel trailing drain | Completed | `drain-active` semantics |
+| 13 | Phase 3 | TASK-020: Parallel trailing timeout | Completed | Bounded post-threshold drain |
+| 14 | Phase 3 follow-up | TASK-021: Abort signal contract + timeout delivery | Completed | Public context-bound signal delivery |
+| 15 | Phase 3 follow-up | TASK-022: Parallel abort delivery | Completed | Active-child abort notification |
+| 16 | Phase 3 follow-up | TASK-023: Public execute AbortSignal API | Completed | `signal?: AbortSignal` on execute APIs |
+| 17 | Phase 3.5 | TASK-024: Semantic contract stabilization | Completed | Explicit context mode + semantic hardening |
+| 18 | Phase 3.5 | TASK-025: Compile-native Empty lowering | Completed | Native no-op for boundary-free `Empty` |
+| 19 | Phase 3.5 | TASK-026: Compile-native MultiWaySwitch | Completed | Synthetic runner lowering |
+| 20 | Phase 3.5 | TASK-027: Devirtualize plain Stage instances | Completed | Direct boundary-free `Stage` -> `RUN_STAGE_FN` |
+| 21 | Phase 4 | TASK-029: Benchmark-guided roadmap review | Completed | Fresh medians recorded before opening the next compiler slice |
+| 22 | Phase 4 | TASK-030: Nested compiled subplans / CALL_SUBPLAN investigation | Open | Evidence-first investigation, not implementation by assumption |
 
-Abortable timeout cancellation intentionally stays out of TASK-014; schedule it separately only after the public stage contract grows a cancellation signal.
+Abortable timeout cancellation still remains intentionally out of scope until the library grows a stronger stage-level cancellation contract than signal delivery.
 
-## Recommended Task Progression
+## Recommended Next Progression
 
-Follow the tasks in this order:
+The old Phase 1-3 progression is fully executed, and the benchmark decision gate is now closed for the next step:
 
-1. close TASK-010 design first so later control-flow work has a stable error contract
-2. implement TASK-011 to remove the biggest hybrid fallback islands (`IfElse`, `Wrap`)
-3. implement TASK-013 next because field evidence says `Sequential` is high-value and mostly independent of timeout/error-boundary design
-4. implement TASK-012 after TASK-010 is settled, so `RetryOnError` does not guess at future error semantics
-5. implement TASK-014 last in Phase 2, because it depends on both the error model and local frame infrastructure
-
-This order keeps the biggest performance wins early while preventing semantic rework later.
+1. `TASK-029` already reran the benchmark medians after TASK-024..027
+2. `TASK-030` is the next active task: investigate `CALL_SUBPLAN` / nested compiled subplan lowering only after passing the attribution + variance gates above
+3. if `TASK-030` cannot show a meaningful benchmark win over simpler alternatives, stop further compiler growth and keep the remaining instance/fallback paths as intentional semantic boundaries
+4. keep true cancellation as a separate future track; do not mix it into subplan work
 
 ---
 

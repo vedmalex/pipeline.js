@@ -24,6 +24,7 @@ import {
 } from './utils/types'
 
 import { Context, OriginalObject, CurrentStage } from './context'
+import { getContextExecutionMode } from './context_mode'
 import { can_fix_error } from './utils/can_fix_error'
 import { execute_callback } from './utils/execute_callback'
 import { execute_custom_run } from './utils/execute_custom_run'
@@ -39,6 +40,7 @@ import {
   getExecutionSignal,
   getPublicExecutionAbortError,
 } from './execution_signal'
+import { warnOnce } from './utils/warn_once'
 export const StageSymbol = Symbol('stage')
 // make possibility to context be immutable for debug purposes
 export function isStage<
@@ -224,11 +226,32 @@ export class Stage<
     const stageToRun = this.run.bind(this)
 
     const input_is_context = Context.isContext(not_ensured_context)
-    let context = Context.ensure<T>(not_ensured_context)
+    const contextMode = getContextExecutionMode()
+    let context: T
+
+    if (input_is_context) {
+      context = Context.ensure<T>(not_ensured_context)
+    } else if (contextMode === 'explicit') {
+      context = not_ensured_context as T
+    } else {
+      if (contextMode === 'warn') {
+        warnOnce(
+          'context-auto-wrap',
+          '[pipeline.js] Context.ensure() auto-wrap is deprecated for plain objects. If you need fork/getParent/getRoot, call Context.ensure(ctx) before execute(). Plain objects will be passed through without wrapping in a future version.',
+        )
+      }
+
+      context = Context.ensure<T>(not_ensured_context)
+    }
+
     if (input_is_context) {
       ; (context as unknown as Context<T>)[OriginalObject] = true
     }
-    (context as unknown as Context<T>)[CurrentStage] = this
+
+    if (Context.isContext(context)) {
+      ;(context as unknown as Context<T>)[CurrentStage] = this
+    }
+
     const publicExecutionSignal = options?.signal
     const executionSignal = options?.signal ?? getExecutionSignal(context)
 

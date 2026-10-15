@@ -2,6 +2,7 @@ import { Context } from './context'
 import { Stage } from './stage'
 import { isFunction } from './utils/TypeDetectors'
 import { CleanError, createError } from './utils/ErrorList'
+import { createIsolatedStageContext } from './utils/context_snapshot'
 import { run_or_execute } from './utils/run_or_execute'
 import {
   AllowedStage,
@@ -90,7 +91,7 @@ export class RetryOnError<T extends StageObject> extends Stage<
       if (Context.isContext(ctx)) {
         return ctx.fork({})
       } else {
-        return ctx
+        return createIsolatedStageContext(ctx)
       }
     }
   }

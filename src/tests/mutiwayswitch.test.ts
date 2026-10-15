@@ -2,6 +2,7 @@ import { Context } from '../context'
 import { MultiWaySwitch } from '../multiwayswitch'
 import { Pipeline } from '../pipeline'
 import { Stage } from '../stage'
+import { __resetWarnOnceForTests } from '../utils/warn_once'
 
 describe('MWS', function () {
   it('works', function (done) {
@@ -183,6 +184,48 @@ describe('MWS', function () {
         done()
       },
     )
+  })
+
+  it('warns once when multiple matching cases use combine functions', async function () {
+    __resetWarnOnceForTests()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    try {
+      const sw = new MultiWaySwitch({
+        cases: [
+          {
+            evaluate: () => true,
+            split: (ctx) => ({ cnt: ctx.size }),
+            stage: (ctx) => {
+              ctx.cnt += 1
+              return ctx
+            },
+          },
+          {
+            evaluate: () => true,
+            split: (ctx) => ({ cnt: ctx.size }),
+            stage: (ctx) => {
+              ctx.cnt += 2
+              return ctx
+            },
+          },
+        ],
+        combine: (ctx, retCtx) => {
+          ctx.size += retCtx.cnt
+          return ctx
+        },
+      })
+
+      await sw.execute({ size: 1 })
+      await sw.execute({ size: 1 })
+
+      expect(warnSpy).toHaveBeenCalledTimes(1)
+      expect(warnSpy.mock.calls[0][0]).toContain('MultiWaySwitch')
+      expect(warnSpy.mock.calls[0][0]).toContain('async completion order')
+    } finally {
+      warnSpy.mockRestore()
+      __resetWarnOnceForTests()
+    }
   })
 
   it('exception errors for', function (done) {

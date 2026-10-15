@@ -1,0 +1,34 @@
+{"event":"roadmap_created","id":"RM-001","name":"Compiled Executor Evolution","description":"Retroactively registered roadmap for the compiled executor program from TASK-008 through semantic stabilization and blind-spot cleanup, with future composition/profiling left open.","status":"active","phases":["RMP-001","RMP-002","RMP-003","RMP-004"],"ts":"2026-03-08T12:40:00Z"}
+{"event":"roadmap_phase_created","id":"RMP-001","roadmap_id":"RM-001","name":"Core Executor Foundation","description":"Build the compiled executor, error model, native control-flow lowering, and default fast-path policy.","order":1,"status":"pending","tasks":[],"ts":"2026-03-08T12:40:01Z"}
+{"event":"roadmap_phase_created","id":"RMP-002","roadmap_id":"RM-001","name":"Parallel and Cancellation Extensions","description":"Extend the executor with parallel join semantics, abort delivery, and public execute-level signals.","order":2,"status":"pending","tasks":[],"ts":"2026-03-08T12:40:02Z"}
+{"event":"roadmap_phase_created","id":"RMP-003","roadmap_id":"RM-001","name":"Semantic Stabilization and Blind-Spot Cleanup","description":"Stabilize semantics and remove the remaining obvious compiler blind spots without unsafe executor growth.","order":3,"status":"pending","tasks":[],"ts":"2026-03-08T12:40:03Z"}
+{"event":"roadmap_phase_created","id":"RMP-004","roadmap_id":"RM-001","name":"Future Composition and Profiling","description":"Choose the next work based on fresh benchmark medians: nested compiled subplans, profiling, or stop further compiler expansion.","order":4,"status":"pending","tasks":[],"ts":"2026-03-08T12:40:04Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-008","roadmap_id":"RM-001","phase_id":"RMP-001","ts":"2026-03-08T12:40:10Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-009","roadmap_id":"RM-001","phase_id":"RMP-001","ts":"2026-03-08T12:40:11Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-010","roadmap_id":"RM-001","phase_id":"RMP-001","ts":"2026-03-08T12:40:12Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-011","roadmap_id":"RM-001","phase_id":"RMP-001","ts":"2026-03-08T12:40:13Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-012","roadmap_id":"RM-001","phase_id":"RMP-001","ts":"2026-03-08T12:40:14Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-013","roadmap_id":"RM-001","phase_id":"RMP-001","ts":"2026-03-08T12:40:15Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-014","roadmap_id":"RM-001","phase_id":"RMP-001","ts":"2026-03-08T12:40:16Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-015","roadmap_id":"RM-001","phase_id":"RMP-002","ts":"2026-03-08T12:40:17Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-016","roadmap_id":"RM-001","phase_id":"RMP-002","ts":"2026-03-08T12:40:18Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-017","roadmap_id":"RM-001","phase_id":"RMP-002","ts":"2026-03-08T12:40:19Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-018","roadmap_id":"RM-001","phase_id":"RMP-002","ts":"2026-03-08T12:40:20Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-019","roadmap_id":"RM-001","phase_id":"RMP-002","ts":"2026-03-08T12:40:21Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-020","roadmap_id":"RM-001","phase_id":"RMP-002","ts":"2026-03-08T12:40:22Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-021","roadmap_id":"RM-001","phase_id":"RMP-002","ts":"2026-03-08T12:40:23Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-022","roadmap_id":"RM-001","phase_id":"RMP-002","ts":"2026-03-08T12:40:24Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-023","roadmap_id":"RM-001","phase_id":"RMP-002","ts":"2026-03-08T12:40:25Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-024","roadmap_id":"RM-001","phase_id":"RMP-003","ts":"2026-03-08T12:40:26Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-025","roadmap_id":"RM-001","phase_id":"RMP-003","ts":"2026-03-08T12:40:27Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-026","roadmap_id":"RM-001","phase_id":"RMP-003","ts":"2026-03-08T12:40:28Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-027","roadmap_id":"RM-001","phase_id":"RMP-003","ts":"2026-03-08T12:40:29Z"}
+{"event":"roadmap_phase_started","id":"RMP-001","roadmap_id":"RM-001","status":"in_progress","ts":"2026-03-08T12:40:40Z"}
+{"event":"roadmap_phase_completed","id":"RMP-001","roadmap_id":"RM-001","status":"completed","tasks_completed":["TASK-008","TASK-009","TASK-010","TASK-011","TASK-012","TASK-013","TASK-014"],"ts":"2026-03-08T12:40:41Z"}
+{"event":"roadmap_phase_started","id":"RMP-002","roadmap_id":"RM-001","status":"in_progress","ts":"2026-03-08T12:40:42Z"}
+{"event":"roadmap_phase_completed","id":"RMP-002","roadmap_id":"RM-001","status":"completed","tasks_completed":["TASK-015","TASK-016","TASK-017","TASK-018","TASK-019","TASK-020","TASK-021","TASK-022","TASK-023"],"ts":"2026-03-08T12:40:43Z"}
+{"event":"roadmap_phase_started","id":"RMP-003","roadmap_id":"RM-001","status":"in_progress","ts":"2026-03-08T12:40:44Z"}
+{"event":"roadmap_phase_completed","id":"RMP-003","roadmap_id":"RM-001","status":"completed","tasks_completed":["TASK-024","TASK-025","TASK-026","TASK-027"],"ts":"2026-03-08T12:40:45Z"}
+{"event":"roadmap_phase_started","id":"RMP-004","roadmap_id":"RM-001","status":"in_progress","ts":"2026-03-08T13:02:10Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-029","roadmap_id":"RM-001","phase_id":"RMP-004","ts":"2026-03-08T13:02:11Z"}
+{"event":"roadmap_task_linked","task_id":"TASK-030","roadmap_id":"RM-001","phase_id":"RMP-004","ts":"2026-03-08T13:02:12Z"}

@@ -48,6 +48,11 @@ export type Thanable<T> = {
 };
 export declare function is_thenable<T>(inp?: any): inp is Thanable<T>;
 export type Possible<T> = T | undefined | null;
+export type ExecutionOptions = {
+    signal?: AbortSignal;
+};
+export declare function isAbortSignal(inp?: unknown): inp is AbortSignal;
+export declare function isExecutionOptions(inp?: unknown): inp is ExecutionOptions;
 export type SingleStageFunction<T extends StageObject> = Func2Async<T, Possible<CleanError>, Possible<T>> | Func3Sync<void, Possible<CleanError>, Possible<T>, CallbackExternalFunction<T>>;
 export declare function isSingleStageFunction<T extends StageObject>(inp?: any): inp is SingleStageFunction<T>;
 export type RunPipelineFunction<T extends StageObject> = Func3Sync<void, Possible<CleanError>, T, CallbackExternalFunction<T>> | Func2Sync<void, T, CallbackExternalFunction<T>> | Func2Async<T, Possible<CleanError>, T> | Func0Sync<T | Promise<T> | Thanable<T>> | Func1Async<T, T> | Func1Sync<T | Promise<T> | Thanable<T>, T> | Func1Sync<void, CallbackExternalFunction<T>> | Func1Sync<void, T> | Func0Async<T>;
@@ -71,9 +76,16 @@ export interface StageConfig<T extends StageObject> {
 export interface PipelineConfig<T extends StageObject> extends StageConfig<T> {
     stages: Array<AnyStage<T, T> | RunPipelineFunction<T>>;
 }
+export type ParallelJoinMode = 'all' | 'any' | 'quorum';
+export type ParallelTrailingMode = 'ignore' | 'drain-active';
 export interface ParallelConfig<T extends StageObject, R extends StageObject> extends StageConfig<T> {
     stage: AnyStage<R> | RunPipelineFunction<R>;
     split?: Func1Sync<Array<R>, T>;
+    concurrency?: number;
+    join?: ParallelJoinMode;
+    quorum?: number;
+    trailing?: ParallelTrailingMode;
+    trailingTimeout?: number;
     combine?: Func2Sync<T | void, T, Array<R>>;
 }
 export declare function isStageRun<T extends StageObject>(inp: Function): inp is StageRun<T>;

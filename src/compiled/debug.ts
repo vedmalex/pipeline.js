@@ -9,7 +9,11 @@ function formatOp(plan: CompiledPlan<any>, op: PlanOp) {
       return `${op.op} ${op.stageId}`
     case 'RUN_SEQUENTIAL': {
       const data = plan.tables.constants[op.data]
-      return `${op.op} child=${data?.stageFnId ?? '?'} split=${data?.split ? 'yes' : 'no'} combine=${data?.combine ? 'yes' : 'no'}`
+      const child =
+        data?.subplanId !== undefined
+          ? `subplan:${data.subplanId}`
+          : data?.stageFnId ?? '?'
+      return `${op.op} child=${child} split=${data?.split ? 'yes' : 'no'} combine=${data?.combine ? 'yes' : 'no'}`
     }
     case 'RUN_LOOP': {
       const data = plan.tables.constants[op.data]
@@ -27,6 +31,10 @@ function formatOp(plan: CompiledPlan<any>, op: PlanOp) {
     case 'RUN_PARALLEL': {
       const data = plan.tables.constants[op.data]
       return `${op.op} child=${data?.stageFnId ?? '-'} split=${data?.split ? 'yes' : 'no'} combine=${data?.combine ? 'yes' : 'no'} concurrency=${data?.concurrency ?? 'unbounded'} join=${data?.join ?? 'all'} quorum=${data?.quorum ?? '-'} trailing=${data?.trailing ?? 'ignore'} trailingTimeout=${data?.trailingTimeout ?? '-'}`
+    }
+    case 'RUN_MWS': {
+      const data = plan.tables.constants[op.data]
+      return `${op.op} statics=${data?.statics?.length ?? 0} dynamics=${data?.dynamics?.length ?? 0}`
     }
     case 'JUMP':
       return `${op.op} ${op.target}`

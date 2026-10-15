@@ -157,4 +157,36 @@ describe('RetryOnError', function () {
       done()
     })
   })
+
+  it('restores nested plain-object state between retries', function (done) {
+    var iter = 0
+    var snapshots = [] as number[]
+    var st = new RetryOnError({
+      retry: 1,
+      run: function (ctx) {
+        snapshots.push(ctx.state.deep.value)
+        if (iter == 0) {
+          ctx.state.deep.value = 999
+          iter++
+          throw new Error('error')
+        }
+      },
+    })
+
+    st.execute(
+      {
+        state: {
+          deep: {
+            value: 42,
+          },
+        },
+      },
+      function (err, ctx) {
+        expect(err).toBeUndefined()
+        expect(snapshots).toEqual([42, 42])
+        expect(ctx.state.deep.value).toEqual(42)
+        done()
+      },
+    )
+  })
 })

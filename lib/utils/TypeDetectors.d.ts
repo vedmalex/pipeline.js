@@ -25,7 +25,10 @@ export declare class TypeDetectors {
     static validateType(value: any, expectedType: string, paramName?: string): void;
     static hasProperty(obj: any, prop: string): boolean;
     static hasMethod(obj: any, methodName: string): boolean;
+    static isDate(value: any): value is Date;
+    static isTypeError(value: any): value is TypeError;
+    static isBuffer(value: any): value is Buffer;
 }
 export default TypeDetectors;
-export declare const isError: typeof TypeDetectors.isError, isCleanError: typeof TypeDetectors.isCleanError, isPromise: typeof TypeDetectors.isPromise, isThenable: typeof TypeDetectors.isThenable, isFunction: typeof TypeDetectors.isFunction, isAsyncFunction: typeof TypeDetectors.isAsyncFunction, isObject: typeof TypeDetectors.isObject, isPlainObject: typeof TypeDetectors.isPlainObject, isStage: typeof TypeDetectors.isStage, isArray: typeof TypeDetectors.isArray, detectType: typeof TypeDetectors.detectType, validateType: typeof TypeDetectors.validateType, hasProperty: typeof TypeDetectors.hasProperty, hasMethod: typeof TypeDetectors.hasMethod;
+export declare const { isError, isCleanError, isPromise, isThenable, isFunction, isAsyncFunction, isObject, isPlainObject, isStage, isArray, detectType, validateType, hasProperty, hasMethod, isDate, isTypeError, isBuffer, }: typeof TypeDetectors;
 //# sourceMappingURL=TypeDetectors.d.ts.map

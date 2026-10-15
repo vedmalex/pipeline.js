@@ -4,6 +4,11 @@ import {
 } from './compiled/compiler'
 import { executeCompiledPlan } from './compiled/executor'
 import { CompiledPlan } from './compiled/plan'
+import {
+  getContextExecutionMode,
+  setContextExecutionMode,
+  type ContextExecutionMode,
+} from './context_mode'
 import { empty_run } from './utils/empty_run'
 import { CleanError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
@@ -58,6 +63,10 @@ export function __isCompiledPipelineEnabled() {
   return getCompiledPipelineExecutionMode() !== 'off'
 }
 
+export function __getContextModeForTests() {
+  return getContextExecutionMode()
+}
+
 /**
  * it make possible to choose which stage to run according to result of `condition` evaluation
  *  - config as
@@ -80,6 +89,14 @@ export class Pipeline<T extends StageObject> extends Stage<
   protected compiledPlanVersion?: number
   protected compiledDependencySignature?: string
   protected _compiledParents = new Set<Pipeline<any>>()
+
+  static setContextMode(mode: ContextExecutionMode) {
+    setContextExecutionMode(mode)
+  }
+
+  static getContextMode() {
+    return getContextExecutionMode()
+  }
 
   constructor(
     config?:

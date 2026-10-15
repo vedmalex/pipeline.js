@@ -18,6 +18,7 @@ import {
 import { Stage } from '../src/stage'
 import { Timeout } from '../src/timeout'
 import { Wrap } from '../src/wrap'
+import { formatStats, measureStats } from './stats'
 
 type RequestContext = {
   method: string
@@ -87,32 +88,6 @@ function makeTestRequest(): RequestContext {
   }
 }
 
-// --- Measurement utilities ---
-
-function median(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid]
-}
-
-async function measure(fn: () => Promise<void>, iterations: number, warmup: number = 200) {
-  for (let i = 0; i < warmup; i++) await fn()
-
-  const started = performance.now()
-  for (let i = 0; i < iterations; i++) await fn()
-  return ((performance.now() - started) / iterations) * 1000
-}
-
-async function medianMeasure(fn: () => Promise<void>, iterations: number, samples: number = 7) {
-  const runs: number[] = []
-  for (let i = 0; i < samples; i++) {
-    runs.push(await measure(fn, iterations))
-  }
-  return median(runs)
-}
-
 // --- Benchmarks ---
 
 console.log('\n=== Cluster B — HTTP Request Handling Benchmark ===\n')
@@ -126,31 +101,31 @@ const httpPipe = makeHttpHandlerPipeline()
 
 __setCompiledPipelineEnabledForTests(false)
 httpPipe.compile()
-const legacyTimeout = await medianMeasure(async () => {
+const legacyTimeout = await measureStats(async () => {
   await httpPipe.execute(makeTestRequest())
-}, ITERATIONS)
+}, ITERATIONS, { samples: 7, warmup: 200 })
 
 __setCompiledPipelineEnabledForTests(true)
 httpPipe.compile()
-const compiledTimeout = await medianMeasure(async () => {
+const compiledTimeout = await measureStats(async () => {
   await httpPipe.execute(makeTestRequest())
-}, ITERATIONS)
+}, ITERATIONS, { samples: 7, warmup: 200 })
 
 const plan1 = compilePipelinePlan(httpPipe as any)
-const directTimeout = await medianMeasure(async () => {
+const directTimeout = await measureStats(async () => {
   await new Promise<void>((resolve, reject) => {
     executeCompiledPlan(plan1, undefined, makeTestRequest(), (err) => {
       if (err) reject(err)
       else resolve()
     })
   })
-}, ITERATIONS)
+}, ITERATIONS, { samples: 7, warmup: 200 })
 
-const regressionTimeout = ((compiledTimeout - legacyTimeout) / legacyTimeout * 100)
+const regressionTimeout = ((compiledTimeout.median - legacyTimeout.median) / legacyTimeout.median * 100)
 
-console.log(`  Legacy:   ${legacyTimeout.toFixed(2)} µs/request`)
-console.log(`  Compiled: ${compiledTimeout.toFixed(2)} µs/request`)
-console.log(`  Direct:   ${directTimeout.toFixed(2)} µs/request`)
+console.log(`  Legacy:   ${formatStats(legacyTimeout)} µs/request`)
+console.log(`  Compiled: ${formatStats(compiledTimeout)} µs/request`)
+console.log(`  Direct:   ${formatStats(directTimeout)} µs/request`)
 console.log(`  Delta:    ${regressionTimeout >= 0 ? '+' : ''}${regressionTimeout.toFixed(1)}% ${regressionTimeout > 5 ? '(REGRESSION)' : '(OK)'}`)
 console.log(`  Plan mode: ${plan1.mode}`)
 
@@ -161,31 +136,31 @@ const wrapPipe = makeHttpWithWrapPipeline()
 
 __setCompiledPipelineEnabledForTests(false)
 wrapPipe.compile()
-const legacyWrap = await medianMeasure(async () => {
+const legacyWrap = await measureStats(async () => {
   await wrapPipe.execute(makeTestRequest())
-}, ITERATIONS)
+}, ITERATIONS, { samples: 7, warmup: 200 })
 
 __setCompiledPipelineEnabledForTests(true)
 wrapPipe.compile()
-const compiledWrap = await medianMeasure(async () => {
+const compiledWrap = await measureStats(async () => {
   await wrapPipe.execute(makeTestRequest())
-}, ITERATIONS)
+}, ITERATIONS, { samples: 7, warmup: 200 })
 
 const plan2 = compilePipelinePlan(wrapPipe as any)
-const directWrap = await medianMeasure(async () => {
+const directWrap = await measureStats(async () => {
   await new Promise<void>((resolve, reject) => {
     executeCompiledPlan(plan2, undefined, makeTestRequest(), (err) => {
       if (err) reject(err)
       else resolve()
     })
   })
-}, ITERATIONS)
+}, ITERATIONS, { samples: 7, warmup: 200 })
 
-const regressionWrap = ((compiledWrap - legacyWrap) / legacyWrap * 100)
+const regressionWrap = ((compiledWrap.median - legacyWrap.median) / legacyWrap.median * 100)
 
-console.log(`  Legacy:   ${legacyWrap.toFixed(2)} µs/request`)
-console.log(`  Compiled: ${compiledWrap.toFixed(2)} µs/request`)
-console.log(`  Direct:   ${directWrap.toFixed(2)} µs/request`)
+console.log(`  Legacy:   ${formatStats(legacyWrap)} µs/request`)
+console.log(`  Compiled: ${formatStats(compiledWrap)} µs/request`)
+console.log(`  Direct:   ${formatStats(directWrap)} µs/request`)
 console.log(`  Delta:    ${regressionWrap >= 0 ? '+' : ''}${regressionWrap.toFixed(1)}% ${regressionWrap > 5 ? '(REGRESSION)' : '(OK)'}`)
 console.log(`  Plan mode: ${plan2.mode}`)
 

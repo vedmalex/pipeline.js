@@ -1,23 +1,45 @@
 import { DoWhile } from '../dowhile'
+import { Empty } from '../empty'
 import { IfElse } from '../ifelse'
+import { MultiWaySwitch } from '../multiwayswitch'
 import { Parallel } from '../parallel'
 import { RetryOnError } from '../retryonerror'
 import { Sequential } from '../sequential'
+import { Stage } from '../stage'
 import { Timeout } from '../timeout'
 import { Wrap } from '../wrap'
+import { createError } from '../utils/ErrorList'
+import { createCodeError } from '../utils/ErrorList'
+import { normalizeExecutionErrorInput } from '../utils/ErrorList'
+import { can_fix_error } from '../utils/can_fix_error'
+import { execute_callback } from '../utils/execute_callback'
 import { execute_validate } from '../utils/execute_validate'
+import { empty_run } from '../utils/empty_run'
+import { ErrorCode } from '../utils/errors'
 import { run_or_execute } from '../utils/run_or_execute'
+import { isPromise } from '../utils/TypeDetectors'
 import {
+  CallbackExternalFunction,
   CallbackFunction,
   is_async_function,
   isAnyStage,
+  is_thenable,
   RunPipelineFunction,
   StageObject,
   ValidateFunction,
 } from '../utils/types'
-import { executeCompiledPlan } from './executor'
+import {
+  executeCompiledPlan,
+  executeFusedStageFnSequence,
+  executeNativeMultiWaySwitch,
+  type ExecutableMultiWaySwitchData,
+  type ExecutableMultiWaySwitchDynamicCase,
+  type ExecutableMultiWaySwitchStaticCase,
+} from './executor'
 import {
   CompiledPlan,
+  CompiledPredicateFn,
+  CompiledPredicateKind,
   CompiledStageFnKind,
   createPlanTables,
   PlanMetadata,
@@ -32,6 +54,8 @@ type PipelineLike<T extends StageObject> = {
   toString(): string
   reportName?: string
   _graphVersion?: number
+  /** Compiler-accessible hook for nested plan cache reuse. Provided by Pipeline. */
+  getCompiledPlan?: (rebuild: boolean) => CompiledPlan<T>
 }
 
 type RunnerInfo = {
@@ -39,6 +63,14 @@ type RunnerInfo = {
   containsAsyncOps: boolean
   fallbackOps: number
   dependencyParts: string[]
+}
+
+type NormalizedMultiWaySwitchCase = NonNullable<
+  ReturnType<typeof normalizeMultiWaySwitchCase>
+>
+
+type CompiledMultiWaySwitchCase = NormalizedMultiWaySwitchCase & {
+  runner: RunnerInfo
 }
 
 function isPipelineLike<T extends StageObject>(stage: unknown): stage is PipelineLike<T> {
@@ -51,6 +83,32 @@ function isPipelineLike<T extends StageObject>(stage: unknown): stage is Pipelin
 
 function isPlainStageLike<T extends StageObject>(stage: unknown) {
   return isAnyStage(stage) && typeof (stage as any).toString === 'function' && (stage as any).toString() === '[pipeline Stage]'
+}
+
+function hasPlainStageBoundaryFeatures(stage: any) {
+  const config = stage?.config ?? {}
+
+  return Boolean(
+    config.ensure ||
+      config.validate ||
+      config.schema ||
+      config.rescue ||
+      config.compile ||
+      config.precompile,
+  )
+}
+
+function canDevirtualizePlainStage<T extends StageObject>(stage: unknown): stage is Stage<T> {
+  return (
+    stage instanceof Stage &&
+    stage.constructor === Stage &&
+    typeof stage.config?.run === 'function' &&
+    !hasPlainStageBoundaryFeatures(stage)
+  )
+}
+
+function isEmptyStage<T extends StageObject>(stage: unknown): stage is Empty<T> {
+  return stage instanceof Empty
 }
 
 function isIfElseStage<T extends StageObject>(stage: unknown): stage is IfElse<T> {
@@ -81,15 +139,20 @@ function isTimeoutStage<T extends StageObject>(stage: unknown): stage is Timeout
   return stage instanceof Timeout
 }
 
+function isMultiWaySwitchStage<T extends StageObject>(stage: unknown): stage is MultiWaySwitch<T, any> {
+  return stage instanceof MultiWaySwitch
+}
+
 function hasStageBoundaryFeatures(stage: any) {
   const config = stage?.config ?? {}
+  const hasSyntheticEmptyRun = isEmptyStage(stage) && config.run === empty_run
 
   return Boolean(
     config.ensure ||
       config.validate ||
       config.schema ||
       config.rescue ||
-      config.run ||
+      (config.run && !hasSyntheticEmptyRun) ||
       config.compile ||
       config.precompile,
   )
@@ -129,6 +192,16 @@ function addStageFn(
   return stageFnId
 }
 
+function addPredicate(
+  tables: ReturnType<typeof createPlanTables>,
+  predicate: CompiledPredicateFn,
+  kind: CompiledPredicateKind = 'GENERIC',
+) {
+  const predicateId = tables.predicates.push(predicate) - 1
+  tables.predicateKinds[predicateId] = kind
+  return predicateId
+}
+
 function createSyntheticPipeline<T extends StageObject>(stage: unknown): PipelineLike<T> {
   return {
     config: {
@@ -158,6 +231,110 @@ function executeRunnerPromise<T extends StageObject>(
   })
 }
 
+function getNestedPipelinePlan<T extends StageObject>(stage: PipelineLike<T>): CompiledPlan<T> {
+  if (typeof stage.getCompiledPlan === 'function' && !hasStageBoundaryFeatures(stage)) {
+    return stage.getCompiledPlan(false)
+  }
+
+  return compilePipelinePlan(stage)
+}
+
+function getFusableSubplanStageFnIds(plan: CompiledPlan<any>) {
+  if (plan.mode !== 'compiled-static' || plan.metadata.fallbackOps > 0) {
+    return null
+  }
+
+  const stageFnIds: number[] = []
+
+  for (let i = 0; i < plan.ops.length; i++) {
+    const op = plan.ops[i]
+
+    if (op.op === 'RETURN') {
+      return i === plan.ops.length - 1 ? stageFnIds : null
+    }
+
+    if (op.op !== 'RUN_STAGE_FN') {
+      return null
+    }
+
+    const next = plan.ops[i + 1]
+
+    if (!next || next.op !== 'SET_CTX_FROM_RESULT') {
+      return null
+    }
+
+    stageFnIds.push(op.stageFnId)
+    i += 1
+  }
+
+  return null
+}
+
+function isInlineControlFlowSubplan(plan: CompiledPlan<any>) {
+  if (
+    plan.mode !== 'compiled-static'
+    || plan.metadata.fallbackOps > 0
+    || plan.tables.stageInstances.length > 0
+    || plan.tables.subplans.length > 0
+  ) {
+    return false
+  }
+
+  for (let i = 0; i < plan.ops.length; i++) {
+    const op = plan.ops[i]
+
+    if (op.op === 'RETURN') {
+      return i === plan.ops.length - 1
+    }
+
+    switch (op.op) {
+      case 'RUN_STAGE_FN':
+        if (plan.ops[i + 1]?.op !== 'SET_CTX_FROM_RESULT') {
+          return false
+        }
+        i += 1
+        break
+      case 'JUMP':
+      case 'JUMP_IF_TRUE':
+        break
+      default:
+        return false
+    }
+  }
+
+  return false
+}
+
+function createFusedSubplanRunnerInfo(plan: CompiledPlan<any>): RunnerInfo | null {
+  const stageFnIds = getFusableSubplanStageFnIds(plan)
+
+  if (!stageFnIds) {
+    return null
+  }
+
+  const run = ((initialErr: any, initialCtx: any, done: CallbackFunction<any>) => {
+    executeFusedStageFnSequence(plan as any, stageFnIds, initialErr, initialCtx, done as any)
+  }) as RunPipelineFunction<any>
+
+  return {
+    run,
+    containsAsyncOps: plan.metadata.containsAsyncOps,
+    fallbackOps: 0,
+    dependencyParts: [`subplan-fused:${plan.dependencySignature}`],
+  }
+}
+
+function createPlanRunnerInfo(plan: CompiledPlan<any>, dependencyLabel: string): RunnerInfo {
+  return {
+    run: ((err, ctx, done) => {
+      executeCompiledPlan(plan as any, err as any, ctx, done as any)
+    }) as RunPipelineFunction<any>,
+    containsAsyncOps: true,
+    fallbackOps: plan.metadata.fallbackOps,
+    dependencyParts: [`${dependencyLabel}:${plan.dependencySignature}`],
+  }
+}
+
 function createCompiledRunnerInfo(stage: unknown): RunnerInfo {
   if (typeof stage === 'function') {
     return {
@@ -168,16 +345,18 @@ function createCompiledRunnerInfo(stage: unknown): RunnerInfo {
     }
   }
 
+  if (isPipelineLike(stage) && !hasStageBoundaryFeatures(stage)) {
+    const plan = getNestedPipelinePlan(stage)
+    return createFusedSubplanRunnerInfo(plan) ?? createPlanRunnerInfo(plan, 'subplan')
+  }
+
+  if (isMultiWaySwitchStage(stage) && !hasStageBoundaryFeatures(stage)) {
+    return createMultiWaySwitchRunnerInfo(stage)
+  }
+
   if (isAnyStage(stage)) {
     const plan = compilePipelinePlan(createSyntheticPipeline(stage))
-    return {
-      run: ((err, ctx, done) => {
-        executeCompiledPlan(plan as any, err as any, ctx, done as any)
-      }) as RunPipelineFunction<any>,
-      containsAsyncOps: true,
-      fallbackOps: plan.metadata.fallbackOps,
-      dependencyParts: [`subplan:${plan.dependencySignature}`],
-    }
+    return createPlanRunnerInfo(plan, 'subplan')
   }
 
   return {
@@ -188,9 +367,81 @@ function createCompiledRunnerInfo(stage: unknown): RunnerInfo {
   }
 }
 
+function createPlainStageRunnerInfo<T extends StageObject>(stage: Stage<T>): RunnerInfo {
+  const run = stage.config.run as RunPipelineFunction<T>
+  const runCanFixError = can_fix_error({ run })
+
+  const directRun = ((err: any, ctx: T, done: CallbackFunction<T>) => {
+    const normalizedErr = normalizeExecutionErrorInput(err)
+
+    if (normalizedErr && !runCanFixError) {
+      done(normalizedErr, ctx)
+      return
+    }
+
+    execute_callback(normalizedErr, run, ctx, ((runErr, nextCtx) => {
+      if (runErr) {
+        done(createError(runErr), ctx)
+      } else {
+        done(undefined, (nextCtx ?? ctx) as T)
+      }
+    }) as CallbackFunction<T>)
+  }) as RunPipelineFunction<T>
+
+  return {
+    run: directRun,
+    containsAsyncOps: true,
+    fallbackOps: 0,
+    dependencyParts: [
+      `plain-stage:${stage.reportName}:${getGraphVersion(stage)}`,
+      getFunctionSignature(run, 0),
+    ],
+  }
+}
+
 function createIfElsePredicate<T extends StageObject>(
   condition: ValidateFunction<T>,
 ) {
+  if (!is_async_function(condition as any) && condition.length === 1) {
+    return (ctx: T): PredicateResult | Promise<PredicateResult> => {
+      try {
+        const result = (condition as (ctx: T) => unknown)(ctx)
+
+        if (isPromise(result) || is_thenable(result)) {
+          return Promise.resolve(result).then((resolved) => ({
+            value: !!resolved,
+          })).catch((err) => ({
+            value: false,
+            err: err as any,
+          }))
+        }
+
+        if (typeof result === 'boolean') {
+          return result
+            ? { value: true }
+            : {
+                value: false,
+                err: createCodeError(ErrorCode.ERR_INVALID_CONTEXT) as any,
+              }
+        }
+
+        if (result === undefined) {
+          return { value: false }
+        }
+
+        return {
+          value: false,
+          err: result as any,
+        }
+      } catch (err) {
+        return {
+          value: false,
+          err: createError(err as any, ErrorCode.ERR_STAGE_THROW) as any,
+        }
+      }
+    }
+  }
+
   return (ctx: T) => new Promise<PredicateResult>((resolve) => {
     execute_validate(condition, ctx, ((err, result) => {
       resolve({
@@ -199,6 +450,126 @@ function createIfElsePredicate<T extends StageObject>(
       })
     }) as CallbackFunction<boolean>)
   })
+}
+
+function createIfElseBooleanPredicate<T extends StageObject>(
+  condition: ValidateFunction<T>,
+) {
+  return (ctx: T): boolean | Promise<boolean> => {
+    try {
+      const result = (condition as (ctx: T) => unknown)(ctx)
+
+      if (isPromise(result) || is_thenable(result)) {
+        return Promise.resolve(result)
+          .then((resolved) => !!resolved)
+          .catch(() => false)
+      }
+
+      return !!result
+    } catch {
+      return false
+    }
+  }
+}
+
+function isCallbackValidateCondition<T extends StageObject>(
+  condition: ValidateFunction<T>,
+): condition is (ctx: T, callback: CallbackExternalFunction<boolean>) => void {
+  return !is_async_function(condition as any) && condition.length === 2
+}
+
+function getErrBlindSyncBranchFn<T extends StageObject>(
+  child: unknown,
+): ((ctx: T) => unknown) | null | undefined {
+  if (child === undefined || child === null) {
+    return null
+  }
+
+  if (isEmptyStage(child) && !hasStageBoundaryFeatures(child)) {
+    return null
+  }
+
+  if (typeof child === 'function') {
+    if (child.length <= 1 && !is_async_function(child as any)) {
+      return child as (ctx: T) => unknown
+    }
+
+    return undefined
+  }
+
+  if (canDevirtualizePlainStage(child)) {
+    const run = child.config.run as ((ctx: T) => unknown) | undefined
+
+    if (run && run.length <= 1 && !is_async_function(run as any)) {
+      return run
+    }
+  }
+
+  return undefined
+}
+
+function createFusedErrBlindIfElseStageFn<T extends StageObject>(
+  condition: ValidateFunction<T>,
+  success: unknown,
+  failed: unknown,
+): RunPipelineFunction<T> | null {
+  const successBranch = getErrBlindSyncBranchFn<T>(success)
+  const failedBranch = getErrBlindSyncBranchFn<T>(failed)
+
+  if (successBranch === undefined || failedBranch === undefined) {
+    return null
+  }
+
+  const runBranch = (branch: ((ctx: T) => unknown) | null, ctx: T) => {
+    if (!branch) {
+      return ctx
+    }
+
+    return branch(ctx)
+  }
+
+  return ((ctx: T) => {
+    let result: unknown
+
+    try {
+      result = (condition as (ctx: T) => unknown)(ctx)
+    } catch {
+      return runBranch(failedBranch, ctx)
+    }
+
+    if (isPromise(result) || is_thenable(result)) {
+      return Promise.resolve(result)
+        .then((resolved) => runBranch(resolved ? successBranch : failedBranch, ctx))
+        .catch(() => runBranch(failedBranch, ctx))
+    }
+
+    return runBranch(result ? successBranch : failedBranch, ctx)
+  }) as RunPipelineFunction<T>
+}
+
+function isErrBlindIfElseBranch(child: unknown): boolean {
+  if (child === undefined || child === null) {
+    return true
+  }
+
+  if (typeof child === 'function') {
+    return child.length <= 1
+  }
+
+  if (isEmptyStage(child) && !hasStageBoundaryFeatures(child)) {
+    return true
+  }
+
+  if (canDevirtualizePlainStage(child)) {
+    const run = child.config.run as Function | undefined
+    return !!run && run.length <= 1
+  }
+
+  if (isPipelineLike(child) && !hasStageBoundaryFeatures(child)) {
+    return child.config.stages.every((stage) => isErrBlindIfElseBranch(stage))
+  }
+
+  return false
 }
 
 function createSequentialIterationError(
@@ -549,6 +920,154 @@ function createTimeoutRunnerInfo<T extends StageObject>(
   }
 }
 
+function normalizeMultiWaySwitchCase(
+  stage: MultiWaySwitch<any, any>,
+  rawCase: any,
+) {
+  let caseItem = rawCase
+
+  if (typeof caseItem === 'function') {
+    caseItem = {
+      stage: caseItem,
+      evaluate: true,
+    }
+  } else if (isAnyStage(caseItem)) {
+    caseItem = {
+      stage: caseItem,
+      evaluate: true,
+    }
+  }
+
+  if (!caseItem || typeof caseItem !== 'object' || !caseItem.stage) {
+    return null
+  }
+
+  let caseStage = caseItem.stage
+
+  if (!isAnyStage(caseStage) && typeof caseStage === 'object') {
+    caseStage = new Stage(caseStage)
+  }
+
+  const normalized = {
+    ...caseItem,
+    stage: caseStage,
+  }
+
+  if (typeof normalized.split !== 'function') {
+    normalized.split = stage.config.split
+  }
+
+  if (typeof normalized.combine !== 'function') {
+    normalized.combine = stage.config.combine
+  }
+
+  if (!('evaluate' in normalized)) {
+    normalized.evaluate = true
+  }
+
+  return normalized
+}
+
+function buildCompiledMultiWaySwitchCases<T extends StageObject>(
+  stage: MultiWaySwitch<T, any>,
+): CompiledMultiWaySwitchCase[] {
+  return (stage.config.cases ?? [])
+    .map((item) => normalizeMultiWaySwitchCase(stage, item))
+    .filter((item): item is NormalizedMultiWaySwitchCase => item !== null)
+    .map((item) => ({
+      ...item,
+      runner: createCompiledRunnerInfo(item.stage),
+    }))
+}
+
+function appendMultiWaySwitchCaseDependencyParts(
+  caseItem: NormalizedMultiWaySwitchCase,
+  index: number,
+  dependencyParts: string[],
+) {
+  dependencyParts.push(`mws-case:${index}`)
+
+  if (typeof caseItem.evaluate === 'function') {
+    dependencyParts.push(getFunctionSignature(caseItem.evaluate as any, index))
+  } else {
+    dependencyParts.push(`mws-eval:${String(caseItem.evaluate !== false)}`)
+  }
+
+  if (typeof caseItem.split === 'function') {
+    dependencyParts.push(getFunctionSignature(caseItem.split as any, index))
+  }
+
+  if (typeof caseItem.combine === 'function') {
+    dependencyParts.push(getFunctionSignature(caseItem.combine as any, index))
+  }
+}
+
+function createExecutableMultiWaySwitchData(
+  cases: CompiledMultiWaySwitchCase[],
+): ExecutableMultiWaySwitchData {
+  const statics: ExecutableMultiWaySwitchStaticCase[] = []
+  const dynamics: ExecutableMultiWaySwitchDynamicCase[] = []
+
+  for (let i = 0; i < cases.length; i++) {
+    const caseItem = cases[i]
+
+    if (typeof caseItem.evaluate === 'function') {
+      dynamics.push({
+        stage: caseItem.stage,
+        evaluate: caseItem.evaluate as ExecutableMultiWaySwitchDynamicCase['evaluate'],
+        split: caseItem.split,
+        combine: caseItem.combine,
+        run: caseItem.runner.run,
+      })
+      continue
+    }
+
+    if (caseItem.evaluate !== false) {
+      statics.push({
+        stage: caseItem.stage,
+        split: caseItem.split,
+        combine: caseItem.combine,
+        run: caseItem.runner.run,
+      })
+    }
+  }
+
+  return {
+    statics,
+    dynamics,
+  }
+}
+
+function createMultiWaySwitchRunnerInfo<T extends StageObject>(
+  stage: MultiWaySwitch<T, any>,
+): RunnerInfo {
+  const compiledCases = buildCompiledMultiWaySwitchCases(stage)
+  const executableData = createExecutableMultiWaySwitchData(compiledCases)
+
+  const dependencyParts = [`mws:${stage.reportName}:${getGraphVersion(stage)}`]
+  let fallbackOps = 0
+  let containsAsyncOps = false
+
+  for (let i = 0; i < compiledCases.length; i++) {
+    const caseItem = compiledCases[i]
+    appendMultiWaySwitchCaseDependencyParts(caseItem, i, dependencyParts)
+    dependencyParts.push(...caseItem.runner.dependencyParts)
+    fallbackOps += caseItem.runner.fallbackOps
+    containsAsyncOps = containsAsyncOps || caseItem.runner.containsAsyncOps
+  }
+
+  const run = ((initialErr: any, initialCtx: T, done: CallbackFunction<T>) => {
+    executeNativeMultiWaySwitch(initialErr, initialCtx, executableData, done)
+  }) as RunPipelineFunction<any>
+
+  return {
+    run,
+    containsAsyncOps,
+    fallbackOps,
+    dependencyParts,
+  }
+}
+
 function appendDependencySignatureForStage<T extends StageObject>(
   child: unknown,
   dependencyParts: string[],
@@ -657,6 +1176,16 @@ function appendDependencySignatureForStage<T extends StageObject>(
     return
   }
 
+  if (isMultiWaySwitchStage(child) && !hasStageBoundaryFeatures(child)) {
+    dependencyParts.push(...createMultiWaySwitchRunnerInfo(child).dependencyParts)
+    return
+  }
+
+  if (canDevirtualizePlainStage(child)) {
+    dependencyParts.push(...createPlainStageRunnerInfo(child).dependencyParts)
+    return
+  }
+
   if (isPlainStageLike(child)) {
     dependencyParts.push(`stage:${(child as any).reportName ?? 'Stage'}:${getGraphVersion(child)}`)
     return
@@ -701,8 +1230,33 @@ function emitSequentialStage<T extends StageObject>(
   metadata: PlanMetadata,
   dependencyParts: string[],
 ) {
-  const inner = createCompiledRunnerInfo(stage.config.stage)
-  const stageFnId = registerRunnerInfo(inner, tables, metadata, dependencyParts)
+  let stageFnId: number | undefined
+  let fusedPlan: CompiledPlan<any> | undefined
+  let fusedStageFnIds: number[] | undefined
+  let inlineControlPlan: CompiledPlan<any> | undefined
+  let subplanId: number | undefined
+
+  if (isPipelineLike(stage.config.stage) && !hasStageBoundaryFeatures(stage.config.stage)) {
+    const plan = getNestedPipelinePlan(stage.config.stage)
+    metadata.containsAsyncOps = metadata.containsAsyncOps || plan.metadata.containsAsyncOps
+    metadata.containsParallelOps = metadata.containsParallelOps || plan.metadata.containsParallelOps
+    metadata.fallbackOps += plan.metadata.fallbackOps
+    fusedStageFnIds = getFusableSubplanStageFnIds(plan) ?? undefined
+
+    if (fusedStageFnIds) {
+      fusedPlan = plan
+      dependencyParts.push(`subplan-fused-inline:${plan.dependencySignature}`)
+    } else if (isInlineControlFlowSubplan(plan)) {
+      inlineControlPlan = plan
+      dependencyParts.push(`subplan-inline-control:${plan.dependencySignature}`)
+    } else {
+      subplanId = tables.subplans.push(plan) - 1
+      dependencyParts.push(`subplan-inline:${plan.dependencySignature}`)
+    }
+  } else {
+    const inner = createCompiledRunnerInfo(stage.config.stage)
+    stageFnId = registerRunnerInfo(inner, tables, metadata, dependencyParts)
+  }
 
   dependencyParts.push(`sequential:${stage.reportName}:${getGraphVersion(stage)}`)
 
@@ -719,6 +1273,10 @@ function emitSequentialStage<T extends StageObject>(
     reportName: stage.reportName,
     stage: stage.config.stage,
     stageFnId,
+    fusedPlan,
+    fusedStageFnIds,
+    inlineControlPlan,
+    subplanId,
     split: (ctx: any) => stage.split(ctx),
     combine: (ctx: any, children: any[]) => stage.combine(ctx, children),
   }) - 1
@@ -898,6 +1456,77 @@ function emitTimeoutStage<T extends StageObject>(
   ops.push({ op: 'RUN_TIMEOUT', data })
 }
 
+function emitMultiWaySwitchStage<T extends StageObject>(
+  stage: MultiWaySwitch<T, any>,
+  ops: PlanOp[],
+  tables: ReturnType<typeof createPlanTables>,
+  metadata: PlanMetadata,
+  dependencyParts: string[],
+) {
+  const compiledCases = buildCompiledMultiWaySwitchCases(stage)
+  dependencyParts.push(`mws:${stage.reportName}:${getGraphVersion(stage)}`)
+
+  const statics: Array<{
+    stage: unknown
+    stageFnId: number
+    split?: (ctx: any) => any
+    combine?: (ctx: any, retCtx: any) => any
+  }> = []
+  const dynamics: Array<{
+    stage: unknown
+    stageFnId: number
+    evaluate: (ctx: any) => any
+    split?: (ctx: any) => any
+    combine?: (ctx: any, retCtx: any) => any
+  }> = []
+
+  for (let i = 0; i < compiledCases.length; i++) {
+    const caseItem = compiledCases[i]
+    appendMultiWaySwitchCaseDependencyParts(caseItem, i, dependencyParts)
+    const stageFnId = registerRunnerInfo(caseItem.runner, tables, metadata, dependencyParts)
+
+    if (typeof caseItem.evaluate === 'function') {
+      dynamics.push({
+        stage: caseItem.stage,
+        stageFnId,
+        evaluate: caseItem.evaluate,
+        split: caseItem.split,
+        combine: caseItem.combine,
+      })
+    } else if (caseItem.evaluate !== false) {
+      statics.push({
+        stage: caseItem.stage,
+        stageFnId,
+        split: caseItem.split,
+        combine: caseItem.combine,
+      })
+    }
+  }
+
+  const data = tables.constants.push({
+    kind: 'MWS',
+    reportName: stage.reportName,
+    statics,
+    dynamics,
+  }) - 1
+
+  ops.push({ op: 'RUN_MWS', data })
+  ops.push({ op: 'SET_CTX_FROM_RESULT' })
+}
+
+function emitPlainStageFn<T extends StageObject>(
+  stage: Stage<T>,
+  ops: PlanOp[],
+  tables: ReturnType<typeof createPlanTables>,
+  metadata: PlanMetadata,
+  dependencyParts: string[],
+) {
+  const info = createPlainStageRunnerInfo(stage)
+  const stageFnId = registerRunnerInfo(info, tables, metadata, dependencyParts)
+  ops.push({ op: 'RUN_STAGE_FN', stageFnId })
+  ops.push({ op: 'SET_CTX_FROM_RESULT' })
+}
+
 function emitIfElseStage<T extends StageObject>(
   stage: IfElse<T>,
   ops: PlanOp[],
@@ -922,9 +1551,65 @@ function emitIfElseStage<T extends StageObject>(
   }
 
   dependencyParts.push(getFunctionSignature(condition as any, 0))
+  const canSkipScope =
+    !is_async_function(condition as any)
+    && condition.length === 1
+    && isErrBlindIfElseBranch(stage.config.success)
+    && isErrBlindIfElseBranch(stage.config.failed)
+
   metadata.containsAsyncOps = true
 
-  const predicateId = tables.predicates.push(createIfElsePredicate(condition)) - 1
+  if (canSkipScope) {
+    const fusedStageFn = createFusedErrBlindIfElseStageFn(
+      condition,
+      stage.config.success,
+      stage.config.failed,
+    )
+
+    if (fusedStageFn) {
+      if (stage.config.success) {
+        appendDependencySignatureForStage(stage.config.success, dependencyParts)
+      }
+
+      if (stage.config.failed) {
+        appendDependencySignatureForStage(stage.config.failed, dependencyParts)
+      }
+
+      const stageFnId = addStageFn(tables, fusedStageFn)
+      ops.push({ op: 'RUN_STAGE_FN', stageFnId })
+      ops.push({ op: 'SET_CTX_FROM_RESULT' })
+      return
+    }
+  }
+
+  const predicateId = addPredicate(
+    tables,
+    canSkipScope
+      ? createIfElseBooleanPredicate(condition)
+      : isCallbackValidateCondition(condition)
+        ? condition
+        : createIfElsePredicate(condition),
+    canSkipScope ? 'BOOL_CTX_SYNC' : isCallbackValidateCondition(condition) ? 'GENERIC_CALLBACK' : 'GENERIC',
+  )
+
+  if (canSkipScope) {
+    const jumpIndex = ops.length
+    ops.push({ op: 'JUMP_IF_TRUE', predicateId, target: 0 })
+
+    emitStage(stage.config.failed, ops, tables, metadata, dependencyParts, depth + 1)
+
+    const joinJumpIndex = ops.length
+    ops.push({ op: 'JUMP', target: 0 })
+
+    const successStart = ops.length
+    ;(ops[jumpIndex] as Extract<PlanOp, { op: 'JUMP_IF_TRUE' }>).target = successStart
+
+    emitStage(stage.config.success, ops, tables, metadata, dependencyParts, depth + 1)
+
+    const joinTarget = ops.length
+    ;(ops[joinJumpIndex] as Extract<PlanOp, { op: 'JUMP' }>).target = joinTarget
+    return
+  }
 
   ops.push({ op: 'PUSH_FRAME', frameKind: 'SCOPE' })
 
@@ -999,13 +1684,18 @@ function emitStage<T extends StageObject>(
   }
 
   if (isPipelineLike(child)) {
-    metadata.flattenedStages += child.config.stages.length
-    dependencyParts.push(`pipe:${getGraphVersion(child)}:${child.config.stages.length}`)
+    // Only flatten if the nested pipeline has no boundary features (ensure/validate/rescue/etc.)
+    // Otherwise, those boundary features would be silently dropped during flattening.
+    if (!hasStageBoundaryFeatures(child)) {
+      metadata.flattenedStages += child.config.stages.length
+      dependencyParts.push(`pipe:${getGraphVersion(child)}:${child.config.stages.length}`)
 
-    for (let i = 0; i < child.config.stages.length; i++) {
-      emitStage(child.config.stages[i], ops, tables, metadata, dependencyParts, depth + 1)
+      for (let i = 0; i < child.config.stages.length; i++) {
+        emitStage(child.config.stages[i], ops, tables, metadata, dependencyParts, depth + 1)
+      }
+      return
     }
-    return
+    // Fall through to RUN_STAGE_INSTANCE / RUN_FALLBACK_STAGE below
   }
 
   if (isIfElseStage(child) && !hasStageBoundaryFeatures(child)) {
@@ -1040,6 +1730,21 @@ function emitStage<T extends StageObject>(
 
   if (isTimeoutStage(child) && !hasStageBoundaryFeatures(child)) {
     emitTimeoutStage(child, ops, tables, metadata, dependencyParts)
+    return
+  }
+
+  if (isMultiWaySwitchStage(child) && !hasStageBoundaryFeatures(child)) {
+    emitMultiWaySwitchStage(child, ops, tables, metadata, dependencyParts)
+    return
+  }
+
+  if (canDevirtualizePlainStage(child)) {
+    emitPlainStageFn(child, ops, tables, metadata, dependencyParts)
+    return
+  }
+
+  if (isEmptyStage(child) && !hasStageBoundaryFeatures(child)) {
+    dependencyParts.push(`empty:${getGraphVersion(child)}`)
     return
   }
 

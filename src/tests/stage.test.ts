@@ -1,13 +1,22 @@
 import { JSONSchemaType } from 'ajv'
+import { Context } from '../context'
 import { createCodeError } from '../utils/ErrorList'
+import { Pipeline } from '../pipeline'
 import { Stage } from '../stage'
 import { Config } from '../config'
 import { getExecutionSignal } from '../execution_signal'
 import { ErrorCode } from '../utils/errors'
+import { __resetWarnOnceForTests } from '../utils/warn_once'
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 describe('stage', () => {
+  afterEach(() => {
+    Pipeline.setContextMode('explicit')
+    __resetWarnOnceForTests()
+    vi.restoreAllMocks()
+  })
+
   it('throw error', done => {
     let st = new Stage()
     expect.assertions(1)
@@ -391,5 +400,108 @@ describe('stage', () => {
 
     expect(err.code).toBe(ErrorCode.ERR_STAGE_ABORTED)
     expect(ran).toBe(false)
+  })
+
+  it('Pipeline context mode facade updates the current mode', () => {
+    expect(Pipeline.getContextMode()).toBe('explicit')
+
+    Pipeline.setContextMode('warn')
+    expect(Pipeline.getContextMode()).toBe('warn')
+
+    Pipeline.setContextMode('legacy')
+    expect(Pipeline.getContextMode()).toBe('legacy')
+
+    Pipeline.setContextMode('explicit')
+    expect(Pipeline.getContextMode()).toBe('explicit')
+  })
+
+  it('legacy context mode preserves auto-wrap for plain objects', async () => {
+    Pipeline.setContextMode('legacy')
+
+    let seenIsContext: boolean | undefined
+    const stage = new Stage<{ n: number }>({
+      run: (ctx) => {
+        seenIsContext = Context.isContext(ctx)
+        ctx.n += 1
+        return ctx
+      },
+    })
+
+    const result = await stage.execute({ n: 0 })
+
+    expect(seenIsContext).toBe(true)
+    expect(result.n).toBe(1)
+  })
+
+  it('explicit context mode passes plain objects through without Context wrapping', async () => {
+    Pipeline.setContextMode('explicit')
+
+    let seenIsContext: boolean | undefined
+    const stage = new Stage<{ n: number }>({
+      run: (ctx) => {
+        seenIsContext = Context.isContext(ctx)
+        ctx.n += 1
+        return ctx
+      },
+    })
+
+    const result = await stage.execute({ n: 0 })
+
+    expect(seenIsContext).toBe(false)
+    expect(result.n).toBe(1)
+  })
+
+  it('warn context mode auto-wraps plain objects and warns once', async () => {
+    Pipeline.setContextMode('warn')
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const seenStates: boolean[] = []
+    const stage = new Stage<{ n: number }>({
+      run: (ctx) => {
+        seenStates.push(Context.isContext(ctx))
+        ctx.n += 1
+        return ctx
+      },
+    })
+
+    await stage.execute({ n: 0 })
+    await stage.execute({ n: 0 })
+
+    expect(seenStates).toEqual([true, true])
+    expect(warnSpy).toHaveBeenCalledTimes(1)
+    expect(warnSpy.mock.calls[0][0]).toContain('Context.ensure() auto-wrap is deprecated')
+  })
+
+  it('warn context mode does not warn for explicit Context input', async () => {
+    Pipeline.setContextMode('warn')
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const stage = new Stage<{ n: number }>({
+      run: (ctx) => {
+        expect(Context.isContext(ctx)).toBe(true)
+        ctx.n += 1
+        return ctx
+      },
+    })
+
+    const result = await stage.execute(Context.ensure({ n: 0 }) as any)
+
+    expect(warnSpy).not.toHaveBeenCalled()
+    expect(result.n).toBe(1)
+  })
+
+  it('explicit context mode surfaces plain-object fork misuse clearly', async () => {
+    Pipeline.setContextMode('explicit')
+
+    const stage = new Stage<{ n: number }>({
+      run: (ctx) => {
+        return (ctx as any).fork()
+      },
+    })
+
+    const err = await stage.execute({ n: 0 }).catch((error) => error)
+
+    expect(err).toBeInstanceOf(Error)
+    expect(String(err.message ?? err)).toContain('fork')
   })
 })

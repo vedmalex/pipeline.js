@@ -1,0 +1,669 @@
+{
+  "schema": "mb3.workflow-selection/v1",
+  "task_id": "TASK-038",
+  "task_event_id": "",
+  "created_at": "2026-10-08T14:10:31.789Z",
+  "source": "task-create",
+  "selection": {
+    "workflow_id": "coding-workflow",
+    "plugin_stack": [
+      "coding-workflow",
+      "core-workflow",
+      "mb3-runtime"
+    ],
+    "profile": "coding-standard",
+    "complexity_tier": "T4:standard",
+    "qa_level": "T4:standard",
+    "routing_reason_code": "explicit_workflow",
+    "candidate_workflows": [
+      {
+        "workflow_id": "coding-workflow",
+        "score": 1,
+        "confidence": "high"
+      }
+    ],
+    "disabled_workflow_matches": [],
+    "status_visibility": {
+      "show_in_task_status": true,
+      "show_in_project_info": true,
+      "show_diagnostics": false
+    }
+  },
+  "intent": {
+    "input": {
+      "request_text": "Reconcile uncommitted compiled-executor work (MWS lowering, semantic specs, benchmarks)",
+      "explicit_tier": "T4:standard",
+      "project_defaults": {},
+      "available_plugin_ids": [
+        "coding-workflow",
+        "feature-iteration",
+        "curator-telegram",
+        "sm-route-workflow",
+        "consultation-workflow",
+        "gv-lesson-prep",
+        "living-task",
+        "core-workflow",
+        "mb3-runtime",
+        "ops-runbook"
+      ],
+      "routing_hints": []
+    },
+    "selected_workflow_id": "coding-workflow",
+    "selected_plugin_stack": [
+      "coding-workflow",
+      "core-workflow",
+      "mb3-runtime"
+    ],
+    "confidence": "high",
+    "reason_code": "explicit_workflow",
+    "candidates": [
+      {
+        "workflow_id": "coding-workflow",
+        "plugin_id": "coding-workflow",
+        "score": 1,
+        "confidence": "high",
+        "matched_hints": [
+          "explicit_profile",
+          "T4:standard"
+        ],
+        "missing_required_plugins": [],
+        "disabled": false,
+        "diagnostics": []
+      }
+    ],
+    "disabled_matches": [],
+    "task_metadata": {
+      "workflow_id": "coding-workflow",
+      "plugin_stack": [
+        "coding-workflow",
+        "core-workflow",
+        "mb3-runtime"
+      ],
+      "profile": "standard",
+      "complexity_tier": "T4:standard",
+      "routing_reason_code": "explicit_workflow",
+      "candidate_workflows": [
+        {
+          "workflow_id": "coding-workflow",
+          "score": 1,
+          "confidence": "high"
+        }
+      ],
+      "disabled_workflow_matches": [],
+      "status_visibility": {
+        "show_in_task_status": true,
+        "show_in_project_info": true,
+        "show_diagnostics": false
+      }
+    },
+    "diagnostics": []
+  },
+  "selected_stack": [
+    "coding-workflow",
+    "core-workflow",
+    "mb3-runtime"
+  ],
+  "plugin_snapshot_hash": "e9573527d2250a2bab76721d4c95a1de4a96c2f96d40567d70499786f94ee95a",
+  "freshness_watch_paths": [
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/coding-workflow/plugin.json",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/coding-workflow/plugin.json#routes",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/consultation-workflow/plugin.json",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/core-workflow/plugin.json",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/core-workflow/plugin.json#routes",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/curator-telegram/plugin.json",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/feature-iteration/plugin.json",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/gv-lesson-prep/plugin.json",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/living-task/plugin.json",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/mb3-runtime/plugin.json",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/ops-runbook/plugin.json",
+    "/Users/vedmalex/work/agent-skills/plugins/workflow-plugins/sm-route-workflow/plugin.json"
+  ],
+  "diagnostics": [
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.task",
+      "message": "No provider found for capability_id=\"core.cli.task\" referenced in CLI route \"core.cli.task\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.event",
+      "message": "No provider found for capability_id=\"core.cli.event\" referenced in CLI route \"core.cli.event\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.review",
+      "message": "No provider found for capability_id=\"core.cli.review\" referenced in CLI route \"core.cli.review\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.phase",
+      "message": "No provider found for capability_id=\"core.cli.phase\" referenced in CLI route \"core.cli.phase\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.backlog",
+      "message": "No provider found for capability_id=\"core.cli.backlog\" referenced in CLI route \"core.cli.backlog\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.analytics",
+      "message": "No provider found for capability_id=\"core.cli.analytics\" referenced in CLI route \"core.cli.analytics\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.artifact",
+      "message": "No provider found for capability_id=\"core.cli.artifact\" referenced in CLI route \"core.cli.artifact\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.memory",
+      "message": "No provider found for capability_id=\"core.cli.memory\" referenced in CLI route \"core.cli.memory\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.context",
+      "message": "No provider found for capability_id=\"core.cli.context\" referenced in CLI route \"core.cli.context\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.project",
+      "message": "No provider found for capability_id=\"core.cli.project\" referenced in CLI route \"core.cli.project\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.trace",
+      "message": "No provider found for capability_id=\"core.cli.trace\" referenced in CLI route \"core.cli.trace\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.roadmap",
+      "message": "No provider found for capability_id=\"core.cli.roadmap\" referenced in CLI route \"core.cli.roadmap\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.session",
+      "message": "No provider found for capability_id=\"core.cli.session\" referenced in CLI route \"core.cli.session\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.hash-key",
+      "message": "No provider found for capability_id=\"core.cli.hash-key\" referenced in CLI route \"core.cli.hash-key\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.model-routing",
+      "message": "No provider found for capability_id=\"core.cli.model-routing\" referenced in CLI route \"core.cli.model-routing\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.cd",
+      "message": "No provider found for capability_id=\"core.cli.cd\" referenced in CLI route \"core.cli.cd\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.migrate",
+      "message": "No provider found for capability_id=\"core.cli.migrate\" referenced in CLI route \"core.cli.migrate\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.critic",
+      "message": "No provider found for capability_id=\"core.cli.critic\" referenced in CLI route \"core.cli.critic\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.init",
+      "message": "No provider found for capability_id=\"core.cli.init\" referenced in CLI route \"core.cli.init\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "missing_provider",
+      "severity": "error",
+      "target": "core.cli.sync",
+      "message": "No provider found for capability_id=\"core.cli.sync\" referenced in CLI route \"core.cli.sync\".",
+      "plugin_id": "core-workflow"
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "git.lifecycle",
+      "message": "Parity key \"git.lifecycle\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "commit.create",
+      "message": "Parity key \"commit.create\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "task.lifecycle",
+      "message": "Parity key \"task.lifecycle\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "phase.lifecycle",
+      "message": "Parity key \"phase.lifecycle\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "event.log",
+      "message": "Parity key \"event.log\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "artifact.read",
+      "message": "Parity key \"artifact.read\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "roadmap.cascade",
+      "message": "Parity key \"roadmap.cascade\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "trace.task",
+      "message": "Parity key \"trace.task\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "agent.registry",
+      "message": "Parity key \"agent.registry\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "context.show",
+      "message": "Parity key \"context.show\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "project.info",
+      "message": "Parity key \"project.info\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "issue.list",
+      "message": "Parity key \"issue.list\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "session.checkpoint",
+      "message": "Parity key \"session.checkpoint\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "memory.orient",
+      "message": "Parity key \"memory.orient\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "model_routing.plan",
+      "message": "Parity key \"model_routing.plan\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "cd.list",
+      "message": "Parity key \"cd.list\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "migrate.detect",
+      "message": "Parity key \"migrate.detect\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "doctor.remediate",
+      "message": "Parity key \"doctor.remediate\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "gate.waive",
+      "message": "Parity key \"gate.waive\" has an MCP route but no CLI route."
+    },
+    {
+      "code": "symmetry_mismatch",
+      "severity": "error",
+      "target": "plan.consolidate",
+      "message": "Parity key \"plan.consolidate\" has an MCP route but no CLI route."
+    }
+  ],
+  "status_projection": {
+    "selected_workflow_id": "coding-workflow",
+    "selected_plugin_stack": [
+      "coding-workflow",
+      "core-workflow",
+      "mb3-runtime"
+    ],
+    "available_workflows": [
+      "coding-workflow",
+      "feature-iteration",
+      "curator-telegram",
+      "sm-route-workflow",
+      "consultation-workflow",
+      "gv-lesson-prep",
+      "living-task",
+      "core-workflow",
+      "ops-runbook"
+    ],
+    "disabled_workflows": [],
+    "rejected_plugin_ids": [],
+    "routing_reason_code": "explicit_workflow",
+    "confidence": "high",
+    "diagnostics": [
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.task",
+        "message": "No provider found for capability_id=\"core.cli.task\" referenced in CLI route \"core.cli.task\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.event",
+        "message": "No provider found for capability_id=\"core.cli.event\" referenced in CLI route \"core.cli.event\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.review",
+        "message": "No provider found for capability_id=\"core.cli.review\" referenced in CLI route \"core.cli.review\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.phase",
+        "message": "No provider found for capability_id=\"core.cli.phase\" referenced in CLI route \"core.cli.phase\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.backlog",
+        "message": "No provider found for capability_id=\"core.cli.backlog\" referenced in CLI route \"core.cli.backlog\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.analytics",
+        "message": "No provider found for capability_id=\"core.cli.analytics\" referenced in CLI route \"core.cli.analytics\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.artifact",
+        "message": "No provider found for capability_id=\"core.cli.artifact\" referenced in CLI route \"core.cli.artifact\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.memory",
+        "message": "No provider found for capability_id=\"core.cli.memory\" referenced in CLI route \"core.cli.memory\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.context",
+        "message": "No provider found for capability_id=\"core.cli.context\" referenced in CLI route \"core.cli.context\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.project",
+        "message": "No provider found for capability_id=\"core.cli.project\" referenced in CLI route \"core.cli.project\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.trace",
+        "message": "No provider found for capability_id=\"core.cli.trace\" referenced in CLI route \"core.cli.trace\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.roadmap",
+        "message": "No provider found for capability_id=\"core.cli.roadmap\" referenced in CLI route \"core.cli.roadmap\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.session",
+        "message": "No provider found for capability_id=\"core.cli.session\" referenced in CLI route \"core.cli.session\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.hash-key",
+        "message": "No provider found for capability_id=\"core.cli.hash-key\" referenced in CLI route \"core.cli.hash-key\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.model-routing",
+        "message": "No provider found for capability_id=\"core.cli.model-routing\" referenced in CLI route \"core.cli.model-routing\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.cd",
+        "message": "No provider found for capability_id=\"core.cli.cd\" referenced in CLI route \"core.cli.cd\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.migrate",
+        "message": "No provider found for capability_id=\"core.cli.migrate\" referenced in CLI route \"core.cli.migrate\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.critic",
+        "message": "No provider found for capability_id=\"core.cli.critic\" referenced in CLI route \"core.cli.critic\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.init",
+        "message": "No provider found for capability_id=\"core.cli.init\" referenced in CLI route \"core.cli.init\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "missing_provider",
+        "severity": "error",
+        "target": "core.cli.sync",
+        "message": "No provider found for capability_id=\"core.cli.sync\" referenced in CLI route \"core.cli.sync\".",
+        "plugin_id": "core-workflow"
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "git.lifecycle",
+        "message": "Parity key \"git.lifecycle\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "commit.create",
+        "message": "Parity key \"commit.create\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "task.lifecycle",
+        "message": "Parity key \"task.lifecycle\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "phase.lifecycle",
+        "message": "Parity key \"phase.lifecycle\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "event.log",
+        "message": "Parity key \"event.log\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "artifact.read",
+        "message": "Parity key \"artifact.read\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "roadmap.cascade",
+        "message": "Parity key \"roadmap.cascade\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "trace.task",
+        "message": "Parity key \"trace.task\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "agent.registry",
+        "message": "Parity key \"agent.registry\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "context.show",
+        "message": "Parity key \"context.show\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "project.info",
+        "message": "Parity key \"project.info\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "issue.list",
+        "message": "Parity key \"issue.list\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "session.checkpoint",
+        "message": "Parity key \"session.checkpoint\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "memory.orient",
+        "message": "Parity key \"memory.orient\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "model_routing.plan",
+        "message": "Parity key \"model_routing.plan\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "cd.list",
+        "message": "Parity key \"cd.list\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "migrate.detect",
+        "message": "Parity key \"migrate.detect\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "doctor.remediate",
+        "message": "Parity key \"doctor.remediate\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "gate.waive",
+        "message": "Parity key \"gate.waive\" has an MCP route but no CLI route."
+      },
+      {
+        "code": "symmetry_mismatch",
+        "severity": "error",
+        "target": "plan.consolidate",
+        "message": "Parity key \"plan.consolidate\" has an MCP route but no CLI route."
+      }
+    ],
+    "freshness_state": "fresh"
+  }
+}

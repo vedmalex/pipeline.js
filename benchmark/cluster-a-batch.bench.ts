@@ -16,6 +16,7 @@ import {
   Pipeline,
 } from '../src/pipeline'
 import { Stage } from '../src/stage'
+import { formatStats, measureStats, scaleStats, type BenchStats } from './stats'
 
 type SchemaContext = {
   tables: string[]
@@ -76,32 +77,6 @@ function makeTestContext(): SchemaContext {
   }
 }
 
-// --- Measurement utilities ---
-
-function median(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid]
-}
-
-async function measure(fn: () => Promise<void>, iterations: number, warmup: number = 100) {
-  for (let i = 0; i < warmup; i++) await fn()
-
-  const started = performance.now()
-  for (let i = 0; i < iterations; i++) await fn()
-  return ((performance.now() - started) / iterations) * 1000
-}
-
-async function medianMeasure(fn: () => Promise<void>, iterations: number, samples: number = 5) {
-  const runs: number[] = []
-  for (let i = 0; i < samples; i++) {
-    runs.push(await measure(fn, iterations))
-  }
-  return median(runs)
-}
-
 // --- Benchmarks ---
 
 const BATCH_SIZES = [1, 10, 100]
@@ -115,8 +90,8 @@ console.log('── Batch execution scaling (N iterations of same pipeline) ─�
 console.log(`${'batch'.padStart(6)} | ${'legacy'.padStart(10)} µs/exec | ${'compiled'.padStart(10)} µs/exec | ${'direct'.padStart(10)} µs/exec | ${'improvement'.padStart(12)}`)
 console.log('-'.repeat(75))
 
-const legacyResults: number[] = []
-const compiledResults: number[] = []
+const legacyResults: BenchStats[] = []
+const compiledResults: BenchStats[] = []
 
 for (const batchSize of BATCH_SIZES) {
   const iterations = Math.max(50, Math.floor(500 / batchSize))
@@ -125,26 +100,24 @@ for (const batchSize of BATCH_SIZES) {
   __setCompiledPipelineEnabledForTests(false)
   // Force recompile in legacy mode
   pipe.compile()
-  const legacy = await medianMeasure(async () => {
+  const legacy = scaleStats(await measureStats(async () => {
     for (let i = 0; i < batchSize; i++) {
       await pipe.execute(makeTestContext())
     }
-  }, iterations)
-  const legacyPerExec = legacy / batchSize
+  }, iterations, { samples: 5, warmup: 100 }), batchSize)
 
   // Runtime-compiled (through pipeline.execute)
   __setCompiledPipelineEnabledForTests(true)
   pipe.compile()
-  const compiled = await medianMeasure(async () => {
+  const compiled = scaleStats(await measureStats(async () => {
     for (let i = 0; i < batchSize; i++) {
       await pipe.execute(makeTestContext())
     }
-  }, iterations)
-  const compiledPerExec = compiled / batchSize
+  }, iterations, { samples: 5, warmup: 100 }), batchSize)
 
   // Direct-compiled (bypass pipeline.execute overhead)
   const plan = compilePipelinePlan(pipe as any)
-  const direct = await medianMeasure(async () => {
+  const direct = scaleStats(await measureStats(async () => {
     for (let i = 0; i < batchSize; i++) {
       await new Promise<void>((resolve, reject) => {
         executeCompiledPlan(plan, undefined, makeTestContext(), (err) => {
@@ -153,17 +126,16 @@ for (const batchSize of BATCH_SIZES) {
         })
       })
     }
-  }, iterations)
-  const directPerExec = direct / batchSize
+  }, iterations, { samples: 5, warmup: 100 }), batchSize)
 
-  legacyResults.push(legacyPerExec)
-  compiledResults.push(compiledPerExec)
+  legacyResults.push(legacy)
+  compiledResults.push(compiled)
 
-  const improvement = ((legacyPerExec - compiledPerExec) / legacyPerExec * 100).toFixed(1)
-  const directImprovement = ((legacyPerExec - directPerExec) / legacyPerExec * 100).toFixed(1)
+  const improvement = ((legacy.median - compiled.median) / legacy.median * 100).toFixed(1)
+  const directImprovement = ((legacy.median - direct.median) / legacy.median * 100).toFixed(1)
 
   console.log(
-    `${String(batchSize).padStart(6)} | ${legacyPerExec.toFixed(2).padStart(10)} | ${compiledPerExec.toFixed(2).padStart(10)} | ${directPerExec.toFixed(2).padStart(10)} | ${improvement.padStart(5)}% / ${directImprovement.padStart(5)}%`
+    `${String(batchSize).padStart(6)} | ${formatStats(legacy).padStart(18)} | ${formatStats(compiled).padStart(18)} | ${formatStats(direct).padStart(18)} | ${improvement.padStart(5)}% / ${directImprovement.padStart(5)}%`
   )
 }
 
@@ -172,9 +144,9 @@ console.log('\n── Success criterion: ≥15% improvement at batch scale ─�
 // Use the batch=100 result which best represents repeated execution
 const legacyAt100 = legacyResults[legacyResults.length - 1]
 const compiledAt100 = compiledResults[compiledResults.length - 1]
-const pctImprovement = ((legacyAt100 - compiledAt100) / legacyAt100 * 100)
-console.log(`  Legacy per-exec (batch=100):   ${legacyAt100.toFixed(2)} µs`)
-console.log(`  Compiled per-exec (batch=100): ${compiledAt100.toFixed(2)} µs`)
+const pctImprovement = ((legacyAt100.median - compiledAt100.median) / legacyAt100.median * 100)
+console.log(`  Legacy per-exec (batch=100):   ${formatStats(legacyAt100)} µs`)
+console.log(`  Compiled per-exec (batch=100): ${formatStats(compiledAt100)} µs`)
 console.log(`  Improvement:    ${pctImprovement.toFixed(1)}%`)
 console.log(`  PASS: ${pctImprovement >= 15 ? 'YES ✓' : 'NO ✗'}`)
 

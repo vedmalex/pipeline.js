@@ -5,6 +5,7 @@ import {
   Possible,
   RunPipelineFunction,
   StageObject,
+  ValidateFunction,
 } from '../utils/types'
 
 export type CompiledPlanMode = 'compiled-static' | 'compiled-hybrid'
@@ -20,7 +21,11 @@ export type SequentialPlanData = {
   kind: 'SEQUENTIAL'
   reportName: string
   stage: unknown
-  stageFnId: number
+  stageFnId?: number
+  fusedPlan?: CompiledPlan<any>
+  fusedStageFnIds?: number[]
+  inlineControlPlan?: CompiledPlan<any>
+  subplanId?: number
   split: (ctx: any) => any[]
   combine: (ctx: any, children: any[]) => any
 }
@@ -69,12 +74,32 @@ export type ParallelPlanData = {
   combine: (ctx: any, children: any[]) => any
 }
 
+export type MultiWaySwitchStaticPlanCaseData = {
+  stage: unknown
+  stageFnId: number
+  split?: (ctx: any) => any
+  combine?: (ctx: any, retCtx: any) => any
+}
+
+export type MultiWaySwitchDynamicPlanCaseData =
+  MultiWaySwitchStaticPlanCaseData & {
+    evaluate: (ctx: any) => any
+  }
+
+export type MultiWaySwitchPlanData = {
+  kind: 'MWS'
+  reportName: string
+  statics: MultiWaySwitchStaticPlanCaseData[]
+  dynamics: MultiWaySwitchDynamicPlanCaseData[]
+}
+
 export type PrimitivePlanData =
   | SequentialPlanData
   | LoopPlanData
   | RetryPlanData
   | TimeoutPlanData
   | ParallelPlanData
+  | MultiWaySwitchPlanData
 
 export type CompiledStageFnKind =
   | 'FN0_SYNC'
@@ -86,6 +111,18 @@ export type CompiledStageFnKind =
   | 'FN3_CALLBACK'
   | 'GENERIC'
 
+export type CompiledPredicateKind =
+  | 'BOOL_CTX_SYNC'
+  | 'GENERIC_CALLBACK'
+  | 'GENERIC'
+
+export type CompiledPredicateFn =
+  | ((
+      ctx: any,
+      err?: Possible<CleanError>,
+    ) => boolean | PredicateResult | Promise<boolean | PredicateResult>)
+  | ValidateFunction<any>
+
 export type PlanOp =
   | { op: 'RUN_STAGE_FN'; stageFnId: number }
   | { op: 'RUN_STAGE_INSTANCE'; stageId: number }
@@ -95,6 +132,7 @@ export type PlanOp =
   | { op: 'RUN_RETRY'; data: number }
   | { op: 'RUN_TIMEOUT'; data: number }
   | { op: 'RUN_PARALLEL'; data: number }
+  | { op: 'RUN_MWS'; data: number }
   | { op: 'SET_CTX_FROM_RESULT' }
   | { op: 'JUMP'; target: number }
   | { op: 'JUMP_IF_TRUE'; predicateId: number; target: number }
@@ -106,10 +144,9 @@ export type PlanTables = {
   stageFns: Array<RunPipelineFunction<any>>
   stageFnKinds: CompiledStageFnKind[]
   stageInstances: Array<AnyStage<any>>
-  predicates: Array<(
-    ctx: any,
-    err?: Possible<CleanError>,
-  ) => PredicateResult | Promise<PredicateResult>>
+  subplans: Array<CompiledPlan<any>>
+  predicates: CompiledPredicateFn[]
+  predicateKinds: CompiledPredicateKind[]
   transforms: Array<(ctx: any, retCtx?: any) => any>
   combiners: Array<(...args: any[]) => any>
   constants: any[]
@@ -141,6 +178,15 @@ export type Frame =
   | { kind: 'ROOT' }
   | { kind: 'SCOPE'; inputErr: Possible<CleanError> }
   | { kind: 'WRAP'; finalizeId: number; originalCtx: any }
+  | {
+      kind: 'SUBPLAN_RETURN'
+      parentPlan: CompiledPlan<any>
+      parentPc: number
+      parentInputErr: Possible<CleanError>
+      sequentialFrameIndex: number
+      childIndex: number
+      childCtx: any
+    }
   | {
       kind: 'SEQUENTIAL'
       data: SequentialPlanData
@@ -212,7 +258,9 @@ export function createPlanTables(): PlanTables {
     stageFns: [],
     stageFnKinds: [],
     stageInstances: [],
+    subplans: [],
     predicates: [],
+    predicateKinds: [],
     transforms: [],
     combiners: [],
     constants: [],

@@ -2,6 +2,7 @@ import { Stage } from './stage'
 import { isFunction } from './utils/TypeDetectors'
 import { CleanError, createError } from './utils/ErrorList'
 import { run_or_execute } from './utils/run_or_execute'
+import { warnOnce } from './utils/warn_once'
 import { isAnyStage } from './utils/types'
 import {
   AllowedStage,
@@ -264,6 +265,16 @@ export class MultiWaySwitch<
         return done(initialErr, initialCtx);
       }
 
+      if (
+        actuals.length > 1 &&
+        actuals.some((item) => typeof item.combine === 'function')
+      ) {
+        warnOnce(
+          'mws-multi-combine-order',
+          '[pipeline.js] MultiWaySwitch: multiple matching cases with combine functions are folded in async completion order. Make combine commutative or use Sequential if order matters.',
+        )
+      }
+
       let resultContext: Possible<T> = null;
 
       try {
@@ -290,8 +301,10 @@ export class MultiWaySwitch<
                   }
                 }))
               } else {
-                // TODO: ?? контекст может быть сильно изменен !!
-                resultContext = this.combineCase(stg, initialCtx, retCtx as any);
+                // Fold combine results: each combine sees the accumulated result,
+                // not the original context. This avoids last-writer-wins when
+                // multiple cases provide custom combine functions.
+                resultContext = this.combineCase(stg, resultContext ?? initialCtx, retCtx as any);
                 resolve();
               }
             }

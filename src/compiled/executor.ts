@@ -3,25 +3,46 @@ import {
   createLinkedAbortController,
   getExecutionSignal,
 } from '../execution_signal'
-import { createCodeError, createError } from '../utils/ErrorList'
+import { type CleanError, createCodeError, createError } from '../utils/ErrorList'
 import { commitIsolatedStageContext, createIsolatedStageContext } from '../utils/context_snapshot'
 import { ErrorCode, ErrorMessage, type ErrorCodeType } from '../utils/errors'
+import { execute_validate } from '../utils/execute_validate'
 import { isPromise } from '../utils/TypeDetectors'
 import { process_error } from '../utils/process_error'
 import { run_or_execute } from '../utils/run_or_execute'
 import { run_callback_once } from '../utils/run_callback_once'
-import { CallbackFunction, is_thenable, Possible, StageObject } from '../utils/types'
+import { warnOnce } from '../utils/warn_once'
+import { CallbackExternalFunction, CallbackFunction, is_thenable, Possible, RunPipelineFunction, StageObject, ValidateFunction } from '../utils/types'
 import {
   CompiledPlan,
+  CompiledPredicateKind,
   ExecutionState,
   Frame,
   LoopPlanData,
+  MultiWaySwitchPlanData,
   ParallelPlanData,
   PredicateResult,
   RetryPlanData,
   SequentialPlanData,
   TimeoutPlanData,
 } from './plan'
+
+export type ExecutableMultiWaySwitchStaticCase = {
+  stage: unknown
+  split?: (ctx: any) => any
+  combine?: (ctx: any, retCtx: any) => any
+  run: RunPipelineFunction<any>
+}
+
+export type ExecutableMultiWaySwitchDynamicCase =
+  ExecutableMultiWaySwitchStaticCase & {
+    evaluate: (ctx: any) => any
+  }
+
+export type ExecutableMultiWaySwitchData = {
+  statics: ExecutableMultiWaySwitchStaticCase[]
+  dynamics: ExecutableMultiWaySwitchDynamicCase[]
+}
 
 function createExecutionState<T extends StageObject>(
   plan: CompiledPlan<T>,
@@ -58,6 +79,12 @@ function removeFrame<T extends StageObject>(state: ExecutionState<T>, frame: Fra
 
 function unwindFramesOnError<T extends StageObject>(state: ExecutionState<T>) {
   while (state.frameStack.length > 1) {
+    const top = state.frameStack[state.frameStack.length - 1]
+
+    if (top?.kind === 'SUBPLAN_RETURN') {
+      return
+    }
+
     const frame = state.frameStack.pop()
 
     if (!frame) {
@@ -174,7 +201,7 @@ function failPrimitive<T extends StageObject>(
   failState(state, error, code)
 }
 
-function invokeStageFn<T extends StageObject>(
+export function invokeStageFn<T extends StageObject>(
   plan: CompiledPlan<T>,
   stageFnId: number,
   inputErr: Possible<Error>,
@@ -185,20 +212,37 @@ function invokeStageFn<T extends StageObject>(
   const run = plan.tables.stageFns[stageFnId]
   const kind = plan.tables.stageFnKinds[stageFnId] ?? 'GENERIC'
   const effectiveSignal = signal ?? getExecutionSignal(context)
+
+  if (!effectiveSignal) {
+    invokeStageFnDispatch(run, kind, inputErr, context, done, undefined)
+    return
+  }
+
   const cleanup = bindExecutionSignal(context, effectiveSignal)
   const finish = ((err?: Possible<Error>, ctx?: T) => {
     cleanup()
     done(err as any, ctx)
   }) as CallbackFunction<T>
 
+  invokeStageFnDispatch(run, kind, inputErr, context, finish, effectiveSignal)
+}
+
+function invokeStageFnDispatch<T extends StageObject>(
+  run: any,
+  kind: string,
+  inputErr: Possible<Error>,
+  context: T,
+  done: CallbackFunction<T>,
+  signal?: AbortSignal,
+) {
   switch (kind) {
     case 'FN0_ASYNC': {
       try {
         ;(run as () => Promise<T>).call(context)
-          .then(res => finish(undefined, (res ?? context) as T))
-          .catch(err => finish(err))
+          .then(res => done(undefined, (res ?? context) as T))
+          .catch(err => done(err))
       } catch (err) {
-        process_error(err, finish)
+        process_error(err, done)
       }
       return
     }
@@ -208,13 +252,13 @@ function invokeStageFn<T extends StageObject>(
         const res = (run as () => unknown).call(context)
         if (isPromise(res) || is_thenable(res)) {
           res
-            .then(value => finish(undefined, (value ?? context) as T))
-            .catch(err => finish(err))
+            .then(value => done(undefined, (value ?? context) as T))
+            .catch(err => done(err))
         } else {
-          finish(undefined, (res ?? context) as T)
+          done(undefined, (res ?? context) as T)
         }
       } catch (err) {
-        process_error(err, finish)
+        process_error(err, done)
       }
       return
     }
@@ -222,10 +266,10 @@ function invokeStageFn<T extends StageObject>(
     case 'FN1_ASYNC': {
       try {
         ;(run as (ctx: T) => Promise<T>)(context)
-          .then(ctx => finish(undefined, ctx))
-          .catch(err => finish(err))
+          .then(ctx => done(undefined, ctx))
+          .catch(err => done(err))
       } catch (err) {
-        process_error(err, finish)
+        process_error(err, done)
       }
       return
     }
@@ -234,12 +278,12 @@ function invokeStageFn<T extends StageObject>(
       try {
         const res = (run as (ctx: T) => unknown)(context)
         if (isPromise(res) || is_thenable(res)) {
-          res.then(value => finish(undefined, value as T)).catch(err => finish(err))
+          res.then(value => done(undefined, value as T)).catch(err => done(err))
         } else {
-          finish(undefined, res as T)
+          done(undefined, res as T)
         }
       } catch (err) {
-        process_error(err, finish)
+        process_error(err, done)
       }
       return
     }
@@ -247,10 +291,10 @@ function invokeStageFn<T extends StageObject>(
     case 'FN2_ASYNC': {
       try {
         ;(run as (err: Possible<Error>, ctx: T) => Promise<T>)(inputErr, context)
-          .then(ctx => finish(undefined, ctx))
-          .catch(err => finish(err))
+          .then(ctx => done(undefined, ctx))
+          .catch(err => done(err))
       } catch (err) {
-        process_error(err, finish)
+        process_error(err, done)
       }
       return
     }
@@ -259,7 +303,7 @@ function invokeStageFn<T extends StageObject>(
       let callbackCalled = false
       const callback = run_callback_once(((err, ctx) => {
         callbackCalled = true
-        finish(err, ctx)
+        done(err, ctx)
       }) as CallbackFunction<T>)
       try {
         ;(run as (ctx: T, done: CallbackFunction<T>) => void)(context, callback)
@@ -275,7 +319,7 @@ function invokeStageFn<T extends StageObject>(
       let callbackCalled = false
       const callback = run_callback_once(((err, ctx) => {
         callbackCalled = true
-        finish(err, ctx)
+        done(err, ctx)
       }) as CallbackFunction<T>)
       try {
         ;(run as (err: Possible<Error>, ctx: T, done: CallbackFunction<T>) => void)(
@@ -293,8 +337,81 @@ function invokeStageFn<T extends StageObject>(
 
     case 'GENERIC':
     default:
-      run_or_execute(run as any, inputErr as any, context, finish, effectiveSignal)
+      run_or_execute(run as any, inputErr as any, context, done, signal)
   }
+}
+
+export function executeFusedStageFnSequence<T extends StageObject>(
+  plan: CompiledPlan<T>,
+  stageFnIds: number[],
+  inputErr: Possible<CleanError>,
+  initialCtx: T,
+  done: CallbackFunction<T>,
+) {
+  let currentCtx = initialCtx
+  let index = 0
+  let completed = false
+
+  const finish = (err?: Possible<CleanError>, ctx?: T) => {
+    if (completed) {
+      return
+    }
+
+    completed = true
+    done(err as any, ctx)
+  }
+
+  const advance = () => {
+    while (!completed && index < stageFnIds.length) {
+      const stageFnId = stageFnIds[index]
+      let sync = true
+      let settledSync = false
+      let syncErr: Possible<CleanError>
+      let syncCtx: T | undefined
+
+      invokeStageFn(plan, stageFnId, inputErr, currentCtx, ((err, ctx) => {
+        if (completed) {
+          return
+        }
+
+        if (sync) {
+          settledSync = true
+          syncErr = err
+          syncCtx = ctx
+          return
+        }
+
+        if (err) {
+          finish(err, currentCtx)
+          return
+        }
+
+        currentCtx = (ctx ?? currentCtx) as T
+        index += 1
+        advance()
+      }) as CallbackFunction<T>)
+
+      sync = false
+
+      if (!settledSync) {
+        return
+      }
+
+      if (syncErr) {
+        finish(syncErr, currentCtx)
+        return
+      }
+
+      currentCtx = (syncCtx ?? currentCtx) as T
+      index += 1
+    }
+
+    if (!completed) {
+      finish(undefined, currentCtx)
+    }
+  }
+
+  advance()
 }
 
 function runWithStage<T extends StageObject>(
@@ -347,6 +464,264 @@ function completeOp<T extends StageObject>(
   }
 }
 
+function wrapMultiWaySwitchCaseError(
+  actuals: Array<ExecutableMultiWaySwitchStaticCase | ExecutableMultiWaySwitchDynamicCase>,
+  index: number,
+  err: unknown,
+  ctx: unknown,
+) {
+  return new Error('mws - error', {
+    cause: {
+      err,
+      ctx,
+      actuals,
+      index,
+    },
+  })
+}
+
+function runSingleMultiWaySwitchCase<T extends StageObject>(
+  initialErr: Possible<CleanError>,
+  initialCtx: T,
+  actuals: Array<ExecutableMultiWaySwitchStaticCase | ExecutableMultiWaySwitchDynamicCase>,
+  caseItem: ExecutableMultiWaySwitchStaticCase | ExecutableMultiWaySwitchDynamicCase,
+  done: CallbackFunction<T>,
+) {
+  let localCtx: any
+
+  try {
+    localCtx = typeof caseItem.split === 'function'
+      ? caseItem.split(initialCtx)
+      : initialCtx
+  } catch (splitErr) {
+    done(wrapMultiWaySwitchCaseError(actuals, 0, splitErr, initialCtx) as any, initialCtx)
+    return
+  }
+
+  run_or_execute(caseItem.run as any, initialErr as any, localCtx, ((err, retCtx) => {
+    if (err) {
+      done(wrapMultiWaySwitchCaseError(actuals, 0, err, localCtx) as any, initialCtx)
+      return
+    }
+
+    try {
+      const resultContext = typeof caseItem.combine === 'function'
+        ? caseItem.combine(initialCtx, retCtx)
+        : initialCtx
+      done(undefined, (resultContext ?? initialCtx) as T)
+    } catch (combineErr) {
+      done(wrapMultiWaySwitchCaseError(actuals, 0, combineErr, localCtx) as any, initialCtx)
+    }
+  }) as CallbackFunction<T>)
+}
+
+export function executeNativeMultiWaySwitch<T extends StageObject>(
+  initialErr: Possible<CleanError>,
+  initialCtx: T,
+  data: ExecutableMultiWaySwitchData,
+  done: CallbackFunction<T>,
+) {
+  const statics = data.statics ?? []
+  const dynamics = data.dynamics ?? []
+
+  if (statics.length === 0 && dynamics.length === 0) {
+    done(initialErr, initialCtx)
+    return
+  }
+
+  if (statics.length === 1 && dynamics.length === 0) {
+    runSingleMultiWaySwitchCase(initialErr, initialCtx, [statics[0]], statics[0], done)
+    return
+  }
+
+  if (statics.length === 0 && dynamics.length === 1) {
+    let matched = false
+
+    try {
+      matched = !!dynamics[0].evaluate(initialCtx as T)
+    } catch (err) {
+      done(createError(err as any, ErrorCode.ERR_STAGE_THROW) as any, initialCtx)
+      return
+    }
+
+    if (!matched) {
+      done(initialErr, initialCtx)
+      return
+    }
+
+    runSingleMultiWaySwitchCase(initialErr, initialCtx, [dynamics[0]], dynamics[0], done)
+    return
+  }
+
+  const actuals: Array<ExecutableMultiWaySwitchStaticCase | ExecutableMultiWaySwitchDynamicCase> = []
+  actuals.push(...statics)
+
+  for (let i = 0; i < dynamics.length; i++) {
+    try {
+      if (dynamics[i].evaluate(initialCtx as T)) {
+        actuals.push(dynamics[i])
+      }
+    } catch (err) {
+      done(createError(err as any, ErrorCode.ERR_STAGE_THROW) as any, initialCtx)
+      return
+    }
+  }
+
+  if (actuals.length === 0) {
+    done(initialErr, initialCtx)
+    return
+  }
+
+  if (actuals.length === 1) {
+    runSingleMultiWaySwitchCase(initialErr, initialCtx, actuals, actuals[0], done)
+    return
+  }
+
+  if (actuals.some((item) => typeof item.combine === 'function')) {
+    warnOnce(
+      'mws-multi-combine-order',
+      '[pipeline.js] MultiWaySwitch: multiple matching cases with combine functions are folded in async completion order. Make combine commutative or use Sequential if order matters.',
+    )
+  }
+
+  const hasCustomSplitOrCombine = actuals.some((item) =>
+    typeof item.split === 'function' || typeof item.combine === 'function',
+  )
+
+  if (!hasCustomSplitOrCombine) {
+    let pending = actuals.length
+    let completed = false
+    const errorSlots: Array<unknown | undefined> = new Array(actuals.length)
+
+    const finish = (err?: unknown, ctx?: T) => {
+      if (completed) {
+        return
+      }
+
+      completed = true
+      done(err as any, ctx)
+    }
+
+    const maybeComplete = () => {
+      if (completed || pending > 0) {
+        return
+      }
+
+      const errors = errorSlots.filter((value): value is unknown => value !== undefined)
+
+      if (errors.length > 0) {
+        finish(createError(errors as any), initialCtx)
+      } else {
+        finish(undefined, initialCtx)
+      }
+    }
+
+    for (let i = 0; i < actuals.length; i++) {
+      run_or_execute(actuals[i].run as any, initialErr as any, initialCtx, ((err: unknown) => {
+        if (completed) {
+          return
+        }
+
+        if (err) {
+          errorSlots[i] = wrapMultiWaySwitchCaseError(actuals, i, err, initialCtx)
+        }
+
+        pending -= 1
+        maybeComplete()
+      }) as CallbackFunction<any>)
+    }
+    return
+  }
+
+  let pending = actuals.length
+  let completed = false
+  let resultContext: T | null = null
+  let firstError: unknown | undefined
+  let firstErrorIndex = -1
+  let errorSlots: Array<unknown | undefined> | null = null
+
+  const finish = (err?: unknown, ctx?: T) => {
+    if (completed) {
+      return
+    }
+
+    completed = true
+    done(err as any, ctx)
+  }
+
+  const maybeComplete = () => {
+    if (completed || pending > 0) {
+      return
+    }
+
+    if (errorSlots) {
+      const errors = errorSlots.filter((value): value is unknown => value !== undefined)
+      finish(createError(errors as any), initialCtx)
+    } else if (firstError !== undefined) {
+      finish(createError(firstError as any), initialCtx)
+    } else {
+      finish(undefined, (resultContext ?? initialCtx) as T)
+    }
+  }
+
+  const storeCaseError = (index: number, err: unknown, ctx: unknown) => {
+    const wrappedError = wrapMultiWaySwitchCaseError(actuals, index, err, ctx)
+
+    if (errorSlots) {
+      errorSlots[index] = wrappedError
+      return
+    }
+
+    if (firstError === undefined) {
+      firstError = wrappedError
+      firstErrorIndex = index
+      return
+    }
+
+    errorSlots = new Array(actuals.length)
+    errorSlots[firstErrorIndex] = firstError
+    errorSlots[index] = wrappedError
+    firstError = undefined
+  }
+
+  for (let i = 0; i < actuals.length; i++) {
+    const caseItem = actuals[i]
+    let localCtx: any
+
+    try {
+      localCtx = typeof caseItem.split === 'function'
+        ? caseItem.split(initialCtx)
+        : initialCtx
+    } catch (err) {
+      storeCaseError(i, err, initialCtx)
+      pending -= 1
+      maybeComplete()
+      continue
+    }
+
+    run_or_execute(caseItem.run as any, initialErr as any, localCtx, ((err: unknown, retCtx?: T) => {
+      if (completed) {
+        return
+      }
+
+      try {
+        if (err) {
+          storeCaseError(i, err, localCtx)
+        } else if (typeof caseItem.combine === 'function') {
+          resultContext = caseItem.combine((resultContext ?? initialCtx) as any, retCtx as any)
+        } else {
+          resultContext = (resultContext ?? initialCtx) as T
+        }
+      } catch (combineErr) {
+        storeCaseError(i, combineErr, localCtx)
+      }
+
+      pending -= 1
+      maybeComplete()
+    }) as CallbackFunction<any>)
+  }
+}
+
 function runCompiledStageFn<T extends StageObject>(
   state: ExecutionState<T>,
   stageFnId: number,
@@ -358,6 +733,81 @@ function runCompiledStageFn<T extends StageObject>(
   }) as CallbackFunction<T>)
 
   sync = false
+}
+
+function invokeSubplan<T extends StageObject>(
+  state: ExecutionState<T>,
+  plan: CompiledPlan<any>,
+  inputErr: Possible<Error>,
+  context: any,
+  sequentialFrameIndex: number,
+  childIndex: number,
+  childCtx: any,
+) {
+  state.frameStack.push({
+    kind: 'SUBPLAN_RETURN',
+    parentPlan: state.plan,
+    parentPc: state.pc,
+    parentInputErr: state.inputErr as any,
+    sequentialFrameIndex,
+    childIndex,
+    childCtx,
+  })
+
+  state.plan = plan as any
+  state.pc = plan.entry
+  state.inputErr = inputErr as any
+  state.ctx = context
+  state.err = undefined
+  state.result = undefined
+  state.suspended = false
+}
+
+function returnFromSubplan<T extends StageObject>(state: ExecutionState<T>) {
+  const frame = state.frameStack[state.frameStack.length - 1]
+
+  if (!frame || frame.kind !== 'SUBPLAN_RETURN') {
+    return false
+  }
+
+  state.frameStack.pop()
+
+  const childErr = state.err
+  const childCtx = state.ctx
+
+  state.plan = frame.parentPlan as any
+  state.pc = frame.parentPc
+  state.inputErr = frame.parentInputErr as any
+  state.err = undefined
+  state.result = undefined
+  state.suspended = false
+
+  const sequentialFrame = state.frameStack[frame.sequentialFrameIndex]
+
+  if (!sequentialFrame || sequentialFrame.kind !== 'SEQUENTIAL') {
+    failState(
+      state,
+      `${ErrorMessage[ErrorCode.ERR_OPCODE_NOT_IMPL]}: SUBPLAN_RETURN/${frame.sequentialFrameIndex}`,
+      ErrorCode.ERR_OPCODE_NOT_IMPL,
+    )
+    return true
+  }
+
+  if (childErr) {
+    removeFrame(state, sequentialFrame)
+    completePrimitiveError(
+      state,
+      createSequentialIterationError(sequentialFrame, childErr, frame.childCtx) as any,
+      sequentialFrame.originalCtx,
+    )
+    return true
+  }
+
+  sequentialFrame.results[frame.childIndex] = (childCtx ?? frame.childCtx) as T
+  sequentialFrame.index = frame.childIndex + 1
+  state.suspended = true
+  continueSequentialFrame(state, sequentialFrame)
+  return true
 }
 
 function normalizePredicateResult(result: any): PredicateResult {
@@ -373,12 +823,231 @@ function normalizePredicateResult(result: any): PredicateResult {
   }
 }
 
+function dispatchPredicate<T extends StageObject>(
+  predicate: (...args: any[]) => any,
+  kind: CompiledPredicateKind,
+  ctx: T,
+  inputErr: Possible<CleanError>,
+  settle: (result: PredicateResult) => void,
+) {
+  try {
+    if (kind === 'BOOL_CTX_SYNC') {
+      const result = (
+        predicate as (ctx: T, err?: Possible<CleanError>) => boolean | Promise<boolean>
+      )(ctx, inputErr)
+
+      if (isPromise(result) || is_thenable(result)) {
+        result.then((value) => settle({ value: !!value })).catch(() => settle({ value: false }))
+      } else {
+        settle({ value: !!result })
+      }
+      return
+    }
+
+    if (kind === 'GENERIC_CALLBACK') {
+      execute_validate(
+        predicate as ValidateFunction<T>,
+        ctx,
+        ((err, value) => {
+          settle({
+            value: !!value,
+            err: err as any,
+          })
+        }) as CallbackExternalFunction<boolean>,
+      )
+      return
+    }
+
+    const result = (
+      predicate as (
+        ctx: T,
+        err?: Possible<CleanError>,
+      ) => PredicateResult | Promise<PredicateResult>
+    )(ctx, inputErr)
+
+    if (isPromise(result) || is_thenable(result)) {
+      result.then((value) => settle(normalizePredicateResult(value))).catch((err) => settle({ value: false, err }))
+    } else {
+      settle(normalizePredicateResult(result))
+    }
+  } catch (err) {
+    if (kind === 'BOOL_CTX_SYNC') {
+      settle({ value: false })
+    } else {
+      settle({ value: false, err: err as any })
+    }
+  }
+}
+
+export function executeInlineControlFlowSubplan<T extends StageObject>(
+  plan: CompiledPlan<T>,
+  inputErr: Possible<CleanError>,
+  initialCtx: T,
+  done: CallbackFunction<T>,
+) {
+  let currentCtx = initialCtx
+  let currentErr = inputErr
+  let currentResult: T | undefined
+  let pc = plan.entry
+  let completed = false
+
+  const finish = (err?: Possible<CleanError>, ctx?: T) => {
+    if (completed) {
+      return
+    }
+
+    completed = true
+    done(err as any, ctx)
+  }
+
+  const advance = () => {
+    while (!completed) {
+      const op = plan.ops[pc]
+
+      if (!op) {
+        finish(
+          createCodeError(ErrorCode.ERR_PC_OUT_OF_BOUNDS, `inline-subplan/${pc}`) as any,
+          currentCtx,
+        )
+        return
+      }
+
+      switch (op.op) {
+        case 'RUN_STAGE_FN': {
+          const resumePc = pc + 1
+          let sync = true
+          let settledSync = false
+          let syncErr: Possible<CleanError>
+          let syncCtx: T | undefined
+
+          invokeStageFn(plan, op.stageFnId, currentErr, currentCtx, ((err, ctx) => {
+            if (completed) {
+              return
+            }
+
+            if (sync) {
+              settledSync = true
+              syncErr = err
+              syncCtx = ctx
+              return
+            }
+
+            if (err) {
+              finish(err, currentCtx)
+              return
+            }
+
+            currentResult = (ctx ?? currentCtx) as T
+            pc = resumePc
+            advance()
+          }) as CallbackFunction<T>)
+
+          sync = false
+
+          if (!settledSync) {
+            return
+          }
+
+          if (syncErr) {
+            finish(syncErr, currentCtx)
+            return
+          }
+
+          currentResult = (syncCtx ?? currentCtx) as T
+          pc = resumePc
+          continue
+        }
+
+        case 'SET_CTX_FROM_RESULT':
+          if (currentResult !== undefined) {
+            currentCtx = currentResult
+          }
+          currentResult = undefined
+          pc += 1
+          continue
+
+        case 'JUMP':
+          pc = op.target
+          continue
+
+        case 'JUMP_IF_TRUE': {
+          const predicate = plan.tables.predicates[op.predicateId]
+          const kind = (plan.tables.predicateKinds[op.predicateId] ?? 'GENERIC') as CompiledPredicateKind
+
+          if (!predicate) {
+            finish(
+              createCodeError(ErrorCode.ERR_OPCODE_NOT_IMPL, `predicate ${op.predicateId}`) as any,
+              currentCtx,
+            )
+            return
+          }
+
+          const falseTarget = pc + 1
+          const trueTarget = op.target
+          let sync = true
+          let settledSync = false
+          let syncTarget = falseTarget
+          let syncErr: Possible<CleanError>
+
+          const settle = (result: PredicateResult) => {
+            if (completed) {
+              return
+            }
+
+            if (result.err !== undefined) {
+              currentErr = result.err
+            }
+
+            if (sync) {
+              settledSync = true
+              syncTarget = result.value ? trueTarget : falseTarget
+              syncErr = result.err
+              return
+            }
+
+            pc = result.value ? trueTarget : falseTarget
+            advance()
+          }
+
+          dispatchPredicate(predicate as any, kind, currentCtx, currentErr, settle)
+
+          sync = false
+
+          if (!settledSync) {
+            return
+          }
+
+          if (syncErr !== undefined) {
+            currentErr = syncErr
+          }
+          pc = syncTarget
+          continue
+        }
+
+        case 'RETURN':
+          finish(undefined, currentCtx)
+          return
+
+        default:
+          finish(
+            createCodeError(ErrorCode.ERR_OPCODE_NOT_IMPL, `inline-subplan/${op.op}`) as any,
+            currentCtx,
+          )
+          return
+      }
+    }
+  }
+
+  advance()
+}
+
 function runPredicate<T extends StageObject>(
   state: ExecutionState<T>,
   predicateId: number,
   target: number,
 ) {
   const predicate = state.plan.tables.predicates[predicateId]
+  const kind = (state.plan.tables.predicateKinds[predicateId] ?? 'GENERIC') as CompiledPredicateKind
 
   if (!predicate) {
     failState(
@@ -390,37 +1059,28 @@ function runPredicate<T extends StageObject>(
   }
 
   let sync = true
-
-  const settle = (value: any) => {
-    if (state.completed) {
-      return
-    }
-
-    const result = normalizePredicateResult(value)
-
-    if (result.err !== undefined) {
-      state.inputErr = result.err
-    }
-
+  const advance = (value: boolean) => {
     state.suspended = false
-    state.pc = result.value ? target : state.pc + 1
+    state.pc = value ? target : state.pc + 1
 
     if (!sync) {
       executeCompiledPlanLoop(state)
     }
   }
 
-  try {
-    const result = predicate(state.ctx, state.inputErr)
-
-    if (isPromise(result) || is_thenable(result)) {
-      result.then(settle).catch(err => settle({ value: false, err }))
-    } else {
-      settle(result)
+  const settle = (result: PredicateResult) => {
+    if (state.completed) {
+      return
     }
-  } catch (err) {
-    settle({ value: false, err })
+
+    if (result.err !== undefined) {
+      state.inputErr = result.err
+    }
+
+    advance(result.value)
   }
+
+  dispatchPredicate(predicate as any, kind, state.ctx, state.inputErr, settle)
 
   sync = false
 }
@@ -946,6 +1606,63 @@ function runParallelOp<T extends StageObject>(
   continueParallelFrame(state, frame)
 }
 
+function runMultiWaySwitchOp<T extends StageObject>(
+  state: ExecutionState<T>,
+  dataIndex: number,
+) {
+  const data = state.plan.tables.constants[dataIndex] as MultiWaySwitchPlanData | undefined
+
+  if (!data || data.kind !== 'MWS') {
+    failState(
+      state,
+      `${ErrorMessage[ErrorCode.ERR_OPCODE_NOT_IMPL]}: RUN_MWS`,
+      ErrorCode.ERR_OPCODE_NOT_IMPL,
+    )
+    return
+  }
+
+  const toExecutableStaticCase = (caseItem: {
+    stage: unknown
+    stageFnId: number
+    split?: (ctx: any) => any
+    combine?: (ctx: any, retCtx: any) => any
+  }) => ({
+    stage: caseItem.stage,
+    split: caseItem.split,
+    combine: caseItem.combine,
+    run: ((err: Possible<CleanError>, ctx: any, done: CallbackFunction<any>) => {
+      invokeStageFn(state.plan, caseItem.stageFnId, err as any, ctx, done)
+    }) as RunPipelineFunction<any>,
+  })
+
+  const toExecutableDynamicCase = (caseItem: {
+    stage: unknown
+    stageFnId: number
+    evaluate: (ctx: any) => any
+    split?: (ctx: any) => any
+    combine?: (ctx: any, retCtx: any) => any
+  }) => ({
+    ...toExecutableStaticCase(caseItem),
+    evaluate: caseItem.evaluate,
+  })
+
+  let sync = true
+
+  executeNativeMultiWaySwitch(
+    state.inputErr,
+    state.ctx,
+    {
+      statics: data.statics.map(toExecutableStaticCase),
+      dynamics: data.dynamics.map(toExecutableDynamicCase),
+    },
+    ((err, ctx) => {
+      completeOp(state, err, ctx, sync)
+    }) as CallbackFunction<T>,
+  )
+
+  sync = false
+}
+
 function continueSequentialFrame<T extends StageObject>(
   state: ExecutionState<T>,
   frame: Extract<Frame, { kind: 'SEQUENTIAL' }>,
@@ -954,12 +1671,93 @@ function continueSequentialFrame<T extends StageObject>(
     while (!state.completed && frame.index < frame.children.length) {
       const index = frame.index
       const childCtx = frame.children[index]
+      if (frame.data.inlineControlPlan) {
+        let sync = true
+        let settledSync = false
+        let syncErr: any
+        let syncResult: any
+
+        executeInlineControlFlowSubplan(
+          frame.data.inlineControlPlan,
+          undefined,
+          childCtx,
+          ((err, ctx) => {
+            if (state.completed) {
+              return
+            }
+
+            if (sync) {
+              settledSync = true
+              syncErr = err
+              syncResult = ctx
+              return
+            }
+
+            if (err) {
+              removeFrame(state, frame)
+              completePrimitiveError(state, createSequentialIterationError(frame, err, childCtx) as any, frame.originalCtx)
+              executeCompiledPlanLoop(state)
+              return
+            }
+
+            frame.results[index] = (ctx ?? childCtx) as T
+            frame.index = index + 1
+            continueSequentialFrame(state, frame)
+            if (!state.suspended && !state.completed) {
+              executeCompiledPlanLoop(state)
+            }
+          }) as CallbackFunction<any>,
+        )
+
+        sync = false
+
+        if (!settledSync) {
+          return
+        }
+
+        if (syncErr) {
+          removeFrame(state, frame)
+          completePrimitiveError(state, createSequentialIterationError(frame, syncErr, childCtx) as any, frame.originalCtx)
+          return
+        }
+
+        frame.results[index] = syncResult ?? childCtx
+        frame.index = index + 1
+        continue
+      }
+
+      if (frame.data.subplanId !== undefined) {
+        const subplan = state.plan.tables.subplans[frame.data.subplanId]
+
+        if (!subplan) {
+          removeFrame(state, frame)
+          failPrimitive(
+            state,
+            `${ErrorMessage[ErrorCode.ERR_OPCODE_NOT_IMPL]}: RUN_SEQUENTIAL subplan ${frame.data.subplanId}`,
+            frame.originalCtx,
+            ErrorCode.ERR_OPCODE_NOT_IMPL,
+          )
+          return
+        }
+
+        invokeSubplan(
+          state,
+          subplan,
+          undefined,
+          childCtx,
+          state.frameStack.length - 1,
+          index,
+          childCtx,
+        )
+        return
+      }
+
       let sync = true
       let settledSync = false
       let syncErr: any
       let syncResult: any
 
-      invokeStageFn(state.plan, frame.data.stageFnId, undefined, childCtx, ((err, ctx) => {
+      const settle = ((err, ctx) => {
         if (state.completed) {
           return
         }
@@ -984,7 +1782,22 @@ function continueSequentialFrame<T extends StageObject>(
         if (!state.suspended && !state.completed) {
           executeCompiledPlanLoop(state)
         }
-      }) as CallbackFunction<any>)
+      }) as CallbackFunction<any>
+
+      if (frame.data.fusedPlan && frame.data.fusedStageFnIds) {
+        executeFusedStageFnSequence(
+          frame.data.fusedPlan,
+          frame.data.fusedStageFnIds,
+          undefined,
+          childCtx,
+          settle,
+        )
+      } else if (frame.data.stageFnId !== undefined) {
+        invokeStageFn(state.plan, frame.data.stageFnId, undefined, childCtx, settle)
+      } else {
+        settledSync = true
+        syncResult = childCtx
+      }
 
       sync = false
 
@@ -1521,6 +2334,12 @@ function executeCompiledPlanLoop<T extends StageObject>(state: ExecutionState<T>
         if (state.suspended) return
         continue
 
+      case 'RUN_MWS':
+        state.suspended = true
+        runMultiWaySwitchOp(state, op.data)
+        if (state.suspended) return
+        continue
+
       case 'SET_CTX_FROM_RESULT':
         if (!state.err && state.result !== undefined) {
           state.ctx = state.result
@@ -1548,6 +2367,9 @@ function executeCompiledPlanLoop<T extends StageObject>(state: ExecutionState<T>
         continue
 
       case 'RETURN':
+        if (returnFromSubplan(state)) {
+          continue
+        }
         completeState(state)
         return
     }

@@ -1,6 +1,6 @@
 # ISSUES.md — pipeline.js Knowledge Base
 
-**Updated:** 2026-03-06
+**Updated:** 2026-03-18
 
 ---
 
@@ -41,9 +41,12 @@
 
 ---
 
-## Open Issues (from mb3-critic audit 2026-03-06)
+## Resolved Audit Issues (from mb3-critic audit 2026-03-06; normalized 2026-03-18)
+
+No open audit backlog items remain from the 2026-03-06 pass. The former backlog items below are preserved as resolved knowledge with their original problem statements.
 
 ### ISSUE-006: Promise.withResolvers / Promise.try — TypeScript type lib mismatch [LOW] ✏️ REVISED
+**Status:** Resolved via `afbdeda` (`fix(types): resolve all 29 tsc compile errors`), verified again by `bun x tsc -p tsconfig.json --noEmit` on 2026-03-18.
 **Discovered:** 2026-03-06 (audit) | **Revised:** 2026-03-06
 **Files:** stage.ts + 10 others (11 files)
 **Clarification:** `target: "es5"` controls emitted *syntax* (no classes, no arrow functions), NOT available runtime APIs. The library targets Node.js/Bun which natively supports `Promise.withResolvers` and `Promise.try`. Applications embedding pipeline.js in ES5-syntax environments still run in a modern Node/Bun. This is correct design.
@@ -52,29 +55,34 @@
 **Note:** `erasableSyntaxOnly: true` in tsconfig is intentional — restricts to Node-runnable TypeScript syntax. Not a bug.
 
 ### ISSUE-007: TypeScript compilation — 29 errors [HIGH]
+**Status:** Resolved via `afbdeda`, verified again by `bun x tsc -p tsconfig.json --noEmit` on 2026-03-18.
 **Discovered:** 2026-03-06 (audit)
 **Problem:** `tsc --noEmit` fails with 29 errors. Bun test passes (permissive transpiler). Published types may be broken.
 **Key groups:** Promise API errors (11), implicit any (6), TS2723 null invoke (3), PromiseSettledResult narrowing (2), _config undefined (2), unknown tsconfig option (1), other (4).
 **Action:** Fix in priority groups. Start with ISSUE-006 (fixes 11 errors).
 
 ### ISSUE-008: TypeDetectors incomplete API [HIGH]
+**Status:** Resolved via `311d819` (`fix(TypeDetectors): complete API + eliminate remaining instanceof + cleanup`).
 **Discovered:** 2026-03-06 (audit)
 **Problem:** `isDate()`, `isTypeError()`, `isBuffer()` missing from TypeDetectors. Live code in `src/JSON.ts` and `src/context.ts` still uses `instanceof` for Date and TypeError.
 **Action:** Add 3 functions to TypeDetectors, update JSON.ts and context.ts.
 
 ### ISSUE-009: Orphan draft files in src/ [MEDIUM]
+**Status:** Resolved via `311d819`; the draft files are no longer present in `src/`.
 **Discovered:** 2026-03-06 (audit)
 **Files:** `context copy.ts`, `context copy 2.ts`, `context.old.ts`, `context.new.ts`, `pipeline_new.ts`
 **Problem:** Included in tsc glob, contribute to compile errors, create confusion. `context.old.ts` / `context copy.ts` have `instanceof` violations and `debugger` statement.
 **Action:** Delete `context copy*.ts`, `context.old.ts`. Evaluate `context.new.ts` and `pipeline_new.ts` — either wire up or delete.
 
 ### ISSUE-010: PromiseSettledResult narrowing [MEDIUM]
+**Status:** Resolved via `afbdeda`; narrowing is now explicit in `src/multiwayswitch.ts` and `src/parallel.ts`.
 **Discovered:** 2026-03-06 (audit)
 **Files:** `src/multiwayswitch.ts`, `src/parallel.ts`
 **Problem:** `.reason` accessed on `PromiseSettledResult<T>` without narrowing to `PromiseRejectedResult`. TypeScript error TS2339.
 **Fix:** `if (result.status === 'rejected') { use result.reason }`
 
 ### ISSUE-011: console.error in library code [MEDIUM]
+**Status:** Resolved via `311d819`; `src/utils/async/retryAfter.ts` no longer emits `console.error`.
 **Discovered:** 2026-03-06 (audit)
 **File:** `src/utils/async/retryAfter.ts`
 **Problem:** Production library pollutes consumer logs. No opt-out mechanism.

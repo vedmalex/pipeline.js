@@ -1,9 +1,12 @@
 import { compilePipelinePlan } from '../compiled/compiler'
 import { planToString } from '../compiled/debug'
 import { executeCompiledPlan } from '../compiled/executor'
+import { Context } from '../context'
 import { DoWhile } from '../dowhile'
+import { Empty } from '../empty'
 import { getExecutionSignal } from '../execution_signal'
 import { IfElse } from '../ifelse'
+import { MultiWaySwitch } from '../multiwayswitch'
 import { Parallel } from '../parallel'
 import { __setCompiledPipelineEnabledForTests, Pipeline } from '../pipeline'
 import { RetryOnError } from '../retryonerror'
@@ -11,6 +14,7 @@ import { Sequential } from '../sequential'
 import { Stage } from '../stage'
 import { Timeout } from '../timeout'
 import { ErrorCode } from '../utils/errors'
+import { __resetWarnOnceForTests } from '../utils/warn_once'
 import type { StageObject } from '../utils/types'
 import { Wrap } from '../wrap'
 
@@ -526,16 +530,22 @@ describe('compiled Pipeline skeleton', () => {
     expect(compiledResult.n).toBe(legacyResult.n)
   })
 
-  it('compiles IfElse predicates with scoped branch execution', async () => {
+  it('compiles branchy IfElse predicates with correct native branch execution', async () => {
     const root = new Pipeline<{ n: number; branch: boolean }>([
       new IfElse<{ n: number; branch: boolean }>({
         condition: (ctx) => ctx.branch,
-        success: (ctx) => {
-          ctx.n += 10
-        },
-        failed: (ctx) => {
-          ctx.n += 100
-        },
+        success: new Pipeline<{ n: number; branch: boolean }>([
+          (ctx) => {
+            ctx.n += 10
+            return ctx
+          },
+        ]) as any,
+        failed: new Pipeline<{ n: number; branch: boolean }>([
+          (ctx) => {
+            ctx.n += 100
+            return ctx
+          },
+        ]) as any,
       }) as any,
       (ctx) => {
         ctx.n += 1
@@ -553,13 +563,187 @@ describe('compiled Pipeline skeleton', () => {
 
     expect(plan.mode).toBe('compiled-static')
     expect(plan.ops.some((op) => op.op === 'JUMP_IF_TRUE')).toBe(true)
-    expect(plan.ops.some((op) => op.op === 'PUSH_FRAME')).toBe(true)
     expect(plan.ops.some((op) => op.op === 'RUN_FALLBACK_STAGE')).toBe(false)
     expect(JSON.parse(JSON.stringify(compiledTrue))).toEqual(
       JSON.parse(JSON.stringify(legacyTrue)),
     )
     expect(JSON.parse(JSON.stringify(compiledFalse))).toEqual(
       JSON.parse(JSON.stringify(legacyFalse)),
+    )
+  })
+
+  it('compiles err-blind sync IfElse without SCOPE frame', () => {
+    const root = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx) => ctx.n > 0,
+        success: new Pipeline<{ n: number }>([
+          (ctx) => {
+            ctx.n += 1
+            return ctx
+          },
+        ]) as any,
+        failed: new Pipeline<{ n: number }>([
+          (ctx) => {
+            ctx.n += 2
+            return ctx
+          },
+        ]) as any,
+      }) as any,
+      (ctx) => {
+        ctx.n += 10
+        return ctx
+      },
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+
+    expect(dump).toContain('JUMP_IF_TRUE')
+    expect(dump).not.toContain('PUSH_FRAME SCOPE')
+    expect(dump).not.toContain('POP_FRAME')
+    expect(plan.tables.predicateKinds[0]).toBe('BOOL_CTX_SYNC')
+  })
+
+  it('fuses tiny err-blind sync IfElse branches into a single stage-fn fast path', () => {
+    const root = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx) => ctx.n > 0,
+        success: (ctx) => {
+          ctx.n += 1
+          return ctx
+        },
+        failed: (ctx) => {
+          ctx.n += 2
+          return ctx
+        },
+      }) as any,
+      (ctx) => {
+        ctx.n += 10
+        return ctx
+      },
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+
+    expect(dump).not.toContain('JUMP_IF_TRUE')
+    expect(dump).not.toContain('PUSH_FRAME SCOPE')
+    expect((dump.match(/RUN_STAGE_FN/g) ?? [])).toHaveLength(2)
+    expect(plan.tables.predicateKinds).toHaveLength(0)
+  })
+
+  it('fused tiny err-blind sync IfElse still propagates branch throws', async () => {
+    const root = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (_ctx) => true,
+        success: () => {
+          throw new Error('fused-ifelse-branch-error')
+        },
+        failed: (ctx) => ctx,
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+    let compiledError: Error | undefined
+
+    try {
+      await executePlanPromise(plan, { n: 0 })
+    } catch (err) {
+      compiledError = err as Error
+    }
+
+    expect(dump).not.toContain('JUMP_IF_TRUE')
+    expect(compiledError).toBeDefined()
+    expect(compiledError!.message).toContain('fused-ifelse-branch-error')
+  })
+
+  it('keeps scoped IfElse when a branch is err-aware', () => {
+    const root = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx) => ctx.n > 0,
+        success: (_err, ctx) => {
+          ctx.n += 1
+          return ctx
+        },
+        failed: (ctx) => {
+          ctx.n += 2
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+
+    expect(dump).toContain('PUSH_FRAME SCOPE')
+    expect(dump).toContain('POP_FRAME')
+    expect(plan.tables.predicateKinds[0]).toBe('GENERIC')
+  })
+
+  it('compiles callback IfElse predicates onto direct validate callback path', async () => {
+    const root = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx, done) => {
+          done(undefined, ctx.n > 0)
+        },
+        success: new Pipeline<{ n: number }>([
+          (ctx) => {
+            ctx.n += 1
+            return ctx
+          },
+        ]) as any,
+        failed: new Pipeline<{ n: number }>([
+          (ctx) => {
+            ctx.n += 2
+            return ctx
+          },
+        ]) as any,
+      }) as any,
+      (ctx) => {
+        ctx.n += 10
+        return ctx
+      },
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+    const legacyResult = await root.execute({ n: 1 })
+    const compiledResult = await executePlanPromise(plan, { n: 1 })
+
+    expect(dump).toContain('JUMP_IF_TRUE')
+    expect(dump).toContain('PUSH_FRAME SCOPE')
+    expect(plan.tables.predicateKinds[0]).toBe('GENERIC_CALLBACK')
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
+    )
+  })
+
+  it('preserves callback IfElse predicate errors on the failed branch', async () => {
+    const root = new Pipeline<{ seen: string[] }>([
+      new IfElse<{ seen: string[] }>({
+        condition: (_ctx, done) => {
+          done(new Error('predicate-callback-error'), false)
+        },
+        success: (ctx) => {
+          ctx.seen.push('success')
+          return ctx
+        },
+        failed: async (err, ctx) => {
+          ctx.seen.push(err?.message ?? 'missing')
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ seen: [] })
+    const compiledResult = await executePlanPromise(plan, { seen: [] })
+
+    expect(plan.tables.predicateKinds[0]).toBe('GENERIC_CALLBACK')
+    expect(compiledResult.seen).toEqual(['predicate-callback-error'])
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
     )
   })
 
@@ -757,6 +941,63 @@ describe('compiled Pipeline skeleton', () => {
 
     expectResultParity(legacyResult, compiledResult)
     expect(compiledResult.n).toBe(0)
+  })
+
+  it('RetryOnError with plain carrier properly backs up and restores context', async () => {
+    let attempt = 0
+    const pipe = new Pipeline<{ value: number; corrupted?: boolean }>([
+      new RetryOnError<{ value: number; corrupted?: boolean }>({
+        retry: 2,
+        stage: (ctx) => {
+          attempt++
+          // First attempt: mutate ctx and then fail
+          if (attempt === 1) {
+            ctx.value = 999       // This mutation should be undone by restore
+            ctx.corrupted = true
+            throw new Error('first-attempt-fail')
+          }
+          // Second attempt: ctx should be restored to the backup state
+          return ctx
+        },
+      }) as any,
+    ])
+
+    // Test via compiled executor
+    const plan = compilePipelinePlan(pipe as any)
+    attempt = 0
+    const compiledResult = await executePlanPromise(plan, { value: 42 })
+
+    // After successful retry, value should be restored from backup (42), not corrupted (999)
+    expect(compiledResult.value).toBe(42)
+    expect(compiledResult.corrupted).toBeUndefined()
+  })
+
+  it('RetryOnError deep-restores nested plain-carrier state', async () => {
+    let attempt = 0
+    const snapshots: number[] = []
+    const pipe = new Pipeline<{ state: { deep: { value: number } } }>([
+      new RetryOnError<{ state: { deep: { value: number } } }>({
+        retry: 2,
+        stage: (ctx) => {
+          snapshots.push(ctx.state.deep.value)
+          attempt++
+          if (attempt === 1) {
+            ctx.state.deep.value = 999
+            throw new Error('first-attempt-fail')
+          }
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(pipe as any)
+    attempt = 0
+    const compiledResult = await executePlanPromise(plan, {
+      state: { deep: { value: 42 } },
+    })
+
+    expect(snapshots).toEqual([42, 42])
+    expect(compiledResult.state.deep.value).toBe(42)
   })
 
   it('preserves Parallel null-split parity', async () => {
@@ -2000,6 +2241,53 @@ describe('compiled Pipeline skeleton', () => {
     expect(result.n).toBe(11)
   })
 
+  it('explicit context mode keeps compiled Pipeline plain throughout stage execution', async () => {
+    Pipeline.setContextMode('explicit')
+
+    try {
+      const seenStates: boolean[] = []
+      const pipe = new Pipeline<{ n: number }>([
+        (ctx) => {
+          seenStates.push(Context.isContext(ctx))
+          ctx.n += 1
+        },
+      ])
+
+      const result = await executePipelineWithCompiledFlag(pipe, { n: 0 }, true)
+
+      expect(seenStates).toEqual([false])
+      expect(result.n).toBe(1)
+    } finally {
+      Pipeline.setContextMode('legacy')
+    }
+  })
+
+  it('warn context mode keeps compiled Pipeline wrapped for plain input', async () => {
+    Pipeline.setContextMode('warn')
+    __resetWarnOnceForTests()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    try {
+      const seenStates: boolean[] = []
+      const pipe = new Pipeline<{ n: number }>([
+        (ctx) => {
+          seenStates.push(Context.isContext(ctx))
+          ctx.n += 1
+        },
+      ])
+
+      const result = await executePipelineWithCompiledFlag(pipe, { n: 0 }, true)
+
+      expect(seenStates).toEqual([true])
+      expect(result.n).toBe(1)
+      expect(warnSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      warnSpy.mockRestore()
+      __resetWarnOnceForTests()
+      Pipeline.setContextMode('legacy')
+    }
+  })
+
   it('short-circuits on error and does not run later ops', async () => {
     let reachedTail = false
     const root = new Pipeline<{ n: number }>([
@@ -2121,5 +2409,1231 @@ describe('compiled Pipeline skeleton', () => {
     expect(dump).toContain('RUN_LOOP')
     expect(dump).toContain('RUN_RETRY')
     expect(dump).toContain('RUN_TIMEOUT')
+  })
+
+  it('nested Pipeline with boundary features is NOT flattened', () => {
+    const inner = new Pipeline<{ x: number }>({
+      stages: [
+        (ctx) => { ctx.x = ctx.x + 1 },
+      ],
+      validate: (ctx) => {
+        if (ctx.x < 0) throw new Error('x must be non-negative')
+      },
+    })
+
+    const outer = new Pipeline<{ x: number }>()
+    outer.addStage((ctx) => { ctx.x = 10 })
+    outer.addStage(inner)
+    outer.addStage((ctx) => { ctx.x = ctx.x * 2 })
+
+    const plan = compilePipelinePlan(outer as any)
+    const dump = planToString(plan)
+
+    // The inner pipeline has `validate`, so it must NOT be flattened.
+    // It should appear as RUN_FALLBACK_STAGE (or RUN_STAGE_INSTANCE), not as inlined ops.
+    expect(dump).toContain('RUN_FALLBACK_STAGE')
+
+    // The plain function stages should still be inlined as RUN_STAGE_FN
+    const fnMatches = dump.match(/RUN_STAGE_FN/g)
+    expect(fnMatches).toHaveLength(2)
+  })
+
+  it('nested Pipeline with boundary features executes correctly via compiled runner', async () => {
+    const inner = new Pipeline<{ x: number; validated: boolean }>({
+      stages: [
+        (ctx) => { ctx.x = ctx.x + 1 },
+      ],
+      validate: (ctx) => {
+        ctx.validated = true
+      },
+    })
+
+    const outer = new Pipeline<{ x: number; validated: boolean }>()
+    outer.addStage((ctx) => { ctx.x = 10 })
+    outer.addStage(inner)
+    outer.addStage((ctx) => { ctx.x = ctx.x * 2 })
+
+    const plan = compilePipelinePlan(outer as any)
+    const result = await executePlanPromise(plan, { x: 0, validated: false })
+
+    expect(result.x).toBe(22) // 10 + 1 = 11, * 2 = 22
+    expect(result.validated).toBe(true)
+  })
+
+  it('nested Pipeline WITHOUT boundary features IS still flattened', () => {
+    const inner = new Pipeline<{ x: number }>({
+      stages: [
+        (ctx) => { ctx.x = ctx.x + 1 },
+        (ctx) => { ctx.x = ctx.x + 2 },
+      ],
+    })
+
+    const outer = new Pipeline<{ x: number }>()
+    outer.addStage((ctx) => { ctx.x = 10 })
+    outer.addStage(inner)
+
+    const plan = compilePipelinePlan(outer as any)
+    const dump = planToString(plan)
+
+    // Inner pipeline has no boundary features, so all 3 functions should be inlined
+    const fnMatches = dump.match(/RUN_STAGE_FN/g)
+    expect(fnMatches).toHaveLength(3)
+
+    // No fallback needed
+    expect(dump).not.toContain('RUN_FALLBACK_STAGE')
+  })
+
+  it('compiles MultiWaySwitch without top-level fallback ops', async () => {
+    const root = new Pipeline<{ total: number }>([
+      new MultiWaySwitch<{ total: number }, { value: number }>({
+        cases: [
+          {
+            evaluate: true,
+            split: (ctx) => ({ value: ctx.total + 1 }),
+            stage: (ctx) => ({ value: ctx.value + 1 }),
+          },
+        ],
+        combine: (ctx, retCtx) => {
+          ctx.total += retCtx.value
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+    const legacyResult = await root.execute({ total: 1 })
+    const compiledResult = await executePlanPromise(plan, { total: 1 })
+
+    expect(dump).not.toContain('RUN_FALLBACK_STAGE')
+    expect(dump).toContain('RUN_MWS')
+    expectResultParity(legacyResult, compiledResult)
+  })
+
+  it('preserves MultiWaySwitch single matched dynamic-case parity', async () => {
+    const makePipeline = () =>
+      new Pipeline<{ total: number }>([
+        new MultiWaySwitch<{ total: number }, { value: number }>({
+          cases: [
+            {
+              evaluate: (ctx) => ctx.total >= 0,
+              split: (ctx) => ({ value: ctx.total + 1 }),
+              stage: async (ctx) => ({ value: ctx.value + 1 }),
+            },
+            {
+              evaluate: () => false,
+              stage: (ctx) => ({ value: ctx.total + 100 }),
+            },
+          ],
+          combine: (ctx, retCtx) => {
+            ctx.total += retCtx.value
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyPipeline = makePipeline()
+    const compiledPipeline = makePipeline()
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { total: 3 })
+    const compiledResult = await executePlanPromise(compiledPlan, { total: 3 })
+
+    expect(compiledPlan.ops.some((op) => op.op === 'RUN_FALLBACK_STAGE')).toBe(false)
+    expectResultParity(legacyResult, compiledResult)
+    expect(compiledResult.total).toBe(8)
+  })
+
+  it('preserves MultiWaySwitch no-match parity', async () => {
+    const makePipeline = () =>
+      new Pipeline<{ total: number }>([
+        new MultiWaySwitch<{ total: number }, { value: number }>({
+          cases: [
+            {
+              evaluate: false,
+              stage: (ctx) => ({ value: ctx.total + 1 }),
+            },
+            {
+              evaluate: () => false,
+              stage: (ctx) => ({ value: ctx.total + 10 }),
+            },
+          ],
+          combine: (ctx, retCtx) => {
+            ctx.total += retCtx.value
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyPipeline = makePipeline()
+    const compiledPipeline = makePipeline()
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { total: 3 })
+    const compiledResult = await executePlanPromise(compiledPlan, { total: 3 })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(compiledResult.total).toBe(3)
+  })
+
+  it('preserves MultiWaySwitch no-match inbound err parity', async () => {
+    const injectedErr = new Error('mws-forward-me')
+    const legacySeen: string[] = []
+    const compiledSeen: string[] = []
+
+    const makeStage = (seen: string[]) =>
+      new MultiWaySwitch<{ total: number }, { value: number }>({
+        cases: [
+          {
+            evaluate: false,
+            stage: () => {
+              seen.push('static')
+              return { value: 1 }
+            },
+          },
+          {
+            evaluate: () => false,
+            stage: () => {
+              seen.push('dynamic')
+              return { value: 2 }
+            },
+          },
+        ],
+        combine: (ctx, retCtx) => {
+          ctx.total += retCtx.value
+          return ctx
+        },
+      }) as any
+
+    const legacyStage = makeStage(legacySeen)
+    const compiledStage = makeStage(compiledSeen)
+    const compiledPlan = compilePipelinePlan(new Pipeline<{ total: number }>([
+      compiledStage,
+    ]) as any)
+
+    const legacyError: any = await (legacyStage as any)
+      .execute(injectedErr, { total: 3 })
+      .catch((err) => err)
+    const compiledError: any = await executePlanPromise(
+      compiledPlan,
+      { total: 3 },
+      injectedErr,
+    ).catch((err) => err)
+
+    expect(compiledPlan.ops.some((op) => op.op === 'RUN_MWS')).toBe(true)
+    expect(legacyError.code).toBe(compiledError.code)
+    expect(legacyError.chain.primary.message).toBe(
+      compiledError.chain.primary.message,
+    )
+    expect(legacySeen).toEqual([])
+    expect(compiledSeen).toEqual([])
+  })
+
+  it('preserves MultiWaySwitch accumulated combine parity', async () => {
+    __resetWarnOnceForTests()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const makePipeline = () =>
+      new Pipeline<{ total: number }>([
+        new MultiWaySwitch<{ total: number }, { value: number }>({
+          cases: [
+            {
+              evaluate: true,
+              split: (ctx) => ({ value: ctx.total + 1 }),
+              stage: async (ctx) => ({ value: ctx.value + 1 }),
+            },
+            {
+              evaluate: true,
+              split: (ctx) => ({ value: ctx.total + 10 }),
+              stage: async (ctx) => ({ value: ctx.value + 2 }),
+            },
+          ],
+          combine: (ctx, retCtx) => {
+            ctx.total += retCtx.value
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyPipeline = makePipeline()
+    const compiledPipeline = makePipeline()
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    try {
+      const legacyResult = await executeLegacyPipeline(legacyPipeline, { total: 1 })
+      const compiledResult = await executePlanPromise(compiledPlan, { total: 1 })
+
+      expectResultParity(legacyResult, compiledResult)
+      expect(compiledResult.total).toBe(17)
+      expect(warnSpy).toHaveBeenCalledTimes(1)
+    } finally {
+      warnSpy.mockRestore()
+      __resetWarnOnceForTests()
+    }
+  })
+
+  it('preserves MultiWaySwitch aggregated error parity', async () => {
+    const makePipeline = () =>
+      new Pipeline<{ total: number }>([
+        new MultiWaySwitch<{ total: number }, { value: number }>({
+          cases: [
+            {
+              evaluate: true,
+              split: (ctx) => ({ value: ctx.total + 1 }),
+              stage: async () => {
+                await wait(20)
+                throw new Error('mws-case-first-failed')
+              },
+            },
+            {
+              evaluate: true,
+              split: (ctx) => ({ value: ctx.total + 10 }),
+              stage: async () => {
+                await wait(1)
+                throw new Error('mws-case-second-failed')
+              },
+            },
+          ],
+          combine: (ctx, retCtx) => {
+            ctx.total += retCtx.value
+            return ctx
+          },
+        }) as any,
+      ])
+
+    const legacyPipeline = makePipeline()
+    const compiledPipeline = makePipeline()
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyError: any = await executeLegacyPipeline(legacyPipeline, {
+      total: 1,
+    }).catch((err) => err)
+    const compiledError: any = await executePlanPromise(compiledPlan, {
+      total: 1,
+    }).catch((err) => err)
+
+    expectErrorParity(legacyError, compiledError)
+
+    const legacySecondary = legacyError.chain.secondary ?? []
+    const compiledSecondary = compiledError.chain.secondary ?? []
+
+    expect(legacySecondary.length).toBe(compiledSecondary.length)
+    expect(legacyError.cause?.err?.cause?.index).toBe(
+      compiledError.cause?.err?.cause?.index,
+    )
+    expect(legacyError.cause?.err?.cause?.err?.message).toBe(
+      compiledError.cause?.err?.cause?.err?.message,
+    )
+    expect(legacySecondary[0]?.cause?.index).toBe(
+      compiledSecondary[0]?.cause?.index,
+    )
+    expect(legacySecondary[0]?.cause?.err?.message).toBe(
+      compiledSecondary[0]?.cause?.err?.message,
+    )
+  })
+
+  it('preserves MultiWaySwitch shared-context parity without split/combine', async () => {
+    const makePipeline = () =>
+      new Pipeline<{ hits: string[] }>([
+        new MultiWaySwitch<{ hits: string[] }, { hits: string[] }>({
+          cases: [
+            {
+              evaluate: true,
+              stage: async (ctx) => {
+                ctx.hits.push('a')
+                return ctx
+              },
+            },
+            {
+              evaluate: true,
+              stage: async (ctx) => {
+                ctx.hits.push('b')
+                return ctx
+              },
+            },
+          ],
+        }) as any,
+      ])
+
+    const legacyPipeline = makePipeline()
+    const compiledPipeline = makePipeline()
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyResult = await executeLegacyPipeline(legacyPipeline, { hits: [] })
+    const compiledResult = await executePlanPromise(compiledPlan, { hits: [] })
+
+    expectResultParity(legacyResult, compiledResult)
+    expect(compiledResult.hits.sort()).toEqual(['a', 'b'])
+  })
+
+  it('preserves MultiWaySwitch shared-context aggregated error parity', async () => {
+    const makePipeline = () =>
+      new Pipeline<{ hits: string[] }>([
+        new MultiWaySwitch<{ hits: string[] }, { hits: string[] }>({
+          cases: [
+            {
+              evaluate: true,
+              stage: async () => {
+                await wait(20)
+                throw new Error('mws-shared-first-failed')
+              },
+            },
+            {
+              evaluate: true,
+              stage: async () => {
+                await wait(1)
+                throw new Error('mws-shared-second-failed')
+              },
+            },
+          ],
+        }) as any,
+      ])
+
+    const legacyPipeline = makePipeline()
+    const compiledPipeline = makePipeline()
+    const compiledPlan = compilePipelinePlan(compiledPipeline as any)
+
+    const legacyError: any = await executeLegacyPipeline(legacyPipeline, {
+      hits: [],
+    }).catch((err) => err)
+    const compiledError: any = await executePlanPromise(compiledPlan, {
+      hits: [],
+    }).catch((err) => err)
+
+    expectErrorParity(legacyError, compiledError)
+
+    const legacySecondary = legacyError.chain.secondary ?? []
+    const compiledSecondary = compiledError.chain.secondary ?? []
+
+    expect(legacySecondary.length).toBe(compiledSecondary.length)
+    expect(legacyError.cause?.err?.cause?.index).toBe(
+      compiledError.cause?.err?.cause?.index,
+    )
+    expect(legacyError.cause?.err?.cause?.err?.message).toBe(
+      compiledError.cause?.err?.cause?.err?.message,
+    )
+    expect(legacySecondary[0]?.cause?.index).toBe(
+      compiledSecondary[0]?.cause?.index,
+    )
+    expect(legacySecondary[0]?.cause?.err?.message).toBe(
+      compiledSecondary[0]?.cause?.err?.message,
+    )
+  })
+
+  it('keeps MultiWaySwitch with boundary features on fallback path', async () => {
+    const root = new Pipeline<{ total: number }>([
+      new MultiWaySwitch<{ total: number }, { value: number }>({
+        ensure: (_ctx) => undefined,
+        cases: [
+          {
+            evaluate: true,
+            split: (ctx) => ({ value: ctx.total + 1 }),
+            stage: (ctx) => ({ value: ctx.value + 1 }),
+          },
+        ],
+        combine: (ctx, retCtx) => {
+          ctx.total += retCtx.value
+          return ctx
+        },
+      } as any) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+    const result = await executePlanPromise(plan, { total: 1 })
+
+    expect(dump).toContain('RUN_FALLBACK_STAGE')
+    expect(result.total).toBe(4)
+  })
+
+  it('devirtualizes plain Stage run-only instances into RUN_STAGE_FN', async () => {
+    const root = new Pipeline<{ n: number }>([
+      new Stage<{ n: number }>({
+        run: (ctx) => {
+          ctx.n += 1
+          return ctx
+        },
+      }) as any,
+      (ctx) => {
+        ctx.n += 10
+      },
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+    const legacyResult = await root.execute({ n: 0 })
+    const compiledResult = await executePlanPromise(plan, { n: 0 })
+
+    expect(dump).not.toContain('RUN_STAGE_INSTANCE')
+    expect((dump.match(/RUN_STAGE_FN/g) ?? [])).toHaveLength(2)
+    expectResultParity(legacyResult, compiledResult)
+  })
+
+  it('preserves inbound err parity for devirtualized plain Stage instances', async () => {
+    const injectedErr = new Error('forward-me')
+    const legacySeen: string[] = []
+    const compiledSeen: string[] = []
+
+    const makeStage = (seen: string[]) =>
+      new Stage<{ n: number }>({
+        run: (_ctx) => {
+          seen.push('ran')
+          return { n: 123 }
+        },
+      }) as any
+
+    const legacyStage = makeStage(legacySeen)
+    const compiledStage = makeStage(compiledSeen)
+
+    const compiledPlan = compilePipelinePlan(new Pipeline<{ n: number }>([
+      compiledStage,
+    ]) as any)
+
+    const legacyError: any = await (legacyStage as any)
+      .execute(injectedErr, { n: 0 })
+      .catch((err) => err)
+    const compiledError: any = await executePlanPromise(
+      compiledPlan,
+      { n: 0 },
+      injectedErr,
+    ).catch((err) => err)
+
+    expect(compiledPlan.mode).toBe('compiled-static')
+    expect(compiledPlan.ops.some((op) => op.op === 'RUN_STAGE_INSTANCE')).toBe(false)
+    expect(legacyError.code).toBe(compiledError.code)
+    expect(legacyError.chain.primary.message).toBe(compiledError.chain.primary.message)
+    expect(legacySeen).toEqual([])
+    expect(compiledSeen).toEqual([])
+  })
+
+  it('keeps plain Stage with boundary features on stage-instance path', async () => {
+    const root = new Pipeline<{ n: number }>([
+      new Stage<{ n: number }>({
+        validate: (ctx) => {
+          if (ctx.n < 0) {
+            throw new Error('invalid')
+          }
+
+          return true
+        },
+        run: (ctx) => {
+          ctx.n += 1
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+    const result = await executePlanPromise(plan, { n: 0 })
+
+    expect(dump).toContain('RUN_STAGE_INSTANCE')
+    expect(result.n).toBe(1)
+  })
+
+  it('compiles Empty stages as native no-ops without fallback ops', async () => {
+    const root = new Pipeline<{ n: number }>([
+      (ctx) => {
+        ctx.n += 1
+      },
+      new Empty<{ n: number }>({}) as any,
+      (ctx) => {
+        ctx.n += 10
+      },
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+    const result = await executePlanPromise(plan, { n: 0 })
+
+    expect(dump).not.toContain('RUN_FALLBACK_STAGE')
+    expect(dump).not.toContain('RUN_STAGE_INSTANCE')
+    expect((dump.match(/RUN_STAGE_FN/g) ?? [])).toHaveLength(2)
+    expect(result.n).toBe(11)
+  })
+
+  it('keeps Empty with boundary features on fallback path', async () => {
+    const root = new Pipeline<{ n: number }>([
+      (ctx) => {
+        ctx.n += 1
+      },
+      new Empty<{ n: number }>({
+        ensure: (_ctx) => undefined,
+      } as any) as any,
+      (ctx) => {
+        ctx.n += 10
+      },
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+    const result = await executePlanPromise(plan, { n: 0 })
+
+    expect(dump).toContain('RUN_FALLBACK_STAGE')
+    expect(result.n).toBe(11)
+  })
+
+  it('compile-native coverage audit: boundary-free built-ins avoid fallback paths', () => {
+    const root = new Pipeline<any>([
+      new IfElse<any>({
+        condition: (ctx) => ctx.flag,
+        success: (ctx) => ctx,
+        failed: (ctx) => ctx,
+      }) as any,
+      new Wrap<any, any>({
+        stage: (ctx) => ctx,
+        prepare: (ctx) => ctx,
+        finalize: (_ctx, retCtx) => retCtx,
+      }) as any,
+      new Sequential<any, any>({
+        split: () => [{ value: 1 }],
+        stage: (ctx) => ctx,
+        combine: (ctx) => ctx,
+      }) as any,
+      new Parallel<any, any>({
+        split: () => [{ value: 1 }],
+        stage: (ctx) => ctx,
+        combine: (ctx) => ctx,
+      }) as any,
+      new DoWhile<any, any>({
+        stage: (ctx) => ctx,
+        split: (ctx) => ctx,
+        reachEnd: (_err, _ctx, iter) => iter >= 0,
+      }) as any,
+      new RetryOnError<any>({
+        retry: 1,
+        stage: (ctx) => ctx,
+      }) as any,
+      new Timeout<any>({
+        timeout: 0,
+        stage: (ctx) => ctx,
+      }) as any,
+      new MultiWaySwitch<any, any>({
+        cases: [
+          {
+            evaluate: true,
+            stage: (ctx) => ctx,
+          },
+        ],
+        combine: (ctx) => ctx,
+      }) as any,
+      new Empty<any>({}) as any,
+      new Stage<any>({
+        run: (ctx) => ctx,
+      }) as any,
+      new Pipeline<any>([
+        (ctx) => ctx,
+      ]) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+
+    expect(dump).not.toContain('RUN_FALLBACK_STAGE')
+    expect(dump).not.toContain('RUN_STAGE_INSTANCE')
+    expect(dump).toContain('RUN_SEQUENTIAL')
+    expect(dump).toContain('RUN_PARALLEL')
+    expect(dump).toContain('RUN_MWS')
+    expect(dump).toContain('RUN_LOOP')
+    expect(dump).toContain('RUN_RETRY')
+    expect(dump).toContain('RUN_TIMEOUT')
+  })
+
+  it('compile-native coverage audit: boundary-bearing and custom stages stay on slower paths intentionally', () => {
+    class CustomStage extends Stage<any> {}
+
+    const root = new Pipeline<any>([
+      new IfElse<any>({
+        condition: true,
+        success: (ctx) => ctx,
+        ensure: (_ctx) => undefined,
+      }) as any,
+      new CustomStage({
+        run: (ctx) => ctx,
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const dump = planToString(plan)
+
+    expect(dump).toContain('RUN_STAGE_INSTANCE')
+    expect(dump).toContain('RUN_FALLBACK_STAGE')
+  })
+})
+
+describe('Sequential nested compiled child paths', () => {
+  it('compiles trivial nested Pipeline child into fused stage-fn sequence', () => {
+    const child = new Pipeline<{ n: number }>([
+      (ctx) => { ctx.n += 1 },
+      (ctx) => { ctx.n += 10 },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map(() => ({ n: 0 })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const sequentialData = plan.tables.constants.find((item: any) => item?.kind === 'SEQUENTIAL') as any
+
+    expect(plan.tables.subplans).toHaveLength(0)
+    expect(sequentialData?.fusedStageFnIds).toEqual([0, 1])
+    expect(sequentialData?.subplanId).toBeUndefined()
+    expect(sequentialData?.stageFnId).toBeUndefined()
+  })
+
+  it('compiles non-fusable nested Pipeline child into a direct subplan target', () => {
+    const child = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx, done) => {
+          done(undefined, ctx.n % 2 === 0)
+        },
+        success: (ctx) => {
+          ctx.n += 1
+          return ctx
+        },
+        failed: (ctx) => {
+          ctx.n += 2
+          return ctx
+        },
+      }) as any,
+      (ctx) => {
+        ctx.n += 10
+      },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map((value) => ({ n: value })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const sequentialData = plan.tables.constants.find((item: any) => item?.kind === 'SEQUENTIAL') as any
+
+    expect(plan.tables.subplans).toHaveLength(1)
+    expect(plan.tables.subplans[0]?.tables.predicateKinds[0]).toBe('GENERIC_CALLBACK')
+    expect(sequentialData?.fusedStageFnIds).toBeUndefined()
+    expect(sequentialData?.subplanId).toBe(0)
+    expect(sequentialData?.stageFnId).toBeUndefined()
+  })
+
+  it('routes nested MultiWaySwitch children through direct native runner dependencies', async () => {
+    const child = new MultiWaySwitch<{ n: number }, { value: number }>({
+      cases: [
+        {
+          evaluate: (ctx) => ctx.n >= 0,
+          split: (ctx) => ({ value: ctx.n + 1 }),
+          stage: async (ctx) => ({ value: ctx.value + 1 }),
+        },
+        {
+          evaluate: () => false,
+          stage: (ctx) => ({ value: ctx.n + 100 }),
+        },
+      ],
+      combine: (ctx, retCtx) => {
+        ctx.n += retCtx.value
+        return ctx
+      },
+    }) as any
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map((value) => ({ n: value })),
+        stage: child,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, childCtx) => sum + childCtx.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const sequentialData = plan.tables.constants.find((item: any) => item?.kind === 'SEQUENTIAL') as any
+    const result = await executePlanPromise(plan, {
+      items: [1, 2, 3],
+      total: 0,
+    })
+
+    expect(sequentialData?.subplanId).toBeUndefined()
+    expect(sequentialData?.stageFnId).toBeDefined()
+    expect(plan.dependencySignature).toContain('mws:')
+    expect(plan.dependencySignature).not.toContain('subplan:pipe:')
+    expect(result.total).toBe(18)
+  })
+
+  it('compiles frame-free tiny-branch nested Pipeline child into a fused stage-fn sequence', () => {
+    const child = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx) => ctx.n % 2 === 0,
+        success: (ctx) => {
+          ctx.n += 1
+          return ctx
+        },
+        failed: (ctx) => {
+          ctx.n += 2
+          return ctx
+        },
+      }) as any,
+      (ctx) => {
+        ctx.n += 10
+      },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map((value) => ({ n: value })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const sequentialData = plan.tables.constants.find((item: any) => item?.kind === 'SEQUENTIAL') as any
+
+    expect(plan.tables.subplans).toHaveLength(0)
+    expect(sequentialData?.fusedStageFnIds).toEqual([0, 1])
+    expect(sequentialData?.inlineControlPlan).toBeUndefined()
+    expect(sequentialData?.subplanId).toBeUndefined()
+    expect(sequentialData?.stageFnId).toBeUndefined()
+  })
+
+  it('success path: computes correct results through fused subplan', async () => {
+    const child = new Pipeline<{ n: number }>([
+      (ctx) => { ctx.n += 1 },
+      (ctx) => { ctx.n += 10 },
+      (ctx) => { ctx.n += 100 },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map(() => ({ n: 0 })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ items: [1, 2, 3], total: 0 })
+    const compiledResult = await executePlanPromise(plan, { items: [1, 2, 3], total: 0 })
+
+    // Each child should compute 0 + 1 + 10 + 100 = 111, three items → total = 333
+    expect(compiledResult.total).toBe(333)
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
+    )
+  })
+
+  it('success path: single item through fused subplan', async () => {
+    const child = new Pipeline<{ n: number }>([
+      (ctx) => { ctx.n += 5 },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map(() => ({ n: 0 })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ items: [1], total: 0 })
+    const compiledResult = await executePlanPromise(plan, { items: [1], total: 0 })
+
+    expect(compiledResult.total).toBe(5)
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
+    )
+  })
+
+  it('success path: empty items through fused subplan', async () => {
+    const child = new Pipeline<{ n: number }>([
+      (ctx) => { ctx.n += 1 },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map(() => ({ n: 0 })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ items: [], total: 0 })
+    const compiledResult = await executePlanPromise(plan, { items: [], total: 0 })
+
+    expect(compiledResult.total).toBe(0)
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
+    )
+  })
+
+  it('error propagation: inner stage throws synchronously', async () => {
+    const child = new Pipeline<{ n: number }>([
+      (ctx) => { ctx.n += 1 },
+      () => { throw new Error('inner-sync-error') },
+      (ctx) => { ctx.n += 100 },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map(() => ({ n: 0 })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+
+    let legacyError: Error | undefined
+    try {
+      await root.execute({ items: [1, 2], total: 0 })
+    } catch (err) {
+      legacyError = err as Error
+    }
+
+    let compiledError: Error | undefined
+    try {
+      await executePlanPromise(plan, { items: [1, 2], total: 0 })
+    } catch (err) {
+      compiledError = err as Error
+    }
+
+    expect(legacyError).toBeDefined()
+    expect(compiledError).toBeDefined()
+    // Both should produce a sequential iteration error
+    expect(compiledError!.message).toContain('sequential')
+  })
+
+  it('error propagation: inner stage rejects asynchronously', async () => {
+    const child = new Pipeline<{ n: number }>([
+      async (ctx) => {
+        ctx.n += 1
+        return ctx
+      },
+      async () => {
+        throw new Error('inner-async-error')
+      },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map(() => ({ n: 0 })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+
+    let legacyError: Error | undefined
+    try {
+      await root.execute({ items: [1], total: 0 })
+    } catch (err) {
+      legacyError = err as Error
+    }
+
+    let compiledError: Error | undefined
+    try {
+      await executePlanPromise(plan, { items: [1], total: 0 })
+    } catch (err) {
+      compiledError = err as Error
+    }
+
+    expect(legacyError).toBeDefined()
+    expect(compiledError).toBeDefined()
+    expect(compiledError!.message).toContain('sequential')
+  })
+
+  it('nested Pipeline child with many stages fuses correctly', async () => {
+    const child = new Pipeline<{ n: number }>()
+    for (let i = 0; i < 10; i++) {
+      child.addStage((ctx) => { ctx.n += 1 })
+    }
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map(() => ({ n: 0 })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ items: [1, 2, 3, 4, 5], total: 0 })
+    const compiledResult = await executePlanPromise(plan, { items: [1, 2, 3, 4, 5], total: 0 })
+
+    // 10 increments per child, 5 children → total = 50
+    expect(compiledResult.total).toBe(50)
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
+    )
+  })
+
+  it('nested Pipeline child with async stage fuses correctly', async () => {
+    const child = new Pipeline<{ n: number }>([
+      async (ctx) => {
+        ctx.n += 1
+        return ctx
+      },
+      (ctx) => { ctx.n += 10 },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map(() => ({ n: 0 })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ items: [1, 2], total: 0 })
+    const compiledResult = await executePlanPromise(plan, { items: [1, 2], total: 0 })
+
+    // Each child: 0 + 1 + 10 = 11, two items → 22
+    expect(compiledResult.total).toBe(22)
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
+    )
+  })
+
+  it('non-fusable nested Pipeline child executes correctly through subplan target', async () => {
+    const child = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx, done) => {
+          done(undefined, ctx.n % 2 === 0)
+        },
+        success: (ctx) => {
+          ctx.n += 1
+          return ctx
+        },
+        failed: (ctx) => {
+          ctx.n += 2
+          return ctx
+        },
+      }) as any,
+      (ctx) => {
+        ctx.n += 10
+        return ctx
+      },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map((value) => ({ n: value })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ items: [0, 1, 2], total: 0 })
+    const compiledResult = await executePlanPromise(plan, { items: [0, 1, 2], total: 0 })
+
+    expect(compiledResult.total).toBe(37)
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
+    )
+  })
+
+  it('frame-free branchy nested Pipeline child executes correctly through inline control-flow runner', async () => {
+    const child = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx) => ctx.n % 2 === 0,
+        success: (ctx) => {
+          ctx.n += 1
+          return ctx
+        },
+        failed: (ctx) => {
+          ctx.n += 2
+          return ctx
+        },
+      }) as any,
+      (ctx) => {
+        ctx.n += 10
+        return ctx
+      },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map((value) => ({ n: value })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ items: [0, 1, 2], total: 0 })
+    const compiledResult = await executePlanPromise(plan, { items: [0, 1, 2], total: 0 })
+
+    expect(compiledResult.total).toBe(37)
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
+    )
+  })
+
+  it('frame-free branchy nested Pipeline child handles async tail stages through inline control-flow runner', async () => {
+    const child = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx) => ctx.n % 2 === 0,
+        success: (ctx) => {
+          ctx.n += 1
+          return ctx
+        },
+        failed: (ctx) => {
+          ctx.n += 2
+          return ctx
+        },
+      }) as any,
+      async (ctx) => {
+        ctx.n += 10
+        return ctx
+      },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map((value) => ({ n: value })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+    const legacyResult = await root.execute({ items: [0, 1, 2], total: 0 })
+    const compiledResult = await executePlanPromise(plan, { items: [0, 1, 2], total: 0 })
+
+    expect(compiledResult.total).toBe(37)
+    expect(JSON.parse(JSON.stringify(compiledResult))).toEqual(
+      JSON.parse(JSON.stringify(legacyResult)),
+    )
+  })
+
+  it('frame-free branchy nested Pipeline child preserves wrapped sequential errors through inline control-flow runner', async () => {
+    const child = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx) => ctx.n === 0,
+        success: () => {
+          throw new Error('inline-ifelse-branch-error')
+        },
+        failed: (ctx) => ctx,
+      }) as any,
+      (ctx) => {
+        ctx.n += 10
+        return ctx
+      },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map((value) => ({ n: value })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+
+    let compiledError: Error | undefined
+    try {
+      await executePlanPromise(plan, { items: [0, 1], total: 0 })
+    } catch (err) {
+      compiledError = err as Error
+    }
+
+    expect(compiledError).toBeDefined()
+    expect(compiledError!.message).toContain('sequential')
+  })
+
+  it('non-fusable nested Pipeline child preserves wrapped sequential errors', async () => {
+    const child = new Pipeline<{ n: number }>([
+      new IfElse<{ n: number }>({
+        condition: (ctx, done) => {
+          done(undefined, ctx.n === 0)
+        },
+        success: () => {
+          throw new Error('ifelse-branch-error')
+        },
+        failed: (ctx) => ctx,
+      }) as any,
+      (ctx) => {
+        ctx.n += 10
+        return ctx
+      },
+    ])
+
+    const root = new Pipeline<{ items: number[]; total: number }>([
+      new Sequential<{ items: number[]; total: number }, { n: number }>({
+        split: (ctx) => ctx.items.map((value) => ({ n: value })),
+        stage: child as any,
+        combine: (ctx, children) => {
+          ctx.total = children.reduce((sum, c) => sum + c.n, 0)
+          return ctx
+        },
+      }) as any,
+    ])
+
+    const plan = compilePipelinePlan(root as any)
+
+    let compiledError: Error | undefined
+    try {
+      await executePlanPromise(plan, { items: [0, 1], total: 0 })
+    } catch (err) {
+      compiledError = err as Error
+    }
+
+    expect(compiledError).toBeDefined()
+    expect(compiledError!.message).toContain('sequential')
   })
 })

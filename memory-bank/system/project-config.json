@@ -1,0 +1,15 @@
+{
+  "sourceRoots": [
+    "src/",
+    "lib/"
+  ],
+  "excludePatterns": [
+    "node_modules",
+    "dist",
+    ".git",
+    "*.lock"
+  ],
+  "projectName": "pipeline.js_2_13",
+  "projectRoot": "/Users/vedmalex/work/pipeline.js_2_13",
+  "mbPlacement": "embedded"
+}
